@@ -27,6 +27,11 @@ var _failed := {}  # cell -> msec of last failure
 var _cache_checked := {}
 var _stale: Array = []  # cells served from an old cache entry, refreshed when idle
 var _failing := false
+# Counters for the on-screen loading details.
+var _from_cache := 0
+var _downloaded := 0
+var _failed_downloads := 0
+var _queued := 0
 
 
 func _init() -> void:
@@ -65,6 +70,7 @@ func request(wanted: Array) -> void:
 					group.append(s)
 					missing.erase(s)
 		_fetch(group, false)
+	_queued = missing.size()
 	if missing.is_empty() and _slots.has(false) and not _stale.is_empty():
 		_fetch([_stale.pop_front()], true)
 
@@ -87,6 +93,7 @@ func _load_cached(c: Vector2i) -> bool:
 	if not compact is Dictionary:
 		return false
 	graph.add_cell(c, compact)
+	_from_cache += 1
 	if DiskCache.is_stale(e["t"], int(Time.get_unix_time_from_system())):
 		_stale.append(c)
 	return true
@@ -108,6 +115,7 @@ func _fetch(group: Array, refresh: bool) -> void:
 			_in_flight.erase(c)
 		if not refresh:
 			_failing = true
+			_failed_downloads += 1
 			for c in group:
 				_failed[c] = Time.get_ticks_msec()
 		_busy -= 1
@@ -123,6 +131,7 @@ func _fetch(group: Array, refresh: bool) -> void:
 			cache.put(cache_name(c), var_to_bytes(builder.out[c]))
 		if not refresh:
 			g.add_cell(c, builder.out[c])
+			_downloaded += 1
 			_in_flight.erase(c)
 			await get_tree().process_frame  # one cell per frame
 	for c in group:
@@ -155,3 +164,30 @@ func reset_failures() -> void:
 
 func forget_cache_checks() -> void:
 	_cache_checked.clear()
+
+
+## Numbers for the on-screen loading details.
+func stats() -> Dictionary:
+	var downloading := _slots.count(true)
+	return {
+		"loaded": graph.cells.size() if graph else 0,
+		"from_cache": _from_cache, "downloaded": _downloaded,
+		"downloading": downloading, "unpacking": _busy - downloading,
+		"queued": _queued, "failed": _failed_downloads,
+	}
+
+
+## What a cell is waiting for, in plain words.
+func cell_state(c: Vector2i) -> String:
+	if graph and graph.cells.has(c):
+		return "loaded"
+	if _in_flight.has(c):
+		return "downloading"
+	if _failed.has(c):
+		var left: int = RETRY_MS - (Time.get_ticks_msec() - _failed[c])
+		if left > 0:
+			return "download failed, retry in %d s" % ceili(left / 1000.0)
+		return "queued for retry"
+	if _cache_checked.has(c):
+		return "queued for download"
+	return "not requested yet"

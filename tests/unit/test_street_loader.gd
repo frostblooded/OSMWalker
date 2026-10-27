@@ -94,3 +94,30 @@ func test_reset_failures_allows_an_immediate_retry() -> void:
 	loader.request([home])
 	await wait_until(func(): return loader.graph.cells.has(home), 1.0)
 	assert_false(loader.is_failing())
+
+
+func test_counts_cells_from_cache_and_downloads() -> void:
+	loader.request([home])
+	await wait_until(func(): return loader.graph.cells.has(home), 1.0)
+	assert_eq(loader.stats()["downloaded"], 1)
+	assert_eq(loader.stats()["from_cache"], 0)
+	var again := _new_loader(StreetGraph.new())
+	again.request([home])
+	assert_eq(again.stats()["from_cache"], 1)
+
+
+func test_explains_what_a_cell_is_waiting_for() -> void:
+	api.delay_frames = 30
+	assert_eq(loader.cell_state(home), "not requested yet")
+	loader.request([home])
+	assert_eq(loader.cell_state(home), "downloading")
+	await wait_until(func(): return loader.graph.cells.has(home), 2.0)
+	assert_eq(loader.cell_state(home), "loaded")
+
+
+func test_failed_cell_says_when_it_retries() -> void:
+	api.online = false
+	loader.request([home])
+	await wait_until(func(): return loader.is_failing(), 1.0)
+	assert_string_contains(loader.cell_state(home), "retry in")
+	assert_eq(loader.stats()["failed"], 1)

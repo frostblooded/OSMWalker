@@ -39,6 +39,11 @@ var player_zoom := 17  # the zoom the player picked; the map differs while catch
 var _catch_up_total_m := 0.0  # owed distance when the current catch-up began
 var _fast_forward_mps := 0.0  # > 0 while catching up
 var _save_timer := 0.0
+var _next_log_ms := 0
+var _real_mps := 0.0
+var _speed_m := 0.0
+var _speed_s := 0.0
+const LOG_EVERY_MS := 5000  # loading details also go to the browser console
 
 
 func _ready() -> void:
@@ -89,6 +94,8 @@ func _start_city(city_name: String, lat: float, lon: float) -> void:
 			hud.show_picker("Couldn't load streets. Check your connection and try again.")
 			return
 		loader.request(StreetGraph.cells_by_priority(lat, lon, STREET_RING))
+		hud.show_picker("Finding streets in %s…\n\n%s" % [city_name, Hud.detail_text(_server_details({
+			"doing": "waiting for the streets where he starts: " + loader.cell_state(home)}))])
 		await get_tree().process_frame
 	var start := w.graph.nearest_node(lat, lon)
 	if start == -1:
@@ -135,7 +142,9 @@ func _step(delta: float) -> void:
 	loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _heading()))
 	# He always walks what is loaded, even while more streets download.
 	var budget := minf(pending_m, _fast_forward_mps * delta) if is_catching_up() else pending_m
-	pending_m -= budget - walker.advance(budget)
+	var walked := budget - walker.advance(budget)
+	pending_m -= walked
+	_measure_speed(walked, delta)
 	if is_catching_up() and pending_m < 1.0:
 		_end_catch_up()
 
@@ -152,6 +161,16 @@ func _step(delta: float) -> void:
 	if _save_timer >= SAVE_EVERY_S:
 		_save_timer = 0.0
 		_save()
+
+
+## Meters per second he really covered over the last second, to compare with the target.
+func _measure_speed(walked: float, delta: float) -> void:
+	_speed_m += walked
+	_speed_s += delta
+	if _speed_s >= 1.0:
+		_real_mps = _speed_m / _speed_s
+		_speed_m = 0.0
+		_speed_s = 0.0
 
 
 func is_catching_up() -> bool:
@@ -183,15 +202,47 @@ func _heading() -> Vector2:
 
 func _show_status() -> void:
 	var catch_up := Hud.catch_up_text(pending_m) if is_catching_up() else ""
+	if catch_up == "" and not walker.needs_data():
+		hud.set_status("")
+		return
+	var details := Hud.detail_text(loading_details())
+	if OS.has_feature("web") and Time.get_ticks_msec() >= _next_log_ms:
+		_next_log_ms = Time.get_ticks_msec() + LOG_EVERY_MS
+		print("[loading] ", details.replace("\n", " | "))
 	if catch_up != "":
 		_catch_up_total_m = maxf(_catch_up_total_m, pending_m)
-		hud.set_status(catch_up, Hud.Bar.PROGRESS, Hud.catch_up_fraction(_catch_up_total_m, pending_m))
-	elif not walker.needs_data():
-		hud.set_status("")
+		hud.set_status(catch_up, Hud.Bar.PROGRESS, Hud.catch_up_fraction(_catch_up_total_m, pending_m), details)
 	elif loader.is_failing():
-		hud.set_status("Can't reach the map server. Retrying…")
+		hud.set_status("Can't reach the map server. Retrying…", Hud.Bar.NONE, 0.0, details)
 	else:
-		hud.set_status("Loading streets…", Hud.Bar.BUSY)
+		hud.set_status("Loading streets…", Hud.Bar.BUSY, 0.0, details)
+
+
+## Everything the loading details show: catch-up progress, what he is doing,
+## street and tile downloads, and the latest server answer and error.
+func loading_details() -> Dictionary:
+	var d := _server_details({"tiles": map.tile_stats(), "fps": Engine.get_frames_per_second(), "real_mps": _real_mps})
+	if is_catching_up():
+		d["total_m"] = maxf(_catch_up_total_m, pending_m)
+		d["pending_m"] = pending_m
+		d["speed_mps"] = _fast_forward_mps
+	if walker.needs_data():
+		var p: Array = walker.graph.nodes[walker.from_node]
+		d["doing"] = "waiting for streets here: " + loader.cell_state(StreetGraph.cell_of(p[0], p[1]))
+	elif is_catching_up():
+		d["doing"] = "fast-forwarding along " + (walker.street_name() if walker.street_name() != "" else "a street")
+	else:
+		d["doing"] = "walking"
+	return d
+
+
+## Adds street download numbers and the latest server answer and error to `d`.
+func _server_details(d: Dictionary) -> Dictionary:
+	d["streets"] = loader.stats()
+	d["last_ok"] = api.last_ok
+	if not api.last_error.is_empty():
+		d["last_error"] = api.last_error.merged({"ago_s": (Time.get_ticks_msec() - api.last_error["at_ms"]) / 1000})
+	return d
 
 
 func _notification(what: int) -> void:

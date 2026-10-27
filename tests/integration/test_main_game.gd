@@ -289,3 +289,45 @@ func _forget_streets(m: Main) -> void:
 	m.walker.to_node = -1
 	DiskCache.new(STREETS).clear()
 	m.loader.forget_cache_checks()
+
+
+func test_catch_up_says_when_he_waits_for_streets() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.delay_frames = 100000
+	_forget_streets(m)
+	m.last_tick -= 600.0
+	await wait_frames(3)
+	assert_true(m.is_catching_up())
+	assert_true(m.hud.detail_label.visible)
+	assert_string_contains(m.hud.detail_label.text, "waiting for streets")
+	assert_string_contains(m.hud.detail_label.text, "downloading")
+	assert_string_contains(m.hud.overlay_label.text, "Catching up")
+
+
+func test_loading_streets_shows_details() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.delay_frames = 100000
+	_forget_streets(m)
+	await wait_frames(3)
+	assert_eq(m.hud.overlay_label.text, "Loading streets…")
+	assert_string_contains(m.hud.detail_label.text, "Streets:")
+
+
+func test_no_details_while_walking_normally() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await wait_frames(3)
+	assert_false(m.hud.detail_label.visible)
+
+
+func test_finding_streets_for_a_new_city_shows_details() -> void:
+	api.delay_frames = 100000
+	var m := _new_main()
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0)
+	await wait_frames(3)
+	var text: String = m.hud._picker_status.text
+	assert_string_contains(text, "Finding streets in Testville")
+	assert_string_contains(text, "downloading")
+	assert_string_contains(text, "Streets:")
