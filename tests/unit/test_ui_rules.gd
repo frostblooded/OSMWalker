@@ -92,3 +92,42 @@ func test_catch_up_fraction() -> void:
 	assert_almost_eq(Hud.catch_up_fraction(1000.0, 1000.0), 0.0, 1e-6)
 	assert_almost_eq(Hud.catch_up_fraction(1000.0, 250.0), 0.75, 1e-6)
 	assert_almost_eq(Hud.catch_up_fraction(0.0, 0.0), 1.0, 1e-6)
+
+
+func test_detail_text_spells_out_catch_up_progress() -> void:
+	var t := Hud.detail_text({
+		"total_m": 288000.0, "pending_m": 144000.0, "speed_mps": 9600.0,
+		"doing": "waiting for streets here: downloading",
+		"streets": {"loaded": 40, "from_cache": 10, "downloaded": 30, "downloading": 3, "unpacking": 1, "failed": 2, "queued": 5},
+		"last_ok": {"host": "overpass-api.de", "bytes": 2500000, "ms": 8200},
+		"last_error": {"host": "maps.mail.ru", "error": "HTTP 429 (server busy)", "ago_s": 12},
+		"tiles": {"on_screen": 24, "loaded": 20, "downloading": 4, "queued": 2, "failed": 0},
+	})
+	assert_string_contains(t, "144.0 of 288.0 km")
+	assert_string_contains(t, "50%")
+	assert_string_contains(t, "9.6 km/s")
+	assert_string_contains(t, "2880x")
+	assert_string_contains(t, "15 s left")
+	assert_string_contains(t, "waiting for streets here: downloading")
+	assert_string_contains(t, "40 areas loaded (10 from cache, 30 downloaded)")
+	assert_string_contains(t, "3 downloading")
+	assert_string_contains(t, "overpass-api.de")
+	assert_string_contains(t, "2.4 MB in 8.2 s")
+	assert_string_contains(t, "HTTP 429 (server busy)")
+	assert_string_contains(t, "12 s ago")
+	assert_string_contains(t, "20 of 24 on screen")
+
+
+func test_detail_text_without_catch_up_skips_progress() -> void:
+	var t := Hud.detail_text({"doing": "walking", "streets": {}, "tiles": {}})
+	assert_false(t.contains("Caught up"))
+	assert_string_contains(t, "walking")
+
+
+func test_status_shows_detail_lines() -> void:
+	var hud: Hud = add_child_autofree(Hud.new())
+	hud.set_status("Loading streets…", Hud.Bar.BUSY, 0.0, "Now: waiting")
+	assert_true(hud.detail_label.visible)
+	assert_eq(hud.detail_label.text, "Now: waiting")
+	hud.set_status("")
+	assert_false(hud.detail_label.visible)

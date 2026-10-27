@@ -28,21 +28,60 @@ static func overpass_query(bbox: Array) -> String:
 ## A busy server gets this long before the next one is tried.
 const OVERPASS_TIMEOUT_S := 20.0
 
+## What happened to the latest requests, for the on-screen loading details.
+var last_ok := {}  # {host, bytes, ms, at_ms}
+var last_error := {}  # {host, error, at_ms}
+var active_requests := 0
+
+
+static func host_of(url: String) -> String:
+	return url.get_slice("://", 1).get_slice("/", 0)
+
+
+## A failed request in plain words.
+static func describe_failure(result: int, code: int) -> String:
+	if result == HTTPRequest.RESULT_SUCCESS:
+		match code:
+			429: return "HTTP 429 (server busy)"
+			504: return "HTTP 504 (server timed out)"
+			503: return "HTTP 503 (server overloaded)"
+		return "HTTP %d" % code
+	match result:
+		HTTPRequest.RESULT_TIMEOUT: return "no answer in time"
+		HTTPRequest.RESULT_CANT_CONNECT, HTTPRequest.RESULT_CANT_RESOLVE: return "can't connect"
+		HTTPRequest.RESULT_CONNECTION_ERROR: return "connection dropped"
+		HTTPRequest.RESULT_BODY_SIZE_LIMIT_EXCEEDED: return "answer too big"
+	return "request failed (code %d)" % result
+
+
+func _fail(url: String, error: String) -> void:
+	last_error = {"host": host_of(url), "error": error, "at_ms": Time.get_ticks_msec()}
+	push_warning("OSM request failed (%s): %s" % [error, url.left(120)])
+
 
 ## GETs `url` and returns parsed JSON, or null on any failure.
 func _get_json(url: String, timeout := 60.0) -> Variant:
 	var req := HTTPRequest.new()
 	req.timeout = timeout
 	add_child(req)
+	var started := Time.get_ticks_msec()
 	if req.request(url, headers()) != OK:
 		req.queue_free()
+		_fail(url, "couldn't start the request")
 		return null
+	active_requests += 1
 	var res: Array = await req.request_completed
+	active_requests -= 1
 	req.queue_free()
 	if res[0] != HTTPRequest.RESULT_SUCCESS or res[1] != 200:
-		push_warning("OSM request failed (%s, HTTP %s): %s" % [res[0], res[1], url.left(120)])
+		_fail(url, describe_failure(res[0], res[1]))
 		return null
-	return JSON.parse_string((res[3] as PackedByteArray).get_string_from_utf8())
+	var body: PackedByteArray = res[3]
+	last_ok = {"host": host_of(url), "bytes": body.size(), "ms": Time.get_ticks_msec() - started, "at_ms": Time.get_ticks_msec()}
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+	if parsed == null:
+		_fail(url, "answer was not valid JSON")
+	return parsed
 
 
 ## Walkable streets inside `bbox`, as Overpass JSON, or null. Servers are
@@ -52,6 +91,12 @@ func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 	for i in OVERPASS_URLS.size():
 		var url: String = OVERPASS_URLS[(first_server + i) % OVERPASS_URLS.size()]
 		var data: Variant = await _get_json(url + "?data=" + query, OVERPASS_TIMEOUT_S)
+		# Overpass answers 200 with a "remark" when the query died half way:
+		# that data is incomplete and must not be cached as a whole area.
+		var remark: String = data.get("remark", "") if data is Dictionary else ""
+		if "error" in remark.to_lower():
+			_fail(url, "server error: " + remark.left(80))
+			continue
 		if data is Dictionary:
 			return data
 	return null

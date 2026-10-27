@@ -46,3 +46,35 @@ func test_starts_at_the_requested_server() -> void:
 	var api: FlakyApi = autofree(FlakyApi.new())
 	await api.fetch_streets([1.0, 2.0, 3.0, 4.0], 1)
 	assert_true(api.asked[0].begins_with(OsmApi.OVERPASS_URLS[1]))
+
+
+func test_describes_failures_in_plain_words() -> void:
+	assert_eq(OsmApi.describe_failure(HTTPRequest.RESULT_SUCCESS, 429), "HTTP 429 (server busy)")
+	assert_eq(OsmApi.describe_failure(HTTPRequest.RESULT_SUCCESS, 504), "HTTP 504 (server timed out)")
+	assert_eq(OsmApi.describe_failure(HTTPRequest.RESULT_TIMEOUT, 0), "no answer in time")
+	assert_eq(OsmApi.describe_failure(HTTPRequest.RESULT_CANT_CONNECT, 0), "can't connect")
+
+
+## Answers 200 but with an Overpass runtime error, then a good answer.
+class RemarkApi:
+	extends "res://scripts/osm_api.gd"
+	var asked := 0
+
+	func _get_json(_url: String, _timeout := 60.0) -> Variant:
+		asked += 1
+		if asked == 1:
+			return {"elements": [], "remark": "runtime error: Query timed out in \"query\" at line 1 after 26 seconds."}
+		return {"elements": [{"type": "node", "id": 1, "lat": 1.0, "lon": 2.0}]}
+
+
+func test_overpass_runtime_error_counts_as_a_failure() -> void:
+	var api: RemarkApi = autofree(RemarkApi.new())
+	var data: Variant = await api.fetch_streets([1.0, 2.0, 3.0, 4.0])
+	assert_eq(api.asked, 2)
+	assert_eq((data["elements"] as Array).size(), 1)
+	assert_string_contains(api.last_error["error"], "Query timed out")
+	assert_eq(api.last_error["host"], OsmApi.host_of(OsmApi.OVERPASS_URLS[0]))
+
+
+func test_host_of_url() -> void:
+	assert_eq(OsmApi.host_of("https://overpass-api.de/api/interpreter?data=x"), "overpass-api.de")

@@ -36,6 +36,7 @@ var _decode: Array = []  # [key, png bytes] waiting to become textures
 var _active := 0
 var _failed := {}  # key -> msec of last failure, to back off instead of hammering
 var _last_sig := ""
+var _tile_failures := 0
 
 
 func _ready() -> void:
@@ -202,4 +203,18 @@ func _load_tile(key: String, z: int, x: int, y: int) -> void:
 			_decode.append([key, res[3]])
 	else:
 		_failed[key] = Time.get_ticks_msec()
+		_tile_failures += 1
 	_pump()
+
+
+## Numbers for the on-screen loading details (detailed tiles only, not the placeholder layer).
+func tile_stats() -> Dictionary:
+	var prefix := "%d/" % zoom
+	var on_screen := 0
+	var loaded := 0
+	for key in _sprites:
+		if key.begins_with(prefix):
+			on_screen += 1
+			if _sprites[key].texture:
+				loaded += 1
+	return {"on_screen": on_screen, "loaded": loaded, "downloading": _active, "queued": _jobs.size(), "failed": _tile_failures}

@@ -18,6 +18,7 @@ var street_label: Label
 var city_label: Label
 var overlay_label: Label
 var progress_bar: ProgressBar
+var detail_label: Label  # step-by-step loading details under the bar
 var _status_box: VBoxContainer
 var _game_ui: Control
 var _picker: Control
@@ -72,6 +73,12 @@ func _build_status() -> void:
 	progress_bar.add_theme_stylebox_override("fill", fill)
 	progress_bar.visible = false
 	_status_box.add_child(progress_bar)
+
+	detail_label = _label("", 22, HORIZONTAL_ALIGNMENT_LEFT)
+	detail_label.add_theme_color_override("font_outline_color", Color.WHITE)
+	detail_label.add_theme_constant_override("outline_size", 10)
+	detail_label.visible = false
+	_status_box.add_child(detail_label)
 
 
 func _label(text: String, size: int, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -240,6 +247,48 @@ static func catch_up_text(pending_m: float) -> String:
 	return "Catching up: %s walked while you were away…" % dist
 
 
+static func _dist(m: float) -> String:
+	return "%d m" % roundi(m) if m < 1000.0 else "%.1f km" % (m / 1000.0)
+
+
+static func _bytes(b: int) -> String:
+	if b < 1024 * 1024:
+		return "%d KB" % ceili(b / 1024.0)
+	return "%.1f MB" % (b / 1048576.0)
+
+
+## Every step of loading and catching up, one line each, so a stall can be
+## seen for what it is. `d` comes from main.gd's loading_details().
+static func detail_text(d: Dictionary) -> String:
+	var lines := []
+	if d.has("total_m"):
+		var total: float = d["total_m"]
+		var left: float = d["pending_m"]
+		var speed: float = d["speed_mps"]
+		var done := "%.1f of %.1f km" % [(total - left) / 1000.0, total / 1000.0] if total >= 1000.0 \
+				else "%d of %d m" % [roundi(total - left), roundi(total)]
+		lines.append("Caught up %s (%d%%)" % [done, roundi(100.0 * catch_up_fraction(total, left))])
+		lines.append("Speed %s/s (%dx normal), about %d s left" % [
+			_dist(speed), roundi(speed / (200.0 / 60.0)), ceili(left / maxf(speed, 0.001))])
+		lines.append("Really covered %s/s, %d fps" % [_dist(d.get("real_mps", 0.0)), d.get("fps", 0)])
+	lines.append("Now: " + str(d.get("doing", "")))
+	var st: Dictionary = d.get("streets", {})
+	lines.append("Streets: %d areas loaded (%d from cache, %d downloaded), %d downloading, %d unpacking, %d queued, %d failed" % [
+		st.get("loaded", 0), st.get("from_cache", 0), st.get("downloaded", 0), st.get("downloading", 0),
+		st.get("unpacking", 0), st.get("queued", 0), st.get("failed", 0)])
+	var ok: Dictionary = d.get("last_ok", {})
+	if not ok.is_empty():
+		lines.append("Last download: %s, %s in %.1f s" % [ok["host"], _bytes(ok["bytes"]), ok["ms"] / 1000.0])
+	var err: Dictionary = d.get("last_error", {})
+	if not err.is_empty():
+		lines.append("Last error: %s, %s, %d s ago" % [err["host"], err["error"], err["ago_s"]])
+	var t: Dictionary = d.get("tiles", {})
+	if d.has("tiles"):
+		lines.append("Map tiles: %d of %d on screen loaded, %d downloading, %d queued, %d failed" % [
+			t.get("loaded", 0), t.get("on_screen", 0), t.get("downloading", 0), t.get("queued", 0), t.get("failed", 0)])
+	return "\n".join(lines)
+
+
 ## How much of the owed distance has been walked, 0..1.
 static func catch_up_fraction(total_m: float, pending_m: float) -> float:
 	if total_m <= 0.0:
@@ -247,11 +296,14 @@ static func catch_up_fraction(total_m: float, pending_m: float) -> float:
 	return clampf(1.0 - pending_m / total_m, 0.0, 1.0)
 
 
-## Message over the map with an optional bar under it; empty text hides both.
-func set_status(text: String, bar := Bar.NONE, fraction := 0.0) -> void:
+## Message over the map with an optional bar and detail lines under it;
+## empty text hides all of them.
+func set_status(text: String, bar := Bar.NONE, fraction := 0.0, detail := "") -> void:
 	var shown := text != ""
 	overlay_label.text = text
 	overlay_label.visible = shown
+	detail_label.text = detail
+	detail_label.visible = shown and detail != ""
 	_status_box.visible = shown
 	progress_bar.visible = shown and bar != Bar.NONE
 	progress_bar.indeterminate = bar == Bar.BUSY
