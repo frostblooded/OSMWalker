@@ -10,6 +10,7 @@ const MAX_CACHED := 200
 const RETRY_MS := 10000
 
 var zoom := 17
+var offline := false  # draw nothing, request nothing (tests)
 var origin_lat := 0.0
 var origin_lon := 0.0
 var _tiles := {}  # "z/x/y" -> Sprite2D (placeholder until its texture arrives)
@@ -44,6 +45,8 @@ func geo_to_local(lat: float, lon: float) -> Vector2:
 
 ## Requests every tile that overlaps `view` (a rect in local coordinates).
 func show_area(view: Rect2) -> void:
+	if offline:
+		return
 	var ox := Geo.lon_to_px(origin_lon, zoom)
 	var oy := Geo.lat_to_px(origin_lat, zoom)
 	var n := 1 << zoom

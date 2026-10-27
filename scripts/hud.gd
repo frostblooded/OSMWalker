@@ -23,6 +23,8 @@ var _picker_status: Label
 var _confirm: Control
 var _confirm_box: LineEdit
 var _confirm_yes: Button
+var _reset_button: Button
+var _zoom_in: Button
 
 
 func _ready() -> void:
@@ -92,6 +94,8 @@ func _build_game_ui() -> void:
 		var b := _button("+" if step > 0 else "−", BIG)
 		b.add_theme_font_size_override("font_size", 64)
 		b.pressed.connect(func(): zoom_changed.emit(step))
+		if step > 0:
+			_zoom_in = b
 		zoom_col.add_child(b)
 	_game_ui.add_child(zoom_col)
 
@@ -101,6 +105,7 @@ func _build_game_ui() -> void:
 	reset.offset_bottom = -90
 	reset.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	reset.pressed.connect(_open_confirm)
+	_reset_button = reset
 	_game_ui.add_child(reset)
 
 	# Required by the OSM tile usage policy.
@@ -178,6 +183,7 @@ func _build_confirm() -> void:
 	var keep := _button("Keep walking")
 	keep.pressed.connect(func(): _confirm.visible = false)
 	_confirm_yes = _button("Start over")
+	_confirm_yes.disabled = true
 	_confirm_yes.add_theme_color_override("font_color", Color("#c0392b"))
 	_confirm_yes.pressed.connect(func():
 		_confirm.visible = false
@@ -238,3 +244,25 @@ func show_game(city: String) -> void:
 
 func set_street(street: String) -> void:
 	street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
+
+
+func is_confirm_open() -> bool:
+	return _confirm.visible
+
+
+func is_confirm_enabled() -> bool:
+	return not _confirm_yes.disabled
+
+
+## Controls the e2e test taps, by name.
+func debug_controls() -> Dictionary:
+	var first_result: Control = null
+	for c in _results.get_children():
+		if not c.is_queued_for_deletion():
+			first_result = c as Control
+			break
+	return {
+		"search_box": _search_box, "search_button": _search_button, "result0": first_result,
+		"new_city": _reset_button, "zoom_in": _zoom_in,
+		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
+	}

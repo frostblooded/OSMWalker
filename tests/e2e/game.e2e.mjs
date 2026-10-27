@@ -1,0 +1,137 @@
+// Browser e2e: plays the exported web build with touch taps and a mocked OSM backend.
+// Usage: node tests/e2e/game.e2e.mjs <url> [screenshot-dir]
+// E2E_CHANNEL=chrome uses the runner's installed Chrome instead of Playwright's Chromium.
+import { chromium } from "playwright";
+import assert from "node:assert/strict";
+import { mkdirSync } from "node:fs";
+
+const url = process.argv[2] ?? "http://localhost:8080/index.html";
+const shots = process.argv[3] ?? "e2e-screenshots";
+mkdirSync(shots, { recursive: true });
+
+// 5x5 street grid around (42.0, 23.0), ~110 m blocks, all named.
+function overpassGrid() {
+  const elements = [];
+  const id = (r, c) => 1 + r * 5 + c;
+  for (let r = 0; r < 5; r++)
+    for (let c = 0; c < 5; c++)
+      elements.push({ type: "node", id: id(r, c), lat: 41.998 + r * 0.001, lon: 22.9973 + c * 0.00135 });
+  for (let r = 0; r < 5; r++)
+    elements.push({ type: "way", id: 100 + r, nodes: [0, 1, 2, 3, 4].map((c) => id(r, c)), tags: { highway: "residential", name: `Row ${r} Street` } });
+  for (let c = 0; c < 5; c++)
+    elements.push({ type: "way", id: 200 + c, nodes: [0, 1, 2, 3, 4].map((r) => id(r, c)), tags: { highway: "residential", name: `Column ${c} Avenue` } });
+  return { elements };
+}
+const PNG_1PX = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "base64");
+const cors = { "Access-Control-Allow-Origin": "*" };
+
+const browser = await chromium.launch({
+  channel: process.env.E2E_CHANNEL || undefined,
+  args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+});
+const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+const requests = { search: 0, streets: 0, tiles: 0 };
+await context.route(/nominatim\.openstreetmap\.org/, (r) => {
+  requests.search++;
+  r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0" }], headers: cors });
+});
+await context.route(/overpass-api\.de/, (r) => {
+  requests.streets++;
+  r.fulfill({ json: overpassGrid(), headers: cors });
+});
+await context.route(/tile\.openstreetmap\.org/, (r) => {
+  requests.tiles++;
+  r.fulfill({ body: PNG_1PX, contentType: "image/png", headers: cors });
+});
+
+const page = await context.newPage();
+const errors = [];
+page.on("console", (m) => {
+  const t = m.text();
+  if (/SCRIPT ERROR|Parse Error|^ERROR:/.test(t)) errors.push(t);
+});
+page.on("pageerror", (e) => errors.push(e.message));
+
+const state = () => page.evaluate(() => window.osmwalkerState ?? null);
+async function until(pred, what, timeout = 20000) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
+    const s = await state();
+    if (s && pred(s)) return s;
+    await page.waitForTimeout(100);
+  }
+  await page.screenshot({ path: `${shots}/timeout.png` });
+  throw new Error(`Timed out waiting for ${what}. Last state: ${JSON.stringify(await state())}`);
+}
+async function tap(name) {
+  const s = await until((s) => s.rects[name], `${name} on screen`);
+  const dpr = await page.evaluate(() => window.devicePixelRatio);
+  const [x, y, w, h] = s.rects[name].map((v) => v / dpr);
+  await page.touchscreen.tap(x + w / 2, y + h / 2);
+  return { w, h };
+}
+
+let step = "load";
+try {
+  await page.goto(url);
+  await until((s) => s.screen === "picker", "city picker");
+  await page.screenshot({ path: `${shots}/1-picker.png` });
+
+  step = "touch targets";
+  const s0 = await state();
+  for (const name of ["search_box", "search_button"]) {
+    const h = s0.rects[name][3] / (await page.evaluate(() => window.devicePixelRatio));
+    assert.ok(h >= 44, `${name} is ${h}px tall, under the 44px touch minimum`);
+  }
+
+  step = "search a city";
+  await tap("search_box");
+  await page.keyboard.type("Testville");
+  await tap("search_button");
+  await until((s) => s.rects.result0, "search results");
+  assert.equal(requests.search, 1);
+  await tap("result0");
+  const game = await until((s) => s.screen === "game", "game screen");
+  assert.equal(game.city, "Testville");
+  assert.ok(requests.streets >= 1, "streets were requested");
+  await page.screenshot({ path: `${shots}/2-game.png` });
+
+  step = "walks";
+  const before = (await state()).total_m;
+  await page.waitForTimeout(3000);
+  const after = await state();
+  assert.ok(after.total_m - before > 5, `walked only ${after.total_m - before} m in 3 s`);
+  assert.match(after.street, /Walking along (Row|Column) \d/);
+  assert.ok(requests.tiles > 0, "map tiles were requested");
+
+  step = "survives reload";
+  await page.waitForTimeout(1000);
+  await page.reload();
+  const resumed = await until((s) => s.screen === "game", "game after reload");
+  assert.equal(resumed.city, "Testville");
+  assert.ok(resumed.total_m >= after.total_m, "kept the distance walked");
+
+  step = "reset needs RESET";
+  await tap("new_city");
+  await until((s) => s.confirm_visible, "reset dialog");
+  await tap("confirm_box");
+  await page.keyboard.type("reset");
+  await page.waitForTimeout(300);
+  assert.equal((await state()).confirm_enabled, false, "lowercase reset must not unlock");
+  for (let i = 0; i < 5; i++) await page.keyboard.press("Backspace");
+  await page.keyboard.type("RESET");
+  await until((s) => s.confirm_enabled, "Start over unlocked");
+  await page.screenshot({ path: `${shots}/3-confirm.png` });
+  await tap("confirm_yes");
+  await until((s) => s.screen === "picker", "picker after reset");
+
+  assert.deepEqual(errors, [], "no script errors");
+  console.log("E2E passed.");
+} catch (e) {
+  console.error(`E2E failed at step "${step}":`, e.message);
+  if (errors.length) console.error("Script errors:\n" + errors.join("\n"));
+  await page.screenshot({ path: `${shots}/failure.png` }).catch(() => {});
+  process.exitCode = 1;
+} finally {
+  await browser.close();
+}

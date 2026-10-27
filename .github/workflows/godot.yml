@@ -13,75 +13,72 @@ concurrency:
   group: godot-${{ github.ref }}
   cancel-in-progress: true
 
+# tests and web-build run in parallel; e2e plays the web build in a browser;
+# master pushes deploy the same build to GitHub Pages once everything passes.
 jobs:
-  test:
-    name: GUT tests
+  tests:
+    name: Unit + integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Godot
-        run: |
-          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q godot.zip
-          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
-      - name: Import project
-        run: godot --headless --import
-      - name: Run tests
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+      - name: Run GUT
         run: godot --headless -s addons/gut/gut_cmdln.gd -gexit
 
-  web:
-    name: Web export + smoke test
-    needs: test
+  web-build:
+    name: Web export
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache export templates
-        id: templates
-        uses: actions/cache@v4
+      - uses: ./.github/actions/setup-godot
         with:
-          path: ~/.local/share/godot/export_templates
-          key: godot-web-templates-${{ env.GODOT_VERSION }}
-      - name: Install Godot
-        run: |
-          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q godot.zip
-          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
-      - name: Install web export templates
-        if: steps.templates.outputs.cache-hit != 'true'
-        run: |
-          curl -sSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          dir=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          mkdir -p "$dir"
-          unzip -q -j templates.tpz 'templates/web_*' 'templates/version.txt' -d "$dir"
-          ls -la "$dir"
+          version: ${{ env.GODOT_VERSION }}
+          web-templates: "true"
       - name: Export
         run: |
           mkdir -p build/web
-          godot --headless --import
           godot --headless --export-release "Web" build/web/index.html
-          ls -la build/web
           test -f build/web/index.pck
-      - name: Smoke test in headless Chromium
-        run: |
-          npm install --no-save playwright@1.48.2
-          npx playwright install --with-deps chromium
-          (cd build/web && python3 -m http.server 8080 >/dev/null 2>&1 &)
-          sleep 2
-          node tools/smoke_test_web.mjs http://localhost:8080/index.html smoke.png
+          ls -la build/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 7
+
+  e2e:
+    name: Browser e2e
+    needs: web-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: Install Playwright (uses the runner's Chrome, no browser download)
+        run: npm ci --prefix tests/e2e
+      - name: Play the game
+        env:
+          E2E_CHANNEL: chrome
+        run: tests/e2e/run.sh e2e-screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: web-smoke-screenshot
-          path: smoke.png
+          name: e2e-screenshots
+          path: e2e-screenshots
           if-no-files-found: ignore
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        with:
-          path: build/web
 
   deploy:
     name: Deploy to GitHub Pages
-    needs: web
+    needs: [tests, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
@@ -91,5 +88,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
       - id: deployment
         uses: actions/deploy-pages@v4

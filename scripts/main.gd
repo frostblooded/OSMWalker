@@ -15,7 +15,9 @@ const FETCH_RETRY_MS := 15000
 const SAVE_EVERY_S := 5.0
 const CATCH_UP_NOTICE_M := 30.0
 
-var api: OsmApi
+var api: OsmApi  # set before adding to the tree to swap in a fake (tests)
+var save_path := SAVE_PATH
+var offline_tiles := false  # tests skip tile downloads
 var map: MapView
 var character: Character
 var camera: Camera2D
@@ -31,9 +33,11 @@ var _save_timer := 0.0
 
 
 func _ready() -> void:
-	api = OsmApi.new()
+	if api == null:
+		api = OsmApi.new()
 	add_child(api)
 	map = MapView.new()
+	map.offline = offline_tiles
 	add_child(map)
 	character = Character.new()
 	add_child(character)
@@ -47,7 +51,7 @@ func _ready() -> void:
 	hud.reset_confirmed.connect(_reset)
 	if not _load():
 		hud.show_picker()
-	print("OSM Walker ready")  # the web smoke test waits for this line
+	print("OSM Walker ready")
 
 
 func _on_search(text: String) -> void:
@@ -72,11 +76,12 @@ func _start_city(city_name: String, lat: float, lon: float) -> void:
 	map.set_origin(lat, lon)
 	hud.show_game(city)
 	_save()
+	print("Started walking in ", city)
 
 
 func _reset() -> void:
 	walker = null
-	DirAccess.remove_absolute(SAVE_PATH)
+	DirAccess.remove_absolute(save_path)
 	map.clear()
 	hud.show_picker()
 
@@ -94,6 +99,8 @@ func _download_around(w: Walker, lat: float, lon: float) -> bool:
 
 
 func _process(delta: float) -> void:
+	if OS.has_feature("web"):
+		_publish_state()
 	if walker == null:
 		return
 	# Wall-clock time, so minutes in the background or with the app closed count too.
@@ -132,7 +139,7 @@ func _notification(what: int) -> void:
 func _save() -> void:
 	if walker == null:
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(save_path, FileAccess.WRITE)
 	if f == null:
 		return
 	f.store_string(JSON.stringify({
@@ -144,9 +151,9 @@ func _save() -> void:
 
 
 func _load() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		return false
-	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not d is Dictionary or not d.has("walker"):
 		return false
 	walker = Walker.new()
@@ -160,3 +167,31 @@ func _load() -> bool:
 	map.set_origin(d["origin"][0], d["origin"][1])
 	hud.show_game(city)
 	return true
+
+
+## Snapshot of what is on screen, for the browser e2e test. Rects are in
+## window pixels; the test divides by devicePixelRatio to get CSS pixels.
+func debug_state() -> Dictionary:
+	var xf := get_viewport().get_final_transform()
+	var rects := {}
+	var controls := hud.debug_controls()
+	for key in controls:
+		var c: Control = controls[key]
+		if c and c.is_visible_in_tree():
+			var r := c.get_global_rect()
+			var pos := xf * r.position
+			var size := r.size * xf.get_scale()
+			rects[key] = [pos.x, pos.y, size.x, size.y]
+	return {
+		"screen": "game" if walker else "picker",
+		"city": city,
+		"street": hud.street_label.text,
+		"total_m": walker.total_m if walker else 0.0,
+		"confirm_visible": hud.is_confirm_open(),
+		"confirm_enabled": hud.is_confirm_enabled(),
+		"rects": rects,
+	}
+
+
+func _publish_state() -> void:
+	JavaScriptBridge.eval("window.osmwalkerState = %s;" % JSON.stringify(debug_state()), true)

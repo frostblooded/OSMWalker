@@ -2,7 +2,7 @@ extends GutTest
 
 const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
-const Fixture := preload("res://tests/unit/osm_fixture.gd")
+const Fixture := preload("res://tests/support/osm_fixture.gd")
 
 var graph: StreetGraph
 var walker: Walker
