@@ -1,21 +1,28 @@
 name: Overpass probe
 on: push
+permissions:
+  contents: write
 jobs:
   probe:
     if: github.ref == 'refs/heads/claude/project-thread-vwz8im'
     runs-on: ubuntu-latest
     steps:
-      - name: Time the game's street query on each server
+      - uses: actions/checkout@v4
+      - name: Fetch OpenFreeMap fixtures for Sofia
         run: |
-          Q='[out:json][timeout:25];way["highway"~"^(primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway)$"](42.682435,23.312988,42.690511,23.323975);out body;node(w);out skel qt;'
-          Q2='[out:json][timeout:25];way[highway](42.682435,23.312988,42.690511,23.323975);out body;node(w);out skel qt;'
-          for round in 1; do
-          for u in https://maps.mail.ru/osm/tools/overpass/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.osm.jp/api/interpreter; do
-            curl -s -o out.json -w "regex $u %{http_code} %{size_download}B %{time_total}s\n" -m 60 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q" "$u" || true; head -c 300 out.json | tr '\n' ' '; echo
-            curl -s -o out.json -w "plain $u %{http_code} %{size_download}B %{time_total}s\n" -m 60 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q2" "$u" || true; head -c 200 out.json | tr '\n' ' '; echo
+          set -x
+          mkdir -p tests/fixtures/ofm
+          curl -sSD - -o tests/fixtures/ofm/tilejson.json https://tiles.openfreemap.org/planet
+          T=$(python3 -c "import json;print(json.load(open('tests/fixtures/ofm/tilejson.json'))['tiles'][0])")
+          for xy in 9253/6039 9254/6039; do
+            u=$(echo "$T" | sed "s#{z}/{x}/{y}#14/$xy#")
+            f=tests/fixtures/ofm/14_$(echo $xy | tr / _).pbf
+            curl -sS -D - -o "$f" "$u"
+            curl -sS -D - -o /dev/null -H "Accept-Encoding: gzip" "$u"
+            file "$f"; ls -l "$f"
           done
-          curl -s -m 20 https://overpass-api.de/api/status || true
-          done
-      - name: OpenFreeMap vector tile for the same spot
-        run: |
-          curl -s -m 20 https://tiles.openfreemap.org/planet | head -c 600; echo
+          if git status --porcelain | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+            git add tests/fixtures/ofm && git commit -m "Add OpenFreeMap Sofia fixtures" && git push
+          fi
