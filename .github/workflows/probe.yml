@@ -9,10 +9,10 @@ jobs:
         run: |
           Q='[out:json][timeout:25];way["highway"~"^(primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway)$"](42.682435,23.312988,42.690511,23.323975);out body;node(w);out skel qt;'
           Q2='[out:json][timeout:25];way[highway](42.682435,23.312988,42.690511,23.323975);out body;node(w);out skel qt;'
-          for round in 1 2; do
-          for u in https://overpass-api.de/api/interpreter https://overpass.private.coffee/api/interpreter https://maps.mail.ru/osm/tools/overpass/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.osm.jp/api/interpreter; do
-            curl -s -o out.json -w "regex $u %{http_code} %{size_download}B %{time_total}s\n" -m 90 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q" "$u"; head -c 300 out.json | tr '\n' ' '; echo
-            curl -s -o out.json -w "plain $u %{http_code} %{size_download}B %{time_total}s\n" -m 90 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q2" "$u"; head -c 200 out.json | tr '\n' ' '; echo
+          for round in 1; do
+          for u in https://maps.mail.ru/osm/tools/overpass/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.osm.jp/api/interpreter; do
+            curl -s -o out.json -w "regex $u %{http_code} %{size_download}B %{time_total}s\n" -m 60 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q" "$u" || true; head -c 300 out.json | tr '\n' ' '; echo
+            curl -s -o out.json -w "plain $u %{http_code} %{size_download}B %{time_total}s\n" -m 60 -A "OSMWalker/0.1 probe" --get --data-urlencode "data=$Q2" "$u" || true; head -c 200 out.json | tr '\n' ' '; echo
           done
           curl -s -m 20 https://overpass-api.de/api/status || true
           done
