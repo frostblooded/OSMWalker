@@ -13,7 +13,10 @@ const SAVE_PATH := "user://save.json"
 const FETCH_RADIUS_M := 800.0
 const FETCH_RETRY_MS := 15000
 const SAVE_EVERY_S := 5.0
-const CATCH_UP_NOTICE_M := 30.0
+## Fetch more streets once he is this close to the edge of what is loaded,
+## so he never has to stop and wait for them.
+const PREFETCH_MARGIN_M := 400.0
+const STALL_M := 30.0
 
 var api: OsmApi  # set before adding to the tree to swap in a fake (tests)
 var save_path := SAVE_PATH
@@ -28,6 +31,7 @@ var city := ""
 var last_tick := 0.0  # unix time the walk was last advanced to
 var pending_m := 0.0  # meters owed to the walk but not walked yet
 var _fetching := false
+var _fetch_failed := false
 var _next_fetch_ms := 0
 var _save_timer := 0.0
 
@@ -83,6 +87,7 @@ func _reset() -> void:
 	walker = null
 	DirAccess.remove_absolute(save_path)
 	map.clear()
+	hud.set_status("")
 	hud.show_picker()
 
 
@@ -91,6 +96,7 @@ func _download_around(w: Walker, lat: float, lon: float) -> bool:
 	var bbox := Geo.bbox_around(lat, lon, FETCH_RADIUS_M)
 	var data: Variant = await api.fetch_streets(bbox)
 	_fetching = false
+	_fetch_failed = not data is Dictionary
 	if data is Dictionary:
 		w.graph.add_overpass(data, bbox)
 		return true
@@ -113,21 +119,22 @@ func _step(delta: float) -> void:
 	last_tick = now
 	if not _fetching:
 		pending_m = walker.advance(pending_m)
-		if pending_m > 0.0 and Time.get_ticks_msec() >= _next_fetch_ms:
-			var here := walker.position()
+		var here := walker.position()
+		var near_edge := not walker.graph.covers(here[0], here[1], PREFETCH_MARGIN_M)
+		if (pending_m > 0.0 or near_edge) and Time.get_ticks_msec() >= _next_fetch_ms:
 			_download_around(walker, here[0], here[1])
 
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
-	character.walking = pending_m < CATCH_UP_NOTICE_M
+	character.walking = pending_m < STALL_M
 	camera.position = character.position
 	var view_size := get_viewport_rect().size
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size))
 	hud.set_street(walker.street_name())
-	if pending_m >= CATCH_UP_NOTICE_M:
-		hud.overlay_label.text = "Catching up: %.1f km walked while you were away…" % (pending_m / 1000.0)
-	else:
-		hud.overlay_label.text = ""
+	var status := Hud.catch_up_text(pending_m)
+	if status == "" and walker.needs_data():
+		status = "Loading streets…" if _fetching or not _fetch_failed else "Can't reach the map server. Retrying…"
+	hud.set_status(status)
 
 	_save_timer += delta
 	if _save_timer >= SAVE_EVERY_S:

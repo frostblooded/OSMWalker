@@ -4,13 +4,15 @@ extends "res://scripts/osm_api.gd"
 const Fixture := preload("res://tests/support/osm_fixture.gd")
 
 var online := true
+var delay_frames := 1
 var street_requests: Array = []  # bboxes asked for
 var searches: Array = []
 
 
 func fetch_streets(bbox: Array) -> Variant:
 	street_requests.append(bbox)
-	await get_tree().process_frame
+	for i in delay_frames:
+		await get_tree().process_frame
 	return Fixture.data() if online else null
 
 

@@ -51,3 +51,10 @@ func test_nearest_node() -> void:
 
 func test_nearest_node_on_empty_graph() -> void:
 	assert_eq(StreetGraph.new().nearest_node(42.0, 23.0), -1)
+
+
+func test_covers_checks_distance_to_loaded_edge() -> void:
+	# Fixture box is ~1.1 km each way from (42.0, 23.0).
+	assert_true(graph.covers(42.0, 23.0, 500.0))
+	assert_false(graph.covers(42.0, 23.0, 1500.0))
+	assert_false(graph.covers(43.0, 23.0, 0.0))

@@ -32,9 +32,10 @@ func _ready() -> void:
 	_build_picker()
 	_build_confirm()
 	overlay_label = _label("", 30, HORIZONTAL_ALIGNMENT_CENTER)
-	overlay_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	# Full width: an autowrapping label with no width wraps after every letter.
+	overlay_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 32)
 	overlay_label.offset_top = 240
-	overlay_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	overlay_label.visible = false
 	overlay_label.add_theme_color_override("font_outline_color", Color.WHITE)
 	overlay_label.add_theme_constant_override("outline_size", 12)
 	add_child(overlay_label)
@@ -192,6 +193,24 @@ func _build_confirm() -> void:
 	col.add_child(_confirm_yes)
 	box.add_child(col)
 	_confirm.add_child(box)
+
+
+## Owed distance only counts as "catching up" past a minute of walking;
+## shorter waits are just streets loading.
+const CATCH_UP_MIN_M := 200.0
+
+
+static func catch_up_text(pending_m: float) -> String:
+	if pending_m < CATCH_UP_MIN_M:
+		return ""
+	var dist := "%d m" % roundi(pending_m) if pending_m < 1000.0 else "%.1f km" % (pending_m / 1000.0)
+	return "Catching up: %s walked while you were away…" % dist
+
+
+## Message over the map; empty hides it.
+func set_status(text: String) -> void:
+	overlay_label.text = text
+	overlay_label.visible = text != ""
 
 
 ## The reset only unlocks once the player has typed the word exactly.
