@@ -1,6 +1,6 @@
 ## Keeps the street graph filled around the walker: disk cache first, then
-## Overpass. Nearest cells go first, a few downloads run at once on different
-## servers, and neighbouring cells share one query.
+## OpenFreeMap vector tiles, then Overpass if a tile fails. Nearest cells go
+## first, a few downloads run at once, and the 4 cells of a tile come together.
 extends Node
 
 const StreetGraph := preload("res://scripts/street_graph.gd")
@@ -40,7 +40,8 @@ func _init() -> void:
 
 
 static func cache_name(cell: Vector2i) -> String:
-	return "%d_%d_%d.bin" % [StreetGraph.CELL_ZOOM, cell.x, cell.y]
+	# "v2": node ids changed with the switch to tiles, so older files don't join up.
+	return "v2_%d_%d_%d.bin" % [StreetGraph.CELL_ZOOM, cell.x, cell.y]
 
 
 ## Makes sure `wanted` (most urgent first) gets loaded. Call every frame.
@@ -60,9 +61,36 @@ func request(wanted: Array) -> void:
 		if _failed.has(c) and now - _failed[c] < RETRY_MS:
 			continue
 		missing.append(c)
-	# His own cell (wanted[0]) goes alone, as the smallest and quickest query,
-	# and may use the slot the others leave free for it.
-	if not missing.is_empty() and missing[0] == wanted[0] and _slots.has(false):
+	var his: Vector2i = wanted[0] if not wanted.is_empty() else Vector2i(-1, -1)
+	if api.use_tiles and not api.tiles_resting():
+		_request_tiles(missing, his)
+	else:
+		_request_overpass(missing, his)
+	_queued = missing.size()
+	if missing.is_empty() and _slots.count(true) < MAX_PARALLEL - 1 and not _stale.is_empty():
+		_fetch([_stale.pop_front()], true, api.use_tiles)
+
+
+## Tiles: each download brings a cell's whole z14 tile, i.e. it and its 3
+## siblings. His own cell may use the slot the others leave free for it.
+func _request_tiles(missing: Array, his: Vector2i) -> void:
+	while not missing.is_empty():
+		var c: Vector2i = his if missing.has(his) else missing[0]
+		if _slots.count(true) >= (MAX_PARALLEL if c == his else MAX_PARALLEL - 1):
+			return
+		missing.erase(c)
+		var group := [c]
+		for s in _siblings(c):
+			if not graph.cells.has(s) and not _in_flight.has(s):
+				group.append(s)
+				missing.erase(s)
+		_fetch(group, false, true)
+
+
+## Overpass: his own cell goes alone, as the smallest and quickest query, and
+## may use the slot the others leave free for it.
+func _request_overpass(missing: Array, his: Vector2i) -> void:
+	if not missing.is_empty() and missing[0] == his and _slots.has(false):
 		_fetch([missing.pop_front()], false)
 	# Big 2 x 2 queries only while the servers are coping.
 	var bundle := not _failing
@@ -71,13 +99,10 @@ func request(wanted: Array) -> void:
 		var group := [c]
 		if bundle:
 			for s in _siblings(c):
-				if missing.has(s) and s != wanted[0]:
+				if missing.has(s) and s != his:
 					group.append(s)
 					missing.erase(s)
 		_fetch(group, false)
-	_queued = missing.size()
-	if missing.is_empty() and _slots.count(true) < MAX_PARALLEL - 1 and not _stale.is_empty():
-		_fetch([_stale.pop_front()], true)
 
 
 ## The other cells of the 2 x 2 block that `c` belongs to.
@@ -104,8 +129,9 @@ func _load_cached(c: Vector2i) -> bool:
 	return true
 
 
-## Downloads `group` in one query. A refresh only rewrites the cache, for next time.
-func _fetch(group: Array, refresh: bool) -> void:
+## Downloads `group` in one go: its vector tile if `tile`, else (or if that
+## fails) one Overpass query. A refresh only rewrites the cache, for next time.
+func _fetch(group: Array, refresh: bool, tile := false) -> void:
 	var g := graph
 	var slot := _slots.find(false)
 	_slots[slot] = true
@@ -113,7 +139,11 @@ func _fetch(group: Array, refresh: bool) -> void:
 	if not refresh:
 		for c in group:
 			_in_flight[c] = true
-	var data: Variant = await api.fetch_streets(StreetGraph.cells_bbox(group), slot)
+	var data: Variant = null
+	if tile:
+		data = await api.fetch_street_tile(Vector2i(group[0].x >> 1, group[0].y >> 1))
+	if not data is Dictionary:
+		data = await api.fetch_streets(StreetGraph.cells_bbox(group), slot)
 	_slots[slot] = false
 	if not data is Dictionary:
 		for c in group:

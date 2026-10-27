@@ -150,7 +150,7 @@ func _build_game_ui() -> void:
 	_game_ui.add_child(reset)
 
 	# Required by the OSM tile usage policy.
-	var credit := _label("© OpenStreetMap contributors", 24, HORIZONTAL_ALIGNMENT_CENTER)
+	var credit := _label("© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap", 22, HORIZONTAL_ALIGNMENT_CENTER)
 	credit.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE, Control.PRESET_MODE_MINSIZE, 20)
 	credit.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	credit.add_theme_color_override("font_outline_color", Color.WHITE)

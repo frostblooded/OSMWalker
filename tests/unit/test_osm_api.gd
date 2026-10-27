@@ -103,3 +103,46 @@ func test_counts_successes_and_failures_per_server() -> void:
 	assert_eq(first["fail"], 1)
 	assert_eq(first["ok"], 0)
 	assert_eq(last["ok"], 1)
+
+
+## Serves the TileJSON and the Sofia tile fixture, like OpenFreeMap.
+class TileApi:
+	extends "res://scripts/osm_api.gd"
+	var asked: Array = []
+	var gzip := false
+	var down := false
+
+	func _get_bytes(url: String, _timeout := 60.0) -> Variant:
+		asked.append(url)
+		if down:
+			_fail(url, "HTTP 503 (server overloaded)")
+			return null
+		if url == OFM_TILEJSON:
+			return '{"tiles": ["https://tiles.openfreemap.org/planet/v1/{z}/{x}/{y}.pbf"]}'.to_utf8_buffer()
+		var pbf := FileAccess.get_file_as_bytes("res://tests/fixtures/ofm/14_9253_6039.pbf")
+		return pbf.compress(FileAccess.COMPRESSION_GZIP) if gzip else pbf
+
+
+func test_street_tile_comes_from_openfreemap() -> void:
+	var api: TileApi = add_child_autofree(TileApi.new())
+	var data: Variant = await api.fetch_street_tile(Vector2i(9253, 6039))
+	assert_true(data is Dictionary)
+	assert_gt(data["elements"].size(), 1000)
+	assert_eq(api.asked, [OsmApi.OFM_TILEJSON, "https://tiles.openfreemap.org/planet/v1/14/9253/6039.pbf"])
+	await api.fetch_street_tile(Vector2i(9253, 6040))
+	assert_eq(api.asked.size(), 3, "the TileJSON is only read once")
+
+
+func test_street_tile_unzips_gzipped_answers() -> void:
+	var api: TileApi = add_child_autofree(TileApi.new())
+	api.gzip = true
+	var data: Variant = await api.fetch_street_tile(Vector2i(9253, 6039))
+	assert_gt(data["elements"].size(), 1000)
+
+
+func test_failed_tile_rests_the_tile_server() -> void:
+	var api: TileApi = add_child_autofree(TileApi.new())
+	api.down = true
+	assert_null(await api.fetch_street_tile(Vector2i(9253, 6039)))
+	assert_true(api.tiles_resting())
+	assert_eq(api.server_stats[OsmApi.host_of(OsmApi.OFM_TILEJSON)]["fail"], 1)

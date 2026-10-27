@@ -8,6 +8,8 @@ var delay_frames := 1
 var street_requests: Array = []  # bboxes asked for
 var first_servers: Array = []  # which server each request tried first
 var searches: Array = []
+var tile_requests: Array = []  # z14 tiles asked for
+var tiles_online := true
 
 
 func fetch_streets(bbox: Array, first_server := 0) -> Variant:
@@ -16,6 +18,17 @@ func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 	for i in delay_frames:
 		await get_tree().process_frame
 	return Fixture.data() if online else null
+
+
+func _init() -> void:
+	use_tiles = false  # most tests drive the Overpass path
+
+
+func fetch_street_tile(tile: Vector2i) -> Variant:
+	tile_requests.append(tile)
+	for i in delay_frames:
+		await get_tree().process_frame
+	return Fixture.data() if online and tiles_online else null
 
 
 func search_places(text: String) -> Array:
