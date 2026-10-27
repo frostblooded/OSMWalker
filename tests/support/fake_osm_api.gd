@@ -6,11 +6,13 @@ const Fixture := preload("res://tests/support/osm_fixture.gd")
 var online := true
 var delay_frames := 1
 var street_requests: Array = []  # bboxes asked for
+var first_servers: Array = []  # which server each request tried first
 var searches: Array = []
 
 
-func fetch_streets(bbox: Array) -> Variant:
+func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 	street_requests.append(bbox)
+	first_servers.append(first_server)
 	for i in delay_frames:
 		await get_tree().process_frame
 	return Fixture.data() if online else null

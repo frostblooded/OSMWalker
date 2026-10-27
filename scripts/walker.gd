@@ -8,6 +8,10 @@ const StreetGraph := preload("res://scripts/street_graph.gd")
 const SPEED_MPS := 200.0 / 60.0
 ## Longest absence we simulate when the app is reopened.
 const MAX_CATCH_UP_S := 24.0 * 3600.0
+## Catch-up plays as a fast-forward: at least this many times normal speed...
+const FAST_FORWARD_MIN_X := 50.0
+## ...and faster when needed, so it never takes longer than this.
+const FAST_FORWARD_MAX_S := 30.0
 
 var graph: StreetGraph
 var rng := RandomNumberGenerator.new()
@@ -24,6 +28,11 @@ func _init(street_graph: StreetGraph = null) -> void:
 
 static func meters_for_elapsed(seconds: float) -> float:
 	return clampf(seconds, 0.0, MAX_CATCH_UP_S) * SPEED_MPS
+
+
+## Fast-forward speed for catching up `owed_m` meters.
+static func fast_forward_mps(owed_m: float) -> float:
+	return maxf(FAST_FORWARD_MIN_X * SPEED_MPS, owed_m / FAST_FORWARD_MAX_S)
 
 
 func start_at(node_id: int) -> void:

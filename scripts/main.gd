@@ -3,37 +3,41 @@
 extends Node2D
 
 const Walker := preload("res://scripts/walker.gd")
-const Geo := preload("res://scripts/geo.gd")
 const OsmApi := preload("res://scripts/osm_api.gd")
 const MapView := preload("res://scripts/map_view.gd")
 const Character := preload("res://scripts/character.gd")
 const Hud := preload("res://scripts/hud.gd")
+const StreetGraph := preload("res://scripts/street_graph.gd")
+const StreetLoader := preload("res://scripts/street_loader.gd")
+const DiskCache := preload("res://scripts/disk_cache.gd")
 
 const SAVE_PATH := "user://save.json"
-const FETCH_RADIUS_M := 800.0
-const FETCH_RETRY_MS := 15000
+const STREET_CACHE_DIR := "user://streets/"
 const SAVE_EVERY_S := 5.0
-## Fetch more streets once he is this close to the edge of what is loaded,
-## so he never has to stop and wait for them.
-const PREFETCH_MARGIN_M := 400.0
-const STALL_M := 30.0
+## Cells kept loaded around him: 2 means 5 x 5 cells, about 6 x 4.5 km.
+const STREET_RING := 2
+## Wider while fast-forwarding, since he covers ground much faster.
+const CATCH_UP_STREET_RING := 3
+## The map zooms out to this while catching up, so far fewer tiles are needed.
+const CATCH_UP_ZOOM := 15
 
 var api: OsmApi  # set before adding to the tree to swap in a fake (tests)
 var save_path := SAVE_PATH
+var street_cache_dir := STREET_CACHE_DIR
 var offline_tiles := false  # tests skip tile downloads
 var map: MapView
 var character: Character
 var camera: Camera2D
 var hud: Hud
+var loader: StreetLoader
 
 var walker: Walker
 var city := ""
 var last_tick := 0.0  # unix time the walk was last advanced to
 var pending_m := 0.0  # meters owed to the walk but not walked yet
+var player_zoom := 17  # the zoom the player picked; the map differs while catching up
 var _catch_up_total_m := 0.0  # owed distance when the current catch-up began
-var _fetching := false
-var _fetch_failed := false
-var _next_fetch_ms := 0
+var _fast_forward_mps := 0.0  # > 0 while catching up
 var _save_timer := 0.0
 
 
@@ -41,6 +45,10 @@ func _ready() -> void:
 	if api == null:
 		api = OsmApi.new()
 	add_child(api)
+	loader = StreetLoader.new()
+	loader.api = api
+	loader.cache = DiskCache.new(street_cache_dir)
+	add_child(loader)
 	map = MapView.new()
 	map.offline = offline_tiles
 	add_child(map)
@@ -52,11 +60,17 @@ func _ready() -> void:
 	add_child(hud)
 	hud.search_requested.connect(_on_search)
 	hud.city_chosen.connect(_start_city)
-	hud.zoom_changed.connect(func(step): map.set_zoom(map.zoom + step))
+	hud.zoom_changed.connect(_on_zoom)
 	hud.reset_confirmed.connect(_reset)
 	if not _load():
 		hud.show_picker()
 	print("OSM Walker ready")
+
+
+func _on_zoom(step: int) -> void:
+	player_zoom = clampi(player_zoom + step, 3, 19)
+	if not is_catching_up():
+		map.set_zoom(player_zoom)
 
 
 func _on_search(text: String) -> void:
@@ -66,9 +80,16 @@ func _on_search(text: String) -> void:
 func _start_city(city_name: String, lat: float, lon: float) -> void:
 	hud.show_picker("Finding streets in %s…" % city_name)
 	var w := Walker.new()
-	if not await _download_around(w, lat, lon):
-		hud.show_picker("Couldn't load streets. Check your connection and try again.")
-		return
+	loader.graph = w.graph
+	loader.reset_failures()
+	var home := StreetGraph.cell_of(lat, lon)
+	while not w.graph.cells.has(home):
+		if loader.has_failed(home):
+			loader.reset_failures()
+			hud.show_picker("Couldn't load streets. Check your connection and try again.")
+			return
+		loader.request(StreetGraph.cells_by_priority(lat, lon, STREET_RING))
+		await get_tree().process_frame
 	var start := w.graph.nearest_node(lat, lon)
 	if start == -1:
 		hud.show_picker("No walkable streets there. Try another place.")
@@ -78,6 +99,7 @@ func _start_city(city_name: String, lat: float, lon: float) -> void:
 	city = city_name
 	last_tick = Time.get_unix_time_from_system()
 	pending_m = 0.0
+	_end_catch_up()
 	map.set_origin(lat, lon)
 	hud.show_game(city)
 	_save()
@@ -86,23 +108,11 @@ func _start_city(city_name: String, lat: float, lon: float) -> void:
 
 func _reset() -> void:
 	walker = null
+	_end_catch_up()
 	DirAccess.remove_absolute(save_path)
 	map.clear()
 	hud.set_status("")
 	hud.show_picker()
-
-
-func _download_around(w: Walker, lat: float, lon: float) -> bool:
-	_fetching = true
-	var bbox := Geo.bbox_around(lat, lon, FETCH_RADIUS_M)
-	var data: Variant = await api.fetch_streets(bbox)
-	_fetching = false
-	_fetch_failed = not data is Dictionary
-	if data is Dictionary:
-		w.graph.add_overpass(data, bbox)
-		return true
-	_next_fetch_ms = Time.get_ticks_msec() + FETCH_RETRY_MS
-	return false
 
 
 func _process(delta: float) -> void:
@@ -118,19 +128,23 @@ func _step(delta: float) -> void:
 	var now := Time.get_unix_time_from_system()
 	pending_m = minf(pending_m + Walker.meters_for_elapsed(now - last_tick), Walker.meters_for_elapsed(Walker.MAX_CATCH_UP_S))
 	last_tick = now
-	if not _fetching:
-		pending_m = walker.advance(pending_m)
-		var here := walker.position()
-		var near_edge := not walker.graph.covers(here[0], here[1], PREFETCH_MARGIN_M)
-		if (pending_m > 0.0 or near_edge) and Time.get_ticks_msec() >= _next_fetch_ms:
-			_download_around(walker, here[0], here[1])
+	if not is_catching_up() and pending_m >= Hud.CATCH_UP_MIN_M:
+		_start_catch_up()
+	var here := walker.position()
+	var ring := CATCH_UP_STREET_RING if is_catching_up() else STREET_RING
+	loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _heading()))
+	# He always walks what is loaded, even while more streets download.
+	var budget := minf(pending_m, _fast_forward_mps * delta) if is_catching_up() else pending_m
+	pending_m -= budget - walker.advance(budget)
+	if is_catching_up() and pending_m < 1.0:
+		_end_catch_up()
 
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
-	character.walking = pending_m < STALL_M
+	character.walking = not walker.needs_data()
 	camera.position = character.position
 	var view_size := get_viewport_rect().size
-	map.show_area(Rect2(camera.position - view_size / 2.0, view_size))
+	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
 	hud.set_street(walker.street_name())
 	_show_status()
 
@@ -140,19 +154,44 @@ func _step(delta: float) -> void:
 		_save()
 
 
+func is_catching_up() -> bool:
+	return _fast_forward_mps > 0.0
+
+
+func _start_catch_up() -> void:
+	_catch_up_total_m = pending_m
+	_fast_forward_mps = Walker.fast_forward_mps(pending_m)
+	if map.zoom > CATCH_UP_ZOOM:
+		map.set_zoom(CATCH_UP_ZOOM)
+
+
+func _end_catch_up() -> void:
+	_fast_forward_mps = 0.0
+	_catch_up_total_m = 0.0
+	if map and map.zoom != player_zoom:
+		map.set_zoom(player_zoom)
+
+
+## Direction he is walking on screen (x east, y south), or zero while standing.
+func _heading() -> Vector2:
+	if walker.to_node == -1:
+		return Vector2.ZERO
+	var a: Array = walker.graph.nodes[walker.from_node]
+	var b: Array = walker.graph.nodes[walker.to_node]
+	return (map.geo_to_local(b[0], b[1]) - map.geo_to_local(a[0], a[1])).normalized()
+
+
 func _show_status() -> void:
-	var catch_up := Hud.catch_up_text(pending_m)
+	var catch_up := Hud.catch_up_text(pending_m) if is_catching_up() else ""
 	if catch_up != "":
 		_catch_up_total_m = maxf(_catch_up_total_m, pending_m)
 		hud.set_status(catch_up, Hud.Bar.PROGRESS, Hud.catch_up_fraction(_catch_up_total_m, pending_m))
-		return
-	_catch_up_total_m = 0.0
-	if not walker.needs_data():
+	elif not walker.needs_data():
 		hud.set_status("")
-	elif _fetching or not _fetch_failed:
-		hud.set_status("Loading streets…", Hud.Bar.BUSY)
-	else:
+	elif loader.is_failing():
 		hud.set_status("Can't reach the map server. Retrying…")
+	else:
+		hud.set_status("Loading streets…", Hud.Bar.BUSY)
 
 
 func _notification(what: int) -> void:
@@ -167,7 +206,7 @@ func _save() -> void:
 	if f == null:
 		return
 	f.store_string(JSON.stringify({
-		"city": city, "origin": [map.origin_lat, map.origin_lon], "zoom": map.zoom,
+		"city": city, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
 		# Owed meters are folded back into the clock so they survive a restart.
 		"last_tick": last_tick - pending_m / Walker.SPEED_MPS,
 		"walker": walker.to_dict(),
@@ -185,9 +224,11 @@ func _load() -> bool:
 	if not walker.graph.has_node(walker.from_node):
 		walker = null
 		return false
+	loader.graph = walker.graph
 	city = d.get("city", "")
 	last_tick = float(d.get("last_tick", Time.get_unix_time_from_system()))
-	map.zoom = int(d.get("zoom", map.zoom))
+	player_zoom = int(d.get("zoom", player_zoom))
+	map.zoom = player_zoom
 	map.set_origin(d["origin"][0], d["origin"][1])
 	hud.show_game(city)
 	return true

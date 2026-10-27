@@ -122,3 +122,12 @@ func test_isolated_node_hops_to_nearest_street() -> void:
 	walker.advance(10.0)
 	assert_ne(walker.from_node, 77)
 	assert_almost_eq(walker.total_m, 10.0, 0.0001)
+
+
+func test_fast_forward_is_at_least_50x() -> void:
+	assert_almost_eq(Walker.fast_forward_mps(1000.0), 50.0 * Walker.SPEED_MPS, 0.001)
+
+
+func test_long_fast_forward_still_ends_in_30_seconds() -> void:
+	var owed := Walker.meters_for_elapsed(Walker.MAX_CATCH_UP_S)
+	assert_almost_eq(owed / Walker.fast_forward_mps(owed), 30.0, 0.001)

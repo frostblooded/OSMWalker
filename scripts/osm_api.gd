@@ -25,10 +25,14 @@ static func overpass_query(bbox: Array) -> String:
 		WALKABLE, bbox[0], bbox[1], bbox[2], bbox[3]]
 
 
+## A busy server gets this long before the next one is tried.
+const OVERPASS_TIMEOUT_S := 20.0
+
+
 ## GETs `url` and returns parsed JSON, or null on any failure.
-func _get_json(url: String) -> Variant:
+func _get_json(url: String, timeout := 60.0) -> Variant:
 	var req := HTTPRequest.new()
-	req.timeout = 60.0
+	req.timeout = timeout
 	add_child(req)
 	if req.request(url, headers()) != OK:
 		req.queue_free()
@@ -41,11 +45,13 @@ func _get_json(url: String) -> Variant:
 	return JSON.parse_string((res[3] as PackedByteArray).get_string_from_utf8())
 
 
-## Walkable streets inside `bbox`, as Overpass JSON, or null.
-func fetch_streets(bbox: Array) -> Variant:
+## Walkable streets inside `bbox`, as Overpass JSON, or null. Servers are
+## tried in turn starting at `first_server`, so parallel downloads spread out.
+func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 	var query := overpass_query(bbox).uri_encode()
-	for url in OVERPASS_URLS:
-		var data: Variant = await _get_json(url + "?data=" + query)
+	for i in OVERPASS_URLS.size():
+		var url: String = OVERPASS_URLS[(first_server + i) % OVERPASS_URLS.size()]
+		var data: Variant = await _get_json(url + "?data=" + query, OVERPASS_TIMEOUT_S)
 		if data is Dictionary:
 			return data
 	return null
