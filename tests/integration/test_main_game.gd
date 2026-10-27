@@ -2,25 +2,31 @@
 extends GutTest
 
 const Main := preload("res://scripts/main.gd")
+const StreetGraph := preload("res://scripts/street_graph.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
+const DiskCache := preload("res://scripts/disk_cache.gd")
 const SAVE := "user://test_save.json"
+const STREETS := "user://test_streets/"
 
 var api: FakeOsmApi
 
 
 func before_each() -> void:
 	DirAccess.remove_absolute(SAVE)
+	DiskCache.new(STREETS).clear()
 	api = FakeOsmApi.new()
 
 
 func after_all() -> void:
 	DirAccess.remove_absolute(SAVE)
+	DiskCache.new(STREETS).clear()
 
 
 func _new_main(with_api: FakeOsmApi = api) -> Main:
 	var m := Main.new()
 	m.api = with_api
 	m.save_path = SAVE
+	m.street_cache_dir = STREETS
 	m.offline_tiles = true
 	add_child_autofree(m)
 	return m
@@ -50,7 +56,7 @@ func test_choosing_a_city_starts_the_walk_and_saves() -> void:
 	await _start_in_testville(m)
 	assert_eq(m.debug_state()["screen"], "game")
 	assert_eq(m.city, "Testville")
-	assert_eq(api.street_requests.size(), 1)
+	assert_gte(api.street_requests.size(), 1)
 	assert_true(FileAccess.file_exists(SAVE))
 
 
@@ -62,12 +68,90 @@ func test_he_walks_in_real_time() -> void:
 	assert_ne(m.hud.street_label.text, "")
 
 
-func test_catches_up_on_time_away() -> void:
+## Runs the game loop by hand in big steps, as if `seconds` passed.
+func _fast_forward(m: Main, seconds: float, step := 0.5) -> void:
+	var t := 0.0
+	while t < seconds:
+		m._step(step)
+		t += step
+		await wait_frames(1)
+
+
+func test_catches_up_on_time_away_as_a_fast_forward() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
-	m.last_tick -= 600.0  # 10 minutes away
+	m.last_tick -= 600.0  # 10 minutes away = 2 km owed
 	await wait_frames(2)
-	assert_almost_eq(m.walker.total_m, 2000.0, 5.0)
+	assert_true(m.is_catching_up())
+	assert_lt(m.walker.total_m, 500.0, "not all at once")
+	var before := m.walker.total_m
+	m._step(1.0)
+	# 50x speed: about 167 m in one second of fast-forward.
+	assert_almost_eq(m.walker.total_m - before, 50.0 * 200.0 / 60.0, 15.0)
+	await _fast_forward(m, 14.0)
+	assert_false(m.is_catching_up())
+	assert_almost_eq(m.walker.total_m, 2000.0, 40.0)
+
+
+func test_long_catch_up_ends_within_30_seconds() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.last_tick -= 24.0 * 3600.0
+	await wait_frames(2)
+	assert_true(m.is_catching_up())
+	await _fast_forward(m, 31.0, 1.0)
+	assert_false(m.is_catching_up())
+	assert_almost_eq(m.walker.total_m, 288000.0, 2000.0)
+
+
+func test_zooms_out_while_catching_up_then_back() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	var zoom := m.map.zoom
+	m.last_tick -= 600.0
+	await wait_frames(2)
+	assert_eq(m.map.zoom, Main.CATCH_UP_ZOOM)
+	await _fast_forward(m, 15.0)
+	assert_eq(m.map.zoom, zoom)
+
+
+func test_saves_the_players_zoom_not_the_catch_up_zoom() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.last_tick -= 600.0
+	await wait_frames(2)
+	m._save()
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+	assert_eq(int(d["zoom"]), 17)
+
+
+func test_keeps_walking_while_streets_download() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.delay_frames = 100000
+	var home := StreetGraph.cell_of(42.0, 23.0)
+	for c in m.walker.graph.cells.keys():
+		if c != home:
+			m.walker.graph.cells.erase(c)
+	await wait_frames(2)
+	assert_gt(m.loader.in_flight_count(), 0)
+	var before := m.walker.total_m
+	await wait_seconds(0.5)
+	assert_gt(m.walker.total_m, before)
+
+
+func test_reopening_loads_streets_from_cache_without_network() -> void:
+	var first := _new_main()
+	await _start_in_testville(first)
+	await wait_until(func(): return first.loader.in_flight_count() == 0, 2.0)
+	first._save()
+	first.queue_free()
+	await wait_frames(1)
+	var offline := FakeOsmApi.new()
+	var second := _new_main(offline)
+	await wait_frames(3)
+	assert_eq(offline.street_requests.size(), 0)
+	assert_false(second.walker.needs_data())
 
 
 func test_resumes_from_save_on_next_launch() -> void:
@@ -140,8 +224,7 @@ func test_catch_up_message_after_time_away_then_clears() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	api.online = false  # keep him owing distance while we look
-	m.walker.graph.areas.clear()
-	m.walker.to_node = -1
+	_forget_streets(m)
 	m.last_tick -= 300.0  # 5 minutes away = 1 km owed
 	await wait_frames(2)
 	assert_true(m.hud.overlay_label.visible)
@@ -150,20 +233,17 @@ func test_catch_up_message_after_time_away_then_clears() -> void:
 	assert_false(m.hud.progress_bar.indeterminate)
 	assert_lt(m.hud.progress_bar.value, 5.0)
 	api.online = true
-	m._next_fetch_ms = 0
-	await wait_until(func(): return not m.hud.overlay_label.visible, 2.0)
+	m.loader.reset_failures()
+	await _fast_forward(m, 10.0)
 	assert_false(m.hud.overlay_label.visible)
 	assert_false(m.hud.progress_bar.is_visible_in_tree())
 
 
-func test_downloads_streets_ahead_before_reaching_the_edge() -> void:
+func test_downloads_streets_around_him_before_he_needs_them() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
-	var requests := api.street_requests.size()
-	# Pretend only a small box around him is loaded: he is near its edge but not stuck.
-	m.walker.graph.areas = [[41.997, 22.996, 42.003, 23.004]]
-	await wait_frames(3)
-	assert_gt(api.street_requests.size(), requests)
+	await wait_until(func(): return m.loader.in_flight_count() == 0, 2.0)
+	assert_true(m.walker.graph.covers(42.0, 23.0, 1500.0))
 	assert_false(m.walker.needs_data())
 
 
@@ -171,8 +251,7 @@ func test_tells_the_player_when_map_server_is_unreachable() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	api.online = false
-	m.walker.graph.areas.clear()
-	m.walker.to_node = -1
+	_forget_streets(m)
 	await wait_frames(4)
 	assert_true(m.hud.overlay_label.visible)
 	assert_string_contains(m.hud.overlay_label.text, "map server")
@@ -182,8 +261,7 @@ func test_shows_loading_while_waiting_for_streets() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	api.delay_frames = 30
-	m.walker.graph.areas.clear()
-	m.walker.to_node = -1
+	_forget_streets(m)
 	await wait_frames(3)
 	assert_true(m.hud.overlay_label.visible)
 	assert_eq(m.hud.overlay_label.text, "Loading streets…")
@@ -195,8 +273,7 @@ func test_catch_up_bar_fills_as_he_walks_the_owed_distance() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	api.online = false
-	m.walker.graph.areas.clear()
-	m.walker.to_node = -1
+	_forget_streets(m)
 	m.last_tick -= 300.0
 	await wait_frames(2)
 	var owed := m.pending_m
@@ -204,3 +281,11 @@ func test_catch_up_bar_fills_as_he_walks_the_owed_distance() -> void:
 	m.pending_m = owed / 2.0
 	await wait_frames(1)
 	assert_almost_eq(m.hud.progress_bar.value, 50.0, 2.0)
+
+
+## Drops every loaded cell, the disk cache too, so he has to wait for the network.
+func _forget_streets(m: Main) -> void:
+	m.walker.graph.cells.clear()
+	m.walker.to_node = -1
+	DiskCache.new(STREETS).clear()
+	m.loader.forget_cache_checks()

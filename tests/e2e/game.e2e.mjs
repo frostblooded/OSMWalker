@@ -35,7 +35,8 @@ await context.route(/nominatim\.openstreetmap\.org/, (r) => {
   requests.search++;
   r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0" }], headers: cors });
 });
-await context.route(/overpass-api\.de/, (r) => {
+// Every Overpass mirror the game may spread downloads over.
+await context.route(/overpass-api\.de|overpass\.private\.coffee|maps\.mail\.ru/, (r) => {
   requests.streets++;
   r.fulfill({ json: overpassGrid(), headers: cors });
 });
@@ -106,10 +107,16 @@ try {
 
   step = "survives reload";
   await page.waitForTimeout(1000);
+  const streetsBefore = requests.streets;
   await page.reload();
   // The time spent reloading is caught up too, so he ends up further along.
   const resumed = await until((s) => s.screen === "game" && s.total_m >= after.total_m, "walk resumed after reload");
   assert.equal(resumed.city, "Testville");
+
+  step = "streets come from the cache after reload";
+  const moving = (await state()).total_m;
+  await until((s) => s.total_m > moving + 3, "walking on cached streets");
+  assert.equal(requests.streets, streetsBefore, "no street downloads after reload");
 
   step = "reset needs RESET";
   await tap("new_city");

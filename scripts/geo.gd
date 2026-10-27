@@ -41,3 +41,15 @@ static func bbox_around(lat: float, lon: float, radius_m: float) -> Array:
 	var dlat := rad_to_deg(radius_m / EARTH_RADIUS_M)
 	var dlon := dlat / maxf(cos(deg_to_rad(lat)), 0.01)
 	return [lat - dlat, lon - dlon, lat + dlat, lon + dlon]
+
+
+## Slippy-map tile [x, y] that contains a point at a zoom level.
+static func tile_of(lat: float, lon: float, zoom: int) -> Vector2i:
+	return Vector2i(floori(lon_to_px(lon, zoom) / TILE_SIZE), floori(lat_to_px(lat, zoom) / TILE_SIZE))
+
+
+## [south, west, north, east] of a slippy-map tile.
+static func tile_bbox(tile: Vector2i, zoom: int) -> Array:
+	return [
+		px_to_lat((tile.y + 1) * TILE_SIZE, zoom), px_to_lon(tile.x * TILE_SIZE, zoom),
+		px_to_lat(tile.y * TILE_SIZE, zoom), px_to_lon((tile.x + 1) * TILE_SIZE, zoom)]

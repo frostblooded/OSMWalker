@@ -28,3 +28,20 @@ func test_bbox_contains_radius() -> void:
 	var b := Geo.bbox_around(42.0, 23.0, 500.0)
 	assert_almost_eq(Geo.distance_m(42.0, 23.0, b[2], 23.0), 500.0, 1.0)
 	assert_almost_eq(Geo.distance_m(42.0, 23.0, 42.0, b[3]), 500.0, 1.0)
+
+
+func test_tile_of_a_point() -> void:
+	assert_eq(Geo.tile_of(0.0, 0.0, 1), Vector2i(1, 1))
+	assert_eq(Geo.tile_of(42.6977, 23.3219, 17), Vector2i(floori(Geo.lon_to_px(23.3219, 17) / 256.0), floori(Geo.lat_to_px(42.6977, 17) / 256.0)))
+
+
+func test_tile_bbox_contains_its_points() -> void:
+	var t := Geo.tile_of(42.0, 23.0, 15)
+	var b := Geo.tile_bbox(t, 15)
+	assert_lt(b[0], 42.0)
+	assert_lt(b[1], 23.0)
+	assert_gt(b[2], 42.0)
+	assert_gt(b[3], 23.0)
+	# Its corners map back to the same tile from the inside.
+	assert_eq(Geo.tile_of(b[2] - 1e-7, b[1] + 1e-7, 15), t)
+	assert_eq(Geo.tile_of(b[0] + 1e-7, b[3] - 1e-7, 15), t)
