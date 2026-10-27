@@ -1,0 +1,99 @@
+name: Godot
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+concurrency:
+  group: godot-${{ github.ref }}
+  cancel-in-progress: true
+
+# tests and web-build run in parallel; e2e plays the web build in a browser;
+# master pushes deploy the same build to GitHub Pages once everything passes.
+jobs:
+  tests:
+    name: Unit + integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+      - name: Run GUT
+        run: godot --headless -s addons/gut/gut_cmdln.gd -gexit
+
+  web-build:
+    name: Web export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          web-templates: "true"
+      - name: Export
+        run: |
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html
+          test -f build/web/index.pck
+          ls -la build/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 7
+
+  e2e:
+    name: Browser e2e
+    needs: web-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: Install Playwright (uses the runner's Chrome, no browser download)
+        run: npm ci --prefix tests/e2e
+      - name: Play the game
+        env:
+          E2E_CHANNEL: chrome
+        run: tests/e2e/run.sh e2e-screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: e2e-screenshots
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [tests, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+      - id: deployment
+        uses: actions/deploy-pages@v4

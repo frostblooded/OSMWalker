@@ -1,0 +1,32 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="OSM Walker"
+config/description="A little character wanders real OpenStreetMap streets, 200 m a minute."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[gui]
+
+theme/custom="res://theme.tres"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.93, 0.92, 0.89, 1)
