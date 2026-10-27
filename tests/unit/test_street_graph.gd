@@ -113,3 +113,15 @@ func test_cells_by_priority_prefers_cells_ahead() -> void:
 	assert_eq(east[0], home)
 	assert_lt(east.find(e), east.find(w))
 	assert_lt(west.find(w), west.find(e))
+
+
+func test_node_on_a_cell_edge_waits_for_both_cells() -> void:
+	# Tile streets are cut exactly at the edge; that point links into both cells.
+	var c := StreetGraph.cell_of(42.0, 23.0)
+	var edge_lon: float = Geo.tile_bbox(c, StreetGraph.CELL_ZOOM)[3]
+	var g := StreetGraph.new()
+	g.add_cell(c, {"ids": PackedInt64Array([7, 8]), "coords": PackedFloat64Array([42.0, edge_lon - 0.001, 42.0, edge_lon]), "ways": [["", PackedInt64Array([7, 8])]]})
+	assert_true(g.is_complete(7))
+	assert_false(g.is_complete(8), "its east side isn't loaded yet")
+	g.cells[c + Vector2i(1, 0)] = true
+	assert_true(g.is_complete(8))

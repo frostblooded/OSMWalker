@@ -8,6 +8,8 @@ const Geo := preload("res://scripts/geo.gd")
 
 ## A z15 tile is about 1.2 x 0.9 km at 42°N.
 const CELL_ZOOM := 15
+## Nudges (lon, lat) in degrees, about 1 cm, to see every cell a point touches.
+const EDGE_EPS := [Vector2(-1e-7, -1e-7), Vector2(1e-7, -1e-7), Vector2(-1e-7, 1e-7), Vector2(1e-7, 1e-7)]
 
 var nodes := {}  # id -> [lat, lon]
 var adjacency := {}  # id -> {neighbor_id: true}
@@ -186,12 +188,16 @@ func edge_name(a: int, b: int) -> String:
 	return edge_names.get(_key(a, b), "")
 
 
-## True when the node's cell is loaded, so all its links are known.
+## True when the node's cell is loaded, so all its links are known. A node on
+## a cell's edge (where tile streets are cut) needs the cells on both sides.
 func is_complete(id: int) -> bool:
 	if not nodes.has(id):
 		return false
 	var p: Array = nodes[id]
-	return cells.has(cell_of(p[0], p[1]))
+	for d in EDGE_EPS:
+		if not cells.has(cell_of(p[0] + d.y, p[1] + d.x)):
+			return false
+	return true
 
 
 ## True when every cell within margin_m of the point is loaded.

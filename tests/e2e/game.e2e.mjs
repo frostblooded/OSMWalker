@@ -3,7 +3,7 @@
 // E2E_CHANNEL=chrome uses the runner's installed Chrome instead of Playwright's Chromium.
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 
 const url = process.argv[2] ?? "http://localhost:8080/index.html";
 const shots = process.argv[3] ?? "e2e-screenshots";
@@ -22,6 +22,8 @@ function overpassGrid() {
     elements.push({ type: "way", id: 200 + c, nodes: [0, 1, 2, 3, 4].map((r) => id(r, c)), tags: { highway: "residential", name: `Column ${c} Avenue` } });
   return { elements };
 }
+// A real OpenFreeMap street tile from Sofia, served for every tile asked for.
+const OFM_TILE = readFileSync(new URL("../fixtures/ofm/14_9253_6039.pbf", import.meta.url));
 const PNG_1PX = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "base64");
 const cors = { "Access-Control-Allow-Origin": "*" };
 
@@ -30,7 +32,7 @@ const browser = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-const requests = { search: 0, streets: 0, tiles: 0 };
+const requests = { search: 0, streets: 0, streetTiles: 0, tiles: 0 };
 await context.route(/nominatim\.openstreetmap\.org/, (r) => {
   requests.search++;
   r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0" }], headers: cors });
@@ -39,6 +41,15 @@ await context.route(/nominatim\.openstreetmap\.org/, (r) => {
 await context.route(/overpass-api\.de|overpass\.private\.coffee|maps\.mail\.ru/, (r) => {
   requests.streets++;
   r.fulfill({ json: overpassGrid(), headers: cors });
+});
+// OpenFreeMap: the TileJSON, then vector tiles with the streets.
+await context.route(/tiles\.openfreemap\.org/, (r) => {
+  if (r.request().url().endsWith("/planet")) {
+    r.fulfill({ json: { tiles: ["https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf"] }, headers: cors });
+    return;
+  }
+  requests.streetTiles++;
+  r.fulfill({ body: OFM_TILE, contentType: "application/x-protobuf", headers: cors });
 });
 await context.route(/tile\.openstreetmap\.org/, (r) => {
   requests.tiles++;
@@ -94,7 +105,8 @@ try {
   await tap("result0");
   const game = await until((s) => s.screen === "game", "game screen");
   assert.equal(game.city, "Testville");
-  assert.ok(requests.streets >= 1, "streets were requested");
+  assert.ok(requests.streetTiles >= 1, "street tiles were requested");
+  assert.equal(requests.streets, 0, "Overpass is only a backup");
   await page.screenshot({ path: `${shots}/2-game.png` });
 
   step = "walks";
@@ -102,12 +114,12 @@ try {
   await page.waitForTimeout(3000);
   const after = await state();
   assert.ok(after.total_m - before > 5, `walked only ${after.total_m - before} m in 3 s`);
-  assert.match(after.street, /Walking along (Row|Column) \d/);
+  assert.match(after.street, /along /);
   assert.ok(requests.tiles > 0, "map tiles were requested");
 
   step = "survives reload";
   await page.waitForTimeout(1000);
-  const streetsBefore = requests.streets;
+  const streetsBefore = requests.streets + requests.streetTiles;
   await page.reload();
   // The time spent reloading is caught up too, so he ends up further along.
   const resumed = await until((s) => s.screen === "game" && s.total_m >= after.total_m, "walk resumed after reload");
@@ -116,7 +128,7 @@ try {
   step = "streets come from the cache after reload";
   const moving = (await state()).total_m;
   await until((s) => s.total_m > moving + 3, "walking on cached streets");
-  assert.equal(requests.streets, streetsBefore, "no street downloads after reload");
+  assert.equal(requests.streets + requests.streetTiles, streetsBefore, "no street downloads after reload");
 
   step = "reset needs RESET";
   await tap("new_city");

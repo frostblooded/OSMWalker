@@ -144,3 +144,34 @@ func test_no_bundling_while_downloads_fail() -> void:
 	loader.graph.cells[home] = true
 	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
 	assert_eq(loader.in_flight_cells(), loader.in_flight_count())
+
+
+func test_gets_his_whole_vector_tile_first() -> void:
+	api.use_tiles = true
+	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
+	var parent := Vector2i(home.x >> 1, home.y >> 1)
+	assert_eq(api.tile_requests[0], parent, "one z14 tile holds his cell and its 3 siblings")
+	assert_eq(api.street_requests.size(), 0, "Overpass not needed")
+	var kids := [parent * 2, parent * 2 + Vector2i(1, 0), parent * 2 + Vector2i(0, 1), parent * 2 + Vector2i(1, 1)]
+	await wait_until(func(): return kids.all(func(c): return loader.graph.cells.has(c)), 1.0)
+	for c in kids:
+		assert_true(loader.graph.cells.has(c), str(c))
+
+
+func test_each_tile_is_asked_for_once() -> void:
+	api.use_tiles = true
+	api.delay_frames = 1000
+	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
+	var seen := {}
+	for t in api.tile_requests:
+		assert_false(seen.has(t), "tile %s asked twice" % t)
+		seen[t] = true
+
+
+func test_falls_back_to_overpass_when_the_tile_fails() -> void:
+	api.use_tiles = true
+	api.tiles_online = false
+	loader.request([home])
+	await wait_until(func(): return loader.graph.cells.has(home), 1.0)
+	assert_eq(api.tile_requests.size(), 1)
+	assert_eq(api.street_requests.size(), 1, "Overpass filled in")

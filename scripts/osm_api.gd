@@ -1,12 +1,17 @@
 ## Network access to OSM services: Overpass for streets, Nominatim for city search.
 extends Node
 
+const OfmStreets := preload("res://scripts/ofm_streets.gd")
+
 ## Public Overpass servers, tried in order; the main one is often busy (429/504).
 const OVERPASS_URLS := [
 	"https://overpass-api.de/api/interpreter",
 	"https://overpass.private.coffee/api/interpreter",
 	"https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
+## Free vector tiles, no key needed. The TileJSON names the current tile set.
+const OFM_TILEJSON := "https://tiles.openfreemap.org/planet"
+const TILE_TIMEOUT_S := 20.0
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
@@ -36,6 +41,9 @@ var last_ok := {}  # {host, bytes, ms, at_ms}
 var last_error := {}  # {host, error, at_ms}
 var active_requests := 0
 var server_stats := {}  # host -> {ok, fail, last_error, rest_until_ms}
+## Get streets from OpenFreeMap tiles first, with Overpass as the backup.
+var use_tiles := true
+var _tile_url := ""  # from the TileJSON
 
 
 static func host_of(url: String) -> String:
@@ -63,8 +71,8 @@ func _fail(url: String, error: String) -> void:
 	push_warning("OSM request failed (%s): %s" % [error, url.left(120)])
 
 
-## GETs `url` and returns parsed JSON, or null on any failure.
-func _get_json(url: String, timeout := 60.0) -> Variant:
+## GETs `url` and returns the body, or null on any failure.
+func _get_bytes(url: String, timeout := 60.0) -> Variant:
 	var req := HTTPRequest.new()
 	req.timeout = timeout
 	add_child(req)
@@ -82,10 +90,49 @@ func _get_json(url: String, timeout := 60.0) -> Variant:
 		return null
 	var body: PackedByteArray = res[3]
 	last_ok = {"host": host_of(url), "bytes": body.size(), "ms": Time.get_ticks_msec() - started, "at_ms": Time.get_ticks_msec()}
+	return body
+
+
+## GETs `url` and returns parsed JSON, or null on any failure.
+func _get_json(url: String, timeout := 60.0) -> Variant:
+	var body: Variant = await _get_bytes(url, timeout)
+	if body == null:
+		return null
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if parsed == null:
 		_fail(url, "answer was not valid JSON")
 	return parsed
+
+
+## Walkable streets of one z14 tile from OpenFreeMap, as Overpass-style JSON,
+## or null. Tiles sit on a CDN, so they come back far quicker than Overpass.
+func fetch_street_tile(tile: Vector2i) -> Variant:
+	if _tile_url == "":
+		var tj: Variant = await _get_bytes(OFM_TILEJSON, TILE_TIMEOUT_S)
+		var parsed: Variant = JSON.parse_string(tj.get_string_from_utf8()) if tj is PackedByteArray else null
+		if not parsed is Dictionary or parsed.get("tiles", []).is_empty():
+			_server_result(OFM_TILEJSON, _error_for(OFM_TILEJSON))
+			return null
+		_tile_url = parsed["tiles"][0]
+	var url := _tile_url.replace("{z}", str(OfmStreets.TILE_ZOOM)).replace("{x}", str(tile.x)).replace("{y}", str(tile.y))
+	var body: Variant = await _get_bytes(url, TILE_TIMEOUT_S)
+	if not body is PackedByteArray:
+		_server_result(url, _error_for(url))
+		return null
+	if body.size() > 2 and body[0] == 0x1F and body[1] == 0x8B:
+		body = body.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+	_server_result(url, "")
+	await get_tree().process_frame  # decoding takes a while; let a frame draw first
+	return OfmStreets.from_pbf(body, tile)
+
+
+## True while the tile server is resting after a failure.
+func tiles_resting() -> bool:
+	return Time.get_ticks_msec() < server_stats.get(host_of(OFM_TILEJSON), {}).get("rest_until_ms", 0)
+
+
+func _error_for(url: String) -> String:
+	return last_error.get("error", "failed") if last_error.get("host") == host_of(url) else "failed"
 
 
 ## Walkable streets inside `bbox`, as Overpass JSON, or null. Servers are
@@ -103,8 +150,7 @@ func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 		if data is Dictionary:
 			_server_result(url, "")
 			return data
-		var host := host_of(url)
-		_server_result(url, last_error.get("error", "failed") if last_error.get("host") == host else "failed")
+		_server_result(url, _error_for(url))
 	return null
 
 

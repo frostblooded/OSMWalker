@@ -1,6 +1,7 @@
 ## Fake Overpass that returns a city-sized street grid for any bbox, slowly.
 extends "res://scripts/osm_api.gd"
 
+const Geo := preload("res://scripts/geo.gd")
 const STEP := 0.001  # ~110 m blocks
 var delay_s := 3.0
 var calls := 0
@@ -33,3 +34,9 @@ func fetch_streets(bbox: Array, _first := 0) -> Variant:
 		for i in range(i0, i1 + 1): ns.append(_id(i, j))
 		els.append({"type": "way", "id": 100000000 + j, "nodes": ns, "tags": {"name": "Col %d" % j}})
 	return {"elements": els}
+
+
+## Tiles come as the same grid, one z14 tile per call.
+func fetch_street_tile(tile: Vector2i) -> Variant:
+	var b := Geo.tile_bbox(tile, 14)
+	return await fetch_streets(b)
