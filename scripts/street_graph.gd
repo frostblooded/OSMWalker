@@ -72,8 +72,13 @@ func is_complete(id: int) -> bool:
 	if not nodes.has(id):
 		return false
 	var p: Array = nodes[id]
+	return covers(p[0], p[1], EDGE_MARGIN_M)
+
+
+## True when everything within margin_m of the point has been downloaded.
+func covers(lat: float, lon: float, margin_m: float) -> bool:
+	var m := Geo.bbox_around(lat, lon, margin_m)
 	for box in areas:
-		var m := Geo.bbox_around(p[0], p[1], EDGE_MARGIN_M)
 		if m[0] >= box[0] and m[1] >= box[1] and m[2] <= box[2] and m[3] <= box[3]:
 			return true
 	return false

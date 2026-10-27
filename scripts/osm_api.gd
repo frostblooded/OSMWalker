@@ -1,7 +1,12 @@
 ## Network access to OSM services: Overpass for streets, Nominatim for city search.
 extends Node
 
-const OVERPASS_URL := "https://overpass-api.de/api/interpreter"
+## Public Overpass servers, tried in order; the main one is often busy (429/504).
+const OVERPASS_URLS := [
+	"https://overpass-api.de/api/interpreter",
+	"https://overpass.private.coffee/api/interpreter",
+	"https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
@@ -15,7 +20,8 @@ static func headers() -> PackedStringArray:
 
 
 static func overpass_query(bbox: Array) -> String:
-	return "[out:json][timeout:25];way[\"highway\"~\"^(%s)$\"](%f,%f,%f,%f);(._;>;);out body;" % [
+	# Ways with tags (for street names), then their nodes as bare coordinates.
+	return "[out:json][timeout:25];way[\"highway\"~\"^(%s)$\"](%f,%f,%f,%f);out body;node(w);out skel qt;" % [
 		WALKABLE, bbox[0], bbox[1], bbox[2], bbox[3]]
 
 
@@ -37,7 +43,12 @@ func _get_json(url: String) -> Variant:
 
 ## Walkable streets inside `bbox`, as Overpass JSON, or null.
 func fetch_streets(bbox: Array) -> Variant:
-	return await _get_json(OVERPASS_URL + "?data=" + overpass_query(bbox).uri_encode())
+	var query := overpass_query(bbox).uri_encode()
+	for url in OVERPASS_URLS:
+		var data: Variant = await _get_json(url + "?data=" + query)
+		if data is Dictionary:
+			return data
+	return null
 
 
 ## Up to 6 places matching `text`, each {name, lat, lon}. Empty on failure.

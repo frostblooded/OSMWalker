@@ -126,3 +126,60 @@ func test_buttons_are_big_enough_to_tap() -> void:
 		var c: Control = m.hud.debug_controls()[key]
 		assert_gte(c.size.y, 100.0, key)
 		assert_gte(c.size.x, 100.0, key)
+
+
+func test_no_catch_up_message_while_walking_normally() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.pending_m = 40.0  # a short stall, e.g. waiting for streets
+	await wait_frames(2)
+	assert_false(m.hud.overlay_label.visible)
+
+
+func test_catch_up_message_after_time_away_then_clears() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.online = false  # keep him owing distance while we look
+	m.walker.graph.areas.clear()
+	m.walker.to_node = -1
+	m.last_tick -= 300.0  # 5 minutes away = 1 km owed
+	await wait_frames(2)
+	assert_true(m.hud.overlay_label.visible)
+	assert_string_contains(m.hud.overlay_label.text, "km walked while you were away")
+	api.online = true
+	m._next_fetch_ms = 0
+	await wait_until(func(): return not m.hud.overlay_label.visible, 2.0)
+	assert_false(m.hud.overlay_label.visible)
+
+
+func test_downloads_streets_ahead_before_reaching_the_edge() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	var requests := api.street_requests.size()
+	# Pretend only a small box around him is loaded: he is near its edge but not stuck.
+	m.walker.graph.areas = [[41.997, 22.996, 42.003, 23.004]]
+	await wait_frames(3)
+	assert_gt(api.street_requests.size(), requests)
+	assert_false(m.walker.needs_data())
+
+
+func test_tells_the_player_when_map_server_is_unreachable() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.online = false
+	m.walker.graph.areas.clear()
+	m.walker.to_node = -1
+	await wait_frames(4)
+	assert_true(m.hud.overlay_label.visible)
+	assert_string_contains(m.hud.overlay_label.text, "map server")
+
+
+func test_shows_loading_while_waiting_for_streets() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.delay_frames = 30
+	m.walker.graph.areas.clear()
+	m.walker.to_node = -1
+	await wait_frames(3)
+	assert_true(m.hud.overlay_label.visible)
+	assert_eq(m.hud.overlay_label.text, "Loading streets…")
