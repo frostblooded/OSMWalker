@@ -7,6 +7,9 @@ signal city_chosen(city_name: String, lat: float, lon: float)
 signal zoom_changed(step: int)
 signal reset_confirmed
 
+## What kind of bar goes under the status message.
+enum Bar { NONE, PROGRESS, BUSY }
+
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
 const PANEL_BG := Color(1, 1, 1, 0.92)
@@ -14,6 +17,8 @@ const PANEL_BG := Color(1, 1, 1, 0.92)
 var street_label: Label
 var city_label: Label
 var overlay_label: Label
+var progress_bar: ProgressBar
+var _status_box: VBoxContainer
 var _game_ui: Control
 var _picker: Control
 var _search_box: LineEdit
@@ -31,14 +36,42 @@ func _ready() -> void:
 	_build_game_ui()
 	_build_picker()
 	_build_confirm()
-	overlay_label = _label("", 30, HORIZONTAL_ALIGNMENT_CENTER)
+	_build_status()
+
+
+## Status message with a loading bar under it, over the top of the map.
+func _build_status() -> void:
+	_status_box = VBoxContainer.new()
 	# Full width: an autowrapping label with no width wraps after every letter.
-	overlay_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 32)
-	overlay_label.offset_top = 240
-	overlay_label.visible = false
+	_status_box.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 32)
+	_status_box.offset_top = 240
+	_status_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_box.add_theme_constant_override("separation", 12)
+	_status_box.visible = false
+	add_child(_status_box)
+
+	overlay_label = _label("", 30, HORIZONTAL_ALIGNMENT_CENTER)
 	overlay_label.add_theme_color_override("font_outline_color", Color.WHITE)
 	overlay_label.add_theme_constant_override("outline_size", 12)
-	add_child(overlay_label)
+	overlay_label.visible = false
+	_status_box.add_child(overlay_label)
+
+	progress_bar = ProgressBar.new()
+	progress_bar.show_percentage = false
+	progress_bar.custom_minimum_size = Vector2(0, 28)
+	progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(1, 1, 1, 0.85)
+	bg.set_corner_radius_all(14)
+	bg.set_border_width_all(2)
+	bg.border_color = Color(0.1, 0.1, 0.1, 0.5)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("#ff7a3d")  # the walker's color
+	fill.set_corner_radius_all(14)
+	progress_bar.add_theme_stylebox_override("background", bg)
+	progress_bar.add_theme_stylebox_override("fill", fill)
+	progress_bar.visible = false
+	_status_box.add_child(progress_bar)
 
 
 func _label(text: String, size: int, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -207,10 +240,22 @@ static func catch_up_text(pending_m: float) -> String:
 	return "Catching up: %s walked while you were away…" % dist
 
 
-## Message over the map; empty hides it.
-func set_status(text: String) -> void:
+## How much of the owed distance has been walked, 0..1.
+static func catch_up_fraction(total_m: float, pending_m: float) -> float:
+	if total_m <= 0.0:
+		return 1.0
+	return clampf(1.0 - pending_m / total_m, 0.0, 1.0)
+
+
+## Message over the map with an optional bar under it; empty text hides both.
+func set_status(text: String, bar := Bar.NONE, fraction := 0.0) -> void:
+	var shown := text != ""
 	overlay_label.text = text
-	overlay_label.visible = text != ""
+	overlay_label.visible = shown
+	_status_box.visible = shown
+	progress_bar.visible = shown and bar != Bar.NONE
+	progress_bar.indeterminate = bar == Bar.BUSY
+	progress_bar.value = fraction * 100.0
 
 
 ## The reset only unlocks once the player has typed the word exactly.

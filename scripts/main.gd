@@ -30,6 +30,7 @@ var walker: Walker
 var city := ""
 var last_tick := 0.0  # unix time the walk was last advanced to
 var pending_m := 0.0  # meters owed to the walk but not walked yet
+var _catch_up_total_m := 0.0  # owed distance when the current catch-up began
 var _fetching := false
 var _fetch_failed := false
 var _next_fetch_ms := 0
@@ -131,15 +132,27 @@ func _step(delta: float) -> void:
 	var view_size := get_viewport_rect().size
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size))
 	hud.set_street(walker.street_name())
-	var status := Hud.catch_up_text(pending_m)
-	if status == "" and walker.needs_data():
-		status = "Loading streets…" if _fetching or not _fetch_failed else "Can't reach the map server. Retrying…"
-	hud.set_status(status)
+	_show_status()
 
 	_save_timer += delta
 	if _save_timer >= SAVE_EVERY_S:
 		_save_timer = 0.0
 		_save()
+
+
+func _show_status() -> void:
+	var catch_up := Hud.catch_up_text(pending_m)
+	if catch_up != "":
+		_catch_up_total_m = maxf(_catch_up_total_m, pending_m)
+		hud.set_status(catch_up, Hud.Bar.PROGRESS, Hud.catch_up_fraction(_catch_up_total_m, pending_m))
+		return
+	_catch_up_total_m = 0.0
+	if not walker.needs_data():
+		hud.set_status("")
+	elif _fetching or not _fetch_failed:
+		hud.set_status("Loading streets…", Hud.Bar.BUSY)
+	else:
+		hud.set_status("Can't reach the map server. Retrying…")
 
 
 func _notification(what: int) -> void:
