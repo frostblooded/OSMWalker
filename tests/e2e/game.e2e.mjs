@@ -107,9 +107,9 @@ try {
   step = "survives reload";
   await page.waitForTimeout(1000);
   await page.reload();
-  const resumed = await until((s) => s.screen === "game", "game after reload");
+  // The time spent reloading is caught up too, so he ends up further along.
+  const resumed = await until((s) => s.screen === "game" && s.total_m >= after.total_m, "walk resumed after reload");
   assert.equal(resumed.city, "Testville");
-  assert.ok(resumed.total_m >= after.total_m, "kept the distance walked");
 
   step = "reset needs RESET";
   await tap("new_city");

@@ -99,8 +99,12 @@ func _download_around(w: Walker, lat: float, lon: float) -> bool:
 
 
 func _process(delta: float) -> void:
+	_step(delta)
 	if OS.has_feature("web"):
 		_publish_state()
+
+
+func _step(delta: float) -> void:
 	if walker == null:
 		return
 	# Wall-clock time, so minutes in the background or with the app closed count too.
