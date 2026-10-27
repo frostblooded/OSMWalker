@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 # tests and web-build run in parallel; e2e plays the web build in a browser;
-# master pushes deploy the same build to GitHub Pages once everything passes.
+# master pushes deploy the same build to GitHub Pages once everything passes,
+# then live-check plays the deployed site to prove it loads.
 jobs:
   tests:
     name: Unit + integration tests
@@ -79,11 +80,14 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: [tests, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # Pushes to master, or a manual run on master to redeploy.
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -97,3 +101,30 @@ jobs:
           path: build/web
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  live-check:
+    name: Play the live site
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - run: npm ci --prefix tests/e2e
+      - name: Play the deployed game
+        env:
+          E2E_CHANNEL: chrome
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          # Pages can take a moment to serve the new build.
+          for i in $(seq 1 12); do curl -sfo /dev/null "$PAGE_URL" && break; sleep 5; done
+          node tests/e2e/game.e2e.mjs "$PAGE_URL" live-screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-screenshots
+          path: live-screenshots
+          if-no-files-found: ignore
