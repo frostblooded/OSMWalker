@@ -25,13 +25,17 @@ static func overpass_query(bbox: Array) -> String:
 		WALKABLE, bbox[0], bbox[1], bbox[2], bbox[3]]
 
 
-## A busy server gets this long before the next one is tried.
-const OVERPASS_TIMEOUT_S := 20.0
+## A busy server gets this long before the next one is tried. Longer than the
+## query's own [timeout:25], or slow but valid answers get thrown away.
+const OVERPASS_TIMEOUT_S := 35.0
+## A server that just failed is tried last for this long.
+const REST_MS := 60000
 
 ## What happened to the latest requests, for the on-screen loading details.
 var last_ok := {}  # {host, bytes, ms, at_ms}
 var last_error := {}  # {host, error, at_ms}
 var active_requests := 0
+var server_stats := {}  # host -> {ok, fail, last_error, rest_until_ms}
 
 
 static func host_of(url: String) -> String:
@@ -88,18 +92,46 @@ func _get_json(url: String, timeout := 60.0) -> Variant:
 ## tried in turn starting at `first_server`, so parallel downloads spread out.
 func fetch_streets(bbox: Array, first_server := 0) -> Variant:
 	var query := overpass_query(bbox).uri_encode()
-	for i in OVERPASS_URLS.size():
-		var url: String = OVERPASS_URLS[(first_server + i) % OVERPASS_URLS.size()]
+	for url in server_order(first_server):
 		var data: Variant = await _get_json(url + "?data=" + query, OVERPASS_TIMEOUT_S)
 		# Overpass answers 200 with a "remark" when the query died half way:
 		# that data is incomplete and must not be cached as a whole area.
 		var remark: String = data.get("remark", "") if data is Dictionary else ""
 		if "error" in remark.to_lower():
 			_fail(url, "server error: " + remark.left(80))
-			continue
+			data = null
 		if data is Dictionary:
+			_server_result(url, "")
 			return data
+		var host := host_of(url)
+		_server_result(url, last_error.get("error", "failed") if last_error.get("host") == host else "failed")
 	return null
+
+
+## Overpass servers to try, starting at `first_server`; ones resting after a
+## recent failure go last.
+func server_order(first_server := 0) -> Array:
+	var now := Time.get_ticks_msec()
+	var fresh := []
+	var resting := []
+	for i in OVERPASS_URLS.size():
+		var url: String = OVERPASS_URLS[(first_server + i) % OVERPASS_URLS.size()]
+		var st: Dictionary = server_stats.get(host_of(url), {})
+		(resting if now < st.get("rest_until_ms", 0) else fresh).append(url)
+	return fresh + resting
+
+
+func _server_result(url: String, error: String) -> void:
+	var host := host_of(url)
+	var st: Dictionary = server_stats.get(host, {"ok": 0, "fail": 0, "last_error": "", "rest_until_ms": 0})
+	if error == "":
+		st["ok"] += 1
+		st["rest_until_ms"] = 0
+	else:
+		st["fail"] += 1
+		st["last_error"] = error
+		st["rest_until_ms"] = Time.get_ticks_msec() + REST_MS
+	server_stats[host] = st
 
 
 ## Up to 6 places matching `text`, each {name, lat, lon}. Empty on failure.

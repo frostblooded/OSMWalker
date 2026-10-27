@@ -240,6 +240,11 @@ func loading_details() -> Dictionary:
 func _server_details(d: Dictionary) -> Dictionary:
 	d["streets"] = loader.stats()
 	d["last_ok"] = api.last_ok
+	var servers := {}
+	for host in api.server_stats:
+		var st: Dictionary = api.server_stats[host]
+		servers[host] = st.merged({"resting": Time.get_ticks_msec() < st["rest_until_ms"]})
+	d["servers"] = servers
 	if not api.last_error.is_empty():
 		d["last_error"] = api.last_error.merged({"ago_s": (Time.get_ticks_msec() - api.last_error["at_ms"]) / 1000})
 	return d

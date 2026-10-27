@@ -45,23 +45,24 @@ func test_runs_several_downloads_at_once() -> void:
 	api.delay_frames = 5
 	loader.graph.cells[home] = true  # pretend his cell is in, so the ring goes out in parallel
 	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
-	assert_eq(api.street_requests.size(), StreetLoader.MAX_PARALLEL)
-	assert_eq(loader.in_flight_count(), StreetLoader.MAX_PARALLEL)
+	# One slot stays free for his own cell.
+	assert_eq(api.street_requests.size(), StreetLoader.MAX_PARALLEL - 1)
+	assert_eq(loader.in_flight_count(), StreetLoader.MAX_PARALLEL - 1)
 
 
 func test_groups_neighbouring_cells_into_one_download() -> void:
 	api.delay_frames = 5
 	loader.graph.cells[home] = true
 	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
-	# 24 missing cells in 3 requests means at least one asked for more than one cell.
-	assert_gt(loader.in_flight_cells(), StreetLoader.MAX_PARALLEL)
+	# More cells than requests means at least one asked for more than one cell.
+	assert_gt(loader.in_flight_cells(), loader.in_flight_count())
 
 
 func test_spreads_downloads_over_servers() -> void:
 	api.delay_frames = 5
 	loader.graph.cells[home] = true
 	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
-	assert_eq(api.first_servers, [0, 1, 2])
+	assert_eq(api.first_servers, [0, 1])
 
 
 func test_saves_cells_and_reads_them_back_without_network() -> void:
@@ -121,3 +122,25 @@ func test_failed_cell_says_when_it_retries() -> void:
 	await wait_until(func(): return loader.is_failing(), 1.0)
 	assert_string_contains(loader.cell_state(home), "retry in")
 	assert_eq(loader.stats()["failed"], 1)
+
+
+func test_his_own_cell_always_gets_a_slot() -> void:
+	api.delay_frames = 1000
+	var ring := StreetGraph.cells_by_priority(42.0, 23.0, 2)
+	loader.graph.cells[Vector2i(0, 0)] = true  # not the very first download
+	loader.request(ring.slice(1))  # everything but his cell
+	assert_eq(loader.in_flight_count(), StreetLoader.MAX_PARALLEL - 1)
+	loader.request(ring)
+	assert_eq(loader.in_flight_count(), StreetLoader.MAX_PARALLEL)
+	assert_eq(api.street_requests[-1], StreetGraph.cells_bbox([home]), "alone, as a small query")
+
+
+func test_no_bundling_while_downloads_fail() -> void:
+	api.online = false
+	loader.request([home + Vector2i(9, 9)])
+	await wait_until(func(): return loader.is_failing(), 1.0)
+	api.online = true
+	api.delay_frames = 1000
+	loader.graph.cells[home] = true
+	loader.request(StreetGraph.cells_by_priority(42.0, 23.0, 2))
+	assert_eq(loader.in_flight_cells(), loader.in_flight_count())

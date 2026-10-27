@@ -78,3 +78,28 @@ func test_overpass_runtime_error_counts_as_a_failure() -> void:
 
 func test_host_of_url() -> void:
 	assert_eq(OsmApi.host_of("https://overpass-api.de/api/interpreter?data=x"), "overpass-api.de")
+
+
+func test_waits_longer_than_overpass_itself_allows() -> void:
+	# The query says [timeout:25]; hanging up sooner throws away slow but valid answers.
+	assert_gt(OsmApi.OVERPASS_TIMEOUT_S, 25.0)
+
+
+func test_failing_servers_rest_and_go_last() -> void:
+	var api: FlakyApi = autofree(FlakyApi.new())
+	await api.fetch_streets([1.0, 2.0, 3.0, 4.0])
+	api.asked.clear()
+	await api.fetch_streets([1.0, 2.0, 3.0, 4.0])
+	# Only the last server worked, so it is now tried first.
+	assert_true(api.asked[0].begins_with(OsmApi.OVERPASS_URLS[-1]))
+	assert_eq(api.asked.size(), 1)
+
+
+func test_counts_successes_and_failures_per_server() -> void:
+	var api: FlakyApi = autofree(FlakyApi.new())
+	await api.fetch_streets([1.0, 2.0, 3.0, 4.0])
+	var first: Dictionary = api.server_stats[OsmApi.host_of(OsmApi.OVERPASS_URLS[0])]
+	var last: Dictionary = api.server_stats[OsmApi.host_of(OsmApi.OVERPASS_URLS[-1])]
+	assert_eq(first["fail"], 1)
+	assert_eq(first["ok"], 0)
+	assert_eq(last["ok"], 1)

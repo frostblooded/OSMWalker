@@ -282,6 +282,15 @@ static func detail_text(d: Dictionary) -> String:
 	var err: Dictionary = d.get("last_error", {})
 	if not err.is_empty():
 		lines.append("Last error: %s, %s, %d s ago" % [err["host"], err["error"], err["ago_s"]])
+	var servers: Dictionary = d.get("servers", {})
+	for host in servers:
+		var sv: Dictionary = servers[host]
+		var line := "%s: %d ok, %d failed" % [host, sv.get("ok", 0), sv.get("fail", 0)]
+		if sv.get("last_error", "") != "":
+			line += " (%s)" % sv["last_error"]
+		if sv.get("resting", false):
+			line += ", resting"
+		lines.append(line)
 	var t: Dictionary = d.get("tiles", {})
 	if d.has("tiles"):
 		lines.append("Map tiles: %d of %d on screen loaded, %d downloading, %d queued, %d failed" % [

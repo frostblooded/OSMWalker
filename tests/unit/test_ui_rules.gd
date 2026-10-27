@@ -131,3 +131,12 @@ func test_status_shows_detail_lines() -> void:
 	assert_eq(hud.detail_label.text, "Now: waiting")
 	hud.set_status("")
 	assert_false(hud.detail_label.visible)
+
+
+func test_detail_text_lists_each_server() -> void:
+	var t := Hud.detail_text({"doing": "x", "servers": {
+		"overpass-api.de": {"ok": 0, "fail": 3, "last_error": "HTTP 502", "resting": true},
+		"overpass.private.coffee": {"ok": 2, "fail": 0, "last_error": "", "resting": false},
+	}})
+	assert_string_contains(t, "overpass-api.de: 0 ok, 3 failed (HTTP 502), resting")
+	assert_string_contains(t, "overpass.private.coffee: 2 ok, 0 failed")
