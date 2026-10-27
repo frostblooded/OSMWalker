@@ -60,18 +60,23 @@ func request(wanted: Array) -> void:
 		if _failed.has(c) and now - _failed[c] < RETRY_MS:
 			continue
 		missing.append(c)
-	while _slots.has(false) and not missing.is_empty():
+	# His own cell (wanted[0]) goes alone, as the smallest and quickest query,
+	# and may use the slot the others leave free for it.
+	if not missing.is_empty() and missing[0] == wanted[0] and _slots.has(false):
+		_fetch([missing.pop_front()], false)
+	# Big 2 x 2 queries only while the servers are coping.
+	var bundle := not _failing
+	while _slots.count(true) < MAX_PARALLEL - 1 and not missing.is_empty():
 		var c: Vector2i = missing.pop_front()
 		var group := [c]
-		# The very first download is his cell alone, so he can start sooner.
-		if not (graph.cells.is_empty() and _busy == 0):
+		if bundle:
 			for s in _siblings(c):
-				if missing.has(s):
+				if missing.has(s) and s != wanted[0]:
 					group.append(s)
 					missing.erase(s)
 		_fetch(group, false)
 	_queued = missing.size()
-	if missing.is_empty() and _slots.has(false) and not _stale.is_empty():
+	if missing.is_empty() and _slots.count(true) < MAX_PARALLEL - 1 and not _stale.is_empty():
 		_fetch([_stale.pop_front()], true)
 
 
