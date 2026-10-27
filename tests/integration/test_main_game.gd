@@ -146,10 +146,14 @@ func test_catch_up_message_after_time_away_then_clears() -> void:
 	await wait_frames(2)
 	assert_true(m.hud.overlay_label.visible)
 	assert_string_contains(m.hud.overlay_label.text, "km walked while you were away")
+	assert_true(m.hud.progress_bar.is_visible_in_tree())
+	assert_false(m.hud.progress_bar.indeterminate)
+	assert_lt(m.hud.progress_bar.value, 5.0)
 	api.online = true
 	m._next_fetch_ms = 0
 	await wait_until(func(): return not m.hud.overlay_label.visible, 2.0)
 	assert_false(m.hud.overlay_label.visible)
+	assert_false(m.hud.progress_bar.is_visible_in_tree())
 
 
 func test_downloads_streets_ahead_before_reaching_the_edge() -> void:
@@ -183,3 +187,20 @@ func test_shows_loading_while_waiting_for_streets() -> void:
 	await wait_frames(3)
 	assert_true(m.hud.overlay_label.visible)
 	assert_eq(m.hud.overlay_label.text, "Loading streets…")
+	assert_true(m.hud.progress_bar.is_visible_in_tree())
+	assert_true(m.hud.progress_bar.indeterminate)
+
+
+func test_catch_up_bar_fills_as_he_walks_the_owed_distance() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	api.online = false
+	m.walker.graph.areas.clear()
+	m.walker.to_node = -1
+	m.last_tick -= 300.0
+	await wait_frames(2)
+	var owed := m.pending_m
+	# Simulate part of the owed distance being walked.
+	m.pending_m = owed / 2.0
+	await wait_frames(1)
+	assert_almost_eq(m.hud.progress_bar.value, 50.0, 2.0)
