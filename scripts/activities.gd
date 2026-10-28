@@ -53,6 +53,10 @@ static func weight(action: Dictionary, stats: Stats) -> float:
 	for m in fx:
 		if stats.meters.has(m) and float(fx[m]) > 0.0:
 			w += maxf(60.0 - stats.meters[m], 0.0) / 20.0 * minf(float(fx[m]), 50.0) / 20.0
+	if action.has("item"):
+		w += 1.0 if stats.coins > 3 * SKINT else 0.0
+	if action.get("sell", false):
+		w += 2.0
 	if action.has("earn"):
 		w += 3.0 if stats.coins < SKINT else 0.5
 	if stats.coins - int(action.get("cost", 0)) < SKINT and action.has("cost"):

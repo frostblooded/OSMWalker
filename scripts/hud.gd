@@ -266,6 +266,14 @@ static func sheet_text(stats: RefCounted) -> String:
 		lines.append("%s: %d / 100" % [m.capitalize(), roundi(stats.meters[m])])
 	lines.append("")
 	lines.append("Strength %.1f · Charm %.1f · Wits %.1f · Luck %.1f" % [stats.attrs["str"], stats.attrs["cha"], stats.attrs["wit"], stats.attrs["luck"]])
+	lines.append("")
+	for slot in stats.gear:
+		var it: Dictionary = stats.gear[slot]
+		lines.append("%s: %s (%s)" % [slot.capitalize(), it["name"], it["rarity"]])
+	if stats.gear.is_empty():
+		lines.append("No gear yet")
+	if not stats.bag.is_empty():
+		lines.append("Bag (%d): %s" % [stats.bag.size(), ", ".join(stats.bag.map(func(it): return it["name"]))])
 	if not stats.buffs.is_empty():
 		lines.append("")
 		for b in stats.buffs:
