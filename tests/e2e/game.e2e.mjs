@@ -35,7 +35,7 @@ const context = await browser.newContext({ viewport: { width: 390, height: 844 }
 const requests = { search: 0, streets: 0, streetTiles: 0, tiles: 0 };
 await context.route(/nominatim\.openstreetmap\.org/, (r) => {
   requests.search++;
-  r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0" }], headers: cors });
+  r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0", boundingbox: ["41.99", "42.01", "22.99", "23.01"] }], headers: cors });
 });
 // Every Overpass mirror the game may spread downloads over.
 await context.route(/overpass-api\.de|overpass\.private\.coffee|maps\.mail\.ru/, (r) => {
