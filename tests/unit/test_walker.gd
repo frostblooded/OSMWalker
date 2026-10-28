@@ -18,12 +18,7 @@ func before_each() -> void:
 
 
 func test_speed_is_200_meters_per_minute() -> void:
-	assert_almost_eq(Walker.meters_for_elapsed(60.0), 200.0, 0.0001)
-
-
-func test_catch_up_is_capped_at_24_hours() -> void:
-	assert_almost_eq(Walker.meters_for_elapsed(3 * 86400.0), 288000.0, 0.01)
-	assert_eq(Walker.meters_for_elapsed(-50.0), 0.0)
+	assert_almost_eq(Walker.SPEED_MPS * 60.0, 200.0, 0.0001)
 
 
 func test_walks_partway_along_the_street() -> void:
@@ -202,15 +197,6 @@ func test_isolated_node_hops_to_nearest_street() -> void:
 	walker.advance(10.0)
 	assert_ne(walker.from_node, 77)
 	assert_almost_eq(walker.total_m, 10.0, 0.0001)
-
-
-func test_fast_forward_is_at_least_50x() -> void:
-	assert_almost_eq(Walker.fast_forward_mps(1000.0), 50.0 * Walker.SPEED_MPS, 0.001)
-
-
-func test_long_fast_forward_still_ends_in_30_seconds() -> void:
-	var owed := Walker.meters_for_elapsed(Walker.MAX_CATCH_UP_S)
-	assert_almost_eq(owed / Walker.fast_forward_mps(owed), 30.0, 0.001)
 
 
 func test_save_keeps_the_rest() -> void:

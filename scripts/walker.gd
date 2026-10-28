@@ -14,14 +14,8 @@ signal landed(city: Dictionary)
 
 ## 200 meters per minute.
 const SPEED_MPS := 200.0 / 60.0
-## Longest absence we simulate when the app is reopened.
-const MAX_CATCH_UP_S := 24.0 * 3600.0
-## Catch-up plays as a fast-forward: at least this many times normal speed...
-const FAST_FORWARD_MIN_X := 50.0
-## ...and faster when needed, so it never takes longer than this.
-const FAST_FORWARD_MAX_S := 30.0
 ## He rests a minute at each destination, counted in walking meters so the
-## clock and catch-up stay simple.
+## clock stays simple.
 const REST_M := SPEED_MPS * 60.0
 ## Close enough to a destination to call it reached.
 const ARRIVE_M := 30.0
@@ -58,10 +52,6 @@ func _init(street_graph: StreetGraph = null) -> void:
 	graph = street_graph if street_graph else StreetGraph.new()
 
 
-static func meters_for_elapsed(seconds: float) -> float:
-	return clampf(seconds, 0.0, MAX_CATCH_UP_S) * SPEED_MPS
-
-
 ## Longest a trip may take before he gives up and picks another spot (the
 ## goal may be across water or behind a fence).
 static func trip_limit_m(straight_m: float) -> float:
@@ -78,11 +68,6 @@ static func city_bounds(lat: float, lon: float, box: Array) -> Array:
 	return [
 		clampf(minf(box[0], lo[0]), hi[0], lo[0]), clampf(minf(box[1], lo[1]), hi[1], lo[1]),
 		clampf(maxf(box[2], lo[2]), lo[2], hi[2]), clampf(maxf(box[3], lo[3]), lo[3], hi[3])]
-
-
-## Fast-forward speed for catching up `owed_m` meters.
-static func fast_forward_mps(owed_m: float) -> float:
-	return maxf(FAST_FORWARD_MIN_X * SPEED_MPS, owed_m / FAST_FORWARD_MAX_S)
 
 
 func start_at(node_id: int) -> void:
@@ -119,7 +104,7 @@ func pick_goal() -> void:
 
 
 ## Sets off for `city` ({name, lat, lon, bounds, ...}). The trip uses up
-## walking time, so the clock and catch-up work as for walking.
+## walking time, so the clock works as for walking.
 func start_travel(city: Dictionary) -> void:
 	var p := position()
 	var m := Trips.travel_s(Geo.distance_m(p[0], p[1], city["lat"], city["lon"])) * SPEED_MPS

@@ -235,42 +235,16 @@ func _build_confirm() -> void:
 	_confirm.add_child(box)
 
 
-## Owed distance only counts as "catching up" past a minute of walking;
-## shorter waits are just streets loading.
-const CATCH_UP_MIN_M := 200.0
-
-
-static func catch_up_text(pending_m: float) -> String:
-	if pending_m < CATCH_UP_MIN_M:
-		return ""
-	var dist := "%d m" % roundi(pending_m) if pending_m < 1000.0 else "%.1f km" % (pending_m / 1000.0)
-	return "Catching up: %s walked while you were away…" % dist
-
-
-static func _dist(m: float) -> String:
-	return "%d m" % roundi(m) if m < 1000.0 else "%.1f km" % (m / 1000.0)
-
-
 static func _bytes(b: int) -> String:
 	if b < 1024 * 1024:
 		return "%d KB" % ceili(b / 1024.0)
 	return "%.1f MB" % (b / 1048576.0)
 
 
-## Every step of loading and catching up, one line each, so a stall can be
+## Every step of loading, one line each, so a stall can be
 ## seen for what it is. `d` comes from main.gd's loading_details().
 static func detail_text(d: Dictionary) -> String:
 	var lines := []
-	if d.has("total_m"):
-		var total: float = d["total_m"]
-		var left: float = d["pending_m"]
-		var speed: float = d["speed_mps"]
-		var done := "%.1f of %.1f km" % [(total - left) / 1000.0, total / 1000.0] if total >= 1000.0 \
-				else "%d of %d m" % [roundi(total - left), roundi(total)]
-		lines.append("Caught up %s (%d%%)" % [done, roundi(100.0 * catch_up_fraction(total, left))])
-		lines.append("Speed %s/s (%dx normal), about %d s left" % [
-			_dist(speed), roundi(speed / (200.0 / 60.0)), ceili(left / maxf(speed, 0.001))])
-		lines.append("Really covered %s/s, %d fps" % [_dist(d.get("real_mps", 0.0)), d.get("fps", 0)])
 	lines.append("Now: " + str(d.get("doing", "")))
 	var st: Dictionary = d.get("streets", {})
 	lines.append("Streets: %d areas loaded (%d from cache, %d downloaded), %d downloading, %d unpacking, %d queued, %d failed" % [
@@ -296,13 +270,6 @@ static func detail_text(d: Dictionary) -> String:
 		lines.append("Map tiles: %d of %d on screen loaded, %d downloading, %d queued, %d failed" % [
 			t.get("loaded", 0), t.get("on_screen", 0), t.get("downloading", 0), t.get("queued", 0), t.get("failed", 0)])
 	return "\n".join(lines)
-
-
-## How much of the owed distance has been walked, 0..1.
-static func catch_up_fraction(total_m: float, pending_m: float) -> float:
-	if total_m <= 0.0:
-		return 1.0
-	return clampf(1.0 - pending_m / total_m, 0.0, 1.0)
 
 
 ## Message over the map with an optional bar and detail lines under it;
