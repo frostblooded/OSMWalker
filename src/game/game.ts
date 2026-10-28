@@ -80,6 +80,8 @@ export class Game {
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
+  /** The camera keeps him in view by itself (the menu switch); off, the map stays where the player leaves it. */
+  cameraFollows = true;
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
@@ -492,9 +494,10 @@ export class Game {
     const raw = this.storage?.getItem(SETTINGS_KEY);
     if (!raw) return;
     try {
-      const d = JSON.parse(raw) as { show_city_area?: boolean; show_route?: boolean; problems?: unknown };
+      const d = JSON.parse(raw) as { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
       this.showCityArea = !!d.show_city_area;
       this.showRoute = !!d.show_route;
+      this.cameraFollows = d.camera_follows ?? true;
       Object.assign(this.problems, Problems.fromJSON(d.problems), { quiet: this.problems.quiet });
     } catch {
       this.problems.warn("Settings were unreadable; using defaults");
@@ -503,7 +506,7 @@ export class Game {
 
   saveSettings(): void {
     try {
-      this.storage?.setItem(SETTINGS_KEY, JSON.stringify({ show_city_area: this.showCityArea, show_route: this.showRoute, problems: this.problems }));
+      this.storage?.setItem(SETTINGS_KEY, JSON.stringify({ show_city_area: this.showCityArea, show_route: this.showRoute, camera_follows: this.cameraFollows, problems: this.problems }));
     } catch {
       // Out of space: settings are only a convenience.
     }
@@ -518,6 +521,12 @@ export class Game {
 
   setShowRoute(on: boolean): void {
     this.showRoute = on;
+    this.saveSettings();
+    this.changed();
+  }
+
+  setCameraFollows(on: boolean): void {
+    this.cameraFollows = on;
     this.saveSettings();
     this.changed();
   }

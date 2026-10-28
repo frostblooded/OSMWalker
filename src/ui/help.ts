@@ -15,6 +15,7 @@ import * as Trips from "../core/trips";
 import * as W from "../core/walker";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
+import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
 
@@ -114,6 +115,7 @@ export function values(data: GameData): Record<string, string> {
     NEED_HALF: num(1 + Activities.NEED_BOOST / 2),
     STAY_MIN: num(Activities.MAX_MINUTES),
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
+    MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
     SKINT: euro(Activities.SKINT),

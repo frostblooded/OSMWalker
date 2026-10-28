@@ -72,6 +72,9 @@ describe("the real help", () => {
     expect(page("coins").body).toContain("He starts with €200.");
     expect(page("health").body + page("coins").body).toContain("€150");
     expect(page("modifiers").body).toContain("Common, no modifiers: 60% of items");
+    expect(page("map").body).toContain("more than 20% of the view away from the middle");
+    expect(page("menu").body).toContain("Camera follows him");
+    expect(page("map").body).toContain("ⓘ");
   });
 
   it("has a page for every screen button", () => {

@@ -126,8 +126,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
 
   const backToHim = () => {
     goalView.current = "";
-    view.current?.follow();
-    view.current?.map.easeTo({ zoom: game.zoom, duration: 0 });
+    view.current?.follow(game.zoom);
     setFollowing(true);
   };
 
@@ -198,7 +197,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           −
         </button>
       </div>
-      {!following && (
+      {!following && game.cameraFollows && (
         <button class="btn back" onClick={backToHim}>
           🙂 Back to him
         </button>
@@ -229,6 +228,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             </button>
             <button class="btn" role="switch" aria-checked={game.showRoute} onClick={() => game.setShowRoute(!game.showRoute)}>
               🧭 Route to goal <span class={`switch${game.showRoute ? " on" : ""}`} aria-hidden="true" />
+            </button>
+            <button class="btn" role="switch" aria-checked={game.cameraFollows} onClick={() => game.setCameraFollows(!game.cameraFollows)}>
+              🎥 Camera follows him <span class={`switch${game.cameraFollows ? " on" : ""}`} aria-hidden="true" />
             </button>
             <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
               🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />

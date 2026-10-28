@@ -120,6 +120,14 @@ describe("game", () => {
     expect(again.showRoute).toBe(true);
   });
 
+  it("starts with the camera following him and remembers the switch", () => {
+    const { g, storage } = game();
+    expect(g.cameraFollows).toBe(true);
+    g.setCameraFollows(false);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    expect(again.cameraFollows).toBe(false);
+  });
+
   it("starts over on reset but keeps the problem log", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);

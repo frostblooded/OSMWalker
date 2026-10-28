@@ -10,7 +10,7 @@ const TILES = "https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf";
 
 export const STYLE = {
   version: 8,
-  sources: { openmaptiles: { type: "vector", tiles: [TILES], minzoom: 0, maxzoom: 14 } },
+  sources: { openmaptiles: { type: "vector", tiles: [TILES], minzoom: 0, maxzoom: 14, attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> <a href="https://www.openmaptiles.org/">© OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' } },
   layers: [
     { id: "background", type: "background", paint: { "background-color": "#f2efe9" } },
     { id: "roads", type: "line", source: "openmaptiles", "source-layer": "transportation", paint: { "line-color": "#ffffff", "line-width": 4 } },

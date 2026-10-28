@@ -152,8 +152,17 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 
 /* Map markers: him and his goal. */
 .marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 0 rgba(61, 42, 28, 0.5)); pointer-events: none; }
+/* He glides between game ticks; the loop sets --glide to the time until the next one. */
+.marker.him.glide { transition: transform var(--glide, 0ms) linear; will-change: transform; }
 .marker.him { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; font-size: 22px; }
-.maplibregl-ctrl-bottom-left { bottom: calc(var(--s3) + var(--safe-bottom)); }
+/* MapLibre's own CSS loads later, so these carry .game to win. */
+.game .maplibregl-ctrl-bottom-left { bottom: calc(var(--s3) + var(--safe-bottom)); left: var(--s3); }
+.game .maplibregl-ctrl-bottom-right { right: calc(var(--tap) + 2 * var(--s3)); bottom: calc(var(--s3) + var(--safe-bottom)); }
+/* Map credit: a 48 px ⓘ that opens into a small card on tap. */
+.game .maplibregl-ctrl-bottom-left > .maplibregl-ctrl-attrib.maplibregl-compact { margin: 0; min-height: var(--tap); min-width: var(--tap); padding: var(--s1) var(--s3) var(--s1) var(--tap); box-sizing: border-box; display: flex; align-items: center; background: var(--paper); border: 2px solid var(--ink); border-radius: calc(var(--tap) / 2); font: 700 12px/1.3 var(--text); color: var(--ink); max-width: calc(100vw - 2 * var(--tap) - 4 * var(--s3)); }
+.game .maplibregl-ctrl-bottom-left > .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) { padding: 0; width: var(--tap); }
+.game .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button { left: -2px; top: 50%; transform: translateY(-50%); width: var(--tap); height: var(--tap); border-radius: 50%; background-color: transparent; background-repeat: no-repeat; background-position: center; background-size: 24px; outline: none; }
+.maplibregl-ctrl-attrib a { color: var(--ink); }
 .maplibregl-ctrl-bottom-right { right: calc(var(--tap) + 2 * var(--s3)); bottom: calc(var(--s3) + var(--safe-bottom)); }
 
 /* Kit: cards, rows, folds, tones (docs/ui-guidelines.md) */
