@@ -35,6 +35,28 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
 });
 
+test("Help search finds pages by their text and keeps the results after Back", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Help/ }).click();
+  const help = page.getByRole("dialog", { name: /Help/ });
+  const box = help.getByRole("searchbox", { name: "Search Help" });
+  await box.fill("hospital");
+  const results = help.getByRole("region", { name: /Results/ });
+  await expect(results.locator("mark").first()).toHaveText(/hospital/i);
+  await expect(help.getByRole("button", { name: "Fares" })).toBeHidden();
+  expect(await smallButtons(page)).toEqual([]);
+  await results.getByRole("button", { name: /^Health/ }).click();
+  await expect(help.locator(".page-title")).toHaveText("Health");
+  await help.getByRole("button", { name: "Back" }).click();
+  await expect(box).toHaveValue("hospital");
+  await box.fill("zzzqqq");
+  await expect(help).toContainText("Nothing found");
+  await help.getByRole("button", { name: "Clear search" }).click();
+  await expect(box).toHaveValue("");
+  await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
+});
+
 test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

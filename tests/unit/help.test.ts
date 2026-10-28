@@ -78,3 +78,55 @@ describe("the real help", () => {
     for (const id of ["menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
   });
 });
+
+describe("search", () => {
+  const s = Help.parse(
+    "# 🚶 Walking\n## How he walks {walking}\nHe walks at 5 km/h.\n- Cafés are goals.\n## Speed {speed}\nA bike makes him faster than walking.\n# 🪙 Money\n## Coins {coins}\nHe starts with €200 and buys a bike.",
+  );
+  const ids = (q: string) => Help.search(s, q).map((h) => h.page.id);
+
+  it("finds nothing for an empty query", () => {
+    expect(Help.search(s, "  ")).toEqual([]);
+  });
+
+  it("matches titles and page text, title matches first", () => {
+    expect(ids("speed")).toEqual(["speed"]);
+    expect(ids("bike")).toEqual(["speed", "coins"]);
+    expect(ids("walk")).toEqual(["walking", "speed"]);
+  });
+
+  it("needs every word, in any order and case", () => {
+    expect(ids("BIKE starts")).toEqual(["coins"]);
+    expect(ids("bike nope")).toEqual([]);
+  });
+
+  it("matches from the start of words only", () => {
+    expect(ids("alks")).toEqual([]);
+    expect(ids("fast")).toEqual(["speed"]);
+  });
+
+  it("ignores accents", () => {
+    expect(ids("cafes")).toEqual(["walking"]);
+    expect(ids("Café")).toEqual(["walking"]);
+  });
+
+  it("gives the section and a snippet split around the match", () => {
+    const [hit] = Help.search(s, "cafes");
+    expect(hit!.section).toBe("🚶 Walking");
+    expect(hit!.snip).toEqual(["", "Cafés", " are goals."]);
+  });
+
+  it("cuts long lines around the match", () => {
+    const long = Help.parse(`# A\n## B {b}\n${"x ".repeat(60)}needle${" y".repeat(60)}`);
+    const [before, match, after] = Help.search(long, "needle")[0]!.snip;
+    expect(match).toBe("needle");
+    expect(before.startsWith("…")).toBe(true);
+    expect(after.endsWith("…")).toBe(true);
+    expect(before.length + after.length).toBeLessThan(120);
+  });
+
+  it("finds real pages by their filled numbers", () => {
+    expect(Help.search(sections, "€150").length).toBeGreaterThan(0);
+    expect(Help.search(sections, "hygiene")[0]!.page.id).toBe("hygiene");
+  });
+});
