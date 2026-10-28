@@ -36,6 +36,18 @@ const MAX_SKIPS := 3
 const MAX_SEARCH_NODES := 40000
 ## Where he stands on landing, until the new city's streets load.
 const ARRIVAL_NODE := -2
+## Goals this far away weigh most; the weight falls off smoothly on a log
+## scale both ways, so a place 2 km off weighs about 1/15 of one at 500 m.
+const GOAL_PEAK_M := 500.0
+const GOAL_SPREAD := 0.6
+## A goal straight ahead (along his last leg) weighs this many times one
+## straight behind; sideways is in between.
+const HEADING_RATIO := 2.0
+## Places he picked among his last RECENT_COUNT goals weigh this much less.
+const RECENT_COUNT := 10
+const RECENT_WEIGHT := 0.1
+## Tries at a random spot near and ahead of him before taking any spot in the box.
+const SPOT_TRIES := 30
 
 var graph: StreetGraph
 var rng := RandomNumberGenerator.new()
@@ -55,6 +67,8 @@ var rested_m := 0.0
 var trip_m := 0.0  # walked since the current goal was picked
 var trip_start_m := 0.0  # straight-line distance to the goal when it was picked
 var place := {}  # the place of note he is heading to or resting at, {} for a random spot
+var leg_from := []  # [lat, lon] where the current leg started, for his heading
+var recent := []  # [lat, lon] of the last RECENT_COUNT places picked, oldest first
 ## Asked on every destination pick: returns a city to travel to, or {} to stay.
 var trip_planner: Callable
 var travel := {}  # {from: [lat, lon], to: city, total_m, left_m} while on the way
@@ -102,10 +116,13 @@ func set_goal(lat: float, lon: float) -> void:
 	if graph.has_node(from_node):
 		var p := position()
 		trip_start_m = Geo.distance_m(p[0], p[1], lat, lon)
+		leg_from = p
 
 
 ## Picks a place of note to walk to (a random spot in the city while none
-## are loaded), or sets off on a trip.
+## are loaded), or sets off on a trip. Places weigh by importance, by a
+## medium walking distance, by lying ahead along his last leg, and less when
+## he went there lately (see weigh()).
 func pick_goal() -> void:
 	if trip_planner.is_valid():
 		var city: Dictionary = trip_planner.call()
@@ -123,15 +140,22 @@ func pick_goal() -> void:
 		options = options.filter(func(q): return Geo.distance_m(here[0], here[1], q["lat"], q["lon"]) > ARRIVE_M)
 	info["too_close"] = info["in_box"] - options.size()
 	if not options.is_empty():
+		var parts := options.map(weigh)
+		var weights := parts.map(func(w): return w["weight"])
 		var r := rng.randf()
-		var pl := pick_place(options, r)
+		var i := pick_index(weights, r)
+		var pl: Dictionary = options[i]
 		set_goal(pl["lat"], pl["lon"])
 		place = pl
+		recent.append([pl["lat"], pl["lon"]])
+		recent = recent.slice(-RECENT_COUNT)
+		info.merge(parts[i])
 		info.merge({"r": r, "place": pl.get("name", ""), "class": pl.get("class", ""), "rank": int(pl.get("rank", 1)),
-			"total_weight": options.reduce(func(acc, q): return acc + place_weight(q), 0.0)})
+			"total_weight": weights.reduce(func(acc, w): return acc + w, 0.0)})
 		picked.emit(info)
 		return
-	set_goal(rng.randf_range(bounds[0], bounds[2]), rng.randf_range(bounds[1], bounds[3]))
+	var spot := random_spot()
+	set_goal(spot[0], spot[1])
 	info["spot"] = goal
 	info["fallback"] = "no places loaded in the city box yet" if info["in_box"] == 0 \
 		else "every loaded place is within %d m of him" % int(ARRIVE_M)
@@ -154,22 +178,84 @@ func land_now() -> void:
 		_land()
 
 
-static func place_weight(p: Dictionary) -> float:
-	return 1.0 / maxi(int(p["rank"]), 1)
+static func rank_weight(p: Dictionary) -> float:
+	return 1.0 / maxi(int(p.get("rank", 1)), 1)
 
 
-## One of `places`, picked with weight 1 / rank so important ones come up
-## more often. `r` is uniform in [0, 1).
-static func pick_place(places: Array, r: float) -> Dictionary:
+## 1 at GOAL_PEAK_M, falling off smoothly (log-normal) nearer and further.
+static func distance_weight(d_m: float) -> float:
+	var x := log(maxf(d_m, 1.0) / GOAL_PEAK_M) / GOAL_SPREAD
+	return exp(-0.5 * x * x)
+
+
+## 1 sideways, more ahead along `heading` (a unit vector), less behind, with
+## ahead / behind = HEADING_RATIO. 1 when there is no heading.
+static func heading_weight(heading: Vector2, to: Vector2) -> float:
+	if heading == Vector2.ZERO or to == Vector2.ZERO:
+		return 1.0
+	var a := (HEADING_RATIO - 1.0) / (HEADING_RATIO + 1.0)
+	return 1.0 + a * heading.dot(to.normalized())
+
+
+## Direction (east, north unit vector) of his last leg, from where it started
+## to where he is now; zero when there is none.
+func heading() -> Vector2:
+	if leg_from.size() != 2 or not graph.has_node(from_node):
+		return Vector2.ZERO
+	var p := position()
+	var v := Geo.offset_m(leg_from[0], leg_from[1], p[0], p[1])
+	return v.normalized() if v.length() > ARRIVE_M else Vector2.ZERO
+
+
+## How much a place weighs as his next goal, and why:
+## {rank_w, dist_m, dist_w, heading_w, recent_w, weight}.
+func weigh(p: Dictionary) -> Dictionary:
+	if not graph.has_node(from_node):
+		return {"rank_w": rank_weight(p), "dist_m": 0.0, "dist_w": 1.0, "heading_w": 1.0, "recent_w": 1.0,
+			"weight": rank_weight(p)}
+	var here := position()
+	var to := Geo.offset_m(here[0], here[1], p["lat"], p["lon"])
+	var d := Geo.distance_m(here[0], here[1], p["lat"], p["lon"])
+	var recent_w := 1.0
+	for q in recent:
+		if Geo.distance_m(q[0], q[1], p["lat"], p["lon"]) <= ARRIVE_M:
+			recent_w = RECENT_WEIGHT
+			break
+	var parts := {"rank_w": rank_weight(p), "dist_m": d, "dist_w": distance_weight(d),
+		"heading_w": heading_weight(heading(), to), "recent_w": recent_w}
+	parts["weight"] = parts["rank_w"] * parts["dist_w"] * parts["heading_w"] * recent_w
+	return parts
+
+
+## Index into `weights` picked with those odds; `r` is uniform in [0, 1).
+static func pick_index(weights: Array, r: float) -> int:
 	var total := 0.0
-	for p in places:
-		total += place_weight(p)
+	for w in weights:
+		total += w
 	r *= total
-	for p in places:
-		r -= place_weight(p)
+	for i in weights.size():
+		r -= weights[i]
 		if r < 0.0:
-			return p
-	return places[-1] if not places.is_empty() else {}
+			return i
+	return weights.size() - 1
+
+
+## A spot in the city box, drawn with the same distance and heading odds as
+## places; anywhere in the box when he has no position yet or no luck.
+func random_spot() -> Array:
+	if graph.has_node(from_node):
+		var here := position()
+		var h := heading()
+		var top := heading_weight(h, h) if h != Vector2.ZERO else 1.0
+		for i in SPOT_TRIES:
+			var dir := Vector2.from_angle(rng.randf() * TAU)
+			if rng.randf() * top > heading_weight(h, dir):
+				continue
+			var d := GOAL_PEAK_M * exp(GOAL_SPREAD * rng.randfn())
+			var p := Geo.moved(here[0], here[1], dir * d)
+			if p[0] >= bounds[0] and p[0] <= bounds[2] and p[1] >= bounds[1] and p[1] <= bounds[3]:
+				return p
+	return [rng.randf_range(bounds[0], bounds[2]), rng.randf_range(bounds[1], bounds[3])]
 
 
 ## Sets off for `city` ({name, lat, lon, bounds, ...}). The trip uses up
@@ -194,6 +280,8 @@ func is_traveling() -> bool:
 func _land() -> void:
 	var city: Dictionary = travel["to"]
 	travel = {}
+	leg_from = []
+	recent = []
 	graph = StreetGraph.new()
 	graph.nodes[ARRIVAL_NODE] = [float(city["lat"]), float(city["lon"])]
 	start_at(ARRIVAL_NODE)
@@ -452,6 +540,7 @@ func to_dict() -> Dictionary:
 		"bounds": bounds, "goal": goal, "goal_node": goal_node, "route": route,
 		"route_arrives": route_arrives, "rest_m": rest_m, "rest_total_m": rest_total_m, "rested_m": rested_m,
 		"trip_m": trip_m, "trip_start_m": trip_start_m, "travel": travel, "place": place,
+		"leg_from": leg_from, "recent": recent,
 	}
 	for key in ["prev", "from", "to"]:
 		var id: int = d[key]
@@ -480,6 +569,8 @@ func load_dict(d: Dictionary) -> void:
 	trip_start_m = float(d.get("trip_start_m", 0.0))
 	travel = d.get("travel", {})
 	place = d.get("place", {})
+	leg_from = Array(d.get("leg_from", [])).map(func(v): return float(v))
+	recent = Array(d.get("recent", [])).map(func(q): return Array(q).map(func(v): return float(v)))
 	if not travel.is_empty():
 		travel["from"] = Array(travel["from"]).map(func(v): return float(v))
 		var city: Dictionary = travel["to"]

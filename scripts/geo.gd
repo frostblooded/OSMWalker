@@ -16,6 +16,19 @@ static func distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 	return 2.0 * EARTH_RADIUS_M * asin(sqrt(clampf(a, 0.0, 1.0)))
 
 
+## Meters east (x) and north (y) from the first point to the second, on a
+## flat map around the first; fine within a city.
+static func offset_m(lat1: float, lon1: float, lat2: float, lon2: float) -> Vector2:
+	var m := deg_to_rad(1.0) * EARTH_RADIUS_M
+	return Vector2((lon2 - lon1) * m * cos(deg_to_rad(lat1)), (lat2 - lat1) * m)
+
+
+## [lat, lon] reached by going `v` meters (east, north) from a point.
+static func moved(lat: float, lon: float, v: Vector2) -> Array:
+	var m := deg_to_rad(1.0) * EARTH_RADIUS_M
+	return [lat + v.y / m, lon + v.x / (m * cos(deg_to_rad(lat)))]
+
+
 ## World pixel x for a longitude at a zoom level.
 static func lon_to_px(lon: float, zoom: int) -> float:
 	return (lon + 180.0) / 360.0 * TILE_SIZE * pow(2.0, zoom)

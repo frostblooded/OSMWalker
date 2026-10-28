@@ -354,8 +354,17 @@ func test_tells_how_a_place_was_picked() -> void:
 	assert_eq(info["place"], "Cafe East")
 	assert_eq(info["in_box"], 2)
 	assert_eq(info["too_close"], 1)
-	assert_almost_eq(info["total_weight"], 1.0, 1e-6)
+	assert_almost_eq(info["total_weight"], info["weight"], 1e-6)  # the only option
+	assert_almost_eq(info["dist_w"], Walker.distance_weight(info["dist_m"]), 1e-6)
+	assert_eq(info["heading_w"], 1.0)  # no leg walked yet
 	assert_true(info.has("r"))
+
+
+func test_places_weigh_by_rank_alone_before_he_stands_anywhere() -> void:
+	walker.bounds = [41.99, 22.99, 42.01, 23.01]
+	graph.places[StreetGraph.cell_of(42.0, 23.0)] = [
+		{"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 2, "lat": 42.0, "lon": 23.00135}]
+	assert_eq(walker.weigh(graph.places[StreetGraph.cell_of(42.0, 23.0)][0])["weight"], 0.5)
 
 
 func test_tells_why_a_random_spot_was_picked() -> void:

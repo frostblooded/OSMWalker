@@ -36,6 +36,19 @@ func test_a_place_pick_shows_both_rolls_and_the_odds() -> void:
 	assert_string_contains(text, "2.5%")  # weight 0.25 of 10
 
 
+func test_a_place_pick_shows_each_weight() -> void:
+	var text := "\n".join(DebugLog.lines({
+		"t": 0, "in_box": 3, "too_close": 0, "total_weight": 2.0,
+		"r": 0.5, "place": "Cafe East", "class": "cafe", "rank": 2,
+		"rank_w": 0.5, "dist_m": 640.0, "dist_w": 0.9, "heading_w": 1.25, "recent_w": 0.1, "weight": 0.05625}, 0))
+	assert_string_contains(text, "640 m")
+	assert_string_contains(text, "rank 0.50")
+	assert_string_contains(text, "distance 0.90")
+	assert_string_contains(text, "heading 1.25")
+	assert_string_contains(text, "recent 0.10")
+	assert_string_contains(text, "2.8%")  # 0.05625 of 2
+
+
 func test_a_random_spot_says_why() -> void:
 	var text := "\n".join(DebugLog.lines({
 		"t": 0, "skipped": "first pick in a new city", "in_box": 0, "too_close": 0,

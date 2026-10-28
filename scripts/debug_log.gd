@@ -52,10 +52,15 @@ static func lines(e: Dictionary, bias_min: int) -> Array:
 	out.append("%d places in the city box, %d within %d m of him skipped" % [
 		int(e["in_box"]), int(e.get("too_close", 0)), int(Walker.ARRIVE_M)])
 	if e.has("place"):
-		var w := 1.0 / maxi(int(e.get("rank", 1)), 1)
-		out.append("Place dice %.4f → %s (%s, rank %d, weight %.2f of %.2f = %s)" % [
+		# Picks logged before distance and heading counted weigh by rank alone.
+		var w := float(e.get("weight", 1.0 / maxi(int(e.get("rank", 1)), 1)))
+		out.append("Place dice %.4f → %s (%s, rank %d, weight %.3f of %.3f = %s)" % [
 			e.get("r", 0.0), e["place"], e.get("class", ""), int(e.get("rank", 1)), w,
 			float(e.get("total_weight", 0.0)), _pct(w / maxf(float(e.get("total_weight", 0.0)), 0.0001))])
+		if e.has("dist_w"):
+			out.append("Weight = rank %.2f × distance %.2f (%d m away) × heading %.2f × recent %.2f" % [
+				float(e.get("rank_w", 1.0)), float(e["dist_w"]), int(e.get("dist_m", 0.0)),
+				float(e.get("heading_w", 1.0)), float(e.get("recent_w", 1.0))])
 	elif e.has("fallback"):
 		var spot: Array = e.get("spot", [0.0, 0.0])
 		out.append("Random spot %.5f, %.5f because %s (%d street cells loaded)" % [

@@ -76,12 +76,10 @@ func test_cells_keep_their_places() -> void:
 	assert_eq(g.places_in([42.5, 23.5, 43.5, 24.5]), [])
 
 
-func test_important_places_are_picked_more_often() -> void:
-	var places := [_place("Landmark", 42.0, 23.0, 1), _place("Corner shop", 42.0, 23.0, 9)]
-	assert_eq(Walker.pick_place(places, 0.0)["name"], "Landmark")
-	assert_eq(Walker.pick_place(places, 0.89)["name"], "Landmark")
-	assert_eq(Walker.pick_place(places, 0.91)["name"], "Corner shop")
-	assert_eq(Walker.pick_place([], 0.5), {})
+func test_important_places_weigh_more() -> void:
+	assert_almost_eq(Walker.rank_weight(_place("Landmark", 42.0, 23.0, 1)), 1.0, 1e-6)
+	assert_almost_eq(Walker.rank_weight(_place("Corner shop", 42.0, 23.0, 9)), 1.0 / 9.0, 1e-6)
+	assert_almost_eq(Walker.rank_weight(_place("No rank", 42.0, 23.0, 0)), 1.0, 1e-6)
 
 
 func _walker_with_places(places: Array) -> Walker:
