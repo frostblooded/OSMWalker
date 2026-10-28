@@ -5,6 +5,7 @@ const Main := preload("res://scripts/main.gd")
 const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const Stats := preload("res://scripts/stats.gd")
+const Activities := preload("res://scripts/activities.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const SAVE := "user://test_save.json"
@@ -469,3 +470,14 @@ func test_new_city_starts_a_fresh_character() -> void:
 	m._reset()
 	await _start_in_testville(m)
 	assert_eq(m.stats.coins, 50)
+
+
+func test_arrival_uses_the_country_flavour() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.country = "ZZZ"
+	m.activities = Activities.new({"_generic": [{"name": "Look", "min": 1}], "cafe": []},
+		{"ZZZ": {"cafe": [{"name": "Local brew", "min": 1}]}})
+	m.walker.arrived.emit(CAFE)
+	assert_string_contains(m.stats.feed[-1], "Local brew")
