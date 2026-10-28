@@ -9,6 +9,8 @@ signal zoom_changed(step: int)
 signal reset_confirmed
 signal history_toggled(open: bool)
 signal history_entry_tapped(index: int)  # index into History.entries
+signal goal_tapped
+signal back_tapped
 
 ## What kind of bar goes under the status message.
 enum Bar { NONE, PROGRESS, BUSY }
@@ -47,6 +49,7 @@ var _confirm: Control
 var _confirm_box: LineEdit
 var _confirm_yes: Button
 var _reset_button: Button
+var _back_button: Button
 var _zoom_in: Button
 var _history_button: Button
 var _top: Control
@@ -149,6 +152,13 @@ func _build_game_ui() -> void:
 	street_label = _label("", 38)
 	place_label = _label("", 34)
 	place_label.visible = false
+	# Link blue: tapping it shows the goal on the map instead of the sheet.
+	place_label.add_theme_color_override("font_color", Color("#1a5fb4"))
+	place_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	place_label.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			place_label.accept_event()
+			goal_tapped.emit())
 	col.add_child(city_label)
 	col.add_child(street_label)
 	col.add_child(place_label)
@@ -199,6 +209,17 @@ func _build_game_ui() -> void:
 	_history_button = hist
 	_game_ui.add_child(hist)
 	_map_buttons += [reset, hist]
+
+	# Shown while the map shows his goal instead of following him.
+	var back := _button("Back to him", Vector2(250, BIG.y))
+	back.add_theme_font_size_override("font_size", 34)
+	back.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
+	back.offset_bottom = -90 - 2 * (BIG.y + 16)
+	back.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	back.visible = false
+	back.pressed.connect(func(): back_tapped.emit())
+	_back_button = back
+	_game_ui.add_child(back)
 
 	# Required by the OSM tile usage policy.
 	var credit := _label("© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap", 22, HORIZONTAL_ALIGNMENT_CENTER)
@@ -644,10 +665,28 @@ func set_street(street: String, stopped := false) -> void:
 		street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
 
 
-## The place of note he is heading to or resting at; "" hides the line.
-func set_place(name: String, resting: bool) -> void:
-	place_label.visible = name != ""
-	place_label.text = ("Resting at " if resting else "Walking to ") + name
+## The line about where he is heading or resting; "" hides it.
+func set_goal(text: String) -> void:
+	place_label.visible = text != ""
+	place_label.text = text
+
+
+## "Going to Cafe East · 1.2 km"; an empty `name` is a random spot.
+static func goal_text(name: String, meters: float) -> String:
+	return "Going to %s · %s" % [name if name != "" else "a random spot", _dist(meters)]
+
+
+static func _dist(m: float) -> String:
+	return "%d m" % roundi(m) if m < 1000.0 else "%.1f km" % (m / 1000.0)
+
+
+static func resting_text(name: String) -> String:
+	return "Resting at " + name
+
+
+## Shows the "Back to him" button while the map shows his goal.
+func set_goal_view(on: bool) -> void:
+	_back_button.visible = on
 
 
 func set_trip(city: String) -> void:
@@ -705,7 +744,7 @@ static func _describe(c: Control) -> String:
 func debug_controls() -> Dictionary:
 	return {
 		"search_box": _search_box, "search_button": _search_button, "result0": _first_live(_results),
-		"new_city": _reset_button, "zoom_in": _zoom_in,
+		"new_city": _reset_button, "zoom_in": _zoom_in, "goal": place_label, "back_to_him": _back_button,
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
