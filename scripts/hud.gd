@@ -19,6 +19,7 @@ signal debug_trip_pressed(kind: int)  # Trips.Kind
 enum Bar { NONE, PROGRESS, BUSY }
 
 const History := preload("res://scripts/history.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")
 const Trips := preload("res://scripts/trips.gd")
 
 const RESET_WORD := "RESET"
@@ -65,6 +66,7 @@ var _map_buttons := []  # hidden while the history panel is up
 var _credit: Label
 var _history: Control
 var _history_rows: VBoxContainer
+var _history_scroll: ScrollContainer
 var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
 var debug_label: Label
@@ -77,6 +79,7 @@ var _debug_country: Button
 
 
 func _ready() -> void:
+	UiKit.install_icon_fonts()
 	_build_game_ui()
 	_build_picker()
 	_build_confirm()
@@ -341,9 +344,7 @@ func _build_sheet() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 16)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := UiKit.scroll()
 	sheet_label = _label("", 30)
 	sheet_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(sheet_label)
@@ -390,9 +391,8 @@ func _build_history() -> void:
 	_history_close.pressed.connect(close_history)
 	head.add_child(_history_close)
 	col.add_child(head)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := UiKit.scroll()
+	_history_scroll = scroll
 	_history_rows = VBoxContainer.new()
 	_history_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_history_rows.add_theme_constant_override("separation", 8)
@@ -431,9 +431,7 @@ func _build_debug() -> void:
 	for b in [_debug_goal, _debug_city, _debug_country]:
 		row.add_child(b)
 	col.add_child(row)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := UiKit.scroll()
 	debug_label = _label("", 24)
 	debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(debug_label)
@@ -526,7 +524,8 @@ func _fill_history() -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.disabled = h.entries[i]["at"].is_empty()
-		b.pressed.connect(func(): history_entry_tapped.emit(i))
+		b.mouse_filter = Control.MOUSE_FILTER_PASS  # drags on a row still scroll the list
+		b.pressed.connect(func(): if not _history_scroll.is_dragging(): history_entry_tapped.emit(i))
 		_history_rows.add_child(b)
 	if h.entries.is_empty():
 		_history_rows.add_child(_label("Nothing yet. Check back after he's walked a bit.", 28))
@@ -610,9 +609,7 @@ func _build_picker() -> void:
 	_picker_status = _label("", 30, HORIZONTAL_ALIGNMENT_CENTER)
 	col.add_child(_picker_status)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := UiKit.scroll()
 	_results = VBoxContainer.new()
 	_results.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_results.add_theme_constant_override("separation", 16)
@@ -759,7 +756,9 @@ func show_results(places: Variant, for_text := "") -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 32)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func(): city_chosen.emit(p["name"].get_slice(",", 0), p["lat"], p["lon"], p.get("bbox", [])))
+		b.mouse_filter = Control.MOUSE_FILTER_PASS  # drags on a result still scroll the list
+		b.pressed.connect(func(): if not UiKit.scroll_of(b) or not UiKit.scroll_of(b).is_dragging():
+			city_chosen.emit(p["name"].get_slice(",", 0), p["lat"], p["lon"], p.get("bbox", [])))
 		_results.add_child(b)
 
 
