@@ -59,3 +59,15 @@ export function tileBbox(tile: Tile, zoom: number): BBox {
     pxToLon((tile.x + 1) * TILE_SIZE, zoom),
   ];
 }
+
+/** Meters [east, north] from the first point to the second, on a flat map around the first; fine within a city. */
+export function offsetM(lat1: number, lon1: number, lat2: number, lon2: number): [number, number] {
+  const m = rad(1) * EARTH_RADIUS_M;
+  return [(lon2 - lon1) * m * Math.cos(rad(lat1)), (lat2 - lat1) * m];
+}
+
+/** [lat, lon] reached by going [east, north] meters from a point. */
+export function moved(lat: number, lon: number, v: [number, number]): [number, number] {
+  const m = rad(1) * EARTH_RADIUS_M;
+  return [lat + v[1] / m, lon + v[0] / (m * Math.cos(rad(lat)))];
+}
