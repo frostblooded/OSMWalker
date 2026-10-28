@@ -27,6 +27,10 @@ func test_hud_builds() -> void:
 	assert_eq(hud.city_label.text, "Sofia")
 	hud.set_street("Vitosha Blvd")
 	assert_eq(hud.street_label.text, "Walking along Vitosha Blvd")
+	hud.set_street("Vitosha Blvd", true)
+	assert_eq(hud.street_label.text, "Stopped on Vitosha Blvd")
+	hud.set_street("", true)
+	assert_eq(hud.street_label.text, "Stopped on an unnamed path")
 
 
 func test_status_label_spans_the_screen_and_hides_when_empty() -> void:

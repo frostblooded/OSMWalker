@@ -34,6 +34,9 @@ var overlay_label: Label
 var progress_bar: ProgressBar
 var detail_label: Label  # step-by-step loading details under the bar
 var _status_box: VBoxContainer
+var _wait_row: HBoxContainer
+var wait_bar: ProgressBar
+var wait_label: Label
 var _game_ui: Control
 var _picker: Control
 var _search_box: LineEdit
@@ -153,6 +156,7 @@ func _build_game_ui() -> void:
 	feed_label = _label("", 26)
 	feed_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))
 	col.add_child(feed_label)
+	col.add_child(_build_wait_row())
 	top.add_child(col)
 	# The whole panel is the button for the full stats sheet.
 	top.gui_input.connect(func(e):
@@ -204,6 +208,49 @@ func _build_game_ui() -> void:
 	credit.add_theme_constant_override("outline_size", 10)
 	_game_ui.add_child(credit)
 	_credit = credit
+
+
+## Bar and countdown in the top panel while he stays somewhere.
+func _build_wait_row() -> HBoxContainer:
+	_wait_row = HBoxContainer.new()
+	_wait_row.add_theme_constant_override("separation", 16)
+	_wait_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wait_row.visible = false
+	wait_bar = ProgressBar.new()
+	wait_bar.show_percentage = false
+	wait_bar.custom_minimum_size = Vector2(0, 24)
+	wait_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wait_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	wait_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0, 0, 0, 0.12)
+	bg.set_corner_radius_all(12)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("#ff7a3d")  # the walker's color
+	fill.set_corner_radius_all(12)
+	wait_bar.add_theme_stylebox_override("background", bg)
+	wait_bar.add_theme_stylebox_override("fill", fill)
+	_wait_row.add_child(wait_bar)
+	wait_label = _label("", 26)
+	wait_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_wait_row.add_child(wait_label)
+	return _wait_row
+
+
+## Shows how long until he moves on, `fraction` of the stay being over;
+## a negative `seconds` hides it.
+func set_wait(seconds: float, fraction := 0.0) -> void:
+	_wait_row.visible = seconds >= 0.0
+	if _wait_row.visible:
+		wait_label.text = "Moving again in " + countdown_text(seconds)
+		wait_bar.value = fraction * 100.0
+
+
+## Seconds left as m:ss, rounded up so it reads 1:00 at the start and
+## never 0:00 while he still waits.
+static func countdown_text(seconds: float) -> String:
+	var s := ceili(maxf(seconds - 0.001, 0.0))
+	return "%d:%02d" % [s / 60, s % 60]
 
 
 func _build_mini_stats() -> HBoxContainer:
@@ -533,6 +580,8 @@ func set_status(text: String, bar := Bar.NONE, fraction := 0.0, detail := "") ->
 	detail_label.text = detail
 	detail_label.visible = shown and detail != ""
 	_status_box.visible = shown
+	# Under the top panel, however tall its text makes it.
+	_status_box.offset_top = top_height() + 24 if _game_ui.visible else 240
 	progress_bar.visible = shown and bar != Bar.NONE
 	progress_bar.indeterminate = bar == Bar.BUSY
 	progress_bar.value = fraction * 100.0
@@ -588,8 +637,11 @@ func show_game(city: String) -> void:
 	city_label.text = city
 
 
-func set_street(street: String) -> void:
-	street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
+func set_street(street: String, stopped := false) -> void:
+	if stopped:
+		street_label.text = "Stopped on " + (street if street != "" else "an unnamed path")
+	else:
+		street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
 
 
 ## The place of note he is heading to or resting at; "" hides the line.
