@@ -1,13 +1,13 @@
-// Runs the game while the page is visible. Ticks come a few times a second,
-// often enough that he never jumps more than a pixel or two on screen, and
-// no more: every tick redraws the map, and an idle main thread saves battery.
+// Runs the game while the page is visible. Ticks come a few times a second;
+// between them his figure glides (a CSS transition), so steps can be a few
+// pixels without looking jumpy, and an idle main thread saves battery.
 import type { Game } from "../game/game";
 import type { MapView } from "../map/mapView";
 
 /** Most screen pixels he may move between two ticks. */
-export const MAX_STEP_PX = 1.5;
+export const MAX_STEP_PX = 4;
 export const MIN_HZ = 2;
-export const MAX_HZ = 20;
+export const MAX_HZ = 10;
 
 /** Ticks per second that keep each step under MAX_STEP_PX at `pxPerSec`. */
 export function tickHz(pxPerSec: number): number {
@@ -52,17 +52,20 @@ export class Loop {
     const dt = (now - this.last) / 1000;
     this.last = now;
     this.game.step(dt);
-    this.draw(dt);
+    const next = 1000 / tickHz(this.pxPerSec);
+    this.draw(dt, next);
     this.onTick();
-    this.schedule(1000 / tickHz(this.pxPerSec));
+    this.schedule(next);
   }
 
-  private draw(dt: number): void {
+  /** `glideMs`: time until the next tick, which his figure takes to glide to where it is now. */
+  private draw(dt: number, glideMs: number): void {
     const v = this.view();
     const w = this.game.walker;
     if (!v || !w) return;
     const at = w.position();
-    v.setHim(at, !w.needsData() && !w.isResting());
+    v.autoFollow = this.game.cameraFollows;
+    v.setHim(at, !w.needsData() && !w.isResting(), glideMs);
     v.setGoal(this.game.goalTarget());
     v.setTrip(w.travel ? w.travel.path : null);
     const h = this.game.stats.history;

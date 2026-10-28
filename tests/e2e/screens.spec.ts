@@ -81,6 +81,27 @@ test("Only zoom and the menu sit on the map", async ({ page }) => {
   await expect(page.locator(".chip .eta")).toContainText(/~\d+ min|<1 min/, { timeout: 20000 });
 });
 
+test("Map credit is a folded ⓘ bottom left that opens on tap", async ({ page }) => {
+  await startInSofia(page);
+  const credit = page.locator(".maplibregl-ctrl-attrib");
+  const text = credit.getByText("OpenStreetMap");
+  const info = credit.locator(".maplibregl-ctrl-attrib-button");
+  await expect(info).toBeVisible();
+  // Folded once the map has loaded, and it stays folded.
+  await page.waitForTimeout(1500);
+  await expect(text).toBeHidden();
+  const box = (await info.boundingBox())!;
+  const view = page.viewportSize()!;
+  expect(box.width).toBeGreaterThanOrEqual(48);
+  expect(box.height).toBeGreaterThanOrEqual(48);
+  expect(box.x).toBeLessThan(view.width / 4);
+  expect(box.y + box.height).toBeGreaterThan(view.height - 100);
+  await info.click();
+  await expect(text).toBeVisible();
+  await info.click();
+  await expect(text).toBeHidden();
+});
+
 test("Route switch draws his route and is remembered", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
@@ -92,6 +113,50 @@ test("Route switch draws his route and is remembered", async ({ page }) => {
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("switch", { name: /Route to goal/ })).toHaveAttribute("aria-checked", "true");
+});
+
+test("He glides between steps instead of hopping", async ({ page }) => {
+  await startInSofia(page);
+  const him = page.locator(".marker.him");
+  await expect(him).toHaveClass(/glide/);
+  await expect.poll(() => him.evaluate((e) => parseFloat(getComputedStyle(e).transitionDuration))).toBeGreaterThan(0);
+});
+
+/** Drags the map well away from him with a finger (the test phone is touch only). */
+async function dragAway(page: Page) {
+  // The game loop has started on the map once it sets his glide time.
+  await expect.poll(() => page.locator(".marker.him").evaluate((e) => e.style.getPropertyValue("--glide"))).not.toBe("");
+  const box = (await page.locator(".map canvas").boundingBox())!;
+  const cdp = await page.context().newCDPSession(page);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - 15 * i, y: y - 25 * i }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+test("Back to him shows after a drag only while the camera follows him", async ({ page }) => {
+  await startInSofia(page);
+  const back = page.getByRole("button", { name: /Back to him/ });
+  await dragAway(page);
+  await expect(back).toBeVisible();
+  await back.click();
+  await expect(back).toBeHidden();
+
+  await page.getByRole("button", { name: "Menu" }).click();
+  const sw = page.getByRole("switch", { name: /Camera follows him/ });
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await page.getByRole("button", { name: "Close" }).click();
+  await dragAway(page);
+  await page.waitForTimeout(500);
+  await expect(back).toBeHidden();
+
+  await page.reload();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("switch", { name: /Camera follows him/ })).toHaveAttribute("aria-checked", "false");
 });
 
 test("City area switch is remembered", async ({ page }) => {

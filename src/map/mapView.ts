@@ -19,6 +19,11 @@ const ROUTE_COLOR = "#ff7a3d";
 const FONT = ["Noto Sans Bold"];
 
 type Ml = typeof import("maplibre-gl");
+
+/** How far from the middle of the view he may walk (a share of its width and height, each way) before the camera glides after him. */
+export const MIDDLE = 0.2;
+/** How long the camera takes to glide over to him. */
+export const RECENTRE_MS = 800;
 export type Padding = { top: number; bottom: number; left: number; right: number };
 
 /**
@@ -43,6 +48,10 @@ export class MapView {
   private him!: Marker;
   private pin!: Marker;
   private following = true;
+  /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
+  autoFollow = true;
+  /** The map's size, read only when it changes: reading it every tick would force a layout while he glides. */
+  private size = { width: 0, height: 0 };
   private ready!: Promise<void>;
   private trailKey = "";
   private tripKey = "";
@@ -82,8 +91,9 @@ export class MapView {
       renderWorldCopies: false,
       fadeDuration: 0,
       pixelRatio: Math.min(devicePixelRatio, 2),
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
+    creditControl(ml, this.map);
     this.map.touchZoomRotate.disableRotation();
     this.him = new ml.Marker({ element: markerEl("him", "🙂"), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
@@ -94,6 +104,17 @@ export class MapView {
       }
     };
     this.map.on("dragstart", stop);
+    const measure = () => {
+      const c = this.map.getContainer();
+      this.size = { width: c.clientWidth, height: c.clientHeight };
+    };
+    measure();
+    this.map.on("resize", measure);
+    // While the map moves MapLibre places him every frame; a transition then would make him lag behind the streets.
+    const himEl = this.him.getElement();
+    himEl.classList.add("glide");
+    this.map.on("movestart", () => himEl.classList.remove("glide"));
+    this.map.on("moveend", () => himEl.classList.add("glide"));
     this.ready = new Promise((ok) => this.map.once("load", () => ok()));
     await this.ready;
     this.map.addSource("area", { type: "geojson", data: none });
@@ -145,16 +166,36 @@ export class MapView {
     return this.following;
   }
 
-  /** Follow him again (the "Back to him" pill, or a new goal). */
-  follow(): void {
+  /** Follow him again (the "Back to him" pill, or a new goal): the camera glides to him, at `zoom` if given. */
+  follow(zoom?: number): void {
     this.following = true;
+    const at = this.him.getLngLat();
+    this.map.easeTo({ center: at, zoom: zoom ?? this.map.getZoom(), duration: RECENTRE_MS });
   }
 
-  /** Puts him at `at`; the camera jumps there too while it follows him. */
-  setHim(at: LatLon, walking: boolean): void {
+  /**
+   * Puts him at `at`. His figure glides there over `glideMs` (a CSS transition, so
+   * the map is not redrawn). While it follows him, the camera stays put until he
+   * walks out of the middle of the view, then glides over to him.
+   */
+  setHim(at: LatLon, walking: boolean, glideMs = 0): void {
+    const el = this.him.getElement();
+    el.style.setProperty("--glide", `${Math.round(glideMs)}ms`);
     this.him.setLngLat([at[1], at[0]]);
-    this.him.getElement().classList.toggle("still", !walking);
-    if (this.following) this.map.jumpTo({ center: [at[1], at[0]] });
+    el.classList.toggle("still", !walking);
+    if (this.following && this.autoFollow && !this.map.isMoving() && !this.inMiddle(at)) {
+      this.map.easeTo({ center: [at[1], at[0]], duration: RECENTRE_MS });
+    }
+  }
+
+  /** Whether `at` is within the middle of what the player can see (the panels left out). */
+  inMiddle(at: LatLon): boolean {
+    const p = this.map.project([at[1], at[0]]);
+    const { top = 0, bottom = 0, left = 0, right = 0 } = this.map.getPadding();
+    const { width, height } = this.size;
+    const w = width - left - right;
+    const h = height - top - bottom;
+    return Math.abs(p.x - (left + w / 2)) <= w * MIDDLE && Math.abs(p.y - (top + h / 2)) <= h * MIDDLE;
   }
 
   setGoal(at: LatLon | null): void {
@@ -271,6 +312,21 @@ export class MapView {
   destroy(): void {
     this.map.remove();
   }
+}
+
+/** The map credit as a small ⓘ bottom left. MapLibre opens it whenever the credit text
+ *  changes; it stays folded until the player taps it. */
+function creditControl(ml: Ml, map: MlMap): void {
+  const ctrl = new ml.AttributionControl({ compact: true });
+  map.addControl(ctrl, "bottom-left");
+  const box = map.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-attrib")!;
+  let tapped = false;
+  box.querySelector(".maplibregl-ctrl-attrib-button")?.addEventListener("click", () => (tapped = true));
+  const fold = () => {
+    if (!tapped) box.classList.remove("maplibregl-compact-show");
+  };
+  map.on("styledata", fold);
+  map.on("sourcedata", fold);
 }
 
 function markerEl(cls: string, text: string): HTMLElement {
