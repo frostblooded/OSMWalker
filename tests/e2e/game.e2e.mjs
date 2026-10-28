@@ -32,10 +32,17 @@ const browser = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-const requests = { search: 0, streets: 0, streetTiles: 0, tiles: 0, wikidata: 0 };
-await context.route(/nominatim\.openstreetmap\.org/, (r) => {
+const requests = { search: 0, nominatim: 0, streets: 0, streetTiles: 0, tiles: 0, wikidata: 0 };
+// Photon: the search-as-you-type server.
+await context.route(/photon\.komoot\.io/, (r) => {
   requests.search++;
-  r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0", boundingbox: ["41.99", "42.01", "22.99", "23.01"] }], headers: cors });
+  const props = { name: "Testville", country: "Nowhere", osm_key: "place", osm_value: "town", extent: [22.99, 42.01, 23.01, 41.99] };
+  r.fulfill({ json: { features: [{ geometry: { type: "Point", coordinates: [23.0, 42.0] }, properties: props }] }, headers: cors });
+});
+// Nominatim: only the backup when Photon fails.
+await context.route(/nominatim\.openstreetmap\.org/, (r) => {
+  requests.nominatim++;
+  r.fulfill({ json: [], headers: cors });
 });
 // Every Overpass mirror the game may spread downloads over.
 await context.route(/overpass-api\.de|overpass\.private\.coffee|maps\.mail\.ru/, (r) => {
@@ -105,10 +112,10 @@ try {
 
   step = "search a city";
   await tap("search_box");
-  await page.keyboard.type("Testville");
-  await tap("search_button");
-  await until((s) => s.rects.result0, "search results");
-  assert.equal(requests.search, 1);
+  await page.keyboard.type("Testville", { delay: 50 });
+  await until((s) => s.rects.result0, "suggestions while typing, without pressing Search");
+  assert.equal(requests.search, 1, "one search once typing pauses");
+  assert.equal(requests.nominatim, 0, "Nominatim is only a backup");
   await tap("result0");
   const game = await until((s) => s.screen === "game", "game screen");
   assert.equal(game.city, "Testville");

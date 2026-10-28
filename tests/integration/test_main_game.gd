@@ -58,12 +58,26 @@ func test_first_launch_shows_city_picker() -> void:
 	assert_eq(m.debug_state()["screen"], "picker")
 
 
-func test_search_shows_results() -> void:
+func test_typing_shows_suggestions_without_pressing_search() -> void:
 	var m := _new_main()
-	m.hud.search_requested.emit("Testville")
+	var box: LineEdit = m.hud.debug_controls()["search_box"]
+	for t in ["Tes", "Test", "Testville"]:
+		box.text = t
+		box.text_changed.emit(t)
 	await wait_until(func(): return m.hud.debug_controls()["result0"] != null, 2.0)
 	assert_eq(api.searches, ["Testville"])
 	assert_not_null(m.hud.debug_controls()["result0"])
+
+
+func test_search_server_failure_says_so() -> void:
+	api.online = false
+	var m := _new_main()
+	var box: LineEdit = m.hud.debug_controls()["search_box"]
+	box.text = "Testville"
+	(m.hud.debug_controls()["search_button"] as Button).pressed.emit()
+	await wait_until(func(): return api.searches.size() == 1, 2.0)
+	await wait_frames(2)
+	assert_string_contains(m.hud.debug_controls()["picker_status"].text, "Couldn't reach")
 
 
 func test_choosing_a_city_starts_the_walk_and_saves() -> void:

@@ -33,11 +33,11 @@ func fetch_street_tile(tile: Vector2i) -> Variant:
 	return Fixture.data() if online and tiles_online else null
 
 
-func search_places(text: String) -> Array:
+func search_places(text: String) -> Variant:
 	searches.append(text)
 	await get_tree().process_frame
 	if not online:
-		return []
+		return null
 	return [{"name": "Testville, Nowhere", "lat": 42.0, "lon": 23.0}]
 
 
