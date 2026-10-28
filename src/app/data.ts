@@ -5,35 +5,61 @@ import { parseAirports, parseCities } from "../core/trips";
 import type { GameData } from "../game/game";
 
 const url = (name: string) => `${import.meta.env.BASE_URL}data/${name}`;
-const text = async (name: string) => {
+const get = async (name: string) => {
   const r = await fetch(url(name));
   if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
-  return r.text();
+  return r;
 };
+const text = async (name: string) => (await get(name)).text();
+const table = async <T>(name: string, parse: (text: string) => T[]) => parseStream((await get(name)).body!, parse);
 
 /** Lets the browser draw and handle taps between bits of work. */
 const yieldNow = () => new Promise<void>((ok) => setTimeout(ok, 0));
 
-/** Parses a big TSV a slice of lines at a time, so no single task blocks the page (long tasks hurt taps on phones). */
-async function parseInSlices<T>(tsv: string, parse: (text: string) => T[], lines = 1000): Promise<T[]> {
-  const all = tsv.split("\n");
+/** Work time per task before yielding: well under the 50 ms long-task line even on a slow phone. */
+const SLICE_MS = 8;
+/** Lines parsed between clock checks. */
+const LINES = 100;
+
+/**
+ * Decodes and parses a big TSV body as it streams in, a few lines at a time,
+ * yielding every SLICE_MS. Reading the whole body with text() first decodes it
+ * all in one long task (long tasks hurt taps on phones).
+ */
+export async function parseStream<T>(body: ReadableStream<BufferSource>, parse: (text: string) => T[]): Promise<T[]> {
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
   const out: T[] = [];
-  for (let i = 0; i < all.length; i += lines) {
-    out.push(...parse(all.slice(i, i + lines).join("\n")));
-    await yieldNow();
+  let rest = "";
+  let start = performance.now();
+  const lines = async (all: string[]) => {
+    for (let i = 0; i < all.length; i += LINES) {
+      out.push(...parse(all.slice(i, i + LINES).join("\n")));
+      if (performance.now() - start > SLICE_MS) {
+        await yieldNow();
+        start = performance.now();
+      }
+    }
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const all = (rest + value).split("\n");
+    rest = all.pop()!;
+    await lines(all);
   }
+  await lines([rest]);
   return out;
 }
 
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), text("cities.tsv"), text("airports.tsv")]).then(async ([a, f, c, p]) => {
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports)]).then(async ([a, f, cities, airports]) => {
+    await yieldNow();
     const actions = JSON.parse(a) as ActionTable;
     await yieldNow();
     const flavour = JSON.parse(f) as Record<string, ActionTable>;
-    await yieldNow();
-    return { actions, flavour, cities: await parseInSlices(c, parseCities), airports: await parseInSlices(p, parseAirports) };
+    return { actions, flavour, cities, airports };
   });
   return pending;
 }
