@@ -6,10 +6,15 @@ import "@fontsource/nunito/latin-700.css";
 import "@fontsource/nunito/latin-800.css";
 import "./ui/app.css";
 
+// The built page loads the stylesheet without blocking the boot screen (see vite.config.ts); draw once it is in.
+const css = document.querySelector<HTMLLinkElement>('link[rel="stylesheet"][onload]');
+if (css && css.media !== "all") await new Promise((ok) => ["load", "error"].forEach((t) => css.addEventListener(t, ok, { once: true })));
+
 render(<App />, document.getElementById("app")!);
 document.getElementById("boot")?.remove();
-// The perf job times the game from navigation to this mark.
-performance.mark("osmwalker:ready");
+// The perf job times the game from navigation to this mark: the first frame of
+// the game is on screen (its first layout, with the emoji font, is part of getting ready).
+requestAnimationFrame(() => setTimeout(() => performance.mark("osmwalker:ready")));
 
 // Offline play and instant restarts; registered after the game is up so it doesn't compete with first load.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
