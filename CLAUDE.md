@@ -11,6 +11,7 @@ These mirror the Claude project instructions. Keep both in sync.
 - **Help pages**: the game has an in-game Help page (in the menu) with detailed subpages explaining every mechanic and stat. Every change that adds or changes a mechanic or stat must update the Help pages in the same PR.
 - **Skills**: caveman and ponytail must be on in every session (default level `full` for both). Matt Pocock's skills are installed too. All three are enabled as plugins in `.claude/settings.json`; caveman and ponytail switch themselves on via their SessionStart hooks.
 - **UI**: every screen follows `docs/ui-guidelines.md` (cards with icons and headings, key/value rows, zebra-striped lists, collapsible detail, fixed colour meanings, 96 px tap targets, `TouchScroll` for 1:1 touch scrolling). Never dump plain text. Run its checklist on every UI change.
+- **Performance first**: performance is a top priority: loading, startup, frame rate, memory and network on mobile browsers. Consider the performance impact of every change, measure it (before and after, with numbers in the PR), and make whatever changes are needed to keep the game fast.
 - **Clarify first**: before doing anything the user asks, grill them with multiple-choice questions until it is clear exactly what they want and how. Whenever the user has to choose, ask with interactive multiple-choice decision cards (`request_decision`, one card per question), never a plain-text list. Do not use custom HTML widgets (`post_widget` / `show_widget`) for questions: their buttons cannot send answers back.
 
 ## Project
