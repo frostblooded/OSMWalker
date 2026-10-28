@@ -198,6 +198,16 @@ func test_search_falls_back_to_nominatim_when_photon_fails() -> void:
 	assert_eq(places[1]["bbox"], [])
 
 
+func test_search_asks_only_for_towns_and_cities() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	api.photon_up = false
+	await api.search_places("Compiegne")
+	for layer in ["city", "district", "locality"]:
+		assert_string_contains(api.asked[0], "layer=" + layer)
+	assert_false(api.asked[0].contains("layer=street"))
+	assert_string_contains(api.asked[1], "featureType=city")
+
+
 func test_search_is_null_when_every_server_fails() -> void:
 	var api: SearchApi = add_child_autofree(SearchApi.new())
 	api.photon_up = false

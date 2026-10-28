@@ -17,6 +17,8 @@ const TILE_TIMEOUT_S := 20.0
 ## Built for search-as-you-type and forgiving about typos and accents; the
 ## Nominatim policy forbids autocomplete, so it only steps in when Photon fails.
 const PHOTON_URL := "https://photon.komoot.io/api/"
+## Only settlements: cities, towns and villages, suburbs, hamlets.
+const PHOTON_PLACES := "&layer=city&layer=district&layer=locality"
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
@@ -186,7 +188,7 @@ func _server_result(url: String, error: String) -> void:
 	server_stats[host] = st
 
 
-## Up to 6 places matching `text`, each {name, lat, lon, bbox}, bbox being
+## Up to 6 towns or cities matching `text`, each {name, lat, lon, bbox}, bbox being
 ## [south, west, north, east] or empty. Null when every search server fails.
 ## Answers are kept for the session, so retyping costs no request.
 func search_places(text: String) -> Variant:
@@ -194,9 +196,9 @@ func search_places(text: String) -> Variant:
 	if _search_cache.has(key):
 		return _search_cache[key]
 	var q := text.strip_edges().uri_encode()
-	var places: Variant = photon_places(await _get_json("%s?limit=6&q=%s" % [PHOTON_URL, q]))
+	var places: Variant = photon_places(await _get_json("%s?limit=6%s&q=%s" % [PHOTON_URL, PHOTON_PLACES, q]))
 	if places == null:
-		places = nominatim_places(await _get_json("%s?format=jsonv2&limit=6&q=%s" % [NOMINATIM_URL, q]))
+		places = nominatim_places(await _get_json("%s?format=jsonv2&limit=6&featureType=city&q=%s" % [NOMINATIM_URL, q]))
 	if places != null:
 		_search_cache[key] = places
 	return places
