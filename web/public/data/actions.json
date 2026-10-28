@@ -275,7 +275,10 @@
    },
    "buff": {
     "name": "Lucky",
-    "min": 120
+    "min": 120,
+    "attrs": {
+     "luck": 3
+    }
    }
   },
   {
@@ -1078,7 +1081,10 @@
    },
    "buff": {
     "name": "Lucky",
-    "min": 120
+    "min": 120,
+    "attrs": {
+     "luck": 3
+    }
    }
   }
  ],
@@ -1107,7 +1113,10 @@
    },
    "buff": {
     "name": "Lucky",
-    "min": 120
+    "min": 120,
+    "attrs": {
+     "luck": 3
+    }
    }
   }
  ],
@@ -2297,7 +2306,10 @@
    },
    "buff": {
     "name": "Lucky",
-    "min": 180
+    "min": 180,
+    "attrs": {
+     "luck": 3
+    }
    }
   }
  ],

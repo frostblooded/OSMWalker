@@ -5,6 +5,7 @@ import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_COINS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
+import * as S from "../../src/core/stats";
 import { dataFile } from "../support/data";
 
 const cafe = () => ({ name: "Old Cafe", class: "cafe", subclass: "cafe", rank: 1, lat: 42, lon: 23 });
@@ -85,6 +86,7 @@ describe("stats", () => {
   });
 
   it("doing an action pays and applies its effects", () => {
+    stats.meters.mood = 50; // x1 XP
     stats.meters.energy = 50;
     const line = stats.do({ name: "Espresso at the bar", min: 3, cost: 3, fx: { energy: 20, xp: 5 } }, "Old Cafe", rng);
     expect(stats.coins).toBe(47);
@@ -123,6 +125,7 @@ describe("stats", () => {
   });
 
   it("xp buffs multiply xp", () => {
+    stats.meters.mood = 50; // x1 XP
     stats.do({ name: "Sunset", min: 1, buff: { name: "Inspired", min: 60, xp_mult: 2 } }, "", rng);
     stats.do({ name: "Look", min: 1, fx: { xp: 10 } }, "", rng);
     expect(stats.xp).toBe(20);
@@ -319,6 +322,84 @@ describe("speed", () => {
     const back = roundTrip(stats);
     expect(back.vehicle()).toBe("motorcycle");
     expect(back.speedMps()).toBeCloseTo(stats.speedMps());
+  });
+});
+
+describe("mood, hygiene and luck", () => {
+  const study: Action = { name: "Study", min: 1, fx: { xp: 40 } };
+  it("mood falls slowly and scales the XP actions give", () => {
+    stats.passTime(60, 0);
+    expect(stats.meters.mood).toBeCloseTo(70 - S.MOOD_PER_H, 6);
+    stats.meters.mood = 100;
+    stats.do(study, "", rng);
+    expect(stats.xp).toBe(Math.round(40 * S.MOOD_XP_MAX));
+    stats.xp = 0;
+    stats.meters.mood = 0;
+    stats.do(study, "", rng);
+    expect(stats.xp).toBe(Math.round(40 * S.MOOD_XP_MIN));
+    expect(S.moodXpMult(50)).toBeCloseTo(1, 6);
+  });
+  it("being dirty lowers charm and drains mood", () => {
+    stats.attrs.cha = 4;
+    stats.meters.hygiene = S.DIRTY_AT;
+    expect(stats.attr("cha")).toBe(4);
+    stats.meters.hygiene = 0;
+    expect(stats.attr("cha")).toBeCloseTo(4 * (1 - S.DIRTY_CHARM_CUT), 6);
+    stats.meters.mood = 50;
+    stats.passTime(60, 0);
+    expect(stats.meters.mood).toBeCloseTo(50 - S.MOOD_PER_H - S.DIRTY_MOOD_PER_H, 6);
+  });
+  it("luck makes mishaps rarer, up to a cap", () => {
+    expect(S.riskMult(0)).toBe(1);
+    expect(S.riskMult(2)).toBeCloseTo(1 - 2 * S.LUCK_RISK_CUT, 6);
+    expect(S.riskMult(1000)).toBeCloseTo(1 - S.LUCK_RISK_CAP, 6);
+    const risky: Action = { name: "Juggle", min: 1, risk: { p: 0.5, text: "dropped it" } };
+    const fails = (luck: number) => {
+      stats.attrs.luck = luck;
+      let n = 0;
+      for (let i = 0; i < 400; i++) n += +stats.do(risky, "", new Rng(i)).includes("dropped");
+      return n;
+    };
+    expect(fails(20)).toBeLessThan(fails(0) * 0.75);
+  });
+  it("luck makes shop items rarer", () => {
+    const rare = (luck: number) => {
+      let n = 0;
+      for (let i = 0; i < 400; i++) n += +(Items.make("weapons", 1, new Rng(i), luck).rarity !== "Common");
+      return n;
+    };
+    expect(rare(10)).toBeGreaterThan(rare(0) + 20);
+    expect(S.rarityBoost(1000)).toBe(S.LUCK_RARITY_CAP);
+  });
+  it("luck finds money now and then while he walks", () => {
+    stats.attrs.luck = 10;
+    const start = stats.coins;
+    let found = 0;
+    for (let i = 0; i < 600; i++) found += +!!stats.walkFor(1, new Rng(i));
+    expect(found).toBeGreaterThan(0);
+    expect(found).toBeLessThan(600 * S.FIND_CAP * 2);
+    expect(stats.coins).toBeGreaterThan(start);
+    expect(stats.history.entries.some((e) => e.text.startsWith("Found"))).toBe(true);
+  });
+  it("only rolls for money once per minute walked", () => {
+    stats.walkFor(0.5, rng);
+    expect(stats.walkMin).toBeCloseTo(0.5, 6);
+    stats.walkFor(0.75, rng);
+    expect(stats.walkMin).toBeCloseTo(0.25, 6);
+    expect(roundTrip(stats).walkMin).toBeCloseTo(0.25, 6);
+  });
+  it("a Lucky buff adds 3 Luck while it lasts", () => {
+    const tip: Action = { name: "Big tip", min: 1, buff: { name: "Lucky", min: 120, attrs: { luck: 3 } } };
+    stats.do(tip, "", rng);
+    expect(stats.attr("luck")).toBe(stats.attrs.luck + 3);
+    stats.passTime(121, 0);
+    expect(stats.attr("luck")).toBe(stats.attrs.luck);
+  });
+  it("the bundled Lucky buffs all add 3 Luck", () => {
+    const table = JSON.parse(dataFile("actions.json")) as ActionTable;
+    const lucky = Object.values(table).flat().filter((a) => a.buff?.name === "Lucky");
+    expect(lucky.length).toBeGreaterThan(0);
+    for (const a of lucky) expect(a.buff!.attrs).toEqual({ luck: 3 });
   });
 });
 

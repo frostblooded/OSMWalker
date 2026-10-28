@@ -119,11 +119,10 @@ He keeps a small reserve: he won't buy gear that would leave him with fewer than
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
-A buff can change a meter every hour it lasts (Caffeinated: +5 energy per hour; Healthy: +1 health per hour; Hungover: -3 energy and -2 mood per hour), or multiply the XP he gets from actions (Inspired: double XP). Several XP buffs multiply together.
+A buff can change a meter every hour it lasts (Caffeinated: +5 energy per hour; Healthy: +1 health per hour; Hungover: -3 energy and -2 mood per hour), or multiply the XP he gets from actions (Inspired: double XP). Several XP buffs multiply together. A buff can also raise an attribute while it lasts: Lucky (from a big tip or rubbing a statue) adds {LUCKY_LUCK} luck.
 
 Doing an action that gives a buff he already has starts that buff over at its full length instead of stacking it.
 
-The Lucky buff has no effect yet.
 # ❤ Body stats
 ## Health {health}
 Health (HP, the red bar) goes from 0 to 100 and starts at {START_HEALTH}.
@@ -138,7 +137,7 @@ Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
 He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
-When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops.
+When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
 Fullness (FU, the green bar) is how fed he is, from 0 to 100, starting at {START_FULLNESS}.
 
@@ -154,15 +153,19 @@ Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health 
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}.
 
-It doesn't drop by itself. Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
+It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
-When mood is under 60 he leans towards cheerful actions. Mood doesn't change anything else yet.
+When mood is under 60 he leans towards cheerful actions.
+
+Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
 It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hotel rooms, the laundry, a spa and the toilets raise it; sweaty jobs and workouts lower it.
 
-When hygiene is under 60 he leans towards actions that clean him up. Hygiene doesn't change anything else yet.
+When hygiene is under 60 he leans towards actions that clean him up.
+
+Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
@@ -183,7 +186,11 @@ Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing
 ## Luck {luck}
 Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
 
-For now luck only unlocks actions that need it, such as finding a coin by the ATM (luck 2). It doesn't change the odds of risks or rarer items yet.
+Luck does three things:
+- Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
+- Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
+- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}) that he finds {FIND_MIN}-{FIND_MAX}c. It shows in his History as "Found 3c on the street".
+It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
 He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs; XP from actions is multiplied by buffs such as Inspired.
@@ -222,6 +229,8 @@ Items can have 0 to 3 modifiers, and the number decides the rarity:
 - Uncommon, 1 modifier: {MODS1_PCT}
 - Rare, 2 modifiers: {MODS2_PCT}
 - Legendary, 3 modifiers: {MODS3_PCT}
+
+Those are the odds at luck 0. Each point of luck lifts the roll by {LUCK_RARITY_PCT}, up to {LUCK_RARITY_CAP_PCT}, so a lucky walker finds rarer items more often.
 
 The first modifier is always a suffix: of the Bear (strength +2), of the Fox (wits +2), of the Peacock (charm +2), of Fortune (luck +2) or of the Owl (wits +1, luck +1). The others are prefixes, never the same one twice: Mighty (strength +2), Charming (charm +2), Clever (wits +2), Lucky (luck +2), Sharp (strength +1, wits +1) or Gleaming (charm +1, luck +1).
 

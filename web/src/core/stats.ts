@@ -23,6 +23,28 @@ export type TimeOfDay = keyof typeof TIMES;
 export const FULLNESS_PER_H = 5;
 export const THIRST_PER_H = 6;
 export const HYGIENE_PER_H = 2;
+/** Mood drifts down this much an hour, so fun actions matter. */
+export const MOOD_PER_H = 1;
+/** Action XP is multiplied by MOOD_XP_MIN at mood 0, up to MOOD_XP_MAX at 100 (1 at 50). */
+export const MOOD_XP_MIN = 0.75;
+export const MOOD_XP_MAX = 1.25;
+/** Below this hygiene he is dirty: Charm counts up to DIRTY_CHARM_CUT less (at 0) and mood drains. */
+export const DIRTY_AT = 30;
+export const DIRTY_CHARM_CUT = 0.5;
+export const DIRTY_MOOD_PER_H = 3;
+/** Each Luck point makes mishaps this much rarer, up to LUCK_RISK_CAP. */
+export const LUCK_RISK_CUT = 0.03;
+export const LUCK_RISK_CAP = 0.5;
+export { LUCK_RARITY_CAP, LUCK_RARITY_PER, rarityBoost } from "./items";
+/** Chance per Luck point, each minute he walks, to find money on the street, up to FIND_CAP; FIND_MIN-FIND_MAX coins. */
+export const FIND_PER_LUCK = 0.002;
+export const FIND_CAP = 0.03;
+export const FIND_MIN = 1;
+export const FIND_MAX = 5;
+
+export const moodXpMult = (mood: number) => MOOD_XP_MIN + ((MOOD_XP_MAX - MOOD_XP_MIN) * mood) / 100;
+export const riskMult = (luck: number) => 1 - Math.min(LUCK_RISK_CUT * luck, LUCK_RISK_CAP);
+export const findChance = (luck: number) => Math.min(FIND_PER_LUCK * luck, FIND_CAP);
 export const ENERGY_PER_KM = 2;
 /** Share of the walking effort each way of getting about takes, per km. */
 export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05 };
@@ -42,7 +64,8 @@ export const KEEP_COINS = 20;
 export const SELL_SHARE = 0.4;
 
 export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
-export type Buff = { name: string; left: number; per_h: Fx; xp_mult: number };
+/** A timed effect; `attrs` adds to his attributes while it lasts. */
+export type Buff = { name: string; left: number; per_h: Fx; xp_mult: number; attrs?: Partial<Record<Attr, number>> };
 export type Action = {
   name: string;
   min: number;
@@ -51,7 +74,7 @@ export type Action = {
   fx?: Fx;
   needs?: Partial<Record<Attr | "level", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>> };
   risk?: { p: number; text?: string; fx?: Fx; cost?: number };
-  buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number };
+  buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
   flavour?: boolean;
@@ -73,13 +96,17 @@ export class Stats {
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
+  /** Minutes walked since the last roll for money on the street. */
+  walkMin = 0;
   /** Unix seconds, for history entries; tests replace it. */
   now = () => Math.floor(Date.now() / 1000);
 
-  /** An attribute with his gear's bonuses. */
+  /** An attribute with his gear's and buffs' bonuses; Charm counts less while he is dirty. */
   attr(name: Attr): number {
     let v = this.attrs[name];
     for (const item of Object.values(this.gear)) v += item?.stats[name] ?? 0;
+    for (const b of this.buffs) v += b.attrs?.[name] ?? 0;
+    if (name === "cha" && this.meters.hygiene < DIRTY_AT) v *= 1 - (DIRTY_CHARM_CUT * (DIRTY_AT - this.meters.hygiene)) / DIRTY_AT;
     return v;
   }
 
@@ -178,6 +205,7 @@ export class Stats {
       fullness: -FULLNESS_PER_H * h,
       thirst: -THIRST_PER_H * h,
       hygiene: -HYGIENE_PER_H * h,
+      mood: -(MOOD_PER_H + (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
       energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * walkedM) / 1000,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
@@ -188,6 +216,20 @@ export class Stats {
     }
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.applyFx(fx);
+  }
+
+  /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
+  walkFor(minutes: number, rng: Rng): string {
+    this.walkMin += minutes;
+    let line = "";
+    while (this.walkMin >= 1) {
+      this.walkMin -= 1;
+      if (rng.randf() >= findChance(this.attr("luck"))) continue;
+      const n = rng.randiRange(FIND_MIN, FIND_MAX);
+      this.coins += n;
+      line = this.say(`Found ${n}c on the street (+${n}c)`);
+    }
+    return line;
   }
 
   /** Adds meter and attribute changes; meters stay within 0-100. */
@@ -236,7 +278,7 @@ export class Stats {
   do(action: Action, where: string, rng: Rng): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
-      return this.buy(Items.make(action.item, this.level, rng), where);
+      return this.buy(Items.make(action.item, this.level, rng, this.attr("luck")), where);
     }
     if (action.sell) {
       this.applyFx(action.fx ?? {});
@@ -246,7 +288,7 @@ export class Stats {
     const fx: Fx = { ...action.fx };
     let text = action.name;
     const risk = action.risk;
-    if (risk && rng.randf() < risk.p) {
+    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck"))) {
       spent += risk.cost ?? 0;
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
@@ -254,12 +296,12 @@ export class Stats {
     const earn = action.earn ?? 0;
     const earned = Array.isArray(earn) ? rng.randiRange(earn[0], earn[1]) : earn;
     this.coins = Math.max(this.coins - spent + earned, 0);
-    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult());
+    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
     const buff = action.buff;
     if (buff) {
       this.buffs = this.buffs.filter((b) => b.name !== buff.name);
-      this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1 });
+      this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
     }
     const net = earned - spent;
     const money = net ? ` (${net > 0 ? "+" : ""}${net}c)` : "";
@@ -297,7 +339,7 @@ export class Stats {
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, coins: this.coins, savingFor: this.savingFor, xp: this.xp, level: this.level,
-      buffs: this.buffs, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
     };
   }
 
@@ -310,6 +352,7 @@ export class Stats {
     s.xp = d.xp;
     s.level = d.level;
     s.buffs = d.buffs ?? [];
+    s.walkMin = d.walkMin ?? 0;
     s.history = History.fromJSON(d.history);
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};

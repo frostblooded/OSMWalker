@@ -1,7 +1,7 @@
 // His character sheet: level and XP, six meters as bars, four attributes
 // with what his gear adds, every gear slot, the bag and his buffs.
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
-import { ATTRS, BAG_SIZE, METERS, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
 
@@ -45,6 +45,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <KV k="XP" v={`${Math.floor(s.xp)} / ${need}`} />
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps())} />
+        <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
       <Card icon="❤" title="Vitals">
         <div class="meters">
@@ -64,7 +65,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <div class="tiles">
           {ATTRS.map((a) => {
             const [icon, name] = ATTR[a];
-            const gear = s.attr(a) - s.attrs[a];
+            const extra = s.attr(a) - s.attrs[a];
             return (
               <div key={a} class="tile">
                 <span class="dim small">
@@ -72,12 +73,14 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
                 </span>
                 <b>
                   {n1(s.attr(a))}
-                  {gear > 0.05 && <span class="tone-ok small"> +{n1(gear)}</span>}
+                  {extra > 0.05 && <span class="tone-ok small"> +{n1(extra)}</span>}
+                  {extra < -0.05 && <span class="tone-error small"> {n1(extra)}</span>}
                 </b>
               </div>
             );
           })}
         </div>
+        {s.meters.hygiene < DIRTY_AT && <p class="small tone-warning">🧼 Dirty: Charm counts less and mood drains.</p>}
       </Card>
       <Card icon="🛡" title="Gear">
         <div class="zebra">
@@ -104,7 +107,13 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         {s.buffs.length ? (
           <div class="zebra">
             {s.buffs.map((b) => (
-              <KV key={b.name} k={b.name} v={`${Math.ceil(b.left)} min`} />
+              <KV
+                key={b.name}
+                k={`${b.name}${Object.entries(b.attrs ?? {})
+                  .map(([a, v]) => ` (+${v} ${ATTR[a as Attr][1]})`)
+                  .join("")}`}
+                v={`${Math.ceil(b.left)} min`}
+              />
             ))}
           </div>
         ) : (

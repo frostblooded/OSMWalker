@@ -201,6 +201,7 @@ export class Game {
     w.speedMps = this.stats.speedMps();
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before);
+    if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.track();
     if (this.stats.fainted()) this.faint();
     this.checkTimer += dt;

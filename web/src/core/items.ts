@@ -9,6 +9,10 @@ export const SLOTS = ["weapon", "offhand", "head", "body", "feet", "bag", "trink
 export type Slot = (typeof SLOTS)[number];
 export const RARITY = ["Common", "Uncommon", "Rare", "Legendary"] as const;
 export type Rarity = (typeof RARITY)[number];
+/** Each Luck point lifts the rarity roll this much, up to LUCK_RARITY_CAP. */
+export const LUCK_RARITY_PER = 0.01;
+export const LUCK_RARITY_CAP = 0.15;
+export const rarityBoost = (luck: number) => Math.min(LUCK_RARITY_PER * luck, LUCK_RARITY_CAP);
 /** Roll thresholds for 1, 2 and 3 modifiers: 60% none, 28% one, 10% two, 2% three. */
 export const MOD_ROLLS = [0.6, 0.88, 0.98];
 /** Each modifier adds this share of the price. */
@@ -87,11 +91,11 @@ export function modifierCount(r: number): number {
   return MOD_ROLLS.filter((t) => r >= t).length;
 }
 
-/** A random item from a shop of `kind` for a walker of `level`. */
-export function make(kind: Kind, level: number, rng: Rng): Item {
+/** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost). */
+export function make(kind: Kind, level: number, rng: Rng, luck = 0): Item {
   const base = rng.pick(KINDS[kind]);
   const mat = rng.pick(MATERIALS.filter((m) => m.level <= level));
-  const n = modifierCount(rng.randf());
+  const n = modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999));
   const mods: Modifier[] = [];
   // At most one suffix; the rest are prefixes, never the same one twice.
   if (n > 0) mods.push(rng.pick(SUFFIXES));
