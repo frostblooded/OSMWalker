@@ -1,8 +1,10 @@
 ## His body, wallet and progress: six meters (0-100), four attributes, coins,
-## XP and level, timed buffs, and the activity feed. Time passes in game
+## XP and level, timed buffs, gear and a bag of items, and the activity feed. Time passes in game
 ## minutes, which are real minutes while the app is open.
 ## Pure logic: no nodes, so it is easy to test.
 extends RefCounted
+
+const Items := preload("res://scripts/items.gd")
 
 const METERS := ["health", "energy", "fullness", "mood", "hygiene", "thirst"]
 const ATTRS := ["str", "cha", "wit", "luck"]
@@ -23,6 +25,11 @@ const FIRST_VISIT_XP := 50
 const HOSPITAL_FEE := 30
 const WAKE_HEALTH := 50.0
 const FEED_SIZE := 50
+const BAG_SIZE := 20
+## He won't buy gear that leaves him with fewer coins than this.
+const KEEP_COINS := 20
+## Share of an item's price he gets selling it, before his charm.
+const SELL_SHARE := 0.4
 
 var meters := {"health": 100.0, "energy": 100.0, "fullness": 80.0, "mood": 70.0, "hygiene": 100.0, "thirst": 80.0}
 var attrs := {"str": 1.0, "cha": 1.0, "wit": 1.0, "luck": 1.0}
@@ -32,6 +39,8 @@ var level := 1
 var buffs := []  # {name, left (minutes), per_h: {meter: rate}, xp_mult}
 var feed := []  # latest lines, oldest first
 var visited := {}  # "name@lat,lon" -> true
+var gear := {}  # slot -> item worn (see items.gd)
+var bag := []  # items carried, up to BAG_SIZE
 
 
 static func xp_to_next(lvl: int) -> int:
@@ -40,6 +49,77 @@ static func xp_to_next(lvl: int) -> int:
 
 func get_meter(name: String) -> float:
 	return meters[name]
+
+
+## An attribute with his gear's bonuses.
+func attr(name: String) -> float:
+	var v: float = attrs[name]
+	for slot in gear:
+		v += float(gear[slot]["stats"].get(name, 0.0))
+	return v
+
+
+## Wears `item`; whatever was in its slot goes in the bag.
+func equip(item: Dictionary) -> void:
+	var old: Dictionary = gear.get(item["slot"], {})
+	gear[item["slot"]] = item
+	if not old.is_empty():
+		_bag_add(old)
+
+
+func unequip(slot: String) -> void:
+	if gear.has(slot):
+		_bag_add(gear[slot])
+		gear.erase(slot)
+
+
+## True when `item` beats what he wears in its slot.
+func is_upgrade(item: Dictionary) -> bool:
+	return Items.power(item) > Items.power(gear.get(item["slot"], {}))
+
+
+## Buys and wears `item` if it is an upgrade he can afford; returns the feed line.
+func buy(item: Dictionary, where: String) -> String:
+	var at := " at " + where if where != "" else ""
+	if not is_upgrade(item) or coins - int(item["price"]) < KEEP_COINS:
+		return say("Looked at a %s %s%s but didn't buy it (%dc)" % [item["rarity"], item["name"], at, item["price"]])
+	coins -= int(item["price"])
+	equip(item)
+	return say("Bought a %s %s%s (-%dc)" % [item["rarity"], item["name"], at, item["price"]])
+
+
+## Sells the cheapest thing in his bag; returns the feed line.
+func sell_loot(where: String) -> String:
+	var at := " at " + where if where != "" else ""
+	if bag.is_empty():
+		return say("Had nothing to sell" + at)
+	var item := _sell_cheapest()
+	return say("Sold his %s%s (+%dc)" % [item["name"], at, sell_price(item)])
+
+
+func sell_price(item: Dictionary) -> int:
+	return roundi(float(item["price"]) * SELL_SHARE * (1.0 + 0.05 * attr("cha")))
+
+
+func _sell_cheapest() -> Dictionary:
+	var i := 0
+	for j in bag.size():
+		if bag[j]["price"] < bag[i]["price"]:
+			i = j
+	var item: Dictionary = bag.pop_at(i)
+	coins += sell_price(item)
+	return item
+
+
+func _bag_add(item: Dictionary) -> void:
+	if bag.size() >= BAG_SIZE:
+		var sold := _sell_cheapest()
+		if sold["price"] > item["price"]:
+			bag.append(sold)  # keep the better one
+			coins -= sell_price(sold)
+			coins += sell_price(item)
+			return
+	bag.append(item)
 
 
 func buff_names() -> Array:
@@ -105,6 +185,10 @@ static func in_time(time: String, hour: int) -> bool:
 func can_do(action: Dictionary, hour: int) -> bool:
 	if int(action.get("cost", 0)) > coins:
 		return false
+	if action.has("item") and coins <= KEEP_COINS:
+		return false
+	if action.get("sell", false) and bag.is_empty():
+		return false
 	var needs: Dictionary = action.get("needs", {})
 	for k in needs:
 		match k:
@@ -119,13 +203,20 @@ func can_do(action: Dictionary, hour: int) -> bool:
 					if meters[m] >= float(needs[k][m]):
 						return false
 			_:
-				if attrs[k] < float(needs[k]):
+				if attr(k) < float(needs[k]):
 					return false
 	return true
 
 
-## Does `action` at `where` and returns the feed line it adds.
+## Does `action` at `where` and returns the feed line it adds. A shop
+## action ("item": kind) offers him a random item; "sell" sells his loot.
 func do(action: Dictionary, where: String, rng: RandomNumberGenerator) -> String:
+	if action.has("item"):
+		apply_fx(action.get("fx", {}))
+		return buy(Items.make(action["item"], level, rng), where)
+	if action.get("sell", false):
+		apply_fx(action.get("fx", {}))
+		return sell_loot(where)
 	var spent := int(action.get("cost", 0))
 	var fx: Dictionary = action.get("fx", {}).duplicate()
 	var text: String = action["name"]
@@ -190,7 +281,7 @@ func say(line: String) -> String:
 
 func to_dict() -> Dictionary:
 	return {"meters": meters, "attrs": attrs, "coins": coins, "xp": xp, "level": level,
-		"buffs": buffs, "feed": feed, "visited": visited.keys()}
+		"buffs": buffs, "feed": feed, "visited": visited.keys(), "gear": gear, "bag": bag}
 
 
 func load_dict(d: Dictionary) -> void:
@@ -210,3 +301,16 @@ func load_dict(d: Dictionary) -> void:
 	visited = {}
 	for k in d.get("visited", []):
 		visited[k] = true
+	gear = {}
+	var worn: Dictionary = d.get("gear", {})
+	for slot in worn:
+		gear[slot] = _item_from(worn[slot])
+	bag = Array(d.get("bag", [])).map(_item_from)
+
+
+## An item read back from JSON, with numbers as the right types.
+static func _item_from(d: Dictionary) -> Dictionary:
+	var stats := {}
+	for k in d.get("stats", {}):
+		stats[k] = float(d["stats"][k])
+	return {"name": d["name"], "slot": d["slot"], "stats": stats, "rarity": d.get("rarity", "Common"), "price": int(d.get("price", 0))}

@@ -2439,6 +2439,14 @@
     "energy": -25,
     "xp": 20
    }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
   }
  ],
  "grocery": [
@@ -2603,6 +2611,579 @@
    "cost": 2,
    "fx": {
     "thirst": 20,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/weapons": [
+  {
+   "name": "Browse the weapons and armour",
+   "min": 15,
+   "item": "weapons",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/hunting": [
+  {
+   "name": "Browse the weapons and armour",
+   "min": 15,
+   "item": "weapons",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/knives": [
+  {
+   "name": "Browse the weapons and armour",
+   "min": 15,
+   "item": "weapons",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/antiques": [
+  {
+   "name": "Browse the weapons and armour",
+   "min": 15,
+   "item": "weapons",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/hardware": [
+  {
+   "name": "Browse the tools",
+   "min": 15,
+   "item": "improvised",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Odd repair job",
+   "min": 60,
+   "earn": 20,
+   "fx": {
+    "wit": 0.2,
+    "xp": 15
+   }
+  }
+ ],
+ "shop/doityourself": [
+  {
+   "name": "Browse the tools",
+   "min": 15,
+   "item": "improvised",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Odd repair job",
+   "min": 60,
+   "earn": 20,
+   "fx": {
+    "wit": 0.2,
+    "xp": 15
+   }
+  }
+ ],
+ "clothing_store": [
+  {
+   "name": "Browse the clothes",
+   "min": 15,
+   "item": "clothes",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Try on everything, buy nothing",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/shoes": [
+  {
+   "name": "Browse the clothes",
+   "min": 15,
+   "item": "clothes",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Try on everything, buy nothing",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/sports": [
+  {
+   "name": "Browse the clothes",
+   "min": 15,
+   "item": "clothes",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Try on everything, buy nothing",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/outdoor": [
+  {
+   "name": "Browse the clothes",
+   "min": 15,
+   "item": "clothes",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Try on everything, buy nothing",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/jewelry": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/watches": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/gift": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/second_hand": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/charity": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "shop/pawnbroker": [
+  {
+   "name": "Browse the trinkets",
+   "min": 15,
+   "item": "trinkets",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "music": [
+  {
+   "name": "Browse the instruments",
+   "min": 15,
+   "item": "instruments",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sell his loot",
+   "min": 10,
+   "sell": true,
+   "fx": {
+    "xp": 3
+   }
+  },
+  {
+   "name": "Haggle with the owner",
+   "min": 10,
+   "fx": {
+    "cha": 0.2,
+    "xp": 10
+   },
+   "needs": {
+    "cha": 3
+   }
+  },
+  {
+   "name": "Try a guitar",
+   "min": 10,
+   "fx": {
+    "cha": 0.1,
+    "mood": 5,
     "xp": 5
    }
   }
