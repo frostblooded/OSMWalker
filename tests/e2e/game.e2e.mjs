@@ -94,6 +94,7 @@ try {
   await page.goto(url);
   await until((s) => s.screen === "picker", "city picker");
   await page.screenshot({ path: `${shots}/1-picker.png` });
+  assert.deepEqual((await state()).overlaps, [], "texts overlap on the picker");
 
   step = "touch targets";
   const s0 = await state();
@@ -120,7 +121,8 @@ try {
   await page.waitForTimeout(3000);
   const after = await state();
   assert.ok(after.total_m - before > 5, `walked only ${after.total_m - before} m in 3 s`);
-  assert.match(after.street, /along /);
+  assert.match(after.street, /along |Stopped on /);
+  assert.deepEqual(after.overlaps, [], "texts overlap on the game screen");
   assert.ok(requests.tiles > 0, "map tiles were requested");
   assert.equal(requests.wikidata, 1, "the city was looked up on Wikidata once");
   assert.equal(after.city_facts, 2, "city trivia from Wikidata");
@@ -146,6 +148,7 @@ try {
   assert.ok(py >= 844 * 0.45 && py + ph <= 845, `history panel sits in the bottom half (y ${py}, h ${ph})`);
   assert.ok(hist.rects.history_close[3] / dpr >= 44, "Close is big enough to tap");
   await page.screenshot({ path: `${shots}/3-history.png` });
+  assert.deepEqual((await state()).overlaps, [], "texts overlap with the history open");
   if (hist.history_entries > 0) await tap("history_row0");
   await tap("history_close");
   await until((s) => !s.history_open, "history panel closed");
@@ -161,6 +164,7 @@ try {
   await page.keyboard.type("RESET");
   await until((s) => s.confirm_enabled, "Start over unlocked");
   await page.screenshot({ path: `${shots}/4-confirm.png` });
+  assert.deepEqual((await state()).overlaps, [], "texts overlap in the reset dialog");
   await tap("confirm_yes");
   await until((s) => s.screen === "picker", "picker after reset");
 

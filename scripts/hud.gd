@@ -669,6 +669,38 @@ static func _first_live(box: Node) -> Control:
 	return null
 
 
+## Pairs of visible texts, bars and buttons on screen that overlap, as
+## "name / name" lines; tests check it stays empty. Panels behind them
+## (the top panel, dialogs) are not checked, only what is drawn on them.
+func overlapping_texts() -> Array:
+	var items := []
+	_collect_drawn(self, items)
+	var hits := []
+	for i in items.size():
+		for j in range(i + 1, items.size()):
+			var a: Control = items[i]
+			var b: Control = items[j]
+			if a.is_ancestor_of(b) or b.is_ancestor_of(a):
+				continue
+			if a.get_global_rect().grow(-1.0).intersects(b.get_global_rect().grow(-1.0)):
+				hits.append("%s / %s" % [_describe(a), _describe(b)])
+	return hits
+
+
+func _collect_drawn(node: Node, out: Array) -> void:
+	for c in node.get_children():
+		if c is Control and not c.is_visible_in_tree():
+			continue
+		if (c is Label or c is ProgressBar or c is Button or c is LineEdit) and c.size.x > 2.0 and c.size.y > 2.0:
+			out.append(c)
+		_collect_drawn(c, out)
+
+
+static func _describe(c: Control) -> String:
+	var t: String = c.get("text") if c.get("text") != null else ""
+	return "%s \"%s\"" % [c.get_class(), t.left(30)]
+
+
 ## Controls the e2e test taps, by name.
 func debug_controls() -> Dictionary:
 	return {

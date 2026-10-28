@@ -502,6 +502,7 @@ func debug_state() -> Dictionary:
 		"history_entries": stats.history.entries.size(),
 		"trail_markers": trail_view.markers.size() if trail_view.visible else 0,
 		"confirm_enabled": hud.is_confirm_enabled(),
+		"overlaps": hud.overlapping_texts(),
 		"rects": rects,
 	}
 
