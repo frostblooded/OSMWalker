@@ -1,6 +1,8 @@
 ## The character's walk along the street graph: he picks a place of note
-## (a shop, a cafe, a sight...) or a random spot in the city, heads there by the shortest route over the streets loaded so far
-## (re-planning as more load), rests a minute, then picks the next spot.
+## (a shop, a cafe, a sight...), heads there by the shortest route over the streets loaded so far
+## (re-planning as more load), stays a minute at most, then picks the next one.
+## With no places loaded yet he heads for a random spot in the city and walks
+## on without stopping there.
 ## Instead of a new spot he may travel to another city (see trips.gd).
 ## Pure logic: no nodes, no networking, so it is easy to test.
 extends RefCounted
@@ -17,16 +19,17 @@ signal arrived(place: Dictionary)
 
 ## 200 meters per minute.
 const SPEED_MPS := 200.0 / 60.0
-## He rests a minute at each destination, counted in walking meters so the
-## clock stays simple.
+## He stays a minute at each place, and never longer, counted in walking
+## meters so the clock stays simple.
 const REST_M := SPEED_MPS * 60.0
 ## Close enough to a destination to call it reached.
 const ARRIVE_M := 30.0
 ## Destinations come from the searched place's box, kept between these sizes.
 const MIN_CITY_RADIUS_M := 1500.0
 const MAX_CITY_RADIUS_M := 25000.0
-## Chance that a destination is a place of note rather than a random spot.
-const PLACE_CHANCE := 0.5
+## Goals given up on in a row before he just walks down a street, so a city
+## where no goal can be reached never hangs the game.
+const MAX_SKIPS := 3
 ## Route searches stop after this many street corners, to keep frames short.
 const MAX_SEARCH_NODES := 40000
 ## Where he stands on landing, until the new city's streets load.
@@ -45,14 +48,15 @@ var goal_node := -1  # street corner the goal snapped to, once streets there loa
 var route := []  # nodes still to walk after from_node
 var route_arrives := false  # true when the route ends at the goal
 var rest_m := 0.0  # rest left at the current destination, in walking meters
+var rest_total_m := 0.0  # length of the current rest, for the countdown bar
 var rested_m := 0.0
 var trip_m := 0.0  # walked since the current goal was picked
 var trip_start_m := 0.0  # straight-line distance to the goal when it was picked
 var place := {}  # the place of note he is heading to or resting at, {} for a random spot
-var place_chance := PLACE_CHANCE
 ## Asked on every destination pick: returns a city to travel to, or {} to stay.
 var trip_planner: Callable
 var travel := {}  # {from: [lat, lon], to: city, total_m, left_m} while on the way
+var _skips := 0  # goals given up on in a row
 
 
 func _init(street_graph: StreetGraph = null) -> void:
@@ -98,8 +102,8 @@ func set_goal(lat: float, lon: float) -> void:
 		trip_start_m = Geo.distance_m(p[0], p[1], lat, lon)
 
 
-## Picks a place of note or a random spot in the city to walk to, or sets
-## off on a trip.
+## Picks a place of note to walk to (a random spot in the city while none
+## are loaded), or sets off on a trip.
 func pick_goal() -> void:
 	if trip_planner.is_valid():
 		var city: Dictionary = trip_planner.call()
@@ -113,7 +117,7 @@ func pick_goal() -> void:
 	if graph.has_node(from_node):
 		var here := position()
 		options = options.filter(func(q): return Geo.distance_m(here[0], here[1], q["lat"], q["lon"]) > ARRIVE_M)
-	if not options.is_empty() and rng.randf() < place_chance:
+	if not options.is_empty():
 		var pl := pick_place(options, rng.randf())
 		set_goal(pl["lat"], pl["lon"])
 		place = pl
@@ -205,8 +209,13 @@ func advance(meters: float) -> float:
 				start_at(near)
 				continue
 			to_node = _next_step()
+			if to_node == -1 and _skips > MAX_SKIPS:
+				# Already as close as he gets to every goal tried: wander a street instead.
+				_skips = 0
+				var near := graph.neighbors(from_node)
+				to_node = near[rng.randi() % near.size()]
 			if to_node == -1:
-				continue  # arrived (resting now) or set off on a trip
+				continue  # arrived (resting now), moved on, or set off on a trip
 		var remaining := graph.edge_length(from_node, to_node) - progress_m
 		if meters < remaining:
 			progress_m += meters
@@ -220,12 +229,14 @@ func advance(meters: float) -> float:
 		from_node = to_node
 		to_node = -1
 		progress_m = 0.0
+		_skips = 0
 		if route_arrives and route.is_empty():
 			_arrive()
 	return 0.0
 
 
-## Next node on the way to the goal, or -1 after arriving (he starts resting).
+## Next node on the way to the goal, or -1 after arriving (he starts resting
+## at a place) or giving up.
 func _next_step() -> int:
 	if goal.is_empty():
 		pick_goal()
@@ -233,7 +244,10 @@ func _next_step() -> int:
 			return -1
 	if not route.is_empty() and route[0] != from_node and graph.neighbors(from_node).has(route[0]):
 		return route.pop_front()
-	if route_arrives or trip_m > trip_limit_m(trip_start_m):
+	if trip_m > trip_limit_m(trip_start_m):
+		_move_on()
+		return -1
+	if route_arrives:
 		_arrive()
 		return -1
 	_plan()
@@ -243,22 +257,44 @@ func _next_step() -> int:
 	return route.pop_front()
 
 
+## At a place he stays a minute (listeners may shorten it); a random spot
+## is only a waypoint.
 func _arrive() -> void:
+	if place.is_empty():
+		_move_on()
+		return
+	rest_for(1.0)
+	arrived.emit(place)
+
+
+## Drops the goal without stopping; he picks the next one at once.
+func _move_on() -> void:
 	goal = []
 	goal_node = -1
 	route = []
 	route_arrives = false
-	rest_m = REST_M
-	arrived.emit(place)
+	_skips += 1
 
 
-## Stays where he is for `minutes`, counted in walking meters like the rest.
+## Stays where he is for `minutes`, but never more than a minute, counted in
+## walking meters like the rest.
 func rest_for(minutes: float) -> void:
 	goal = []
 	goal_node = -1
 	route = []
 	route_arrives = false
-	rest_m = minutes * 60.0 * SPEED_MPS
+	rest_m = minf(minutes * 60.0 * SPEED_MPS, REST_M)
+	rest_total_m = rest_m
+
+
+## Seconds until he moves again.
+func rest_left_s() -> float:
+	return rest_m / SPEED_MPS
+
+
+## How much of the current rest is over, 0 to 1.
+func rest_fraction() -> float:
+	return 1.0 - rest_m / rest_total_m if rest_total_m > 0.0 else 0.0
 
 
 ## A* from here towards the goal over the loaded streets. Corners whose
@@ -381,7 +417,7 @@ func to_dict() -> Dictionary:
 		"prev": prev_node, "from": from_node, "to": to_node,
 		"progress_m": progress_m, "total_m": total_m, "pos": position(),
 		"bounds": bounds, "goal": goal, "goal_node": goal_node, "route": route,
-		"route_arrives": route_arrives, "rest_m": rest_m, "rested_m": rested_m,
+		"route_arrives": route_arrives, "rest_m": rest_m, "rest_total_m": rest_total_m, "rested_m": rested_m,
 		"trip_m": trip_m, "trip_start_m": trip_start_m, "travel": travel, "place": place,
 	}
 	for key in ["prev", "from", "to"]:
@@ -403,7 +439,9 @@ func load_dict(d: Dictionary) -> void:
 	goal_node = int(d.get("goal_node", -1))
 	route = Array(d.get("route", [])).map(func(v): return int(v))
 	route_arrives = bool(d.get("route_arrives", false))
-	rest_m = float(d.get("rest_m", 0.0))
+	# Saves from when stops ran up to 15 minutes are cut to a minute.
+	rest_m = minf(float(d.get("rest_m", 0.0)), REST_M)
+	rest_total_m = clampf(float(d.get("rest_total_m", rest_m)), rest_m, REST_M)
 	rested_m = float(d.get("rested_m", 0.0))
 	trip_m = float(d.get("trip_m", 0.0))
 	trip_start_m = float(d.get("trip_start_m", 0.0))

@@ -46,9 +46,15 @@ func test_heads_for_the_goal_by_the_shortest_route() -> void:
 	assert_eq(walker.to_node, 3)
 
 
+## Heads for a place of note at node 3: only places make him stop.
+func _head_for_cafe() -> void:
+	walker.set_goal(42.0, 23.00135)
+	walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
+
+
 func test_rests_a_minute_on_arrival() -> void:
 	walker.start_at(2)
-	walker.set_goal(42.0, 23.00135)
+	_head_for_cafe()
 	var trip := graph.edge_length(2, 1) + graph.edge_length(1, 3)
 	walker.advance(trip)
 	assert_eq(walker.from_node, 3)
@@ -64,7 +70,7 @@ func test_rests_a_minute_on_arrival() -> void:
 func test_picks_a_new_goal_inside_the_city_after_resting() -> void:
 	walker.bounds = [41.995, 22.995, 42.005, 23.005]
 	walker.start_at(2)
-	walker.set_goal(42.0, 23.00135)
+	_head_for_cafe()
 	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + Walker.REST_M + 1.0)
 	assert_false(walker.is_resting())
 	assert_ne(walker.goal, [42.0, 23.00135])
@@ -85,9 +91,10 @@ func test_random_goals_cover_the_city() -> void:
 	assert_between(north, 30, 70)
 
 
-func test_unreachable_goal_ends_at_the_closest_street() -> void:
+func test_unreachable_place_ends_at_the_closest_street() -> void:
 	walker.start_at(4)
 	walker.set_goal(42.05, 23.0)  # far north, no streets lead there
+	walker.place = {"name": "Island", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.05, "lon": 23.0}
 	walker.advance(graph.edge_length(4, 1) + graph.edge_length(1, 2))
 	assert_eq(walker.from_node, 2)
 	assert_true(walker.is_resting())
@@ -108,9 +115,54 @@ func test_walks_to_the_edge_of_loaded_streets_towards_a_far_goal() -> void:
 func test_gives_up_on_a_trip_that_drags_on() -> void:
 	walker.start_at(1)
 	walker.set_goal(42.0, 23.00135)
+	walker.place = {"name": "Far", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
 	walker.trip_m = Walker.trip_limit_m(walker.trip_start_m) + 1.0
 	walker.advance(1.0)
-	assert_true(walker.is_resting())
+	assert_false(walker.is_resting(), "giving up is not a stop")
+	assert_ne(walker.goal, [42.0, 23.00135])
+
+
+func test_walks_past_a_random_spot_without_stopping() -> void:
+	walker.bounds = [41.995, 22.995, 42.005, 23.005]
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)
+	var fired := []
+	walker.arrived.connect(func(p): fired.append(p))
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + 1.0)
+	assert_false(walker.is_resting())
+	assert_eq(fired, [])
+	assert_ne(walker.goal, [42.0, 23.00135], "already heading somewhere new")
+
+
+func test_random_spots_he_cannot_get_closer_to_do_not_hang() -> void:
+	walker.bounds = [43.0, 24.0, 43.1, 24.1]  # far off, node 5 or so is always closest
+	walker.start_at(1)
+	walker.advance(5000.0)
+	assert_false(walker.is_resting())
+
+
+func test_no_stop_lasts_more_than_a_minute() -> void:
+	walker.start_at(3)
+	walker.rest_for(15.0)
+	assert_almost_eq(walker.rest_m, Walker.REST_M, 0.001)
+
+
+func test_rest_countdown() -> void:
+	walker.start_at(2)
+	_head_for_cafe()
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + Walker.REST_M / 4.0)
+	assert_almost_eq(walker.rest_left_s(), 45.0, 0.01)
+	assert_almost_eq(walker.rest_fraction(), 0.25, 0.001)
+
+
+func test_old_save_with_a_long_rest_is_cut_to_a_minute() -> void:
+	walker.start_at(3)
+	var d := walker.to_dict()
+	d["rest_m"] = 3000.0
+	var restored := Walker.new()
+	restored.load_dict(d)
+	assert_almost_eq(restored.rest_m, Walker.REST_M, 0.001)
+	assert_almost_eq(restored.rest_fraction(), 0.0, 0.001)
 
 
 ## East-west street of `n` nodes 500 m apart from (42.0, 23.0), only the first
@@ -201,7 +253,7 @@ func test_isolated_node_hops_to_nearest_street() -> void:
 
 func test_save_keeps_the_rest() -> void:
 	walker.start_at(3)
-	walker.set_goal(42.0, 23.00135)
+	_head_for_cafe()
 	walker.advance(50.0)
 	var restored := Walker.new()
 	restored.load_dict(JSON.parse_string(JSON.stringify(walker.to_dict())))

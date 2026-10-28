@@ -226,9 +226,9 @@ func test_choose_skips_what_he_cannot_do() -> void:
 	assert_eq(Activities.choose([pricey], stats, 12, 0.5), {})
 
 
-func test_minutes_are_capped_at_15() -> void:
-	assert_eq(Activities.rest_minutes({"min": 3}), 3.0)
-	assert_eq(Activities.rest_minutes({"min": 480}), 15.0)
+func test_every_action_takes_a_minute() -> void:
+	assert_eq(Activities.rest_minutes({"min": 3}), 1.0)
+	assert_eq(Activities.rest_minutes({"min": 480}), 1.0)
 
 
 func test_bundled_actions_are_all_valid() -> void:
