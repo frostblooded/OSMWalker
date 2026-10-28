@@ -365,3 +365,18 @@ func test_a_trip_survives_a_restart() -> void:
 	again._step(0.1)
 	assert_true(again.trip_line.visible)
 	assert_eq(again.country, "BGR")
+
+
+func test_shows_the_place_he_heads_to_with_a_pin() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
+	await wait_frames(2)
+	assert_eq(m.hud.place_label.text, "Walking to Cafe East")
+	assert_true(m.place_pin.visible)
+	assert_eq(m.place_pin.position, m.map.geo_to_local(42.0, 23.00135))
+	assert_eq(m.debug_state()["place"], "Cafe East")
+	m.walker.place = {}
+	await wait_frames(2)
+	assert_false(m.place_pin.visible)
+	assert_false(m.hud.place_label.visible)

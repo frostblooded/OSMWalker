@@ -12,6 +12,7 @@ const StreetGraph := preload("res://scripts/street_graph.gd")
 const StreetLoader := preload("res://scripts/street_loader.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const Trips := preload("res://scripts/trips.gd")
+const PlacePin := preload("res://scripts/place_pin.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
@@ -33,6 +34,7 @@ var camera: Camera2D
 var hud: Hud
 var loader: StreetLoader
 var trip_line: Line2D
+var place_pin: Node2D
 var trips: Trips
 var rng := RandomNumberGenerator.new()
 var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
@@ -63,6 +65,9 @@ func _ready() -> void:
 	trip_line.default_color = TRIP_LINE_COLOR
 	trip_line.visible = false
 	add_child(trip_line)
+	place_pin = PlacePin.new()
+	place_pin.visible = false
+	add_child(place_pin)
 	character = Character.new()
 	add_child(character)
 	camera = Camera2D.new()
@@ -187,6 +192,7 @@ func _step(delta: float) -> void:
 		hud.set_trip(walker.travel["to"]["name"])
 	else:
 		hud.set_street(walker.street_name())
+	_show_place()
 	_show_status()
 
 	_save_timer += delta
@@ -216,6 +222,15 @@ func _show_trip_line() -> void:
 		var a: Array = walker.travel["from"]
 		var to: Dictionary = walker.travel["to"]
 		trip_line.points = PackedVector2Array([map.geo_to_local(a[0], a[1]), map.geo_to_local(to["lat"], to["lon"])])
+
+
+## The place of note he is heading to: its name on the HUD and a pin on the map.
+func _show_place() -> void:
+	var pl := walker.place
+	hud.set_place(pl.get("name", ""), walker.is_resting())
+	place_pin.visible = not pl.is_empty()
+	if place_pin.visible:
+		place_pin.position = map.geo_to_local(pl["lat"], pl["lon"])
 
 
 ## Direction to where he is heading (x east, y south), so streets that way load first.
@@ -338,6 +353,7 @@ func debug_state() -> Dictionary:
 		"screen": "game" if walker else "picker",
 		"city": city,
 		"street": hud.street_label.text,
+		"place": walker.place.get("name", "") if walker else "",
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),
 		"confirm_enabled": hud.is_confirm_enabled(),

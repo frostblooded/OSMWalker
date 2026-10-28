@@ -1,5 +1,5 @@
-## The character's walk along the street graph: he picks a random spot in the
-## city, heads there by the shortest route over the streets loaded so far
+## The character's walk along the street graph: he picks a place of note
+## (a shop, a cafe, a sight...) or a random spot in the city, heads there by the shortest route over the streets loaded so far
 ## (re-planning as more load), rests a minute, then picks the next spot.
 ## Instead of a new spot he may travel to another city (see trips.gd).
 ## Pure logic: no nodes, no networking, so it is easy to test.
@@ -22,6 +22,8 @@ const ARRIVE_M := 30.0
 ## Destinations come from the searched place's box, kept between these sizes.
 const MIN_CITY_RADIUS_M := 1500.0
 const MAX_CITY_RADIUS_M := 25000.0
+## Chance that a destination is a place of note rather than a random spot.
+const PLACE_CHANCE := 0.5
 ## Route searches stop after this many street corners, to keep frames short.
 const MAX_SEARCH_NODES := 40000
 ## Where he stands on landing, until the new city's streets load.
@@ -43,6 +45,8 @@ var rest_m := 0.0  # rest left at the current destination, in walking meters
 var rested_m := 0.0
 var trip_m := 0.0  # walked since the current goal was picked
 var trip_start_m := 0.0  # straight-line distance to the goal when it was picked
+var place := {}  # the place of note he is heading to or resting at, {} for a random spot
+var place_chance := PLACE_CHANCE
 ## Asked on every destination pick: returns a city to travel to, or {} to stay.
 var trip_planner: Callable
 var travel := {}  # {from: [lat, lon], to: city, total_m, left_m} while on the way
@@ -79,6 +83,7 @@ func start_at(node_id: int) -> void:
 
 
 func set_goal(lat: float, lon: float) -> void:
+	place = {}
 	goal = [lat, lon]
 	goal_node = -1
 	route = []
@@ -90,7 +95,8 @@ func set_goal(lat: float, lon: float) -> void:
 		trip_start_m = Geo.distance_m(p[0], p[1], lat, lon)
 
 
-## Picks a random spot in the city to walk to, or sets off on a trip.
+## Picks a place of note or a random spot in the city to walk to, or sets
+## off on a trip.
 func pick_goal() -> void:
 	if trip_planner.is_valid():
 		var city: Dictionary = trip_planner.call()
@@ -100,7 +106,30 @@ func pick_goal() -> void:
 	if bounds.size() != 4 and graph.has_node(from_node):
 		var p := position()
 		bounds = city_bounds(p[0], p[1], [])
+	var options := graph.places_in(bounds)
+	if graph.has_node(from_node):
+		var here := position()
+		options = options.filter(func(q): return Geo.distance_m(here[0], here[1], q["lat"], q["lon"]) > ARRIVE_M)
+	if not options.is_empty() and rng.randf() < place_chance:
+		var pl := pick_place(options, rng.randf())
+		set_goal(pl["lat"], pl["lon"])
+		place = pl
+		return
 	set_goal(rng.randf_range(bounds[0], bounds[2]), rng.randf_range(bounds[1], bounds[3]))
+
+
+## One of `places`, picked with weight 1 / rank so important ones come up
+## more often. `r` is uniform in [0, 1).
+static func pick_place(places: Array, r: float) -> Dictionary:
+	var total := 0.0
+	for p in places:
+		total += 1.0 / maxi(int(p["rank"]), 1)
+	r *= total
+	for p in places:
+		r -= 1.0 / maxi(int(p["rank"]), 1)
+		if r < 0.0:
+			return p
+	return places[-1] if not places.is_empty() else {}
 
 
 ## Sets off for `city` ({name, lat, lon, bounds, ...}). The trip uses up
@@ -109,6 +138,7 @@ func start_travel(city: Dictionary) -> void:
 	var p := position()
 	var m := Trips.travel_s(Geo.distance_m(p[0], p[1], city["lat"], city["lon"])) * SPEED_MPS
 	travel = {"from": p, "to": city, "total_m": m, "left_m": m}
+	place = {}
 	goal = []
 	goal_node = -1
 	route = []
@@ -339,7 +369,7 @@ func to_dict() -> Dictionary:
 		"progress_m": progress_m, "total_m": total_m, "pos": position(),
 		"bounds": bounds, "goal": goal, "goal_node": goal_node, "route": route,
 		"route_arrives": route_arrives, "rest_m": rest_m, "rested_m": rested_m,
-		"trip_m": trip_m, "trip_start_m": trip_start_m, "travel": travel,
+		"trip_m": trip_m, "trip_start_m": trip_start_m, "travel": travel, "place": place,
 	}
 	for key in ["prev", "from", "to"]:
 		var id: int = d[key]
@@ -365,6 +395,7 @@ func load_dict(d: Dictionary) -> void:
 	trip_m = float(d.get("trip_m", 0.0))
 	trip_start_m = float(d.get("trip_start_m", 0.0))
 	travel = d.get("travel", {})
+	place = d.get("place", {})
 	if not travel.is_empty():
 		travel["from"] = Array(travel["from"]).map(func(v): return float(v))
 		var city: Dictionary = travel["to"]

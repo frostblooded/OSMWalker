@@ -1,12 +1,14 @@
 ## Decodes Mapbox Vector Tiles (protobuf), only as far as the walker needs:
-## line features of chosen layers, with their tags.
+## line and point features of chosen layers, with their tags.
 extends RefCounted
 
+const POINT := 1
 const LINESTRING := 2
 
 
 ## {layer name: {"extent": int, "features": [{"tags": {}, "lines": [PackedInt32Array]}]}}
 ## Each line is x0, y0, x1, y1, ... in tile units (0..extent, more in the buffer).
+## Point features carry "points" (x0, y0, x1, y1, ...) instead of "lines".
 static func decode(buf: PackedByteArray, wanted: Array) -> Dictionary:
 	var out := {}
 	var r := Reader.new(buf, 0, buf.size())
@@ -76,7 +78,7 @@ static func _value(r: Reader) -> Variant:
 	return v
 
 
-## Line features only; anything else comes back empty.
+## Line and point features only; polygons come back empty.
 static func _feature(r: Reader, keys: Array, values: Array) -> Dictionary:
 	var tags := {}
 	var type := 0
@@ -101,9 +103,29 @@ static func _feature(r: Reader, keys: Array, values: Array) -> Dictionary:
 					geom.append(r.varint())
 			_:
 				r.skip(key & 7)
+	if type == POINT:
+		return {"tags": tags, "points": _points(geom)}
 	if type != LINESTRING:
 		return {}
 	return {"tags": tags, "lines": _lines(geom)}
+
+
+## Turns MoveTo commands into x0, y0, x1, y1, ...
+static func _points(geom: PackedInt32Array) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var x := 0
+	var y := 0
+	var i := 0
+	while i < geom.size():
+		var count := geom[i] >> 3
+		i += 1
+		for c in count:
+			x += Reader.zigzag(geom[i])
+			y += Reader.zigzag(geom[i + 1])
+			i += 2
+			out.append(x)
+			out.append(y)
+	return out
 
 
 ## Turns MoveTo / LineTo commands into point lists.

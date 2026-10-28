@@ -15,6 +15,7 @@ const BIG := Vector2(132, 132)
 const PANEL_BG := Color(1, 1, 1, 0.92)
 
 var street_label: Label
+var place_label: Label
 var city_label: Label
 var overlay_label: Label
 var progress_bar: ProgressBar
@@ -120,8 +121,11 @@ func _build_game_ui() -> void:
 	var col := VBoxContainer.new()
 	city_label = _label("", 26)
 	street_label = _label("", 38)
+	place_label = _label("", 34)
+	place_label.visible = false
 	col.add_child(city_label)
 	col.add_child(street_label)
+	col.add_child(place_label)
 	top.add_child(col)
 	_game_ui.add_child(top)
 
@@ -336,6 +340,12 @@ func show_game(city: String) -> void:
 
 func set_street(street: String) -> void:
 	street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
+
+
+## The place of note he is heading to or resting at; "" hides the line.
+func set_place(name: String, resting: bool) -> void:
+	place_label.visible = name != ""
+	place_label.text = ("Resting at " if resting else "Walking to ") + name
 
 
 func set_trip(city: String) -> void:
