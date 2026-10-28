@@ -415,7 +415,7 @@ func _show_place() -> void:
 		hud.set_goal(Hud.resting_text(name) if name != "" else "")
 	else:
 		var here := walker.position()
-		hud.set_goal(Hud.goal_text(name, Geo.distance_m(here[0], here[1], at[0], at[1])))
+		hud.set_goal(Hud.goal_text(name, Geo.distance_m(here[0], here[1], at[0], at[1]), walker.walk_left_m()))
 
 
 ## [lat, lon] of the place of note or random spot he is heading to or

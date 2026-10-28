@@ -671,9 +671,19 @@ func set_goal(text: String) -> void:
 	place_label.text = text
 
 
-## "Going to Cafe East · 1.2 km"; an empty `name` is a random spot.
-static func goal_text(name: String, meters: float) -> String:
-	return "Going to %s · %s" % [name if name != "" else "a random spot", _dist(meters)]
+## "Going to Cafe East · 1.2 km · ~8 min"; an empty `name` is a random
+## spot. `walk_m` is how far he still walks there, negative for no estimate.
+static func goal_text(name: String, meters: float, walk_m := -1.0) -> String:
+	var text := "Going to %s · %s" % [name if name != "" else "a random spot", _dist(meters)]
+	return text + " · " + walk_time_text(walk_m) if walk_m >= 0.0 else text
+
+
+## Walking time for `meters` at 200 m a minute: "<1 min", "~8 min", "~1 h 5 min".
+static func walk_time_text(meters: float) -> String:
+	if meters < 200.0:
+		return "<1 min"
+	var mins := roundi(meters / 200.0)
+	return "~%d min" % mins if mins < 60 else "~%d h %d min" % [mins / 60, mins % 60]
 
 
 static func _dist(m: float) -> String:

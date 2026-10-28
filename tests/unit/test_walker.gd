@@ -338,3 +338,31 @@ func test_travel_survives_save_and_load() -> void:
 	assert_true(again.is_traveling())
 	assert_eq(again.position(), walker.position())
 	assert_eq(again.travel["to"]["name"], "Fartown")
+
+
+func test_walk_left_to_the_goal_follows_the_planned_streets() -> void:
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)  # node 3, round the corner at node 1
+	var straight := Geo.distance_m(42.001, 23.0, 42.0, 23.00135)
+	assert_almost_eq(walker.walk_left_m(), straight, 0.01, "nothing planned yet: a straight line")
+	walker.advance(10.0)
+	assert_almost_eq(walker.walk_left_m(), graph.edge_length(2, 1) - 10.0 + graph.edge_length(1, 3), 0.01)
+	assert_gt(walker.walk_left_m(), straight - 10.0, "streets are longer than the straight line")
+
+
+func test_walk_left_adds_a_straight_line_past_the_loaded_streets() -> void:
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.02)  # far east, past the loaded streets
+	walker.advance(10.0)
+	var last: Array = graph.nodes[walker.route[-1]] if not walker.route.is_empty() else graph.nodes[walker.to_node]
+	var on_streets := graph.edge_length(walker.from_node, walker.to_node) - walker.progress_m
+	var prev := walker.to_node
+	for n in walker.route:
+		on_streets += graph.edge_length(prev, n)
+		prev = n
+	assert_almost_eq(walker.walk_left_m(), on_streets + Geo.distance_m(last[0], last[1], 42.0, 23.02), 0.01)
+
+
+func test_no_walk_left_without_a_goal() -> void:
+	walker.start_at(2)
+	assert_eq(walker.walk_left_m(), -1.0)

@@ -115,6 +115,12 @@ func test_goal_line_names_the_place_and_how_far_it_is() -> void:
 	assert_eq(Hud.goal_text("", 350.4), "Going to a random spot · 350 m")
 
 
+func test_goal_line_estimates_the_walk_at_200_m_a_minute() -> void:
+	assert_eq(Hud.goal_text("Cafe East", 1234.0, 1640.0), "Going to Cafe East · 1.2 km · ~8 min")
+	assert_eq(Hud.goal_text("", 120.0, 150.0), "Going to a random spot · 120 m · <1 min")
+	assert_eq(Hud.goal_text("", 9000.0, 13000.0), "Going to a random spot · 9.0 km · ~1 h 5 min")
+
+
 func test_tapping_the_goal_line_asks_to_see_the_goal() -> void:
 	var hud: Hud = autofree(Hud.new())
 	add_child(hud)

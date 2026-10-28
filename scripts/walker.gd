@@ -287,6 +287,27 @@ func rest_for(minutes: float) -> void:
 	rest_total_m = rest_m
 
 
+## Meters he still walks to the goal: the rest of this street, the planned
+## route, then a straight line from where it ends. A straight line from here
+## until he has planned; -1 without a goal.
+func walk_left_m() -> float:
+	if goal.is_empty() or not graph.has_node(from_node):
+		return -1.0
+	if to_node == -1 and route.is_empty():
+		var here := position()
+		return Geo.distance_m(here[0], here[1], goal[0], goal[1])
+	var m := 0.0
+	var last := from_node
+	if to_node != -1:
+		m = graph.edge_length(from_node, to_node) - progress_m
+		last = to_node
+	for n in route:
+		m += graph.edge_length(last, n)
+		last = n
+	var end: Array = graph.nodes[last]
+	return m + Geo.distance_m(end[0], end[1], goal[0], goal[1])
+
+
 ## Seconds until he moves again.
 func rest_left_s() -> float:
 	return rest_m / SPEED_MPS
