@@ -398,6 +398,8 @@ func test_a_trip_survives_a_restart() -> void:
 func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
+	# A goal of its own, so a first pick once the streets load can't replace it.
+	m.walker.set_goal(42.0, 23.00135)
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
 	await wait_frames(2)
 	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
