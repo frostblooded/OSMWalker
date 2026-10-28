@@ -5,21 +5,20 @@
 extends ColorRect
 
 const Help := preload("res://scripts/help.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")
 
 const PANEL_BG := Color(1, 1, 1, 0.97)
-const CARD_BG := Color("#f2f2f2")
-const ROW_BG := [Color("#ffffff"), Color("#e6e6e6")]
-const TEXT := Color(0.1, 0.1, 0.1)
-const LABEL := Color("#5e5e5e")
-const TITLE_SIZE := 40
-const HEADING_SIZE := 32
-const BODY_SIZE := 28
+const TEXT := UiKit.INK
+const LABEL := UiKit.DIM
+const TITLE_SIZE := UiKit.TITLE
+const HEADING_SIZE := UiKit.HEADING
+const BODY_SIZE := UiKit.BODY
 
 var back_button: Button
 var close_button: Button
 var first_topic: Button
 var _title: Label
-var _scroll: ScrollContainer
+var _scroll: UiKit.TouchScroll
 var _list: VBoxContainer
 var _page: VBoxContainer
 var _page_text := ""
@@ -31,7 +30,7 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", _style(PANEL_BG, 24, 24))
+	box.add_theme_stylebox_override("panel", UiKit.box(PANEL_BG, 24, UiKit.S4))
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
 	add_child(box)
 	var col := VBoxContainer.new()
@@ -51,9 +50,7 @@ func _init() -> void:
 	head.add_child(close_button)
 	col.add_child(head)
 
-	_scroll = ScrollContainer.new()
-	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll = UiKit.scroll()
 	col.add_child(_scroll)
 	var inner := VBoxContainer.new()
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -70,7 +67,8 @@ func _init() -> void:
 			b.add_theme_font_size_override("font_size", 30)
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.pressed.connect(show_page.bind(p["id"]))
+			b.mouse_filter = Control.MOUSE_FILTER_PASS  # drags on a topic still scroll the list
+			b.pressed.connect(func(): if not _scroll.is_dragging(): show_page(p["id"]))
 			items.add_child(b)
 			if first_topic == null:
 				first_topic = b
@@ -82,14 +80,6 @@ func _init() -> void:
 	show_list()
 
 
-static func _style(bg: Color, radius: int, pad: int) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.set_corner_radius_all(radius)
-	sb.set_content_margin_all(pad)
-	return sb
-
-
 func _column(gap: int) -> VBoxContainer:
 	var c := VBoxContainer.new()
 	c.add_theme_constant_override("separation", gap)
@@ -99,7 +89,8 @@ func _column(gap: int) -> VBoxContainer:
 
 func _card() -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _style(CARD_BG, 16, 16))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE  # drags on it still scroll the list
+	p.add_theme_stylebox_override("panel", UiKit.box(UiKit.CARD_BG, 18, UiKit.S3, UiKit.EDGE))
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return p
 
@@ -164,8 +155,7 @@ func show_page(id: String) -> void:
 			col.add_child(_label(b["text"], BODY_SIZE, TEXT))
 		for i in b["items"].size():
 			var item: String = b["items"][i]
-			var row := PanelContainer.new()
-			row.add_theme_stylebox_override("panel", _style(ROW_BG[i % 2], 8, 12))
+			var row := UiKit.zebra(i)
 			row.add_child(_label(item, BODY_SIZE, TEXT))
 			col.add_child(row)
 			_rows.append(row)

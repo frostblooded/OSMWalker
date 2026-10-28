@@ -1,4 +1,4 @@
-# Getting started
+# ℹ Getting started
 ## What OSM Walker is {about}
 OSM Walker is a little life you watch, not steer. A small character walks the real streets of a real city, taken from OpenStreetMap. He picks places to visit, walks there, does something at each one, and slowly gets stronger, richer and more experienced.
 
@@ -19,7 +19,7 @@ He walks and lives only while the game is open on screen. While it is closed, or
 Time in the game is real time while the game is open: one minute on your clock is one minute for him. A single frame never counts for more than one second, so a stall or a hidden tab can't make him jump ahead.
 
 The game saves every few seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
-# Walking
+# 🚶 Walking
 ## How he walks {walking}
 He walks {SPEED_M_PER_MIN} m every minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out.
 
@@ -50,7 +50,7 @@ The map shows real OpenStreetMap tiles. He is the round orange face; the map fol
 Use the + and - buttons in the bottom right to zoom in and out. Streets are downloaded in squares around him, about 6 by 4.5 km in all, and the squares in the direction he is heading load first. Streets he has seen are kept on the device so the same city loads faster next time.
 
 During a trip to another city a red line shows the way from where he left to where he is going, and the map zooms out to fit it.
-# Actions
+# 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
 
@@ -99,7 +99,7 @@ A buff can change a meter every hour it lasts (Caffeinated: +5 energy per hour; 
 Doing an action that gives a buff he already has starts that buff over at its full length instead of stacking it.
 
 The Lucky buff has no effect yet.
-# Body stats
+# ❤ Body stats
 ## Health {health}
 Health (HP, the red bar) goes from 0 to 100 and starts at {START_HEALTH}.
 
@@ -138,7 +138,7 @@ Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hotel rooms, the laundry, a spa and the toilets raise it; sweaty jobs and workouts lower it.
 
 When hygiene is under 60 he leans towards actions that clean him up. Hygiene doesn't change anything else yet.
-# Attributes
+# 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
 
@@ -159,7 +159,7 @@ Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing
 Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
 
 For now luck only unlocks actions that need it, such as finding a coin by the ATM (luck 2). It doesn't change the odds of risks or rarer items yet.
-# Progress
+# ⭐ Progress
 ## XP and levels {xp}
 He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs; XP from actions is multiplied by buffs such as Inspired.
 
@@ -172,7 +172,7 @@ A higher level unlocks better materials for the gear he finds (see Materials) an
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
 Waking up costs {HOSPITAL_FEE}c (less if he has less). His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at ..." in his History.
-# Items and gear
+# 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments.
 
@@ -207,7 +207,7 @@ Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats she
 At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth 100c sells for 40c with charm 0, or 50c with charm 5.
 
 If his bag is full when another item comes in, he keeps the more valuable of the new item and the cheapest one in the bag, and sells the other on the spot.
-# Travel
+# ✈ Travel
 ## Trips to other cities {trips}
 Every time he picks a new goal he rolls the trip dice:
 - {COUNTRY_PCT}: he travels to a city in another country,
@@ -227,7 +227,7 @@ To make them come up often, each one gets +{FLAVOUR_WEIGHT} weight when he choos
 When he reaches a city, the game looks it up on Wikidata: the most populous place within {TRIVIA_KM} km of the centre, and facts about it such as when it was founded, how many people live there, how high it is, up to {TRIVIA_TWINS} twin towns, who it is named after and what it is the capital of.
 
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
-# Screens and buttons
+# 📱 Screens and buttons
 ## The menu {menu}
 The button with three lines in the bottom left opens the menu. It holds History, Help, New city and Debug. Tap an entry to open it, or tap the map to close the menu.
 
