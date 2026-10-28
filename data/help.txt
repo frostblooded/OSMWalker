@@ -243,9 +243,13 @@ History (in the menu) lists his last {HISTORY_SIZE} events, newest first, each w
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
 ## Debug {debug}
-Debug (in the menu) is for testing and curious players. At the top, red lines point out anything that looks wrong with the current city: no places of note, no trivia, failing street downloads, or him being outside the city box.
+Debug (in the menu) is for testing and curious players.
 
-Below that it shows the city box, where he is and what he is doing, how many street squares and places are loaded, the city's trivia, the last {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game, and how each of his last {DEBUG_SIZE} goals was picked: every dice roll, the odds and why. A random spot always counts as a warning. A red dot on ☰ and Debug means there are warnings or errors you haven't looked at yet. The warnings and errors are kept even through New city.
+Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. If one is missing, a red ⛔ banner stays at the top of the screen until the city has it or he leaves. Tap the banner to open Debug. A city without a gas station is flagged too.
+
+At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
+
+Then come three logs, closed at first: the city's trivia, Problems (the last {MAX_SEVERE} severe problems, {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: every dice roll, the odds and why. A random spot always counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
 
 City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
 

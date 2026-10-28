@@ -402,9 +402,10 @@ func test_a_trip_survives_a_restart() -> void:
 func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
-	m.walker.set_goal(42.0, 23.00135)  # a goal of his own could replace the place below
+	m.set_process(false)  # frames could walk him on to another goal mid-test
+	m.walker.set_goal(42.0, 23.00135)
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
-	await wait_frames(2)
+	m._step(0.0)
 	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
 	assert_true(m.place_pin.visible)
 	assert_eq(m.place_pin.position, m.map.geo_to_local(42.0, 23.00135))

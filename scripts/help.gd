@@ -142,6 +142,7 @@ static func values() -> Dictionary:
 		"DEBUG_SIZE": str(DebugLog.SIZE),
 		"MAX_WARNINGS": str(Problems.MAX_WARNINGS),
 		"MAX_ERRORS": str(Problems.MAX_ERRORS),
+		"MAX_SEVERE": str(Problems.MAX_SEVERE),
 		"NO_PLACES_COUNTRY_PCT": _pct(Trips.COUNTRY_CHANCE * Trips.NO_PLACES_BOOST),
 		"NO_PLACES_CITY_PCT": _pct(Trips.CITY_CHANCE * Trips.NO_PLACES_BOOST),
 		"TRIVIA_KM": str(CityFacts.RADIUS_KM),

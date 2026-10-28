@@ -801,7 +801,7 @@ func debug_model() -> Dictionary:
 		var here := walker.position()
 		var ring := StreetGraph.cells_by_priority(here[0], here[1], STREET_RING)
 		cards.append({"icon": "📍", "title": "Loaded", "rows": [
-			["Street cells", "%d (around him %d/%d)" % [walker.graph.cells.size(), ring.filter(func(c): return walker.graph.cells.has(c)).size(), ring.size()]],
+			["Street cells", "%d · %d/%d near him" % [walker.graph.cells.size(), ring.filter(func(c): return walker.graph.cells.has(c)).size(), ring.size()]],
 			["Places in city box", str(places.size()), "warning" if places.is_empty() else ""],
 			["Most common", ", ".join(top.slice(0, 4).map(func(k): return "%s %d" % [k, kinds[k]])) if not top.is_empty() else "none"],
 			["Trivia facts", str(city_facts.size()), "warning" if city_facts.is_empty() else ""]]})

@@ -225,6 +225,7 @@ try {
     console.log(`touch scroll: finger ${dist} px, list ${moved.toFixed(1)} px`);
     assert.ok(Math.abs(moved - dist) <= dist * 0.15, `the list moved ${moved.toFixed(1)} CSS px for a ${dist} px drag`);
   }
+
   assert.deepEqual((await state()).overlaps, [], "texts overlap with the debug panel open");
   await tap("debug_close");
   await until((s) => !s.debug_open, "debug panel closed");

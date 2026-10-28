@@ -596,6 +596,7 @@ func _fill_alerts(part: VBoxContainer, alerts: Array) -> void:
 	for a in alerts:
 		var lv: Array = _LEVEL.get(a["level"], _LEVEL[""])
 		var box := PanelContainer.new()
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE  # drags on it still scroll the list
 		box.add_theme_stylebox_override("panel", UiKit.box(Color(lv[1], 0.12), 14, UiKit.S2, lv[1]))
 		box.add_child(UiKit.label("%s %s" % [lv[0], a["title"]], UiKit.BODY, lv[1]))
 		part.add_child(box)
