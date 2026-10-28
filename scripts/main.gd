@@ -1,5 +1,5 @@
-## Game loop: picks a city, keeps the walker moving in real time (including
-## time spent with the app closed), downloads streets as he nears new ground,
+## Game loop: picks a city, keeps the walker moving in real time while the app
+## is open (he waits where he is while it is closed), downloads streets as he nears new ground,
 ## and now and then sends him on a trip to another city.
 extends Node2D
 
@@ -16,12 +16,10 @@ const Trips := preload("res://scripts/trips.gd")
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
 const SAVE_EVERY_S := 5.0
+## Longest frame that counts as walking, so a hidden tab or a stall never jumps him ahead.
+const MAX_STEP_S := 1.0
 ## Cells kept loaded around him: 2 means 5 x 5 cells, about 6 x 4.5 km.
 const STREET_RING := 2
-## Wider while fast-forwarding, since he covers ground much faster.
-const CATCH_UP_STREET_RING := 3
-## The map zooms out to this while catching up, so far fewer tiles are needed.
-const CATCH_UP_ZOOM := 15
 const TRIP_LINE_COLOR := Color(0.85, 0.2, 0.25, 0.85)
 const TRIP_LINE_WIDTH := 8.0
 
@@ -43,16 +41,9 @@ var walker: Walker
 var city := ""
 var country := ""  # country code of where he is
 var skip_roll := false  # true until the first destination after choosing a city
-var last_tick := 0.0  # unix time the walk was last advanced to
-var pending_m := 0.0  # meters owed to the walk but not walked yet
-var player_zoom := 17  # the zoom the player picked; the map differs while catching up
-var _catch_up_total_m := 0.0  # owed distance when the current catch-up began
-var _fast_forward_mps := 0.0  # > 0 while catching up
+var player_zoom := 17  # the zoom the player picked; the map differs while travelling
 var _save_timer := 0.0
 var _next_log_ms := 0
-var _real_mps := 0.0
-var _speed_m := 0.0
-var _speed_s := 0.0
 const LOG_EVERY_MS := 5000  # loading details also go to the browser console
 
 
@@ -123,9 +114,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 	city = city_name
 	country = trips.country_at(lat, lon)
 	skip_roll = true
-	last_tick = Time.get_unix_time_from_system()
-	pending_m = 0.0
-	_end_catch_up()
+	_apply_zoom()
 	map.set_origin(lat, lon)
 	hud.show_game(city)
 	_save()
@@ -165,7 +154,6 @@ func _on_landed(dest: Dictionary) -> void:
 
 func _reset() -> void:
 	walker = null
-	_end_catch_up()
 	DirAccess.remove_absolute(save_path)
 	map.clear()
 	hud.set_status("")
@@ -181,23 +169,11 @@ func _process(delta: float) -> void:
 func _step(delta: float) -> void:
 	if walker == null:
 		return
-	# Wall-clock time, so minutes in the background or with the app closed count too.
-	var now := Time.get_unix_time_from_system()
-	pending_m = minf(pending_m + Walker.meters_for_elapsed(now - last_tick), Walker.meters_for_elapsed(Walker.MAX_CATCH_UP_S))
-	last_tick = now
-	if not is_catching_up() and pending_m >= Hud.CATCH_UP_MIN_M:
-		_start_catch_up()
 	if not walker.is_traveling():
 		var here := walker.position()
-		var ring := CATCH_UP_STREET_RING if is_catching_up() else STREET_RING
-		loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _goal_heading()))
-	# He always walks what is loaded, even while more streets download.
-	var budget := minf(pending_m, _fast_forward_mps * delta) if is_catching_up() else pending_m
-	var walked := budget - walker.advance(budget)
-	pending_m -= walked
-	_measure_speed(walked, delta)
-	if is_catching_up() and pending_m < 1.0:
-		_end_catch_up()
+		loader.request(StreetGraph.cells_by_priority(here[0], here[1], STREET_RING, _goal_heading()))
+	# He walks what is loaded and waits at the edge until more streets arrive.
+	walker.advance(minf(delta, MAX_STEP_S) * Walker.SPEED_MPS)
 
 	_apply_zoom()
 	_show_trip_line()
@@ -219,40 +195,11 @@ func _step(delta: float) -> void:
 		_save()
 
 
-## Meters per second he really covered over the last second, to compare with the target.
-func _measure_speed(walked: float, delta: float) -> void:
-	_speed_m += walked
-	_speed_s += delta
-	if _speed_s >= 1.0:
-		_real_mps = _speed_m / _speed_s
-		_speed_m = 0.0
-		_speed_s = 0.0
-
-
-func is_catching_up() -> bool:
-	return _fast_forward_mps > 0.0
-
-
-func _start_catch_up() -> void:
-	_catch_up_total_m = pending_m
-	_fast_forward_mps = Walker.fast_forward_mps(pending_m)
-	_apply_zoom()
-
-
-func _end_catch_up() -> void:
-	_fast_forward_mps = 0.0
-	_catch_up_total_m = 0.0
-	if map:
-		_apply_zoom()
-
-
-## The player's zoom, zoomed out while catching up, and far out to show a trip.
+## The player's zoom, or far out to show a trip.
 func _wanted_zoom() -> int:
 	if walker and walker.is_traveling():
 		var to: Dictionary = walker.travel["to"]
 		return MapView.zoom_to_fit(walker.travel["from"], [to["lat"], to["lon"]], get_viewport_rect().size)
-	if is_catching_up():
-		return mini(player_zoom, CATCH_UP_ZOOM)
 	return player_zoom
 
 
@@ -289,38 +236,28 @@ func _heading() -> Vector2:
 
 
 func _show_status() -> void:
-	var catch_up := Hud.catch_up_text(pending_m) if is_catching_up() else ""
-	if catch_up == "" and not walker.needs_data():
+	if not walker.needs_data():
 		hud.set_status("")
 		return
 	var details := Hud.detail_text(loading_details())
 	if OS.has_feature("web") and Time.get_ticks_msec() >= _next_log_ms:
 		_next_log_ms = Time.get_ticks_msec() + LOG_EVERY_MS
 		print("[loading] ", details.replace("\n", " | "))
-	if catch_up != "":
-		_catch_up_total_m = maxf(_catch_up_total_m, pending_m)
-		hud.set_status(catch_up, Hud.Bar.PROGRESS, Hud.catch_up_fraction(_catch_up_total_m, pending_m), details)
-	elif loader.is_failing():
+	if loader.is_failing():
 		hud.set_status("Can't reach the map server. Retrying…", Hud.Bar.NONE, 0.0, details)
 	else:
 		hud.set_status("Loading streets…", Hud.Bar.BUSY, 0.0, details)
 
 
-## Everything the loading details show: catch-up progress, what he is doing,
+## Everything the loading details show: what he is doing,
 ## street and tile downloads, and the latest server answer and error.
 func loading_details() -> Dictionary:
-	var d := _server_details({"tiles": map.tile_stats(), "fps": Engine.get_frames_per_second(), "real_mps": _real_mps})
-	if is_catching_up():
-		d["total_m"] = maxf(_catch_up_total_m, pending_m)
-		d["pending_m"] = pending_m
-		d["speed_mps"] = _fast_forward_mps
+	var d := _server_details({"tiles": map.tile_stats()})
 	if walker.is_traveling():
 		d["doing"] = "travelling to " + walker.travel["to"]["name"]
 	elif walker.needs_data():
 		var p: Array = walker.graph.nodes[walker.from_node]
 		d["doing"] = "waiting for streets here: " + loader.cell_state(StreetGraph.cell_of(p[0], p[1]))
-	elif is_catching_up():
-		d["doing"] = "fast-forwarding along " + (walker.street_name() if walker.street_name() != "" else "a street")
 	else:
 		d["doing"] = "walking"
 	return d
@@ -353,8 +290,6 @@ func _save() -> void:
 		return
 	f.store_string(JSON.stringify({
 		"city": city, "country": country, "skip_roll": skip_roll, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
-		# Owed meters are folded back into the clock so they survive a restart.
-		"last_tick": last_tick - pending_m / Walker.SPEED_MPS,
 		"walker": walker.to_dict(),
 	}))
 
@@ -372,7 +307,6 @@ func _load() -> bool:
 	_attach(w)
 	loader.graph = walker.graph
 	city = d.get("city", "")
-	last_tick = float(d.get("last_tick", Time.get_unix_time_from_system()))
 	player_zoom = int(d.get("zoom", player_zoom))
 	map.zoom = player_zoom
 	map.set_origin(d["origin"][0], d["origin"][1])
