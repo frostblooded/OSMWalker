@@ -11,6 +11,9 @@ const Trips := preload("res://scripts/trips.gd")
 
 ## Arrived somewhere new: `city` is the trip's destination.
 signal landed(city: Dictionary)
+## Reached a destination: `place` is the place of note, or {} for a random spot.
+## Listeners may change how long he stays with rest_for().
+signal arrived(place: Dictionary)
 
 ## 200 meters per minute.
 const SPEED_MPS := 200.0 / 60.0
@@ -246,6 +249,16 @@ func _arrive() -> void:
 	route = []
 	route_arrives = false
 	rest_m = REST_M
+	arrived.emit(place)
+
+
+## Stays where he is for `minutes`, counted in walking meters like the rest.
+func rest_for(minutes: float) -> void:
+	goal = []
+	goal_node = -1
+	route = []
+	route_arrives = false
+	rest_m = minutes * 60.0 * SPEED_MPS
 
 
 ## A* from here towards the goal over the loaded streets. Corners whose
