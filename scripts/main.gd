@@ -22,6 +22,8 @@ const TrailView := preload("res://scripts/trail_view.gd")
 const DebugLog := preload("res://scripts/debug_log.gd")
 const Problems := preload("res://scripts/problems.gd")
 const CityArea := preload("res://scripts/city_area.gd")
+const CityCheck := preload("res://scripts/city_check.gd")
+const History := preload("res://scripts/history.gd")
 
 const SAVE_PATH := "user://save.json"
 ## Kept apart from the save, so New city keeps them: debug toggles and the warning log.
@@ -84,6 +86,10 @@ var show_city_area := false
 var city_outline := []  # rings of [lat, lon] for _outline_of
 var _outline_of := ""  # the city city_outline belongs to, "" before it is asked for
 var _no_places_warned := ""  # the city already warned about having no places
+var severe_now := []  # {title, details}: what keeps him from going on in this city
+var city_summary := {}  # CityCheck.summary of this city, {} until its area is loaded
+var _severe_of := ""  # the city severe_now is about
+var _severe_logged := {}  # severe titles already logged for this city
 
 
 func _ready() -> void:
@@ -705,81 +711,146 @@ func _learn_outline() -> void:
 
 
 ## Once a second: warns (once per city) when enough streets are loaded but
-## no places of note.
+## no places of note, and once the streets all around him are loaded checks
+## that the city has a way out and a way to earn coins (severe if not).
 func _check_city() -> void:
-	if walker == null or walker.is_traveling() or _no_places_warned == city:
+	if walker == null or walker.is_traveling():
+		hud.set_severe([])
 		return
-	if walker.graph.cells.size() >= NO_PLACES_CELLS and _no_places():
+	if _no_places_warned != city and walker.graph.cells.size() >= NO_PLACES_CELLS and _no_places():
 		_no_places_warned = city
-		Problems.warn_now("No places of note in %s after loading %d street cells; goals are random spots and trips are %dx as likely" % [
-			city, walker.graph.cells.size(), int(Trips.NO_PLACES_BOOST)])
+		Problems.warn_now("No places of note in " + city, [
+			"%d street cells are loaded but none has a place of note in the city box." % walker.graph.cells.size(),
+			"Goals are random spots, and trips are %dx as likely." % int(Trips.NO_PLACES_BOOST)])
+	if _severe_of != city:
+		_severe_of = city
+		severe_now = []
+		_severe_logged = {}
+		city_summary = {}
+	if not _area_loaded():
+		return
+	city_summary = CityCheck.summary(walker.graph.places_in(walker.bounds), activities, country)
+	severe_now = CityCheck.problems(city_summary, city)
+	for p in severe_now:
+		if not _severe_logged.has(p["title"]):
+			_severe_logged[p["title"]] = true
+			Problems.severe_now(p["title"], p["details"] + [_summary_line(city_summary)])
+	hud.set_severe(severe_now.map(func(p): return p["title"]))
 
 
-## Things that look wrong about the current city, for the top of the debug panel.
+## True once every street cell around him is loaded.
+func _area_loaded() -> bool:
+	var here := walker.position()
+	return StreetGraph.cells_by_priority(here[0], here[1], STREET_RING).all(func(c): return walker.graph.cells.has(c))
+
+
+static func _summary_line(sm: Dictionary) -> String:
+	return "Loaded in the city box: %d bus stations, %d airports, %d gas stations, %d car dealers, %d places that pay." % [
+		sm["bus"], sm["airport"], sm["gas"], sm["dealer"], sm["earn"]]
+
+
+## Things that look wrong about the current city, for the top of the debug
+## panel: severe ones first, each {level, title}.
 func city_alerts() -> Array:
 	var out := []
-	if walker == null:
+	if walker == null or walker.is_traveling():
 		return out
-	if walker.is_traveling():
-		return out
+	for p in severe_now:
+		out.append({"level": "severe", "title": p["title"]})
 	if _no_places():
-		out.append("No places of note in the city box (%d street cells loaded): goals are random spots and trip odds are doubled" % walker.graph.cells.size())
+		out.append({"level": "warning", "title": "No places of note in the city box: goals are random spots, trip odds doubled"})
 	if city_facts.is_empty():
-		out.append("No Wikidata trivia for this city")
+		out.append({"level": "warning", "title": "No Wikidata trivia for this city"})
 	if loader.is_failing():
-		out.append("Street downloads are failing")
+		out.append({"level": "error", "title": "Street downloads are failing"})
 	var here := walker.position()
 	var b := walker.bounds
 	if b.size() == 4 and not (here[0] >= b[0] and here[0] <= b[2] and here[1] >= b[1] and here[1] <= b[3]):
-		out.append("He is outside the city box")
+		out.append({"level": "warning", "title": "He is outside the city box"})
 	if show_city_area and _outline_of == city and city_outline.is_empty():
-		out.append("No real city outline from Nominatim")
-	if problems.errors.size() > 0:
-		out.append("%d error(s) logged below" % problems.errors.size())
+		out.append({"level": "warning", "title": "No real city outline from Nominatim"})
 	return out
 
 
 func _refresh_debug() -> void:
-	hud.set_debug(debug_text(), city_alerts())
+	hud.set_debug(debug_model())
 
 
-## Everything known about the current city and how his last goals were
-## picked, newest first, for the debug panel.
-func debug_text() -> String:
-	var out := ["City: " + city, "Country: " + country]
+## What the debug panel shows: alerts, cards of key/value rows, and the
+## problem and goal-pick logs, each entry a short title with details.
+func debug_model() -> Dictionary:
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	var cards := []
+	var city_rows := [["Name", city], ["Country", country]]
 	if walker:
 		var b := walker.bounds
 		if b.size() == 4:
-			out.append("City box: S %.4f, W %.4f, N %.4f, E %.4f (%.1f × %.1f km)" % [b[0], b[1], b[2], b[3],
-				Geo.distance_m(b[0], b[1], b[0], b[3]) / 1000.0, Geo.distance_m(b[0], b[1], b[2], b[1]) / 1000.0])
+			city_rows.append(["City box", "%.1f × %.1f km" % [
+				Geo.distance_m(b[0], b[1], b[0], b[3]) / 1000.0, Geo.distance_m(b[0], b[1], b[2], b[1]) / 1000.0]])
 		var here := walker.position()
-		out.append("He is at %.5f, %.5f, %s" % [here[0], here[1], _doing_text()])
-		var places := walker.graph.places_in(b) if b.size() == 4 else []
+		city_rows.append(["He is at", "%.5f, %.5f" % [here[0], here[1]]])
+		city_rows.append(["Doing", _doing_text()])
+	cards.append({"icon": "🏙", "title": "City", "rows": city_rows})
+	if walker:
+		var places := walker.graph.places_in(walker.bounds) if walker.bounds.size() == 4 else []
 		var kinds := {}
 		for p in places:
 			kinds[p["class"]] = kinds.get(p["class"], 0) + 1
 		var top := kinds.keys()
 		top.sort_custom(func(x, y): return kinds[x] > kinds[y])
-		out.append("Loaded: %d street cells, %d places in the city box%s" % [walker.graph.cells.size(), places.size(),
-			" (" + ", ".join(top.slice(0, 6).map(func(k): return "%s %d" % [k, kinds[k]])) + ")" if not top.is_empty() else ""])
-	out.append("Trivia from Wikidata: %d facts" % city_facts.size())
-	for f in city_facts:
-		out.append("  · " + f["name"])
-	out.append("Trip dice each pick: %d%% country, %d%% city, else stay%s" % [
-		Trips.COUNTRY_CHANCE * 100, Trips.CITY_CHANCE * 100, "; next pick skips the dice" if skip_roll else ""])
-	out.append("")
-	out.append("Errors and warnings, newest first:")
-	var bias0: int = Time.get_time_zone_from_system().get("bias", 0)
-	var lines := problems.lines(bias0)
-	out.append_array(lines if not lines.is_empty() else ["None."])
-	out.append("")
-	out.append("Goal picks, newest first:")
-	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+		var here := walker.position()
+		var ring := StreetGraph.cells_by_priority(here[0], here[1], STREET_RING)
+		cards.append({"icon": "📍", "title": "Loaded", "rows": [
+			["Street cells", "%d (around him %d/%d)" % [walker.graph.cells.size(), ring.filter(func(c): return walker.graph.cells.has(c)).size(), ring.size()]],
+			["Places in city box", str(places.size()), "warning" if places.is_empty() else ""],
+			["Most common", ", ".join(top.slice(0, 4).map(func(k): return "%s %d" % [k, kinds[k]])) if not top.is_empty() else "none"],
+			["Trivia facts", str(city_facts.size()), "warning" if city_facts.is_empty() else ""]]})
+		var sm := city_summary
+		var checked := not sm.is_empty()
+		var mark := func(n: int, key: String) -> Array:
+			if not checked:
+				return [key, "not checked yet", ""]
+			return [key, ("✔ %d" % n) if n > 0 else "✖ none", "ok" if n > 0 else "error"]
+		cards.append({"icon": "✈", "title": "Ways out and money", "rows": [
+			mark.call(sm.get("bus", 0), "Bus stations"), mark.call(sm.get("airport", 0), "Airports"),
+			mark.call(sm.get("gas", 0), "Gas stations"), mark.call(sm.get("dealer", 0), "Car dealers"),
+			mark.call(sm.get("earn", 0), "Places that pay")]})
+	cards.append({"icon": "🎲", "title": "Trip dice", "rows": [
+		["Country", "%d%%" % roundi(Trips.COUNTRY_CHANCE * 100)], ["City", "%d%%" % roundi(Trips.CITY_CHANCE * 100)],
+		["Doubled without places", "yes" if walker and _no_places() else "no"],
+		["Next pick", "skips the dice" if skip_roll else "rolls"]]})
+	var probs := problems.entries().map(func(e): return {
+		"key": "p%d%s" % [int(e["t"]), e["text"]], "level": e["level"],
+		"title": "%s %s%s" % [History.time_text(int(e["t"]), bias), e["text"], " (×%d)" % int(e["count"]) if int(e["count"]) > 1 else ""],
+		"details": e.get("details", [])})
+	var picks := []
 	for i in range(debug_log.entries.size() - 1, -1, -1):
-		out.append("")
-		out.append("\n".join(DebugLog.lines(debug_log.entries[i], bias)))
-	if debug_log.entries.is_empty():
-		out.append("None yet.")
+		var e: Dictionary = debug_log.entries[i]
+		var lines := DebugLog.lines(e, bias)
+		picks.append({"key": "g%d%s" % [int(e.get("t", 0)), DebugLog.title(e)], "level": "warning" if e.has("fallback") else "",
+			"title": "%s %s" % [lines[0].get_slice(" ", 0), DebugLog.title(e)],
+			"details": (["Forced by the " + DebugLog.FORCED.get(e["forced"], e["forced"])] if e.has("forced") else []) + lines.slice(1)})
+	return {"alerts": city_alerts(), "cards": cards, "trivia": city_facts.map(func(f): return f["name"]),
+		"problems": probs, "picks": picks}
+
+
+## The debug panel as plain text, collapsed parts included (tests, console).
+func debug_text() -> String:
+	var m := debug_model()
+	var out := []
+	for a in m["alerts"]:
+		out.append("[%s] %s" % [a["level"], a["title"]])
+	for c in m["cards"]:
+		out.append(c["title"])
+		for r in c["rows"]:
+			out.append("%s: %s" % [r[0], r[1]])
+	out.append("Trivia (%d)" % m["trivia"].size())
+	out.append_array(m["trivia"])
+	for part in ["problems", "picks"]:
+		out.append(part.capitalize())
+		for e in m[part]:
+			out.append(e["title"])
+			out.append_array(e["details"])
 	return "\n".join(out)
 
 

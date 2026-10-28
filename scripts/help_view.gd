@@ -20,7 +20,7 @@ var back_button: Button
 var close_button: Button
 var first_topic: Button
 var _title: Label
-var _scroll: ScrollContainer
+var _scroll: UiKit.TouchScroll
 var _list: VBoxContainer
 var _page: VBoxContainer
 var _page_text := ""

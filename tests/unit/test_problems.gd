@@ -57,3 +57,13 @@ func test_lines_show_errors_first_newest_first() -> void:
 
 func test_shared_log_is_one_instance() -> void:
 	assert_same(Problems.shared(), Problems.shared())
+
+
+func test_severe_problems_have_their_own_list_and_details() -> void:
+	log.add_severe("Can't leave Sofia", ["No bus station"])
+	log.warn("w")
+	assert_eq(log.severe[0]["text"], "Can't leave Sofia")
+	assert_eq(log.severe[0]["details"], ["No bus station"])
+	var e := log.entries()
+	assert_eq(e[0]["level"], "severe", "most serious first")
+	assert_eq(e[1]["level"], "warning")

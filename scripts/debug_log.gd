@@ -29,6 +29,21 @@ func load_array(a: Variant) -> void:
 	entries = a.filter(func(e): return e is Dictionary) if a is Array else []
 
 
+## A short title for one pick, such as "🎯 Chosen: Cafe East".
+static func title(e: Dictionary) -> String:
+	var by_button := " (button)" if e.has("forced") else ""
+	if e.has("trip"):
+		return "✈ Trip: %s%s" % [e["trip"], by_button]
+	if e.has("place"):
+		return "🎯 Chosen: %s%s" % [e["place"], by_button]
+	if e.has("fallback"):
+		var why := "no places loaded" if int(e.get("in_box", 0)) == 0 else "all places too close"
+		return "⚠ Random spot: %s%s" % [why, by_button]
+	if e.get("no_trip", "") != "":
+		return "✖ No trip: " + e["no_trip"]
+	return "🎲 Pick"
+
+
 ## The lines that explain one pick.
 static func lines(e: Dictionary, bias_min: int) -> Array:
 	var out := []

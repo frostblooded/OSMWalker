@@ -54,3 +54,12 @@ func test_a_trip_shows_where_and_its_odds() -> void:
 	assert_string_contains(text, "Paris, France")
 	assert_string_contains(text, "120 cities")
 	assert_string_contains(text, "4.1%")
+
+
+func test_each_pick_has_a_short_title() -> void:
+	assert_eq(DebugLog.title({"place": "Cafe East", "in_box": 3}), "🎯 Chosen: Cafe East")
+	assert_eq(DebugLog.title({"fallback": "no places loaded in the city box yet", "in_box": 0}), "⚠ Random spot: no places loaded")
+	assert_eq(DebugLog.title({"fallback": "every loaded place is within 30 m of him", "in_box": 2}), "⚠ Random spot: all places too close")
+	assert_eq(DebugLog.title({"trip": "Paris, France"}), "✈ Trip: Paris, France")
+	assert_eq(DebugLog.title({"trip": "Paris, France", "forced": "country"}), "✈ Trip: Paris, France (button)")
+	assert_eq(DebugLog.title({"forced": "city", "no_trip": "no other city to go to"}), "✖ No trip: no other city to go to")

@@ -71,12 +71,16 @@ var _map_buttons := []  # hidden while the history panel is up
 var _credit: Label
 var _history: Control
 var _history_rows: VBoxContainer
-var _history_scroll: ScrollContainer
+var _history_scroll: UiKit.TouchScroll
 var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
-var debug_label: Label
-var debug_alert_label: Label  # red: what looks wrong about the city
-var debug_scroll: ScrollContainer
+var severe_label: Label
+var _severe_banner: PanelContainer
+var _debug_parts := {}  # part of the debug panel -> its VBoxContainer
+var _debug_sigs := {}  # part -> what it shows, to rebuild only on change
+var _debug_open := {}  # section or entry key -> open
+var _debug_sections := {}  # log id -> its collapsible
+var debug_scroll: UiKit.TouchScroll
 var city_area_toggle: CheckButton  # set by main
 var _badges := []  # red dots shown while there are unseen warnings or errors
 var _debug: Control
@@ -191,6 +195,18 @@ func _build_game_ui() -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			place_label.accept_event()
 			goal_tapped.emit())
+	# Severe problems, red and on top so they can't be missed; tap for Debug.
+	_severe_banner = PanelContainer.new()
+	_severe_banner.add_theme_stylebox_override("panel", UiKit.box(UiKit.ERROR, 14, UiKit.S2))
+	_severe_banner.visible = false
+	_severe_banner.mouse_filter = Control.MOUSE_FILTER_STOP
+	_severe_banner.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			_severe_banner.accept_event()
+			open_debug())
+	severe_label = UiKit.label("", UiKit.BODY, Color.WHITE)
+	_severe_banner.add_child(severe_label)
+	col.add_child(_severe_banner)
 	col.add_child(city_label)
 	col.add_child(street_label)
 	col.add_child(place_label)
@@ -502,23 +518,25 @@ func _build_debug() -> void:
 	_debug_close.pressed.connect(close_debug)
 	head.add_child(_debug_close)
 	col.add_child(head)
-	debug_alert_label = _label("", 26)
-	debug_alert_label.add_theme_color_override("font_color", Color("#c01c28"))
-	debug_alert_label.visible = false
-	col.add_child(debug_alert_label)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	_debug_goal = _debug_action("New goal", func(): debug_goal_pressed.emit())
-	_debug_city = _debug_action("New city", func(): debug_trip_pressed.emit(Trips.Kind.CITY))
-	_debug_country = _debug_action("New country", func(): debug_trip_pressed.emit(Trips.Kind.COUNTRY))
+	_debug_goal = _debug_action("🎯 New goal", func(): debug_goal_pressed.emit())
+	_debug_city = _debug_action("🏙 New city", func(): debug_trip_pressed.emit(Trips.Kind.CITY))
+	_debug_country = _debug_action("✈ New country", func(): debug_trip_pressed.emit(Trips.Kind.COUNTRY))
 	for b in [_debug_goal, _debug_city, _debug_country]:
 		row.add_child(b)
 	col.add_child(row)
 	var scroll := UiKit.scroll()
 	debug_scroll = scroll
-	debug_label = _label("", 24)
-	debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(debug_label)
+	var inner := VBoxContainer.new()
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_theme_constant_override("separation", UiKit.S2)
+	scroll.add_child(inner)
+	for key in ["alerts", "cards", "trivia", "problems", "picks"]:
+		var part := VBoxContainer.new()
+		part.add_theme_constant_override("separation", UiKit.S2)
+		inner.add_child(part)
+		_debug_parts[key] = part
 	col.add_child(scroll)
 	_debug.add_child(col)
 
@@ -547,13 +565,100 @@ func is_debug_open() -> bool:
 	return _debug.visible
 
 
-func set_debug(text: String, alerts := []) -> void:
-	if debug_label.text != text:
-		debug_label.text = text
-	var a := "\n".join(alerts.map(func(x): return "⚠ " + x))
-	if debug_alert_label.text != a:
-		debug_alert_label.text = a
-	debug_alert_label.visible = a != ""
+## Fills the debug panel from `model` (see main.debug_model): alerts on
+## top, then cards of key/value rows, then the trivia, problem and goal-pick
+## logs as collapsible sections whose entries open into their details. Only
+## parts that changed are rebuilt, and open sections stay open.
+func set_debug(model: Dictionary) -> void:
+	for key in _debug_parts:
+		var sig := JSON.stringify(model.get(key, []))
+		if _debug_sigs.get(key, "") == sig:
+			continue
+		_debug_sigs[key] = sig
+		var part: VBoxContainer = _debug_parts[key]
+		for c in part.get_children():
+			part.remove_child(c)
+			c.queue_free()
+		match key:
+			"alerts": _fill_alerts(part, model.get("alerts", []))
+			"cards":
+				for c in model.get("cards", []):
+					part.add_child(_debug_card(c))
+			"trivia": _fill_log(part, "trivia", "💡 Trivia", model.get("trivia", []).map(func(t): return {"key": "", "title": t, "details": []}))
+			"problems": _fill_log(part, "problems", "📜 Problems", model.get("problems", []))
+			"picks": _fill_log(part, "picks", "🎯 Goal picks", model.get("picks", []))
+
+
+const _LEVEL := {"severe": ["⛔", UiKit.ERROR], "error": ["✖", UiKit.ERROR], "warning": ["⚠", UiKit.WARNING], "": ["", UiKit.INK]}
+
+
+func _fill_alerts(part: VBoxContainer, alerts: Array) -> void:
+	for a in alerts:
+		var lv: Array = _LEVEL.get(a["level"], _LEVEL[""])
+		var box := PanelContainer.new()
+		box.add_theme_stylebox_override("panel", UiKit.box(Color(lv[1], 0.12), 14, UiKit.S2, lv[1]))
+		box.add_child(UiKit.label("%s %s" % [lv[0], a["title"]], UiKit.BODY, lv[1]))
+		part.add_child(box)
+
+
+func _debug_card(c: Dictionary) -> Control:
+	var card := UiKit.card(c["icon"], c["title"])
+	for r in c["rows"]:
+		var color := UiKit.INK
+		match r[2] if r.size() > 2 else "":
+			"ok": color = UiKit.OK
+			"warning": color = UiKit.WARNING
+			"error": color = UiKit.ERROR
+		card["body"].add_child(UiKit.kv_row(r[0], r[1], color))
+	return card["card"]
+
+
+## A section `title (n)`, closed at first, listing `entries` ({key, level,
+## title, details}) on striped rows; rows with details open when tapped.
+func _fill_log(part: VBoxContainer, id: String, title: String, entries: Array) -> void:
+	var sec := UiKit.collapsible("%s (%d)" % [title, entries.size()], _debug_open.get(id, false))
+	sec["header"].pressed.connect(func(): _debug_open[id] = sec["body"].visible)
+	_debug_sections[id] = sec
+	part.add_child(sec["root"])
+	if entries.is_empty():
+		sec["body"].add_child(UiKit.label("Nothing yet.", UiKit.BODY, UiKit.DIM))
+	for i in entries.size():
+		var e: Dictionary = entries[i]
+		var lv: Array = _LEVEL.get(e.get("level", ""), _LEVEL[""])
+		var row := UiKit.zebra(i)
+		var text: String = ("%s %s" % [lv[0], e["title"]]) if lv[0] != "" else e["title"]
+		if e["details"].is_empty():
+			row.add_child(UiKit.label(text, UiKit.BODY, lv[1]))
+		else:
+			var item := UiKit.collapsible(text, _debug_open.get(e["key"], false), UiKit.BODY, lv[1])
+			item["header"].pressed.connect(func(): _debug_open[e["key"]] = item["body"].visible)
+			for line in e["details"]:
+				item["body"].add_child(UiKit.label(line, UiKit.SMALL, UiKit.DIM))
+			row.add_child(item["root"])
+		sec["body"].add_child(row)
+
+
+## Every text in the debug panel, collapsed parts included (tests).
+func debug_panel_text() -> String:
+	var out := []
+	_texts_of(_debug, out)
+	return "\n".join(out)
+
+
+func _texts_of(n: Node, out: Array) -> void:
+	for c in n.get_children():
+		if c is Label or c is Button:
+			out.append(c.text)
+		_texts_of(c, out)
+
+
+## Severe problems as a red banner at the top of the screen, impossible to
+## miss; tapping it opens Debug. [] hides it.
+func set_severe(titles: Array) -> void:
+	var text := "\n".join(titles.map(func(t): return "⛔ " + t))
+	if severe_label.text != text:
+		severe_label.text = text
+	_severe_banner.visible = text != ""
 
 
 ## Red dots on ☰ and Debug while `unseen` warnings or errors wait.
@@ -993,6 +1098,8 @@ func debug_controls() -> Dictionary:
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),
 		"city_area": city_area_toggle, "problem_badge": _badges[0] if not _badges.is_empty() else null,
+		"severe_banner": _severe_banner, "debug_problems": _debug_sections.get("problems", {}).get("header"),
+		"debug_picks": _debug_sections.get("picks", {}).get("header"),
 		"debug": _debug_button, "debug_panel": _debug, "debug_close": _debug_close,
 		"debug_goal": _debug_goal, "debug_city": _debug_city, "debug_country": _debug_country,
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,

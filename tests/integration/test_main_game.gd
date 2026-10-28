@@ -829,7 +829,7 @@ func test_debug_button_opens_the_debug_panel_with_city_info() -> void:
 	m.hud.debug_controls()["debug"].pressed.emit()
 	m._step(0.1)
 	assert_true(m.hud.is_debug_open())
-	var text: String = m.hud.debug_label.text
+	var text: String = m.hud.debug_panel_text()
 	assert_string_contains(text, "Testville")
 	assert_string_contains(text, "BGR")
 	assert_string_contains(text, "street cells")
@@ -927,10 +927,10 @@ func test_debug_panel_warns_when_the_city_has_no_places() -> void:
 	m._step(0.1)
 	m.hud.open_debug()
 	m._step(0.1)
-	assert_string_contains(m.hud.debug_alert_label.text, "No places of note")
+	assert_string_contains(m.hud.debug_panel_text(), "No places of note")
 	m.walker.graph.places[StreetGraph.cell_of(42.0, 23.0)] = [CAFE]
 	m._refresh_debug()
-	assert_false(m.hud.debug_alert_label.text.contains("No places of note"))
+	assert_false(m.hud.debug_panel_text().contains("No places of note in the city box"))
 
 
 func test_a_random_spot_is_logged_as_a_warning() -> void:
@@ -972,7 +972,7 @@ func test_failed_downloads_show_up_in_the_debug_panel_with_a_badge() -> void:
 	assert_true(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
 	m.hud.open_debug()
 	m._step(0.1)
-	assert_string_contains(m.hud.debug_label.text, "Warning")
+	assert_string_contains(m.hud.debug_panel_text(), "⚠")
 	assert_eq(m.problems.unseen, 0, "opening the panel marks them seen")
 	assert_false(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
 
@@ -1015,3 +1015,82 @@ func test_nothing_overlaps_with_the_problem_badge() -> void:
 	await wait_frames(3)
 	assert_true(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
 	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func _add_place(m: Main, p: Dictionary) -> void:
+	var c := StreetGraph.cell_of(42.0, 23.0)
+	m.walker.graph.places[c] = m.walker.graph.places.get(c, []) + [p.merged({"rank": 1, "lat": 42.0, "lon": 23.00135})]
+
+
+func _wait_for_city_check(m: Main) -> void:
+	await wait_until(func(): m._step(0.1); m._check_city(); return not m.city_summary.is_empty(), 5.0)
+
+
+func test_a_city_with_no_way_out_shows_a_severe_banner() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await _wait_for_city_check(m)
+	assert_true(m.hud.debug_controls()["severe_banner"].is_visible_in_tree())
+	assert_string_contains(m.hud.severe_label.text, "Can't leave Testville")
+	assert_string_contains(m.hud.severe_label.text, "No way to earn coins in Testville")
+	assert_true(m.problems.severe.any(func(e): return e["text"] == "Can't leave Testville"))
+	var logged := m.problems.severe.size()
+	m._check_city()
+	assert_eq(m.problems.severe.size(), logged, "logged once per city, not every second")
+
+
+func test_the_banner_goes_once_the_city_has_a_way_out_and_work() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await _wait_for_city_check(m)
+	_add_place(m, {"name": "Central", "class": "bus", "subclass": "bus_station"})
+	_add_place(m, {"name": "Shell", "class": "fuel", "subclass": "fuel"})
+	_add_place(m, {"name": "Cafe", "class": "cafe", "subclass": "cafe"})
+	m._check_city()
+	assert_true(m.severe_now.is_empty(), str(m.severe_now))
+	assert_false(m.hud.debug_controls()["severe_banner"].is_visible_in_tree())
+
+
+func test_tapping_the_severe_banner_opens_debug() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await _wait_for_city_check(m)
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	m.hud.debug_controls()["severe_banner"].gui_input.emit(tap)
+	assert_true(m.hud.is_debug_open())
+
+
+func test_debug_logs_are_closed_titles_that_open_into_details() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.debug_new_goal()
+	m.hud.open_debug()
+	m._step(0.1)
+	var picks: Button = m.hud.debug_controls()["debug_picks"]
+	assert_string_starts_with(picks.text, "▸")
+	assert_string_contains(picks.text, "Goal picks (2)")
+	picks.pressed.emit()
+	assert_string_starts_with(picks.text, "▾")
+	var body: VBoxContainer = m.hud._debug_sections["picks"]["body"]
+	var first: PanelContainer = body.get_child(0)
+	var item: VBoxContainer = first.get_child(0)
+	var head: Button = item.get_child(0)
+	assert_string_contains(head.text, "Random spot")
+	assert_false(item.get_child(1).visible, "details stay hidden until tapped")
+	head.pressed.emit()
+	assert_true(item.get_child(1).visible)
+	m._refresh_debug()
+	m._step(1.5)
+	assert_string_starts_with(m.hud.debug_controls()["debug_picks"].text, "▾", "stays open across refreshes")
+
+
+func test_debug_panel_shows_the_ways_out() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await _wait_for_city_check(m)
+	var text := m.debug_text()
+	assert_string_contains(text, "Bus stations: ✖ none")
+	assert_string_contains(text, "Places that pay: ✖ none")
