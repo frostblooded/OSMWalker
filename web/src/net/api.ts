@@ -132,7 +132,7 @@ export class Api {
   readonly serverStats = new Map<string, ServerStat>();
   /** Told about every failed request (the Debug panel's problems). */
   onProblem: (text: string) => void = () => {};
-  private tileUrl = "";
+  private tileUrl: Promise<string> | null = null;
   private searchCache = new Map<string, SearchPlace[]>();
 
   constructor(
@@ -198,16 +198,15 @@ export class Api {
 
   /** The raw pbf of one z14 street tile from OpenFreeMap, or null. */
   async streetTileBytes(tile: Tile): Promise<Uint8Array | null> {
-    if (this.tileUrl === "") {
-      const tj = (await this.getJson(OFM_TILEJSON, TILE_TIMEOUT_S)) as { tiles?: string[] } | null;
-      const first = tj?.tiles?.[0];
-      if (!first) {
-        this.serverResult(OFM_TILEJSON, this.errorFor(OFM_TILEJSON));
-        return null;
-      }
-      this.tileUrl = first;
+    // Loads that start together share one TileJSON request.
+    this.tileUrl ??= this.getJson(OFM_TILEJSON, TILE_TIMEOUT_S).then((tj) => (tj as { tiles?: string[] } | null)?.tiles?.[0] ?? "");
+    const template = await this.tileUrl;
+    if (!template) {
+      this.tileUrl = null;
+      this.serverResult(OFM_TILEJSON, this.errorFor(OFM_TILEJSON));
+      return null;
     }
-    const url = this.tileUrl.replace("{z}", String(TILE_ZOOM)).replace("{x}", String(tile.x)).replace("{y}", String(tile.y));
+    const url = template.replace("{z}", String(TILE_ZOOM)).replace("{x}", String(tile.x)).replace("{y}", String(tile.y));
     const body = await this.getBytes(url, TILE_TIMEOUT_S);
     if (!body) {
       this.serverResult(url, this.errorFor(url));

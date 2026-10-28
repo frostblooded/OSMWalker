@@ -131,6 +131,12 @@ describe("street tiles", () => {
     expect(asked).toHaveLength(3);
   });
 
+  it("share one TileJSON request between loads that start together", async () => {
+    const { api, asked } = tiles();
+    await Promise.all([api.streetTile({ x: 9253, y: 6039 }), api.streetTile({ x: 9253, y: 6040 })]);
+    expect(asked.filter((u) => u === A.OFM_TILEJSON)).toHaveLength(1);
+  });
+
   it("unzip gzipped answers", async () => {
     const { api } = tiles({ gzip: true });
     expect((await api.streetTile({ x: 9253, y: 6039 }))!.ids.length).toBeGreaterThan(1000);

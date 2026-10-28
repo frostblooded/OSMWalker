@@ -21,18 +21,28 @@ export class History {
   private trail: (LatLon | null)[] = [];
   /** Trail points cut off the front so far. */
   private dropped = 0;
+  /** Bumped whenever the trail changes, so the map redraws it only then. */
+  trailVersion = 0;
+  /** Tells one History from another in those checks. */
+  readonly id = Math.random();
 
   /** Notes where he is and extends the trail. */
   moveTo(lat: number, lon: number): void {
     this.here = [lat, lon];
     const last = this.trail.at(-1);
-    if (!last || distanceM(last[0], last[1], lat, lon) >= TRAIL_STEP_M) this.trail.push([lat, lon]);
+    if (!last || distanceM(last[0], last[1], lat, lon) >= TRAIL_STEP_M) {
+      this.trail.push([lat, lon]);
+      this.trailVersion++;
+    }
     if (this.trail.length > MAX_TRAIL) this.cut(this.trail.length - MAX_TRAIL);
   }
 
   /** The trail stops here and starts again wherever he next is. */
   breakTrail(): void {
-    if (this.trail.length && this.trail.at(-1)) this.trail.push(null);
+    if (this.trail.length && this.trail.at(-1)) {
+      this.trail.push(null);
+      this.trailVersion++;
+    }
   }
 
   add(text: string, t: number): void {
@@ -47,6 +57,7 @@ export class History {
     if (n <= 0) return;
     this.trail = this.trail.slice(n);
     this.dropped += n;
+    this.trailVersion++;
   }
 
   latest(): string {

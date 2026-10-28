@@ -1,0 +1,135 @@
+/* OSM Walker UI. Numbers follow docs/ui-guidelines.md in CSS px (1 dp = 1 px):
+   48 px tap targets, text 20 / 16 / 14 (12 at the smallest), spacing 4-8-12-16-24. */
+:root {
+  --ink: #1f2328;
+  --dim: #5e6672;
+  --paper: #ffffff;
+  --panel: rgba(255, 255, 255, 0.94);
+  --ground: #eeebe3;
+  --zebra: #f3f1ec;
+  --line: #dedad2;
+  --error: #c01c28;
+  --warning: #b86e00;
+  --ok: #2e9e44;
+  --link: #1a5fb4;
+  --accent: #e8730c;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  --r: 14px;
+  --tap: 48px;
+  --tap-big: 56px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --title: 20px;
+  --heading: 16px;
+  --body: 14px;
+  --small: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+button:disabled { cursor: default; opacity: 0.5; }
+
+.btn {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--paper);
+  font-size: var(--heading);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  transition: transform 60ms, background 60ms;
+}
+.btn:active:not(:disabled) { transform: scale(0.96); background: var(--zebra); }
+.btn.primary { background: var(--link); border-color: var(--link); color: #fff; min-height: var(--tap-big); }
+.btn.primary:active:not(:disabled) { background: #154a8c; }
+.btn.danger { background: var(--error); border-color: var(--error); color: #fff; }
+.btn.round { border-radius: 50%; padding: 0; font-size: 24px; box-shadow: var(--shadow); }
+
+.card {
+  background: var(--panel);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: var(--s4);
+}
+.card h2 { margin: 0 0 var(--s2); font-size: var(--heading); display: flex; align-items: center; gap: var(--s2); }
+.kv { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--body); padding: var(--s1) 0; }
+.kv > span:first-child { color: var(--dim); }
+.kv > span:last-child { font-weight: 600; text-align: right; }
+.dim { color: var(--dim); }
+.small { font-size: var(--small); }
+.zebra > * { padding: var(--s3); border-radius: 10px; }
+.zebra > *:nth-child(odd) { background: var(--zebra); }
+
+/* City picker */
+.picker { position: fixed; inset: 0; display: flex; flex-direction: column; padding: calc(var(--s5) + var(--safe-top)) var(--s4) var(--s4); background: var(--ground); }
+.picker h1 { margin: 0; font-size: 28px; }
+.picker .lead { margin: var(--s1) 0 var(--s4); color: var(--dim); font-size: var(--body); }
+.search { display: flex; gap: var(--s2); }
+.search input { flex: 1; min-height: var(--tap-big); padding: 0 var(--s4); font-size: 18px; border: 2px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.search input:focus { outline: none; border-color: var(--link); }
+.status { margin: var(--s3) 0; font-size: var(--body); color: var(--dim); min-height: 20px; display: flex; gap: var(--s2); align-items: center; }
+.status.error { color: var(--error); }
+.results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--s1); }
+.results button { width: 100%; min-height: var(--tap-big); text-align: left; border: 0; background: none; font-size: var(--heading); padding: var(--s3); border-radius: 10px; }
+.results li:nth-child(odd) button { background: var(--zebra); }
+.results button:active { background: var(--line); }
+.results b { font-weight: 700; }
+
+/* Spinner and bars */
+.spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--link); border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(1turn); } }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: var(--s2); }
+.bar > div { height: 100%; background: var(--accent); }
+
+/* Game screen */
+.game { position: fixed; inset: 0; overflow: hidden; background: var(--ground); }
+.map, .map.maplibregl-map { position: absolute; inset: 0; } /* MapLibre's own CSS would make it relative, and 0 px tall */
+.top { position: absolute; left: var(--s3); right: var(--s3); top: calc(var(--s3) + var(--safe-top)); display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; }
+.top > * { pointer-events: auto; }
+.top .card { padding: var(--s3) var(--s4); }
+.top .city { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); font-size: var(--small); color: var(--dim); }
+.top .street { font-size: var(--heading); font-weight: 700; margin-top: 2px; }
+.chip { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); margin-top: var(--s2); padding: var(--s2) var(--s3); border: 0; border-radius: 10px; background: var(--zebra); width: 100%; text-align: left; font-size: var(--body); }
+.chip:active { background: var(--line); }
+.chip .eta { margin-left: auto; color: var(--dim); white-space: nowrap; }
+.notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
+.notice.error { color: var(--error); }
+.toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); animation: toast 6s forwards; }
+@keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+
+.zoom { position: absolute; right: var(--s3); bottom: calc(96px + var(--safe-bottom)); display: flex; flex-direction: column; gap: var(--s3); }
+.back { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-bottom)); box-shadow: var(--shadow); border-radius: 999px; }
+.back:active:not(:disabled) { transform: translateX(-50%) scale(0.96); }
+.thumbs { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: var(--s2); padding: var(--s2) var(--s3) calc(var(--s2) + var(--safe-bottom)); background: var(--panel); box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.12); }
+.thumbs .btn { flex: 1; flex-direction: column; gap: 0; min-height: 60px; border: 0; background: none; font-size: var(--small); }
+.thumbs .btn span:first-child { font-size: 22px; line-height: 1.1; }
+
+/* Sheets over the map: bottom half, so he stays visible above. */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 60%; display: flex; flex-direction: column; background: var(--paper); border-radius: 18px 18px 0 0; box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.2); padding-bottom: var(--safe-bottom); }
+.sheet.full { top: 0; max-height: none; border-radius: 0; padding-top: var(--safe-top); }
+.sheet header { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s2) var(--s2) var(--s4); border-bottom: 1px solid var(--line); }
+.sheet header h2 { flex: 1; margin: 0; font-size: var(--title); }
+.sheet .body { overflow-y: auto; padding: var(--s3) var(--s4) var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
+.menu { display: flex; flex-direction: column; gap: var(--s2); }
+.menu .btn { justify-content: flex-start; width: 100%; }
+.dialog-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); display: grid; place-items: center; padding: var(--s4); }
+.dialog { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: var(--s3); }
+.dialog input { min-height: var(--tap-big); padding: 0 var(--s4); font-size: 18px; border: 2px solid var(--line); border-radius: var(--r); letter-spacing: 2px; }
+
+/* Map markers: him and his goal. */
+.marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); pointer-events: none; }
+.marker.him { width: 38px; height: 38px; display: grid; place-items: center; background: var(--accent); border: 3px solid #fff; border-radius: 50%; font-size: 22px; }
+.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: calc(80px + var(--safe-bottom)); }

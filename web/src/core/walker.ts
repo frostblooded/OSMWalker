@@ -489,7 +489,9 @@ export class Walker {
       m = this.graph.edgeLength(last, this.toNode) - this.progressM;
       last = this.toNode;
     }
+    // Right after a reload the route's corners are not loaded yet: a straight line from the last known one.
     for (const n of this.route) {
+      if (!this.graph.hasNode(n)) break;
       m += this.graph.edgeLength(last, n);
       last = n;
     }

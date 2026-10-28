@@ -311,6 +311,17 @@ describe("walk left", () => {
     expect(walker.walkLeftM()).toBeCloseTo(onStreets + distanceM(last[0], last[1], 42.0, 23.06), 2);
   });
 
+  it("still answers right after a reload, before the route's streets load", () => {
+    walker.startAt(n(2));
+    walker.setGoal(42.0, 23.00135);
+    walker.advance(10);
+    const back = roundTrip(walker);
+    expect(back.route.length).toBeGreaterThan(0);
+    const left = back.walkLeftM()!;
+    const p = back.position();
+    expect(left).toBeGreaterThan(distanceM(p[0], p[1], 42.0, 23.00135) - 1);
+  });
+
   it("is null without a goal", () => {
     walker.startAt(n(2));
     expect(walker.walkLeftM()).toBeNull();
