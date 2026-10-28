@@ -19,7 +19,8 @@ signal arrived(place: Dictionary)
 ## Picked a new goal or trip: `info` tells how (see debug_log.gd).
 signal picked(info: Dictionary)
 
-## 200 meters per minute.
+## The game clock: time is counted in these meters per second, so rests and
+## trips last the same whatever his speed. advance() takes clock meters.
 const SPEED_MPS := 200.0 / 60.0
 ## He stays a minute at each place, and never longer, counted in walking
 ## meters so the clock stays simple.
@@ -59,6 +60,7 @@ var place := {}  # the place of note he is heading to or resting at, {} for a ra
 var trip_planner: Callable
 var travel := {}  # {from: [lat, lon], to: city, total_m, left_m} while on the way
 var _skips := 0  # goals given up on in a row
+var speed_mps := SPEED_MPS  # how fast he really moves on the streets (see Stats.speed_mps)
 
 
 func _init(street_graph: StreetGraph = null) -> void:
@@ -213,9 +215,11 @@ func needs_data() -> bool:
 	return travel.is_empty() and to_node == -1 and not graph.is_complete(from_node)
 
 
-## Walks `meters` along the streets. Returns meters that could not be walked
-## because the map around the current node still has to be downloaded.
+## Lets `meters` of clock time pass (see SPEED_MPS), walking at speed_mps.
+## Returns clock meters that could not be used because the map around the
+## current node still has to be downloaded.
 func advance(meters: float) -> float:
+	var scale := speed_mps / SPEED_MPS
 	while meters > 0.0:
 		if not travel.is_empty():
 			var t: float = minf(meters, travel["left_m"])
@@ -250,12 +254,13 @@ func advance(meters: float) -> float:
 			if to_node == -1:
 				continue  # arrived (resting now), moved on, or set off on a trip
 		var remaining := graph.edge_length(from_node, to_node) - progress_m
-		if meters < remaining:
-			progress_m += meters
-			total_m += meters
-			trip_m += meters
+		var walk := meters * scale
+		if walk < remaining:
+			progress_m += walk
+			total_m += walk
+			trip_m += walk
 			return 0.0
-		meters -= remaining
+		meters -= remaining / scale
 		total_m += remaining
 		trip_m += remaining
 		prev_node = from_node

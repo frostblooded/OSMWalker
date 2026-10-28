@@ -4,14 +4,15 @@
 ## There is no combat: gear only adds to his attributes.
 extends RefCounted
 
-const SLOTS := ["weapon", "offhand", "head", "body", "feet", "bag", "trinket"]
+const SLOTS := ["weapon", "offhand", "head", "body", "feet", "bag", "trinket", "vehicle"]
 const RARITY := ["Common", "Uncommon", "Rare", "Legendary"]
 ## Roll thresholds for 1, 2 and 3 modifiers: 60% none, 28% one, 10% two, 2% three.
 const MOD_ROLLS := [0.6, 0.88, 0.98]
 const MOD_PRICE := 0.6  # each modifier adds this share of the price
 
 ## Bases by the kind of shop that sells them. "stat" is the attribute the
-## base raises; metal and cloth pick the material names.
+## base raises; metal and cloth pick the material names. Vehicles name their
+## kind ("vehicle", see speeds.gd) and raise his speed by a percentage.
 const KINDS := {
 	"weapons": [
 		{"base": "Sword", "slot": "weapon", "stat": "str", "price": 20},
@@ -63,7 +64,23 @@ const KINDS := {
 		{"base": "Drum", "slot": "trinket", "stat": "str", "price": 15},
 		{"base": "Violin", "slot": "trinket", "stat": "wit", "price": 30},
 	],
+	"bicycles": [
+		{"base": "Bike", "slot": "vehicle", "vehicle": "bike", "stat": "speed", "price": 80},
+		{"base": "Racing Bike", "slot": "vehicle", "vehicle": "bike", "stat": "speed", "price": 95},
+	],
+	"motorcycles": [
+		{"base": "Scooter", "slot": "vehicle", "vehicle": "motorcycle", "stat": "speed", "price": 280},
+		{"base": "Motorbike", "slot": "vehicle", "vehicle": "motorcycle", "stat": "speed", "price": 320},
+	],
+	"cars": [
+		{"base": "Hatchback", "slot": "vehicle", "vehicle": "car", "stat": "speed", "price": 780},
+		{"base": "Saloon", "slot": "vehicle", "vehicle": "car", "stat": "speed", "price": 850},
+	],
 }
+## Ranks vehicles by kind first, so any car beats any bike.
+const VEHICLE_POWER := {"bike": 100.0, "motorcycle": 200.0, "car": 300.0}
+## Speed percent per point of material power on a vehicle.
+const SPEED_PER_POWER := 2.0
 
 ## Materials in order of power; each unlocks at a level.
 const MATERIALS := [
@@ -85,6 +102,7 @@ const PREFIXES := [
 	{"name": "Lucky", "stats": {"luck": 2.0}},
 	{"name": "Sharp", "stats": {"str": 1.0, "wit": 1.0}},
 	{"name": "Gleaming", "stats": {"cha": 1.0, "luck": 1.0}},
+	{"name": "Swift", "stats": {"speed": 4.0}},
 ]
 const SUFFIXES := [
 	{"name": "of the Bear", "stats": {"str": 2.0}},
@@ -92,6 +110,7 @@ const SUFFIXES := [
 	{"name": "of the Peacock", "stats": {"cha": 2.0}},
 	{"name": "of Fortune", "stats": {"luck": 2.0}},
 	{"name": "of the Owl", "stats": {"wit": 1.0, "luck": 1.0}},
+	{"name": "of the Hare", "stats": {"speed": 4.0}},
 ]
 
 
@@ -124,7 +143,8 @@ static func make(kind: String, level: int, rng: RandomNumberGenerator) -> Dictio
 ## The item made of `base`, material `mat` and modifiers `mods` (prefixes
 ## first, then the suffix).
 static func build(base: Dictionary, mat: Dictionary, mods: Array) -> Dictionary:
-	var stats := {base["stat"]: mat["power"] * POWER_TO_STAT}
+	var per: float = SPEED_PER_POWER if base["stat"] == "speed" else POWER_TO_STAT
+	var stats := {base["stat"]: mat["power"] * per}
 	var before := []
 	var after := []
 	for m in mods:
@@ -132,15 +152,18 @@ static func build(base: Dictionary, mat: Dictionary, mods: Array) -> Dictionary:
 		for k in m["stats"]:
 			stats[k] = stats.get(k, 0.0) + m["stats"][k]
 	var words := before + [mat["cloth" if base.get("cloth", false) else "metal"], base["base"]] + after
-	return {
+	var item := {
 		"name": " ".join(words), "slot": base["slot"], "stats": stats, "rarity": RARITY[mods.size()],
 		"price": roundi(base["price"] * mat["price"] * (1.0 + MOD_PRICE * mods.size())),
 	}
+	if base.has("vehicle"):
+		item["vehicle"] = base["vehicle"]
+	return item
 
 
 ## Total of an item's stat bonuses, to compare gear.
 static func power(item: Dictionary) -> float:
-	var p := 0.0
+	var p: float = VEHICLE_POWER.get(item.get("vehicle", ""), 0.0)
 	for k in item.get("stats", {}):
 		p += float(item["stats"][k])
 	return p

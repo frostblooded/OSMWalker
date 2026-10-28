@@ -3697,6 +3697,15 @@
  ],
  "bicycle": [
   {
+   "name": "Browse the bikes",
+   "min": 15,
+   "item": "bicycles",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
    "name": "Pump up a stranger's tyre",
    "min": 5,
    "fx": {
@@ -4455,6 +4464,58 @@
    "fx": {
     "mood": 5,
     "xp": 3
+   }
+  }
+ ],
+ "car/car": [
+  {
+   "name": "Browse the cars on the lot",
+   "min": 15,
+   "item": "cars",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Kick the tyres of a sports car",
+   "min": 10,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Hand tools to the mechanic",
+   "min": 60,
+   "earn": [
+    15,
+    25
+   ],
+   "fx": {
+    "hygiene": -20,
+    "str": 0.2,
+    "wit": 0.2,
+    "xp": 20
+   }
+  }
+ ],
+ "shop/motorcycle": [
+  {
+   "name": "Browse the scooters and motorbikes",
+   "min": 15,
+   "item": "motorcycles",
+   "fx": {
+    "xp": 10,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Sit on a shiny motorbike",
+   "min": 5,
+   "fx": {
+    "mood": 10,
+    "xp": 5
    }
   }
  ]

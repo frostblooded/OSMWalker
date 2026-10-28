@@ -10,6 +10,7 @@ const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const Geo := preload("res://scripts/geo.gd")
 const Hud := preload("res://scripts/hud.gd")
+const Speeds := preload("res://scripts/speeds.gd")
 const SAVE := "user://test_save.json"
 const STREETS := "user://test_streets/"
 
@@ -127,7 +128,7 @@ func test_he_walks_in_real_time() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	await wait_seconds(0.6)
-	assert_almost_eq(m.walker.total_m, 0.6 * 200.0 / 60.0, 1.0)
+	assert_almost_eq(m.walker.total_m, 0.6 * Speeds.WALK, 0.5)
 	assert_ne(m.hud.street_label.text, "")
 
 

@@ -536,12 +536,18 @@ func set_stats(stats: RefCounted) -> void:
 	_stats = stats
 	for m in bars:
 		bars[m].value = stats.meters[m]
-	money_label.text = "%dc · Lv %d" % [stats.coins, stats.level]
+	money_label.text = "%dc · Lv %d · %s" % [stats.coins, stats.level, speed_text(stats.speed_mps())]
 	feed_label.text = stats.history.latest()
 	feed_label.visible = feed_label.text != ""
 	if _sheet.visible:
 		_fill_sheet()
 	_fill_history()
+
+
+## `mps` as km/h, with one decimal unless it is whole: "5 km/h", "16.5 km/h".
+static func speed_text(mps: float) -> String:
+	var kmh := snappedf(mps * 3.6, 0.1)
+	return ("%d km/h" % kmh) if is_equal_approx(kmh, roundf(kmh)) else ("%.1f km/h" % kmh)
 
 
 static func sheet_text(stats: RefCounted) -> String:
@@ -550,6 +556,8 @@ static func sheet_text(stats: RefCounted) -> String:
 		lines.append("%s: %d / 100" % [m.capitalize(), roundi(stats.meters[m])])
 	lines.append("")
 	lines.append("Strength %.1f · Charm %.1f · Wits %.1f · Luck %.1f" % [stats.attrs["str"], stats.attrs["cha"], stats.attrs["wit"], stats.attrs["luck"]])
+	var by: String = stats.vehicle() if stats.vehicle() != "" else "on foot"
+	lines.append("Speed: %s (%s)" % [speed_text(stats.speed_mps()), by])
 	lines.append("")
 	for slot in stats.gear:
 		var it: Dictionary = stats.gear[slot]

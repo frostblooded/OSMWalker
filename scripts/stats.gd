@@ -6,6 +6,7 @@ extends RefCounted
 
 const Items := preload("res://scripts/items.gd")
 const History := preload("res://scripts/history.gd")
+const Speeds := preload("res://scripts/speeds.gd")
 
 const METERS := ["health", "energy", "fullness", "mood", "hygiene", "thirst"]
 const ATTRS := ["str", "cha", "wit", "luck"]
@@ -20,6 +21,12 @@ const FULLNESS_PER_H := 5.0
 const THIRST_PER_H := 6.0
 const HYGIENE_PER_H := 2.0
 const ENERGY_PER_KM := 2.0
+## Share of the walking effort each way of getting about takes, per km.
+const EFFORT := {"": 1.0, "bike": 0.3, "motorcycle": 0.05, "car": 0.05}
+## Speed added per level above 1, as a share.
+const SPEED_PER_LEVEL := 0.01
+## Below this much energy he slows down, to half speed at zero.
+const TIRED_ENERGY := 30.0
 ## Health lost per hour for each of hunger and thirst at zero.
 const STARVING_PER_H := 5.0
 const FIRST_VISIT_XP := 50
@@ -60,6 +67,27 @@ func attr(name: String) -> float:
 	for slot in gear:
 		v += float(gear[slot]["stats"].get(name, 0.0))
 	return v
+
+
+## The kind of vehicle he rides ("bike", "motorcycle", "car"), or "" on foot.
+func vehicle() -> String:
+	return gear.get("vehicle", {}).get("vehicle", "")
+
+
+## Speed percent from his gear.
+func speed_bonus() -> float:
+	var v := 0.0
+	for slot in gear:
+		v += float(gear[slot]["stats"].get("speed", 0.0))
+	return v
+
+
+## How fast he moves, in meters per second: walking or his vehicle's speed,
+## +1% per level above 1 and his gear's speed percent, slower when tired.
+func speed_mps() -> float:
+	var base: float = Speeds.FOR_VEHICLE.get(vehicle(), Speeds.WALK)
+	var tired := 0.5 + 0.5 * minf(meters["energy"] / TIRED_ENERGY, 1.0)
+	return base * (1.0 + SPEED_PER_LEVEL * (level - 1) + speed_bonus() / 100.0) * tired
 
 
 ## Wears `item`; whatever was in its slot goes in the bag.
@@ -133,7 +161,7 @@ func buff_names() -> Array:
 func pass_time(minutes: float, walked_m: float) -> void:
 	var h := minutes / 60.0
 	var fx := {"fullness": -FULLNESS_PER_H * h, "thirst": -THIRST_PER_H * h, "hygiene": -HYGIENE_PER_H * h,
-		"energy": -ENERGY_PER_KM * walked_m / 1000.0}
+		"energy": -ENERGY_PER_KM * EFFORT[vehicle()] * walked_m / 1000.0}
 	for m in ["fullness", "thirst"]:
 		if meters[m] <= 0.0:
 			fx["health"] = fx.get("health", 0.0) - STARVING_PER_H * h
@@ -318,4 +346,7 @@ static func _item_from(d: Dictionary) -> Dictionary:
 	var stats := {}
 	for k in d.get("stats", {}):
 		stats[k] = float(d["stats"][k])
-	return {"name": d["name"], "slot": d["slot"], "stats": stats, "rarity": d.get("rarity", "Common"), "price": int(d.get("price", 0))}
+	var item := {"name": d["name"], "slot": d["slot"], "stats": stats, "rarity": d.get("rarity", "Common"), "price": int(d.get("price", 0))}
+	if d.has("vehicle"):
+		item["vehicle"] = str(d["vehicle"])
+	return item

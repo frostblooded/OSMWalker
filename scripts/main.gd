@@ -372,6 +372,7 @@ func _step(delta: float) -> void:
 	# He walks what is loaded and waits at the edge until more streets arrive.
 	var dt := minf(delta, MAX_STEP_S)
 	var before := walker.total_m
+	walker.speed_mps = stats.speed_mps()
 	walker.advance(dt * Walker.SPEED_MPS)
 	stats.pass_time(dt / 60.0, walker.total_m - before)
 	if not walker.is_traveling():
