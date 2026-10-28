@@ -1,10 +1,11 @@
 ## His body, wallet and progress: six meters (0-100), four attributes, coins,
-## XP and level, timed buffs, gear and a bag of items, and the activity feed. Time passes in game
+## XP and level, timed buffs, gear and a bag of items, and his history (see history.gd). Time passes in game
 ## minutes, which are real minutes while the app is open.
 ## Pure logic: no nodes, so it is easy to test.
 extends RefCounted
 
 const Items := preload("res://scripts/items.gd")
+const History := preload("res://scripts/history.gd")
 
 const METERS := ["health", "energy", "fullness", "mood", "hygiene", "thirst"]
 const ATTRS := ["str", "cha", "wit", "luck"]
@@ -24,7 +25,6 @@ const STARVING_PER_H := 5.0
 const FIRST_VISIT_XP := 50
 const HOSPITAL_FEE := 30
 const WAKE_HEALTH := 50.0
-const FEED_SIZE := 50
 const BAG_SIZE := 20
 ## He won't buy gear that leaves him with fewer coins than this.
 const KEEP_COINS := 20
@@ -37,7 +37,10 @@ var coins := 50
 var xp := 0  # towards the next level
 var level := 1
 var buffs := []  # {name, left (minutes), per_h: {meter: rate}, xp_mult}
-var feed := []  # latest lines, oldest first
+var history := History.new()
+var feed: Array:  # latest lines, oldest first
+	get:
+		return history.texts()
 var visited := {}  # "name@lat,lon" -> true
 var gear := {}  # slot -> item worn (see items.gd)
 var bag := []  # items carried, up to BAG_SIZE
@@ -273,15 +276,13 @@ func wake_in_hospital(hospital: String) -> String:
 
 
 func say(line: String) -> String:
-	feed.append(line)
-	if feed.size() > FEED_SIZE:
-		feed = feed.slice(feed.size() - FEED_SIZE)
+	history.add(line, int(Time.get_unix_time_from_system()))
 	return line
 
 
 func to_dict() -> Dictionary:
 	return {"meters": meters, "attrs": attrs, "coins": coins, "xp": xp, "level": level,
-		"buffs": buffs, "feed": feed, "visited": visited.keys(), "gear": gear, "bag": bag}
+		"buffs": buffs, "history": history.to_dict(), "visited": visited.keys(), "gear": gear, "bag": bag}
 
 
 func load_dict(d: Dictionary) -> void:
@@ -297,7 +298,11 @@ func load_dict(d: Dictionary) -> void:
 	buffs = []
 	for b in d.get("buffs", []):
 		buffs.append({"name": b["name"], "left": float(b["left"]), "per_h": b.get("per_h", {}), "xp_mult": float(b.get("xp_mult", 1.0))})
-	feed = Array(d.get("feed", []))
+	history = History.new()
+	if d.has("history"):
+		history.load_dict(d["history"])
+	else:
+		history.load_feed(d.get("feed", []))
 	visited = {}
 	for k in d.get("visited", []):
 		visited[k] = true

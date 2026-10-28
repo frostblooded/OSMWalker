@@ -428,11 +428,9 @@ func test_mini_bars_show_his_stats() -> void:
 func test_tapping_the_stats_opens_the_full_sheet() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
-	m.stats.say("Did a thing")
 	m._step(0.1)
 	m.hud.open_sheet()
 	assert_true(m.hud.is_sheet_open())
-	assert_string_contains(m.hud.sheet_label.text, "Did a thing")
 	assert_string_contains(m.hud.sheet_label.text, "Level 1")
 	m.hud.close_sheet()
 	assert_false(m.hud.is_sheet_open())
@@ -502,3 +500,85 @@ func test_no_trivia_when_wikidata_is_unreachable() -> void:
 	await wait_until(func(): return m.api.city_lookups.size() > 0, 1.0)
 	await wait_seconds(0.1)
 	assert_eq(m.city_facts, [])
+
+
+func test_reaching_a_place_goes_in_the_history_with_its_spot() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.walker.arrived.emit(CAFE)
+	var reached: Array = m.stats.history.entries.filter(func(e): return e["text"].begins_with("Reached Cafe East"))
+	assert_eq(reached.size(), 1)
+	assert_eq(reached[0]["at"].size(), 2)
+
+
+func test_walking_draws_a_trail() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	for i in 20:
+		m._step(1.0)
+	assert_gt(m.stats.history.trail_points(), 1)
+
+
+func test_trips_go_in_the_history_and_break_the_trail() -> void:
+	var m: Main = await _start_and_pick_again(0.1)
+	var to: Dictionary = m.walker.travel["to"]
+	assert_string_contains(m.stats.history.latest(), "Set off for " + to["name"])
+	m.roll_source = func(): return 0.5
+	m.walker.advance(m.walker.travel["left_m"] + 60.0)
+	await wait_until(func(): m._step(0.5); return not m.walker.is_traveling(), 5.0)
+	assert_string_contains(m.stats.feed[-2] + m.stats.feed[-1], "Arrived in " + to["name"])
+	for i in 5:
+		m._step(1.0)
+	assert_eq(m.stats.history.segments().size(), 2)
+
+
+func test_history_panel_shows_the_trail_and_numbered_markers() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.walker.arrived.emit(CAFE)
+	for i in 20:
+		m._step(1.0)
+	assert_false(m.trail_view.visible)
+	m.hud.open_history()
+	m._step(0.1)
+	assert_true(m.hud.is_history_open())
+	assert_true(m.trail_view.visible)
+	assert_gt(m.trail_view.markers.size(), 0)
+	assert_eq(m.hud.history_rows(), m.stats.history.entries.size())
+	assert_false(m.hud.debug_controls()["new_city"].is_visible_in_tree(), "map buttons hide under the panel")
+	m.hud.close_history()
+	m._step(0.1)
+	assert_false(m.trail_view.visible)
+	assert_eq(m.map.zoom, m.player_zoom)
+	assert_true(m.hud.debug_controls()["new_city"].is_visible_in_tree())
+
+
+func test_tapping_a_history_entry_centers_the_map_on_it() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.history.move_to(42.001, 23.0)
+	m.stats.say("Over there")
+	m.stats.history.move_to(42.0, 23.0)
+	m.stats.say("Back here")
+	m.hud.open_history()
+	m._step(0.1)
+	m.hud.history_entry_tapped.emit(0)
+	m._step(0.1)
+	assert_eq(m.trail_view.highlight, m.stats.history.number(0))
+	var spot: Vector2 = m.map.geo_to_local(42.001, 23.0)
+	assert_almost_eq(m.camera.position.x, spot.x, 0.5)
+	assert_gt(m.camera.position.y, spot.y, "the spot sits in the map above the panel")
+
+
+func test_history_survives_a_restart_but_not_a_new_city() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.history.move_to(42.001, 23.0)
+	m.stats.say("Remember where")
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.stats.history.entries[-1]["at"], [42.001, 23.0])
+	again._reset()
+	assert_eq(again.stats.history.entries, [])

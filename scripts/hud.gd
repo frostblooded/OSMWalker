@@ -1,15 +1,19 @@
 ## All on-screen UI, sized for small touchscreens: city search, status bar,
 ## his mini stats and latest action (tap for the full sheet), zoom buttons,
-## and the reset button guarded by typing RESET.
+## the history panel, and the reset button guarded by typing RESET.
 extends CanvasLayer
 
 signal search_requested(text: String)
 signal city_chosen(city_name: String, lat: float, lon: float, bbox: Array)
 signal zoom_changed(step: int)
 signal reset_confirmed
+signal history_toggled(open: bool)
+signal history_entry_tapped(index: int)  # index into History.entries
 
 ## What kind of bar goes under the status message.
 enum Bar { NONE, PROGRESS, BUSY }
+
+const History := preload("res://scripts/history.gd")
 
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
@@ -41,6 +45,14 @@ var _confirm_box: LineEdit
 var _confirm_yes: Button
 var _reset_button: Button
 var _zoom_in: Button
+var _history_button: Button
+var _top: Control
+var _map_buttons := []  # hidden while the history panel is up
+var _credit: Label
+var _history: Control
+var _history_rows: VBoxContainer
+var _history_close: Button
+var _history_sig := ""  # what the rows show, to rebuild only on change
 
 
 func _ready() -> void:
@@ -49,6 +61,7 @@ func _ready() -> void:
 	_build_confirm()
 	_build_status()
 	_build_sheet()
+	_build_history()
 
 
 ## Status message with a loading bar under it, over the top of the map.
@@ -146,6 +159,7 @@ func _build_game_ui() -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			open_sheet())
 	_game_ui.add_child(top)
+	_top = top
 
 	var zoom_col := VBoxContainer.new()
 	zoom_col.add_theme_constant_override("separation", 16)
@@ -161,6 +175,7 @@ func _build_game_ui() -> void:
 			_zoom_in = b
 		zoom_col.add_child(b)
 	_game_ui.add_child(zoom_col)
+	_map_buttons.append(zoom_col)
 
 	var reset := _button("New city", Vector2(250, BIG.y))
 	reset.add_theme_font_size_override("font_size", 34)
@@ -171,6 +186,16 @@ func _build_game_ui() -> void:
 	_reset_button = reset
 	_game_ui.add_child(reset)
 
+	var hist := _button("History", Vector2(250, BIG.y))
+	hist.add_theme_font_size_override("font_size", 34)
+	hist.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
+	hist.offset_bottom = -90 - BIG.y - 16
+	hist.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hist.pressed.connect(open_history)
+	_history_button = hist
+	_game_ui.add_child(hist)
+	_map_buttons += [reset, hist]
+
 	# Required by the OSM tile usage policy.
 	var credit := _label("© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap", 22, HORIZONTAL_ALIGNMENT_CENTER)
 	credit.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE, Control.PRESET_MODE_MINSIZE, 20)
@@ -178,6 +203,7 @@ func _build_game_ui() -> void:
 	credit.add_theme_color_override("font_outline_color", Color.WHITE)
 	credit.add_theme_constant_override("outline_size", 10)
 	_game_ui.add_child(credit)
+	_credit = credit
 
 
 func _build_mini_stats() -> HBoxContainer:
@@ -210,7 +236,7 @@ func _build_mini_stats() -> HBoxContainer:
 	return row
 
 
-## Full-screen sheet: every stat, his buffs and the activity log.
+## Full-screen sheet: every stat, his gear and his buffs.
 func _build_sheet() -> void:
 	_sheet = ColorRect.new()
 	(_sheet as ColorRect).color = Color(0, 0, 0, 0.6)
@@ -248,16 +274,112 @@ func is_sheet_open() -> bool:
 	return _sheet.visible
 
 
+## The bottom half of the screen: the last things that happened, newest
+## first, numbered like their markers on the map above.
+func _build_history() -> void:
+	_history = _panel()
+	_history.anchor_left = 0.0
+	_history.anchor_right = 1.0
+	_history.anchor_top = 0.5
+	_history.anchor_bottom = 1.0
+	_history.offset_bottom = -64  # the map credit stays readable under it
+	_history.visible = false
+	_game_ui.add_child(_history)
+	_game_ui.move_child(_history, _credit.get_index())
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	var head := HBoxContainer.new()
+	var title := _label("History", 40)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	_history_close = _button("Close", Vector2(220, 110))
+	_history_close.pressed.connect(close_history)
+	head.add_child(_history_close)
+	col.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_history_rows = VBoxContainer.new()
+	_history_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_history_rows.add_theme_constant_override("separation", 8)
+	scroll.add_child(_history_rows)
+	col.add_child(scroll)
+	_history.add_child(col)
+
+
+func open_history() -> void:
+	_history.visible = true
+	_show_map_buttons(false)
+	_history_sig = ""
+	_fill_history()
+	history_toggled.emit(true)
+
+
+func close_history() -> void:
+	_history.visible = false
+	_show_map_buttons(true)
+	history_toggled.emit(false)
+
+
+func _show_map_buttons(shown: bool) -> void:
+	for b in _map_buttons:
+		b.visible = shown
+
+
+## Height of the top panel, which covers the top of the map.
+func top_height() -> float:
+	return _top.get_rect().end.y if _top else 0.0
+
+
+func is_history_open() -> bool:
+	return _history.visible
+
+
+func history_rows() -> int:
+	return _history_rows.get_children().filter(func(c): return not c.is_queued_for_deletion()).size()
+
+
+## One row's text: "3 · 14:05 · Bought bread".
+static func history_line(history: RefCounted, i: int, bias_min: int) -> String:
+	var e: Dictionary = history.entries[i]
+	var when := History.time_text(e["t"], bias_min) + " · " if e["t"] > 0 else ""
+	return "%d · %s%s" % [history.number(i), when, e["text"]]
+
+
+func _fill_history() -> void:
+	if _stats == null or not _history.visible:
+		return
+	var h: RefCounted = _stats.history
+	var sig := "%d %s" % [h.entries.size(), h.entries[-1] if not h.entries.is_empty() else ""]
+	if sig == _history_sig:
+		return
+	_history_sig = sig
+	for c in _history_rows.get_children():
+		c.queue_free()
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	for i in range(h.entries.size() - 1, -1, -1):
+		var b := _button(history_line(h, i, bias), Vector2(0, 90))
+		b.add_theme_font_size_override("font_size", 28)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.disabled = h.entries[i]["at"].is_empty()
+		b.pressed.connect(func(): history_entry_tapped.emit(i))
+		_history_rows.add_child(b)
+	if h.entries.is_empty():
+		_history_rows.add_child(_label("Nothing yet. Check back after he's walked a bit.", 28))
+
+
 ## Shows `stats` (a Stats) in the mini row, the feed line and the sheet.
 func set_stats(stats: RefCounted) -> void:
 	_stats = stats
 	for m in bars:
 		bars[m].value = stats.meters[m]
 	money_label.text = "%dc · Lv %d" % [stats.coins, stats.level]
-	feed_label.text = stats.feed[-1] if not stats.feed.is_empty() else ""
+	feed_label.text = stats.history.latest()
 	feed_label.visible = feed_label.text != ""
 	if _sheet.visible:
 		_fill_sheet()
+	_fill_history()
 
 
 static func sheet_text(stats: RefCounted) -> String:
@@ -279,11 +401,7 @@ static func sheet_text(stats: RefCounted) -> String:
 		for b in stats.buffs:
 			lines.append("%s (%d min left)" % [b["name"], ceili(b["left"])])
 	lines.append("")
-	lines.append("What he's been up to:")
-	var recent: Array = stats.feed.duplicate()
-	recent.reverse()
-	for l in recent:
-		lines.append("• " + l)
+	lines.append("Tap History to see what he's been up to.")
 	return "\n".join(lines)
 
 
@@ -458,6 +576,8 @@ func show_results(places: Array) -> void:
 func show_picker(message := "") -> void:
 	_picker.visible = true
 	_game_ui.visible = false
+	_history.visible = false
+	_show_map_buttons(true)
 	_picker_status.text = message
 	_search_button.disabled = false
 
@@ -490,15 +610,19 @@ func is_confirm_enabled() -> bool:
 	return not _confirm_yes.disabled
 
 
+static func _first_live(box: Node) -> Control:
+	for c in box.get_children():
+		if not c.is_queued_for_deletion():
+			return c as Control
+	return null
+
+
 ## Controls the e2e test taps, by name.
 func debug_controls() -> Dictionary:
-	var first_result: Control = null
-	for c in _results.get_children():
-		if not c.is_queued_for_deletion():
-			first_result = c as Control
-			break
 	return {
-		"search_box": _search_box, "search_button": _search_button, "result0": first_result,
+		"search_box": _search_box, "search_button": _search_button, "result0": _first_live(_results),
 		"new_city": _reset_button, "zoom_in": _zoom_in,
+		"history": _history_button, "history_panel": _history, "history_close": _history_close,
+		"history_row0": _first_live(_history_rows),
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
 	}

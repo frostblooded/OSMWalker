@@ -138,6 +138,18 @@ try {
   await until((s) => s.total_m > moving + 3, "walking on cached streets");
   assert.equal(requests.streets + requests.streetTiles, streetsBefore, "no street downloads after reload");
 
+  step = "history panel";
+  await tap("history");
+  const hist = await until((s) => s.history_open && s.rects.history_panel, "history panel open");
+  const dpr = await page.evaluate(() => window.devicePixelRatio);
+  const [, py, , ph] = hist.rects.history_panel.map((v) => v / dpr);
+  assert.ok(py >= 844 * 0.45 && py + ph <= 845, `history panel sits in the bottom half (y ${py}, h ${ph})`);
+  assert.ok(hist.rects.history_close[3] / dpr >= 44, "Close is big enough to tap");
+  await page.screenshot({ path: `${shots}/3-history.png` });
+  if (hist.history_entries > 0) await tap("history_row0");
+  await tap("history_close");
+  await until((s) => !s.history_open, "history panel closed");
+
   step = "reset needs RESET";
   await tap("new_city");
   await until((s) => s.confirm_visible, "reset dialog");
@@ -148,7 +160,7 @@ try {
   for (let i = 0; i < 5; i++) await page.keyboard.press("Backspace");
   await page.keyboard.type("RESET");
   await until((s) => s.confirm_enabled, "Start over unlocked");
-  await page.screenshot({ path: `${shots}/3-confirm.png` });
+  await page.screenshot({ path: `${shots}/4-confirm.png` });
   await tap("confirm_yes");
   await until((s) => s.screen === "picker", "picker after reset");
 
