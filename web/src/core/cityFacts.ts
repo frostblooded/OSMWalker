@@ -7,7 +7,7 @@ import type { Action } from "./stats";
 export const SPARQL_URL = "https://query.wikidata.org/sparql";
 export const RADIUS_KM = 15;
 export const MAX_TWINS = 5;
-const FX = { wit: 0.2, xp: 10 };
+export const FX = { wit: 0.2, xp: 10 };
 
 export type Row = Record<string, { value: string } | undefined>;
 

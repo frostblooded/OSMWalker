@@ -199,6 +199,30 @@ describe("game", () => {
     expect(g.problems.severe[0]!.details.at(-1)).toContain("0 bus stations");
   });
 
+  it("lists what looks wrong with the city for Debug", async () => {
+    const { g } = game({ places: [] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    const alerts = g.cityAlerts();
+    expect(alerts.filter((a) => a.level === "error").map((a) => a.text)).toContain("⛔ Can't leave Sofia, Bulgaria");
+    expect(alerts.map((a) => a.text)).toContain("No places of note in the city box: he walks to random spots");
+    expect(alerts.map((a) => a.text)).toContain("No trivia for this city");
+    expect(alerts[0]!.level).toBe("error");
+  });
+
+  it("has no alerts for a fine city", async () => {
+    const { g } = game({ places: [CAFE, BUS, { ...BUS, name: "Fuel", class: "fuel", subclass: "fuel" }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.cityAlerts().filter((a) => a.text !== "No trivia for this city")).toEqual([]);
+  });
+
   it("tells listeners about changes", async () => {
     const { g } = game();
     let n = 0;

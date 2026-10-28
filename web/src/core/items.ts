@@ -10,13 +10,13 @@ export type Slot = (typeof SLOTS)[number];
 export const RARITY = ["Common", "Uncommon", "Rare", "Legendary"] as const;
 export type Rarity = (typeof RARITY)[number];
 /** Roll thresholds for 1, 2 and 3 modifiers: 60% none, 28% one, 10% two, 2% three. */
-const MOD_ROLLS = [0.6, 0.88, 0.98];
+export const MOD_ROLLS = [0.6, 0.88, 0.98];
 /** Each modifier adds this share of the price. */
-const MOD_PRICE = 0.6;
+export const MOD_PRICE = 0.6;
 /** Main stat per point of material power. */
-const POWER_TO_STAT = 0.5;
+export const POWER_TO_STAT = 0.5;
 /** Speed percent per point of material power on a vehicle. */
-const SPEED_PER_POWER = 2;
+export const SPEED_PER_POWER = 2;
 /** Ranks vehicles by kind first, so any car beats any bike. */
 const VEHICLE_POWER: Record<string, number> = { bike: 100, motorcycle: 200, car: 300 };
 

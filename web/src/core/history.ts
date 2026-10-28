@@ -8,7 +8,7 @@ export type Marker = { at: LatLon; label: string; first: number };
 
 export const SIZE = 100;
 /** Trail points closer together than this are skipped. */
-const TRAIL_STEP_M = 15;
+export const TRAIL_STEP_M = 15;
 /** About 75 km of walking at TRAIL_STEP_M. */
 export const MAX_TRAIL = 5000;
 /** Entries this close together share one marker. */

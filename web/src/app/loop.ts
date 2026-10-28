@@ -67,6 +67,7 @@ export class Loop {
     v.setTrip(w.travel ? w.travel.path : null);
     const h = this.game.stats.history;
     v.setTrail(`${h.id}:${h.trailVersion}`, () => h.segments());
+    v.setArea(this.game.showCityArea && !w.travel ? w.bounds : null, this.game.cityOutline);
     // How fast he moves on screen, smoothed, sets the next tick's delay.
     const p = v.map.project([at[1], at[0]]);
     if (this.lastPx && dt > 0) {

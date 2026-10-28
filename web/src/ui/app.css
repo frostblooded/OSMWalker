@@ -28,6 +28,7 @@
   --small: 12px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --thumbs: calc(76px + var(--safe-bottom));
 }
 
 * { box-sizing: border-box; }
@@ -113,13 +114,13 @@ button:disabled { cursor: default; opacity: 0.5; }
 .zoom { position: absolute; right: var(--s3); bottom: calc(96px + var(--safe-bottom)); display: flex; flex-direction: column; gap: var(--s3); }
 .back { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-bottom)); box-shadow: var(--shadow); border-radius: 999px; }
 .back:active:not(:disabled) { transform: translateX(-50%) scale(0.96); }
-.thumbs { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: var(--s2); padding: var(--s2) var(--s3) calc(var(--s2) + var(--safe-bottom)); background: var(--panel); box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.12); }
+.thumbs { position: absolute; left: 0; right: 0; bottom: 0; height: var(--thumbs); display: flex; gap: var(--s2); padding: var(--s2) var(--s3) calc(var(--s2) + var(--safe-bottom)); background: var(--panel); box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.12); }
 .thumbs .btn { flex: 1; flex-direction: column; gap: 0; min-height: 60px; border: 0; background: none; font-size: var(--small); }
 .thumbs .btn span:first-child { font-size: 22px; line-height: 1.1; }
 
 /* Sheets over the map: bottom half, so he stays visible above. */
-.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 60%; display: flex; flex-direction: column; background: var(--paper); border-radius: 18px 18px 0 0; box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.2); padding-bottom: var(--safe-bottom); }
-.sheet.full { top: 0; max-height: none; border-radius: 0; padding-top: var(--safe-top); }
+.sheet { position: absolute; left: 0; right: 0; bottom: var(--thumbs); max-height: calc(60% - var(--thumbs)); display: flex; flex-direction: column; background: var(--paper); border-radius: 18px 18px 0 0; box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.2); }
+.sheet.full { top: 0; bottom: 0; padding-bottom: var(--safe-bottom); max-height: none; border-radius: 0; padding-top: var(--safe-top); }
 .sheet header { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s2) var(--s2) var(--s4); border-bottom: 1px solid var(--line); }
 .sheet header h2 { flex: 1; margin: 0; font-size: var(--title); }
 .sheet .body { overflow-y: auto; padding: var(--s3) var(--s4) var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
@@ -133,3 +134,40 @@ button:disabled { cursor: default; opacity: 0.5; }
 .marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); pointer-events: none; }
 .marker.him { width: 38px; height: 38px; display: grid; place-items: center; background: var(--accent); border: 3px solid #fff; border-radius: 50%; font-size: 22px; }
 .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: calc(80px + var(--safe-bottom)); }
+
+/* Kit: cards, rows, folds, tones (docs/ui-guidelines.md) */
+.grow { flex: 1; min-width: 0; }
+.card h2 .right { font-weight: 600; color: var(--dim); font-size: var(--body); }
+.card p { margin: 0 0 var(--s2); font-size: var(--body); line-height: 1.45; }
+.card p:last-child { margin-bottom: 0; }
+.tone-error, .kv.tone-error > span:last-child { color: var(--error); }
+.tone-warning, .kv.tone-warning > span:last-child { color: var(--warning); }
+.tone-ok { color: var(--ok); }
+.zebra { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--body); }
+.zebra > .kv { padding: var(--s2) var(--s3); }
+.row { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: var(--tap); padding: var(--s2) 0; border: 0; background: none; text-align: left; font-size: var(--body); }
+.zebra > * > .row { margin: calc(-1 * var(--s3)); width: calc(100% + 2 * var(--s3)); padding: var(--s3); min-height: var(--tap); }
+.row:disabled { opacity: 1; cursor: default; }
+.lines { padding-top: var(--s2); display: flex; flex-direction: column; gap: 2px; }
+.fold + .fold { border-top: 1px solid var(--line); }
+.fold-head { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: var(--tap); border: 0; background: none; text-align: left; font-size: var(--heading); font-weight: 600; padding: 0; }
+.fold-body { padding-bottom: var(--s3); }
+.meters { display: flex; flex-direction: column; gap: var(--s2); }
+.meter .bar { margin-top: 2px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.tile { background: var(--zebra); border-radius: 10px; padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.tile b { font-size: var(--title); }
+.alerts { display: flex; flex-direction: column; gap: var(--s2); }
+.alert { padding: var(--s3) var(--s4); border-radius: var(--r); font-weight: 600; font-size: var(--body); border: 2px solid currentColor; background: var(--paper); }
+.buttons { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.buttons .btn { flex: 1 1 auto; }
+.history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; background: var(--link); color: #fff; font-size: var(--small); font-weight: 700; display: grid; place-items: center; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--error); margin-left: 4px; vertical-align: top; }
+.switch { margin-left: auto; width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; transition: background 120ms; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 120ms; }
+.switch.on { background: var(--ok); }
+.switch.on::after { transform: translateX(18px); }
+.notice.link { border: 0; background: none; padding: 0; min-height: var(--tap); text-align: left; font-weight: 600; width: 100%; }
+.page-title { margin: 0; font-size: var(--title); }
+.help-block ul.zebra > li { padding: var(--s2) var(--s3); }
+.sheet .body > .card { box-shadow: none; border: 1px solid var(--line); background: var(--paper); }

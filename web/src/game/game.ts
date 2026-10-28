@@ -32,6 +32,7 @@ export const STREET_RING = 1;
 export const DEFAULT_ZOOM = 17;
 
 export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"] };
+export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type Save = {
@@ -87,6 +88,8 @@ export class Game {
   private saveTimer = 0;
   private checkTimer = 0;
   private outlineOf = "";
+  /** The city whose trivia lookup has finished. */
+  private factsOf = "";
   private noPlacesWarned = "";
   private severeOf = "";
   private severeLogged = new Set<string>();
@@ -103,6 +106,11 @@ export class Game {
     this.loader.onProblem = warn;
     deps.api.onProblem = warn;
     this.loadSettings();
+  }
+
+  /** The bundled game data (actions, cities, airports). */
+  get data(): GameData {
+    return this.deps.data;
   }
 
   subscribe(fn: () => void): () => void {
@@ -261,6 +269,7 @@ export class Game {
     const rows = await this.deps.api.cityFacts(lat, lon);
     if (this.city !== asked) return;
     this.cityFacts = CityFacts.actions(rows);
+    this.factsOf = asked;
     if (this.cityFacts.length === 0) this.problems.warn(`No Wikidata trivia for ${this.city}`);
   }
 
@@ -550,6 +559,21 @@ export class Game {
         `Loaded in the city box: ${sm.bus} bus stations, ${sm.airport} airports, ${sm.gas} gas stations, ${sm.dealer} car dealers, ${sm.earn} places that pay.`,
       ]);
     }
+  }
+
+  /** What looks wrong with the city right now, most serious first, for Debug. */
+  cityAlerts(): Alert[] {
+    const w = this.walker;
+    if (!w) return [];
+    const out: Alert[] = this.severeNow.map((p) => ({ level: "error", text: `⛔ ${p.title}` }));
+    if (this.loader.isFailing()) out.push({ level: "error", text: "Street downloads are failing" });
+    if (w.isTraveling()) return out;
+    if (w.graph.cells.size >= NO_PLACES_CELLS && this.noPlaces()) out.push({ level: "warning", text: "No places of note in the city box: he walks to random spots" });
+    if (this.factsOf === this.city && this.cityFacts.length === 0) out.push({ level: "warning", text: "No trivia for this city" });
+    const [lat, lon] = w.position();
+    const b = w.bounds;
+    if (b && (lat < b[0] || lon < b[1] || lat > b[2] || lon > b[3])) out.push({ level: "warning", text: "He is outside the city box" });
+    return out;
   }
 
   /** True once every street cell around him is loaded. */

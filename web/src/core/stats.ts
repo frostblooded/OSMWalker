@@ -25,13 +25,13 @@ export const THIRST_PER_H = 6;
 export const HYGIENE_PER_H = 2;
 export const ENERGY_PER_KM = 2;
 /** Share of the walking effort each way of getting about takes, per km. */
-const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05 };
+export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05 };
 /** Speed added per level above 1, as a share. */
-const SPEED_PER_LEVEL = 0.01;
+export const SPEED_PER_LEVEL = 0.01;
 /** Below this much energy he slows down, to half speed at zero. */
-const TIRED_ENERGY = 30;
+export const TIRED_ENERGY = 30;
 /** Health lost per hour for each of hunger and thirst at zero. */
-const STARVING_PER_H = 5;
+export const STARVING_PER_H = 5;
 export const FIRST_VISIT_XP = 50;
 export const HOSPITAL_FEE = 30;
 export const WAKE_HEALTH = 50;
@@ -39,7 +39,7 @@ export const BAG_SIZE = 20;
 /** He won't buy gear that leaves him with fewer coins than this. */
 export const KEEP_COINS = 20;
 /** Share of an item's price he gets selling it, before his charm. */
-const SELL_SHARE = 0.4;
+export const SELL_SHARE = 0.4;
 
 export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
 export type Buff = { name: string; left: number; per_h: Fx; xp_mult: number };

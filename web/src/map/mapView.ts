@@ -4,6 +4,7 @@
 // instead of every frame (see app/loop.ts): the main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
+import type { Marker as EventMarker } from "../core/history";
 import type { LatLon } from "../core/trips";
 
 export const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -11,6 +12,10 @@ export const MIN_ZOOM = 3;
 export const MAX_ZOOM = 19;
 const TRAIL_COLOR = "#1a5fb4";
 const TRIP_COLOR = "#c01c28";
+const AREA_COLOR = "#e8730c";
+const OUTLINE_COLOR = "#7b3fbf";
+/** Liberty's own font, so the event numbers need no extra download. */
+const FONT = ["Noto Sans Bold"];
 
 type Ml = typeof import("maplibre-gl");
 export type Padding = { top: number; bottom: number; left: number; right: number };
@@ -22,6 +27,8 @@ export type Padding = { top: number; bottom: number; left: number; right: number
 export function lightStyle(style: StyleSpecification): StyleSpecification {
   return { ...style, layers: style.layers.filter((l) => l.type !== "fill-extrusion") };
 }
+
+const none: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 const line = (coords: LatLon[][]): GeoJSON.Feature => ({
   type: "Feature",
@@ -38,6 +45,8 @@ export class MapView {
   private ready!: Promise<void>;
   private trailKey = "";
   private tripKey = "";
+  private trailOn = false;
+  private areaKey = "";
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
 
@@ -85,8 +94,26 @@ export class MapView {
     this.map.on("dragstart", stop);
     this.ready = new Promise((ok) => this.map.once("load", () => ok()));
     await this.ready;
+    this.map.addSource("area", { type: "geojson", data: none });
+    this.map.addLayer({ id: "area-fill", type: "fill", source: "area", filter: ["==", ["get", "kind"], "box"], paint: { "fill-color": AREA_COLOR, "fill-opacity": 0.1 } });
+    this.map.addLayer({
+      id: "area-line",
+      type: "line",
+      source: "area",
+      paint: { "line-color": ["match", ["get", "kind"], "box", AREA_COLOR, OUTLINE_COLOR], "line-width": 3, "line-opacity": 0.8 },
+    });
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
+    this.map.setLayoutProperty("trail", "visibility", "none");
     this.addLine("trip", TRIP_COLOR, 4, 0.85, [2, 1]);
+    this.map.addSource("events", { type: "geojson", data: none });
+    this.map.addLayer({ id: "events", type: "circle", source: "events", paint: { "circle-radius": 11, "circle-color": TRAIL_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+    this.map.addLayer({
+      id: "event-labels",
+      type: "symbol",
+      source: "events",
+      layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 11, "text-allow-overlap": true, "text-ignore-placement": true },
+      paint: { "text-color": "#fff" },
+    });
   }
 
   private addLine(id: string, color: string, width: number, opacity: number, dash?: number[]): void {
@@ -124,9 +151,18 @@ export class MapView {
     this.pin.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
-  /** His trail; only sent to MapLibre when it changed (`key` says so cheaply). */
+  /** Shows or hides his trail and the History markers. */
+  showTrail(on: boolean): void {
+    if (on === this.trailOn) return;
+    this.trailOn = on;
+    this.trailKey = "";
+    this.map.setLayoutProperty("trail", "visibility", on ? "visible" : "none");
+    if (!on) this.setEvents([]);
+  }
+
+  /** His trail while it shows; only sent to MapLibre when it changed (`key` says so cheaply). */
   setTrail(key: string, segments: () => LatLon[][]): void {
-    if (key === this.trailKey) return;
+    if (!this.trailOn || key === this.trailKey) return;
     this.trailKey = key;
     (this.map.getSource("trail") as GeoJSONSource | undefined)?.setData(line(segments()));
   }
@@ -137,6 +173,35 @@ export class MapView {
     if (key === this.tripKey) return;
     this.tripKey = key;
     (this.map.getSource("trip") as GeoJSONSource | undefined)?.setData(line(path ? [path] : []));
+  }
+
+  /** Numbered markers where things in his History happened. */
+  setEvents(markers: EventMarker[]): void {
+    (this.map.getSource("events") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: markers.map((m) => ({ type: "Feature", properties: { label: m.label }, geometry: { type: "Point", coordinates: [m.at[1], m.at[0]] } })),
+    });
+  }
+
+  /** The box his goals are picked in (orange) and the city's real border (purple), or nothing. */
+  setArea(box: BBox | null, outline: LatLon[][]): void {
+    const key = box ? `${box.join()}:${outline.length}:${outline[0]?.length ?? 0}` : "";
+    if (key === this.areaKey) return;
+    this.areaKey = key;
+    const ring = (r: LatLon[]) => r.map(([lat, lon]) => [lon, lat]);
+    const features: GeoJSON.Feature[] = [];
+    if (box) {
+      const [s, w, n, e] = box;
+      features.push({ type: "Feature", properties: { kind: "box" }, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } });
+      if (outline.length) features.push({ type: "Feature", properties: { kind: "outline" }, geometry: { type: "MultiLineString", coordinates: outline.map(ring) } });
+    }
+    (this.map.getSource("area") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
+  }
+
+  /** Stops following and centres on `at`, zoomed in at least to `minZoom`. */
+  focus(at: LatLon, minZoom: number): void {
+    this.following = false;
+    this.map.jumpTo({ center: [at[1], at[0]], zoom: Math.max(this.map.getZoom(), minZoom) });
   }
 
   /** Shows the whole box, leaving `padding` free for panels. */

@@ -9,14 +9,14 @@ import type { Action, Place, Stats } from "./stats";
 export type ActionTable = Record<string, Action[]>;
 
 /** Every action takes this many minutes, whatever its listed time, so he is never still for long. */
-const MAX_MINUTES = 1;
+export const MAX_MINUTES = 1;
 /** Below this many coins he looks for work and avoids spending. */
 export const SKINT = 20;
 /** Extra weight for paid work, and the cut to spending, while he saves for a trip. */
-const SAVING_EARN_WEIGHT = 4;
-const SAVING_SPEND_MULT = 0.5;
+export const SAVING_EARN_WEIGHT = 4;
+export const SAVING_SPEND_MULT = 0.5;
 /** Extra weight for a country's own actions, so they come up often. */
-const FLAVOUR_WEIGHT = 2;
+export const FLAVOUR_WEIGHT = 2;
 
 export class Activities {
   data: ActionTable;

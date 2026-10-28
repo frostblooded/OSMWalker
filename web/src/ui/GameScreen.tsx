@@ -7,12 +7,18 @@ import { distanceM, type BBox } from "../core/geo";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import { MapView, type Padding } from "../map/mapView";
+import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { HelpSheet } from "./HelpSheet";
+import { HistorySheet } from "./HistorySheet";
+import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
+/** Zoom for looking at one History event. */
+const EVENT_ZOOM = 17;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -21,6 +27,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [helpPage, setHelpPage] = useState("");
+  const eventsKey = useRef("");
+  // The tick callbacks outlive renders, so they read the open sheet from here.
+  const sheetNow = useRef<Sheet>(null);
+  sheetNow.current = sheet;
   const [mapError, setMapError] = useState("");
   const goalView = useRef<string>("");
   const tripView = useRef<string>("");
@@ -42,6 +53,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           if (now - last < 1000 / UI_HZ) return;
           last = now;
           keepView();
+          drawEvents();
           redraw((n) => n + 1);
         };
         loop.start();
@@ -64,8 +76,42 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
 
+  // History shows his trail and numbered markers, fitted above the sheet; closing it follows him again.
+  useEffect(() => {
+    const v = view.current;
+    if (!v) return;
+    const on = sheet === "history";
+    v.showTrail(on);
+    eventsKey.current = "";
+    if (!on) {
+      v.setPadding(padding());
+      if (!goalView.current) backToHim();
+      return;
+    }
+    const h = game.stats.history;
+    const sheetH = (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) + (document.querySelector<HTMLElement>(".thumbs")?.offsetHeight ?? 0);
+    v.setPadding({ ...padding(), bottom: sheetH + 12 });
+    drawEvents();
+    const box = h.bounds();
+    if (box) v.fit(box, { ...padding(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
+    setFollowing(false);
+  }, [sheet]);
+
+  const drawEvents = () => {
+    const v = view.current;
+    const h = game.stats.history;
+    if (!v || sheetNow.current !== "history") return;
+    const key = `${h.id}:${h.entries.length}:${h.entries.at(-1)?.t ?? 0}`;
+    if (key === eventsKey.current) return;
+    eventsKey.current = key;
+    v.setEvents(h.markers());
+  };
+
+  const close = () => setSheet(null);
+
   /** A goal view ends by itself when he picks a new goal or sets off on a trip. */
   const keepView = () => {
+    if (sheetNow.current === "history") return;
     if (goalView.current && goalView.current !== goalKey()) backToHim();
     // A trip zooms out to show the whole ride; landing follows him again.
     const t = game.walker?.travel;
@@ -120,9 +166,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting game={game} />
           {game.severeNow.map((p) => (
-            <div class="notice error" key={p.title}>
-              ⚠ {p.title}
-            </div>
+            <button class="notice error link" key={p.title} onClick={() => setSheet("debug")}>
+              ⛔ {p.title} ›
+            </button>
           ))}
         </div>
         {s.history.entries.length > 0 && (
@@ -145,20 +191,52 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         </button>
       )}
       <nav class="thumbs" aria-label="Main">
-        <Thumb icon="☰" label="Menu" onClick={() => setSheet("menu")} />
-        <Thumb icon="📜" label="History" onClick={() => setSheet("history")} />
-        <Thumb icon="🧍" label="Stats" onClick={() => setSheet("stats")} />
+        <Thumb icon="☰" label="Menu" dot={game.problems.unseen > 0} onClick={() => setSheet(sheet === "menu" ? null : "menu")} />
+        <Thumb icon="📜" label="History" onClick={() => setSheet(sheet === "history" ? null : "history")} />
+        <Thumb icon="🧍" label="Stats" onClick={() => setSheet(sheet === "stats" ? null : "stats")} />
       </nav>
       {sheet === "menu" && (
-        <SheetBox title="☰ Menu" onClose={() => setSheet(null)}>
+        <SheetBox title="☰ Menu" onClose={close}>
           <div class="menu">
-            <button class="btn" onClick={() => game.setShowCityArea(!game.showCityArea)}>
-              🗺 City area: {game.showCityArea ? "on" : "off"}
+            <button
+              class="btn"
+              onClick={() => {
+                setHelpPage("");
+                setSheet("help");
+              }}
+            >
+              ❓ Help
+            </button>
+            <button class="btn" onClick={() => setSheet("debug")}>
+              🐞 Debug {game.problems.unseen > 0 && <span class="dot" aria-label="new problems" />}
+            </button>
+            <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
+              🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />
             </button>
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city
             </button>
           </div>
+        </SheetBox>
+      )}
+      {sheet === "history" && (
+        <SheetBox title="📜 History" onClose={close}>
+          <HistorySheet history={game.stats.history} onFocus={(at) => view.current?.focus(at, EVENT_ZOOM)} />
+        </SheetBox>
+      )}
+      {sheet === "stats" && (
+        <SheetBox title="🧍 Stats" onClose={close} full>
+          <StatsSheet stats={game.stats} />
+        </SheetBox>
+      )}
+      {sheet === "help" && (
+        <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
+          <HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} />
+        </SheetBox>
+      )}
+      {sheet === "debug" && (
+        <SheetBox title="🐞 Debug" onClose={close} full>
+          <DebugSheet game={game} onDone={close} />
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
@@ -218,16 +296,19 @@ function Waiting({ game }: { game: Game }) {
   );
 }
 
-function Thumb({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function Thumb({ icon, label, dot, onClick }: { icon: string; label: string; dot?: boolean; onClick: () => void }) {
   return (
     <button class="btn" onClick={onClick}>
-      <span aria-hidden="true">{icon}</span>
+      <span aria-hidden="true">
+        {icon}
+        {dot && <span class="dot" />}
+      </span>
       <span>{label}</span>
     </button>
   );
 }
 
-export function SheetBox({ title, onClose, full, children }: { title: string; onClose: () => void; full?: boolean; children: ComponentChildren }) {
+export function SheetBox({ title, onClose, onBack, full, children }: { title: string; onClose: () => void; onBack?: () => void; full?: boolean; children: ComponentChildren }) {
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
@@ -236,6 +317,11 @@ export function SheetBox({ title, onClose, full, children }: { title: string; on
   return (
     <section class={`sheet${full ? " full" : ""}`} role="dialog" aria-label={title}>
       <header>
+        {onBack && (
+          <button class="btn" onClick={onBack} aria-label="Back">
+            ‹ Back
+          </button>
+        )}
         <h2>{title}</h2>
         <button class="btn" onClick={onClose}>
           ✕ Close
