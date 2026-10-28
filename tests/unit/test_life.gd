@@ -226,3 +226,20 @@ func test_bundled_actions_are_all_valid() -> void:
 			for k in a.get("needs", {}):
 				assert_true(Stats.NEED_KEYS.has(k), "%s: %s has unknown need %s" % [key, a["name"], k])
 	assert_true(acts.data.has("_generic") and acts.data.has("_spot"))
+
+
+## Common tags from the real-tile sweep (tools/poi_sweep.py) have their own
+## actions instead of the generic ones.
+func test_common_real_tags_have_actions() -> void:
+	var acts := Activities.shared()
+	for tag in ["hairdresser/hairdresser", "bakery/bakery", "butcher/butcher", "school/school",
+			"school/kindergarten", "atm/atm", "office/company", "office/employment_agency",
+			"bicycle_rental/bicycle_rental", "bicycle/bicycle", "parking/parking", "fuel/fuel",
+			"car/car_repair", "veterinary/veterinary", "yoga/yoga", "escape_game/escape_game",
+			"ferry_terminal/ferry_terminal", "shop/florist", "shop/massage", "shop/tattoo",
+			"shop/optician", "shop/pet", "shop/confectionery"]:
+		var parts: PackedStringArray = tag.split("/")
+		acts.unknown.clear()
+		acts.for_place({"name": "X", "class": parts[0], "subclass": parts[1]})
+		assert_true(acts.unknown.is_empty(), tag + " falls back to generic")
+	assert_true(acts.for_place({"name": "X", "class": "shop", "subclass": "florist"}) != acts.data["shop"], "florist has its own")
