@@ -86,22 +86,21 @@ func country_at(lat: float, lon: float) -> String:
 ## A city for a trip of `kind` from (lat, lon) in `country`, weighted by
 ## population, or {} when there is nowhere to go.
 func pick(kind: Kind, country: String, lat: float, lon: float, rng: RandomNumberGenerator) -> Dictionary:
-	if kind == Kind.STAY:
+	var opts := options(kind, country, lat, lon)
+	if opts.is_empty():
 		return {}
-	var options := []
-	var total := 0.0
-	for c in cities:
-		if (c["code"] == country) != (kind == Kind.CITY):
-			continue
-		if Geo.distance_m(lat, lon, c["lat"], c["lon"]) < SAME_CITY_M:
-			continue
-		options.append(c)
-		total += c["pop"]
-	if options.is_empty():
-		return {}
+	var total: float = opts.reduce(func(acc, c): return acc + c["pop"], 0.0)
 	var r := rng.randf() * total
-	for c in options:
+	for c in opts:
 		r -= c["pop"]
 		if r < 0.0:
 			return c
-	return options[-1]
+	return opts[-1]
+
+
+## Cities a trip of `kind` from (lat, lon) in `country` can go to.
+func options(kind: Kind, country: String, lat: float, lon: float) -> Array:
+	if kind == Kind.STAY:
+		return []
+	return cities.filter(func(c): return (c["code"] == country) == (kind == Kind.CITY) \
+		and Geo.distance_m(lat, lon, c["lat"], c["lon"]) >= SAME_CITY_M)

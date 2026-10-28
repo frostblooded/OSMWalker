@@ -338,3 +338,72 @@ func test_travel_survives_save_and_load() -> void:
 	assert_true(again.is_traveling())
 	assert_eq(again.position(), walker.position())
 	assert_eq(again.travel["to"]["name"], "Fartown")
+
+
+func test_tells_how_a_place_was_picked() -> void:
+	var picks := []
+	walker.picked.connect(func(info): picks.append(info))
+	walker.start_at(2)
+	walker.bounds = [41.99, 22.99, 42.01, 23.01]
+	graph.places[StreetGraph.cell_of(42.0, 23.0)] = [
+		{"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135},
+		{"name": "Here", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": graph.nodes[2][0], "lon": graph.nodes[2][1]}]
+	walker.pick_goal()
+	assert_eq(picks.size(), 1)
+	var info: Dictionary = picks[0]
+	assert_eq(info["place"], "Cafe East")
+	assert_eq(info["in_box"], 2)
+	assert_eq(info["too_close"], 1)
+	assert_almost_eq(info["total_weight"], 1.0, 1e-6)
+	assert_true(info.has("r"))
+
+
+func test_tells_why_a_random_spot_was_picked() -> void:
+	var picks := []
+	walker.picked.connect(func(info): picks.append(info))
+	walker.start_at(2)
+	walker.bounds = [41.99, 22.99, 42.01, 23.01]
+	walker.pick_goal()
+	assert_eq(picks[0]["fallback"], "no places loaded in the city box yet")
+	assert_eq(picks[0]["spot"], walker.goal)
+	graph.places[StreetGraph.cell_of(42.0, 23.0)] = [
+		{"name": "Here", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": graph.nodes[2][0], "lon": graph.nodes[2][1]}]
+	walker.pick_goal()
+	assert_eq(picks[1]["fallback"], "every loaded place is within 30 m of him")
+
+
+func test_tells_about_a_trip() -> void:
+	var picks := []
+	walker.picked.connect(func(info): picks.append(info))
+	walker.start_at(2)
+	walker.trip_planner = func(): return {"name": "Far", "country": "Farland", "lat": 43.0, "lon": 24.0}
+	walker.pick_goal()
+	assert_eq(picks[0]["trip"], "Far, Farland")
+
+
+func test_a_forced_new_goal_ends_his_rest() -> void:
+	walker.start_at(2)
+	walker.bounds = [41.99, 22.99, 42.01, 23.01]
+	walker.rest_for(1.0)
+	walker.force_new_goal()
+	assert_false(walker.is_resting())
+	assert_eq(walker.goal.size(), 2)
+
+
+func test_a_forced_new_goal_lands_a_trip_first() -> void:
+	var landed := []
+	walker.landed.connect(func(c): landed.append(c))
+	walker.start_at(2)
+	walker.start_travel({"name": "Far", "country": "Farland", "lat": 43.0, "lon": 24.0})
+	walker.force_new_goal()
+	assert_false(walker.is_traveling())
+	assert_eq(landed.size(), 1)
+	assert_eq(walker.goal.size(), 2)
+
+
+func test_land_now_ends_the_trip_at_once() -> void:
+	walker.start_at(2)
+	walker.start_travel({"name": "Far", "country": "Farland", "lat": 43.0, "lon": 24.0})
+	walker.land_now()
+	assert_false(walker.is_traveling())
+	assert_eq(walker.position(), [43.0, 24.0])

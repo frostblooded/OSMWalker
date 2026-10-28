@@ -19,6 +19,7 @@ const Activities := preload("res://scripts/activities.gd")
 const Geo := preload("res://scripts/geo.gd")
 const CityFacts := preload("res://scripts/city_facts.gd")
 const TrailView := preload("res://scripts/trail_view.gd")
+const DebugLog := preload("res://scripts/debug_log.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
@@ -63,6 +64,13 @@ var player_zoom := 17  # the zoom the player picked; the map differs while trave
 var _save_timer := 0.0
 var _next_log_ms := 0
 const LOG_EVERY_MS := 5000  # loading details also go to the browser console
+## How often the open debug panel is refreshed.
+const DEBUG_EVERY_S := 1.0
+
+var debug_log := DebugLog.new()
+var _roll_info := {}  # how the trip dice went for the pick being made
+var _forced := ""  # the debug button behind the pick being made, "" for none
+var _debug_timer := 0.0
 
 
 func _ready() -> void:
@@ -101,6 +109,9 @@ func _ready() -> void:
 	hud.history_entry_tapped.connect(_on_history_tapped)
 	hud.goal_tapped.connect(_on_goal_tapped)
 	hud.back_tapped.connect(func(): goal_view = false)
+	hud.debug_toggled.connect(func(open): if open: _refresh_debug())
+	hud.debug_goal_pressed.connect(debug_new_goal)
+	hud.debug_trip_pressed.connect(debug_trip)
 	trips = Trips.shared()
 	activities = Activities.shared()
 	rng.randomize()
@@ -164,6 +175,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 	w.start_at(start)
 	w.bounds = Walker.city_bounds(lat, lon, bbox)
 	stats = Stats.new()
+	debug_log = DebugLog.new()
 	_attach(w)
 	city = city_name
 	country = trips.country_at(lat, lon)
@@ -181,6 +193,7 @@ func _attach(w: Walker) -> void:
 	w.trip_planner = _plan_trip
 	w.landed.connect(_on_landed)
 	w.arrived.connect(_on_arrived)
+	w.picked.connect(_on_picked)
 
 
 func _hour() -> int:
@@ -241,16 +254,82 @@ func _learn_city(lat: float, lon: float) -> void:
 func _plan_trip() -> Dictionary:
 	if skip_roll:
 		skip_roll = false
+		_roll_info = {"skipped": "first pick in a new city"}
 		return {}
 	var r: float = roll_source.call() if roll_source.is_valid() else rng.randf()
+	var kind := Trips.roll(r)
+	_roll_info = {"roll": r, "outcome": ["stay", "city", "country"][kind]}
+	if kind == Trips.Kind.STAY:
+		return {}
 	var here := walker.position()
-	var dest := trips.pick(Trips.roll(r), country, here[0], here[1], rng)
+	var dest := _trip_to(kind, here)
 	if dest.is_empty():
 		return {}
+	_set_off(dest)
+	return dest.merged({"bounds": Trips.city_bounds(dest)})
+
+
+## A city for a trip of `kind`, with how many there were and its odds in
+## _roll_info for the debug log.
+func _trip_to(kind: Trips.Kind, here: Array) -> Dictionary:
+	var opts := trips.options(kind, country, here[0], here[1])
+	var dest := trips.pick(kind, country, here[0], here[1], rng)
+	if dest.is_empty():
+		_roll_info["no_trip"] = "no other city to go to"
+		return {}
+	var total: float = opts.reduce(func(acc, c): return acc + c["pop"], 0.0)
+	_roll_info.merge({"options": opts.size(), "chance": dest["pop"] / maxf(total, 1.0)})
+	return dest
+
+
+func _set_off(dest: Dictionary) -> void:
 	print("Travelling to %s, %s" % [dest["name"], dest["country"]])
 	stats.say("Set off for %s, %s" % [dest["name"], dest["country"]])
 	stats.history.break_trail()
-	return dest.merged({"bounds": Trips.city_bounds(dest)})
+
+
+## Each pick goes in the debug log with the trip roll that came before it.
+func _on_picked(info: Dictionary) -> void:
+	var e := _roll_info.merged(info)
+	if _forced != "":
+		e["forced"] = _forced
+	debug_log.add(e)
+	_roll_info = {}
+	if hud.is_debug_open():
+		_refresh_debug()
+
+
+## Debug button: ends any rest or trip and picks a new goal now, rolling
+## the trip dice again.
+func debug_new_goal() -> void:
+	if walker == null:
+		return
+	skip_roll = false
+	_forced = "goal"
+	walker.force_new_goal()
+	_forced = ""
+
+
+## Debug button: lands him at once in another city of the country
+## (Trips.Kind.CITY) or abroad (Trips.Kind.COUNTRY).
+func debug_trip(kind: int) -> void:
+	if walker == null:
+		return
+	_roll_info = {}
+	var dest := _trip_to(kind, walker.position())
+	var e := _roll_info.merged({"forced": ["", "city", "country"][kind]})
+	_roll_info = {}
+	if dest.is_empty():
+		debug_log.add(e)
+		_refresh_debug()
+		return
+	e["trip"] = "%s, %s" % [dest["name"], dest["country"]]
+	debug_log.add(e)
+	_set_off(dest)
+	walker.rest_m = 0.0
+	walker.start_travel(dest.merged({"bounds": Trips.city_bounds(dest)}))
+	walker.land_now()
+	_refresh_debug()
 
 
 func _on_landed(dest: Dictionary) -> void:
@@ -270,6 +349,7 @@ func _on_landed(dest: Dictionary) -> void:
 func _reset() -> void:
 	walker = null
 	stats = Stats.new()
+	debug_log = DebugLog.new()
 	DirAccess.remove_absolute(save_path)
 	map.clear()
 	trail_view.visible = false
@@ -325,6 +405,10 @@ func _step(delta: float) -> void:
 	hud.set_wait(walker.rest_left_s() if walker.is_resting() and not walker.is_traveling() else -1.0, walker.rest_fraction())
 	_show_place()
 	_show_status()
+	_debug_timer += delta
+	if hud.is_debug_open() and _debug_timer >= DEBUG_EVERY_S:
+		_debug_timer = 0.0
+		_refresh_debug()
 
 	_save_timer += delta
 	if _save_timer >= SAVE_EVERY_S:
@@ -500,7 +584,7 @@ func _save() -> void:
 		return
 	f.store_string(JSON.stringify({
 		"city": city, "country": country, "skip_roll": skip_roll, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
-		"walker": walker.to_dict(), "stats": stats.to_dict(),
+		"walker": walker.to_dict(), "stats": stats.to_dict(), "debug_log": debug_log.to_array(),
 	}))
 
 
@@ -517,6 +601,7 @@ func _load() -> bool:
 	_attach(w)
 	stats = Stats.new()
 	stats.load_dict(d.get("stats", {}))
+	debug_log.load_array(d.get("debug_log", []))
 	loader.graph = walker.graph
 	city = d.get("city", "")
 	player_zoom = int(d.get("zoom", player_zoom))
@@ -532,6 +617,59 @@ func _load() -> bool:
 	_learn_city(d["origin"][0], d["origin"][1])
 	hud.show_game(city)
 	return true
+
+
+func _refresh_debug() -> void:
+	hud.set_debug(debug_text())
+
+
+## Everything known about the current city and how his last goals were
+## picked, newest first, for the debug panel.
+func debug_text() -> String:
+	var out := ["City: " + city, "Country: " + country]
+	if walker:
+		var b := walker.bounds
+		if b.size() == 4:
+			out.append("City box: S %.4f, W %.4f, N %.4f, E %.4f (%.1f × %.1f km)" % [b[0], b[1], b[2], b[3],
+				Geo.distance_m(b[0], b[1], b[0], b[3]) / 1000.0, Geo.distance_m(b[0], b[1], b[2], b[1]) / 1000.0])
+		var here := walker.position()
+		out.append("He is at %.5f, %.5f, %s" % [here[0], here[1], _doing_text()])
+		var places := walker.graph.places_in(b) if b.size() == 4 else []
+		var kinds := {}
+		for p in places:
+			kinds[p["class"]] = kinds.get(p["class"], 0) + 1
+		var top := kinds.keys()
+		top.sort_custom(func(x, y): return kinds[x] > kinds[y])
+		out.append("Loaded: %d street cells, %d places in the city box%s" % [walker.graph.cells.size(), places.size(),
+			" (" + ", ".join(top.slice(0, 6).map(func(k): return "%s %d" % [k, kinds[k]])) + ")" if not top.is_empty() else ""])
+	out.append("Trivia from Wikidata: %d facts" % city_facts.size())
+	for f in city_facts:
+		out.append("  · " + f["name"])
+	out.append("Trip dice each pick: %d%% country, %d%% city, else stay%s" % [
+		Trips.COUNTRY_CHANCE * 100, Trips.CITY_CHANCE * 100, "; next pick skips the dice" if skip_roll else ""])
+	out.append("")
+	out.append("Goal picks, newest first:")
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	for i in range(debug_log.entries.size() - 1, -1, -1):
+		out.append("")
+		out.append("\n".join(DebugLog.lines(debug_log.entries[i], bias)))
+	if debug_log.entries.is_empty():
+		out.append("None yet.")
+	return "\n".join(out)
+
+
+func _doing_text() -> String:
+	if walker.is_traveling():
+		return "travelling to %s, %.0f km left" % [walker.travel["to"]["name"], walker.travel["left_m"] / Walker.SPEED_MPS * Trips.TRAVEL_MPS / 1000.0]
+	if walker.is_resting():
+		return "staying %.0f s more at %s" % [walker.rest_left_s(), walker.place.get("name", "a spot")]
+	var target := _goal_target()
+	if target.is_empty():
+		return "no goal yet"
+	var here := walker.position()
+	return "heading for %s %.0f m away (walked %.0f m of at most %.0f m)" % [
+		walker.place.get("name", "a random spot"), Geo.distance_m(here[0], here[1], target[0], target[1]),
+		walker.trip_m, Walker.trip_limit_m(walker.trip_start_m)]
 
 
 ## Snapshot of what is on screen, for the browser e2e test. Rects are in
@@ -559,6 +697,8 @@ func debug_state() -> Dictionary:
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),
 		"history_open": hud.is_history_open(),
+		"debug_open": hud.is_debug_open(),
+		"debug_picks": debug_log.entries.size(),
 		"history_entries": stats.history.entries.size(),
 		"trail_markers": trail_view.markers.size() if trail_view.visible else 0,
 		"confirm_enabled": hud.is_confirm_enabled(),
