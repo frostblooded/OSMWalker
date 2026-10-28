@@ -12,7 +12,7 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.waitForTimeout(1500); // a save, and the map's first tiles
-  // The page and every file of the app it has loaded (code, fonts, data) are in the service worker's cache.
+  // The page and every file of the game it has loaded (code, fonts, data) are in the service worker's cache.
   await expect
     .poll(
       () =>
@@ -22,7 +22,7 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
             ...performance
               .getEntriesByType("resource")
               .map((e) => e.name)
-              .filter((u) => u.startsWith(location.origin) && !u.includes("/sw.js")),
+              .filter((u) => u.startsWith(`${location.origin}/assets/`) || u.startsWith(`${location.origin}/data/`)),
           ];
           const missing = [];
           for (const u of own) if (!(await caches.match(u, { ignoreVary: true }))) missing.push(u);
