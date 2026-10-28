@@ -145,7 +145,7 @@ describe("game", () => {
   it("walks to the bus station for a trip, pays and rides", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.coins = 500;
+    g.stats.cents = 50_000;
     g.skipRoll = false;
     g.debugNewGoal();
     const w = g.walker!;
@@ -155,14 +155,14 @@ describe("game", () => {
     const fare = w.departing!.fare;
     for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
     expect(w.isTraveling()).toBe(true);
-    expect(g.stats.coins).toBe(500 - fare);
+    expect(g.stats.cents).toBe(50_000 - fare);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
   });
 
   it("saves up when he can't afford a trip", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.coins = 1;
+    g.stats.cents = 1;
     g.skipRoll = false;
     g.debugNewGoal();
     expect(g.walker!.isDeparting()).toBe(false);
@@ -187,11 +187,11 @@ describe("game", () => {
     const { g } = game({ places: [hospital, CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.meters.health = 0;
-    const coins = g.stats.coins;
+    const coins = g.stats.cents;
     g.step(1);
     expect(g.walker!.place).toEqual(hospital);
     expect(g.walker!.isResting()).toBe(true);
-    expect(g.stats.coins).toBeLessThan(coins);
+    expect(g.stats.cents).toBeLessThan(coins);
   });
 
   it("flags a city with no way out once the area is loaded", async () => {

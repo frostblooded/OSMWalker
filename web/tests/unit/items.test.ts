@@ -35,6 +35,14 @@ describe("items", () => {
     expect(mighty.price).toBeGreaterThan(plain.price);
   });
 
+  it("prices are real euros, in cents", () => {
+    const sword = Items.KINDS.weapons.find((b) => b.base === "Sword")!;
+    expect(Items.build(sword, Items.MATERIALS.find((m) => m.metal === "Bronze")!, []).price).toBe(sword.price * 100);
+    expect(Items.build(sword, Items.MATERIALS.find((m) => m.metal === "Wooden")!, []).price).toBe(sword.price * 50);
+    expect(sword.price).toBeGreaterThanOrEqual(20);
+    expect(Items.KINDS.cars[0]!.price).toBeGreaterThanOrEqual(10000);
+  });
+
   it("better materials unlock with level", () => {
     for (let s = 0; s < 50; s++) {
       const name = Items.make("weapons", 1, new Rng(s)).name;
@@ -68,12 +76,13 @@ describe("items", () => {
       const rng = new Rng(s);
       for (const kind of ["bicycles", "motorcycles", "cars"] as const) cheapest[kind] = Math.min(cheapest[kind] ?? Infinity, Items.make(kind, 1, rng).price);
     }
-    expect(cheapest.bicycles).toBeGreaterThanOrEqual(60);
-    expect(cheapest.bicycles).toBeLessThanOrEqual(100);
-    expect(cheapest.motorcycles).toBeGreaterThanOrEqual(250);
-    expect(cheapest.motorcycles).toBeLessThanOrEqual(350);
-    expect(cheapest.cars).toBeGreaterThanOrEqual(700);
-    expect(cheapest.cars).toBeLessThanOrEqual(900);
+    // A used bike, scooter and car: €100-200, €1,000-1,500 and €6,000-9,000.
+    expect(cheapest.bicycles).toBeGreaterThanOrEqual(10_000);
+    expect(cheapest.bicycles).toBeLessThanOrEqual(20_000);
+    expect(cheapest.motorcycles).toBeGreaterThanOrEqual(100_000);
+    expect(cheapest.motorcycles).toBeLessThanOrEqual(150_000);
+    expect(cheapest.cars).toBeGreaterThanOrEqual(600_000);
+    expect(cheapest.cars).toBeLessThanOrEqual(900_000);
   });
 
   it("a car outranks any bike", () => {

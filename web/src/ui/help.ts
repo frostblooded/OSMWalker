@@ -7,6 +7,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as History from "../core/history";
 import * as Items from "../core/items";
+import { euro, toCents } from "../core/money";
 import * as Problems from "../core/problems";
 import * as Speeds from "../core/speeds";
 import * as S from "../core/stats";
@@ -59,6 +60,8 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
+/** The lowest price of a level-1 item of `kind`: the first base in the cheapest material. */
+const cheapest = (kind: Items.Kind) => Math.min(...Items.KINDS[kind].map((b) => Items.build(b, Items.MATERIALS[0]!, []).price));
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
 
@@ -104,8 +107,8 @@ export function values(data: GameData): Record<string, string> {
     LUCK_RARITY_CAP_PCT: pct(S.LUCK_RARITY_CAP),
     FIND_PER_LUCK_PCT: pct(S.FIND_PER_LUCK),
     FIND_CAP_PCT: pct(S.FIND_CAP),
-    FIND_MIN: String(S.FIND_MIN),
-    FIND_MAX: String(S.FIND_MAX),
+    FIND_MIN: euro(S.FIND_MIN),
+    FIND_MAX: euro(S.FIND_MAX),
     LUCKY_LUCK: "+3",
     NEED_MAX: num(1 + Activities.NEED_BOOST),
     NEED_HALF: num(1 + Activities.NEED_BOOST / 2),
@@ -113,8 +116,8 @@ export function values(data: GameData): Record<string, string> {
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
-    SKINT: String(Activities.SKINT),
-    SKINT_X3: String(3 * Activities.SKINT),
+    SKINT: euro(Activities.SKINT),
+    SKINT_X3: euro(3 * Activities.SKINT),
     FLAVOUR_WEIGHT: num(Activities.FLAVOUR_WEIGHT),
     SAVING_EARN: `+${num(Activities.SAVING_EARN_WEIGHT)}`,
     SAVING_SPEND_PCT: pct(Activities.SAVING_SPEND_MULT),
@@ -126,12 +129,16 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
-    HOSPITAL_FEE: String(S.HOSPITAL_FEE),
+    HOSPITAL_FEE: euro(S.HOSPITAL_FEE),
     WAKE_HEALTH: num(S.WAKE_HEALTH),
     BAG_SIZE: String(S.BAG_SIZE),
-    KEEP_COINS: String(S.KEEP_COINS),
+    KEEP_CENTS: euro(S.KEEP_CENTS),
     SELL_PCT: pct(S.SELL_SHARE),
-    START_COINS: String(s.coins),
+    START_CENTS: euro(s.cents),
+    EXAMPLE_PRICE: euro(120),
+    CHEAP_BIKE: euro(cheapest("bicycles")),
+    CHEAP_CAR: euro(cheapest("cars")),
+    BRONZE_SWORD: euro(Items.build(Items.KINDS.weapons[0]!, Items.MATERIALS[2]!, []).price),
     XP_LV1: String(S.xpToNext(1)),
     XP_LV2: String(S.xpToNext(2)),
     XP_LV10: String(S.xpToNext(10)),
@@ -150,13 +157,13 @@ export function values(data: GameData): Record<string, string> {
     BUS_KMH: kmh(Speeds.BUS),
     CAR_ROAD_KMH: kmh(Speeds.CAR_ROAD),
     PLANE_KMH: kmh(Speeds.PLANE),
-    BUS_PER_KM: num(Trips.BUS_PER_KM),
-    PLANE_BASE: num(Trips.PLANE_BASE),
-    PLANE_PER_KM: num(Trips.PLANE_PER_KM),
-    FUEL_PER_KM: num(Trips.FUEL_PER_KM),
+    BUS_PER_KM: euro(toCents(Trips.BUS_PER_KM)),
+    PLANE_BASE: euro(toCents(Trips.PLANE_BASE)),
+    PLANE_PER_KM: euro(toCents(Trips.PLANE_PER_KM)),
+    FUEL_PER_KM: euro(toCents(Trips.FUEL_PER_KM)),
     ROAD_FACTOR: num(Trips.ROAD_FACTOR),
-    BUS_300: String(Trips.fare("bus", 300_000 * Trips.ROAD_FACTOR)),
-    PLANE_1500: String(Trips.fare("plane", 1_500_000)),
+    BUS_300: euro(Trips.fare("bus", 300_000 * Trips.ROAD_FACTOR)),
+    PLANE_1500: euro(Trips.fare("plane", 1_500_000)),
     CITY_COUNT: String(data.cities.length),
     COUNTRY_COUNT: String(new Set(data.cities.map((c) => c.code)).size),
     HISTORY_SIZE: String(History.SIZE),

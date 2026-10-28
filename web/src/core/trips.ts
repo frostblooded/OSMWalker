@@ -5,6 +5,7 @@
 // station, by plane from an airport, or in his own car after filling up at a
 // gas station, and pays for the ride.
 import { bboxAround, distanceM, type BBox } from "./geo";
+import { euro, toCents } from "./money";
 import type { Rng } from "./rng";
 import { BUS, CAR_ROAD, PLANE } from "./speeds";
 import type { Place } from "./stats";
@@ -82,11 +83,11 @@ export function rideS(mode: Mode, distanceM: number): number {
   return distanceM / MODE_MPS[mode];
 }
 
-/** Coins for a ride of `distanceM`, rounded up and never free. */
+/** Cents for a ride of `distanceM`, rounded up to a cent and never free. */
 export function fare(mode: Mode, distanceM: number): number {
   const km = distanceM / 1000;
-  if (mode === "plane") return Math.ceil(PLANE_BASE + PLANE_PER_KM * km);
-  return Math.max(Math.ceil((mode === "car" ? FUEL_PER_KM : BUS_PER_KM) * km), 1);
+  if (mode === "plane") return Math.ceil(toCents(PLANE_BASE) + 100 * PLANE_PER_KM * km);
+  return Math.max(Math.ceil(100 * (mode === "car" ? FUEL_PER_KM : BUS_PER_KM) * km), 1);
 }
 
 /** How likely he flies rather than goes by road: 0 below 200 km, 1 above 1000 km. */
@@ -137,7 +138,7 @@ export class Trips {
    * How he gets from `here` to `city`, or why he can't. `places` are the
    * places loaded around him, `r` in [0, 1) decides plane or road.
    */
-  planTrip(city: City, here: LatLon, places: Place[], coins: number, hasCar: boolean, r: number): Plan | NoPlan {
+  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number): Plan | NoPlan {
     const straight = distanceM(here[0], here[1], city.lat, city.lon);
     const road: Mode = hasCar ? "car" : "bus";
     const order: Mode[] = r < planeChance(straight) ? ["plane", road] : [road, "plane"];
@@ -157,7 +158,7 @@ export class Trips {
         if (!station) continue;
       }
       const cost = fare(mode, dist);
-      if (cost > coins) return { error: `can't afford the ${mode} to ${city.name}: needs ${cost}c, has ${coins}c`, short_of: cost };
+      if (cost > cents) return { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
       return { city, mode, station, fare: cost, arrive, distance_m: dist };
     }
     if (straight > MAX_ROAD_M) return { error: "too far to go by road, and no airport within reach" };

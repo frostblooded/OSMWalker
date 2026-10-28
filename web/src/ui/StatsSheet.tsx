@@ -1,6 +1,7 @@
 // His character sheet: level and XP, six meters as bars, four attributes
 // with what his gear adds, every gear slot, the bag and his buffs.
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
+import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
@@ -41,7 +42,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
   return (
     <>
-      <Card icon="⭐" title={`Level ${s.level}`} right={`${s.coins}c`}>
+      <Card icon="⭐" title={`Level ${s.level}`} right={euro(s.cents)}>
         <KV k="XP" v={`${Math.floor(s.xp)} / ${need}`} />
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps())} />
@@ -95,7 +96,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
               {bag.map((item, i) => (
-                <KV key={i} k={<ItemName item={item} />} v={`${item.price}c`} />
+                <KV key={i} k={<ItemName item={item} />} v={euro(item.price)} />
               ))}
             </div>
           </Collapsible>

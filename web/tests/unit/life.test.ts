@@ -4,7 +4,7 @@ import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
-import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_COINS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
+import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
 import * as S from "../../src/core/stats";
 import { dataFile } from "../support/data";
 
@@ -21,9 +21,10 @@ beforeEach(() => {
 });
 
 describe("stats", () => {
-  it("starts healthy with some coins", () => {
+  it("starts healthy with €200", () => {
     expect(stats.meters.health).toBe(100);
-    expect(stats.coins).toBe(50);
+    expect(stats.cents).toBe(S.START_CENTS);
+    expect(S.START_CENTS).toBe(20000);
     expect(stats.level).toBe(1);
   });
 
@@ -61,9 +62,9 @@ describe("stats", () => {
   });
 
   it("actions he can't afford or lacks skill for are out", () => {
-    stats.coins = 5;
+    stats.cents = 500;
     expect(stats.canDo({ name: "a", min: 1, cost: 5 }, 12)).toBe(true);
-    expect(stats.canDo({ name: "b", min: 1, cost: 6 }, 12)).toBe(false);
+    expect(stats.canDo({ name: "b", min: 1, cost: 5.01 }, 12)).toBe(false);
     expect(stats.canDo({ name: "c", min: 1, needs: { cha: 3 } }, 12)).toBe(false);
     expect(stats.canDo({ name: "d", min: 1, needs: { level: 2 } }, 12)).toBe(false);
   });
@@ -88,20 +89,20 @@ describe("stats", () => {
   it("doing an action pays and applies its effects", () => {
     stats.meters.mood = 50; // x1 XP
     stats.meters.energy = 50;
-    const line = stats.do({ name: "Espresso at the bar", min: 3, cost: 3, fx: { energy: 20, xp: 5 } }, "Old Cafe", rng);
-    expect(stats.coins).toBe(47);
+    const line = stats.do({ name: "Espresso at the bar", min: 3, cost: 1.8, fx: { energy: 20, xp: 5 } }, "Old Cafe", rng);
+    expect(stats.cents).toBe(S.START_CENTS - 180);
     expect(stats.meters.energy).toBe(70);
     expect(stats.xp).toBe(5);
-    expect(line).toBe("Espresso at the bar at Old Cafe (-3c)");
+    expect(line).toBe("Espresso at the bar at Old Cafe (-€1.80)");
     expect(stats.history.latest()).toBe(line);
   });
 
-  it("jobs earn coins in a range", () => {
+  it("jobs earn euros in a range, to the cent", () => {
     for (let s = 0; s < 20; s++) {
-      const before = stats.coins;
+      const before = stats.cents;
       stats.do({ name: "Busk", min: 15, earn: [5, 30] }, "Park", new Rng(s));
-      expect(stats.coins - before).toBeGreaterThanOrEqual(5);
-      expect(stats.coins - before).toBeLessThanOrEqual(30);
+      expect(stats.cents - before).toBeGreaterThanOrEqual(500);
+      expect(stats.cents - before).toBeLessThanOrEqual(3000);
     }
   });
 
@@ -133,7 +134,7 @@ describe("stats", () => {
 
   it("risky actions can go wrong", () => {
     const line = stats.do({ name: "Dine and dash", min: 1, fx: { fullness: 10 }, risk: { p: 1, text: "caught", fx: { mood: -20 }, cost: 20 } }, "Bistro", rng);
-    expect(stats.coins).toBe(30);
+    expect(stats.cents).toBe(S.START_CENTS - 2000);
     expect(line).toContain("caught");
   });
 
@@ -149,25 +150,27 @@ describe("stats", () => {
     expect(stats.fainted()).toBe(true);
     const line = stats.wakeInHospital("City Hospital");
     expect(stats.meters.health).toBe(WAKE_HEALTH);
-    expect(stats.coins).toBe(50 - HOSPITAL_FEE);
+    expect(stats.cents).toBe(S.START_CENTS - HOSPITAL_FEE);
+    expect(HOSPITAL_FEE).toBe(15000);
     expect(line).toContain("City Hospital");
+    expect(line).toContain("(-€150)");
   });
 
   it("the hospital fee never goes below zero", () => {
-    stats.coins = 5;
+    stats.cents = 5;
     stats.meters.health = 0;
     stats.wakeInHospital("");
-    expect(stats.coins).toBe(0);
+    expect(stats.cents).toBe(0);
   });
 
   it("survives save and load", () => {
-    stats.coins = 77;
+    stats.cents = 77;
     stats.savingFor = 80;
     stats.addXp(30);
     stats.do({ name: "Coffee", min: 1, buff: { name: "Caffeinated", min: 60 } }, "Cafe", rng);
     stats.visit(cafe());
     const back = roundTrip(stats);
-    expect(back.coins).toBe(77);
+    expect(back.cents).toBe(77);
     expect(back.savingFor).toBe(80);
     expect(back.xp).toBe(stats.xp);
     expect(back.buffNames()).toEqual(["Caffeinated"]);
@@ -191,10 +194,11 @@ describe("gear", () => {
   });
 
   it("buys an item that beats his gear and bags the old one", () => {
-    stats.coins = 200;
+    stats.cents = 20000;
     stats.equip(sword(1));
-    const line = stats.buy(sword(3, 50), "Arms & Co");
-    expect(stats.coins).toBe(150);
+    const line = stats.buy(sword(3, 5000), "Arms & Co");
+    expect(stats.cents).toBe(15000);
+    expect(line).toContain("(-€50)");
     expect(stats.gear.weapon!.stats.str).toBe(3);
     expect(stats.bag).toHaveLength(1);
     expect(line).toContain("Bought");
@@ -203,17 +207,17 @@ describe("gear", () => {
 
   it("won't buy worse gear or go skint for it", () => {
     stats.equip(sword(3));
-    stats.coins = 200;
-    expect(stats.buy(sword(1, 10), "Shop")).toContain("didn't buy");
-    expect(stats.coins).toBe(200);
+    stats.cents = 20000;
+    expect(stats.buy(sword(1, 1000), "Shop")).toContain("didn't buy");
+    expect(stats.cents).toBe(20000);
     stats.unequip("weapon");
-    stats.coins = 30;
-    expect(stats.buy(sword(1, 20), "Shop")).toContain("didn't buy");
-    expect(stats.coins).toBe(30);
+    stats.cents = 3000;
+    expect(stats.buy(sword(1, 2000), "Shop")).toContain("didn't buy");
+    expect(stats.cents).toBe(3000);
   });
 
   it("a full bag sells the cheapest item", () => {
-    stats.coins = 10000;
+    stats.cents = 1_000_000;
     stats.gear.weapon = sword(0.4, 50);
     for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5, 10 + i));
     stats.buy(sword(5, 100), "Shop");
@@ -222,17 +226,17 @@ describe("gear", () => {
   });
 
   it("sells loot for part of its price", () => {
-    stats.bag.push(sword(1, 100));
-    const before = stats.coins;
+    stats.bag.push(sword(1, 10000));
+    const before = stats.cents;
     const line = stats.sellLoot("Pawn shop");
     expect(stats.bag).toHaveLength(0);
-    expect(stats.coins - before).toBeGreaterThanOrEqual(40);
-    expect(stats.coins - before).toBeLessThanOrEqual(60);
+    expect(stats.cents - before).toBeGreaterThanOrEqual(4000);
+    expect(stats.cents - before).toBeLessThanOrEqual(6000);
     expect(line).toContain("Sold");
   });
 
   it("shop actions offer an item", () => {
-    stats.coins = 500;
+    stats.cents = 100_000;
     const line = stats.do({ name: "Browse the weapons", min: 15, item: "weapons" }, "Arms & Co", rng);
     expect(Object.keys(stats.gear).length).toBeGreaterThan(0);
     expect(line).toContain("Arms & Co");
@@ -248,9 +252,9 @@ describe("gear", () => {
   });
 
   it("no shopping when skint, no selling an empty bag", () => {
-    stats.coins = KEEP_COINS;
+    stats.cents = KEEP_CENTS;
     expect(stats.canDo({ name: "Browse", min: 15, item: "weapons" }, 12)).toBe(false);
-    stats.coins = 100;
+    stats.cents = KEEP_CENTS + 1;
     expect(stats.canDo({ name: "Browse", min: 15, item: "weapons" }, 12)).toBe(true);
     expect(stats.canDo({ name: "Sell", min: 10, sell: true }, 12)).toBe(false);
     stats.bag.push(sword(1));
@@ -373,12 +377,12 @@ describe("mood, hygiene and luck", () => {
   });
   it("luck finds money now and then while he walks", () => {
     stats.attrs.luck = 10;
-    const start = stats.coins;
+    const start = stats.cents;
     let found = 0;
     for (let i = 0; i < 600; i++) found += +!!stats.walkFor(1, new Rng(i));
     expect(found).toBeGreaterThan(0);
     expect(found).toBeLessThan(600 * S.FIND_CAP * 2);
-    expect(stats.coins).toBeGreaterThan(start);
+    expect(stats.cents).toBeGreaterThan(start);
     expect(stats.history.entries.some((e) => e.text.startsWith("Found"))).toBe(true);
   });
   it("only rolls for money once per minute walked", () => {
@@ -418,9 +422,9 @@ describe("need-driven goals", () => {
     expect(needWeight([work], stats)).toBe(1);
   });
   it("send him to paid work when he is broke or saving up", () => {
-    stats.coins = 0;
+    stats.cents = 0;
     expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
-    stats.coins = 500;
+    stats.cents = 500;
     stats.savingFor = 1000;
     expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
   });
@@ -460,12 +464,12 @@ describe("activities", () => {
     const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
     stats.meters.fullness = 10;
     expect(weight(eat, stats)).toBeGreaterThan(weight(look, stats));
-    stats.coins = 0;
+    stats.cents = 0;
     expect(weight({ name: "Wash dishes", min: 60, earn: 20 }, stats)).toBeGreaterThan(weight(look, stats));
   });
 
   it("saving for a trip favours paid work and cuts spending", () => {
-    stats.coins = 100;
+    stats.cents = 100;
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };
     const jobW = weight(job, stats);
@@ -473,12 +477,12 @@ describe("activities", () => {
     stats.savingFor = 150;
     expect(weight(job, stats)).toBeGreaterThan(jobW + 3);
     expect(weight(dinner, stats)).toBeLessThan(dinnerW);
-    stats.coins = 150;
+    stats.cents = 150;
     expect(weight(job, stats)).toBeCloseTo(jobW);
   });
 
   it("choose skips what he can't do", () => {
-    stats.coins = 0;
+    stats.cents = 0;
     const pricey: Action = { name: "Dinner", min: 10, cost: 30 };
     const free: Action = { name: "Bench", min: 10 };
     expect(choose([pricey, free], stats, 12, 0)!.name).toBe("Bench");

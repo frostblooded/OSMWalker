@@ -10,6 +10,7 @@ import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
+import { euro, signed } from "../core/money";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
@@ -300,7 +301,7 @@ export class Game {
     const found = this.tripTo(kind, here);
     if (!found) return null;
     const dest = { ...found, bounds: tripCityBounds(found) };
-    const plan = this.trips.planTrip(dest, here, w.bounds ? w.graph.placesIn(w.bounds) : [], this.stats.coins, this.stats.vehicle() === "car", this.rng.randf());
+    const plan = this.trips.planTrip(dest, here, w.bounds ? w.graph.placesIn(w.bounds) : [], this.stats.cents, this.stats.vehicle() === "car", this.rng.randf());
     if (!isPlan(plan)) {
       this.rollInfo.no_trip = plan.error;
       if (plan.short_of !== undefined) {
@@ -310,7 +311,7 @@ export class Game {
       return null;
     }
     this.stats.savingFor = 0;
-    this.stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${plan.fare}c)`);
+    this.stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
     if (plan.mode !== "plane") void this.fetchRoute(plan);
     return plan;
   }
@@ -324,16 +325,16 @@ export class Game {
   /** At the station: pays the fare, or stays and saves up when he has spent too much on the way. */
   private onBoarding(plan: Plan): void {
     const dest = plan.city;
-    if (this.stats.coins < plan.fare) {
-      plan.cancel = `can't afford the ${plan.mode}: needs ${plan.fare}c, has ${this.stats.coins}c`;
+    if (this.stats.cents < plan.fare) {
+      plan.cancel = `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(this.stats.cents)}`;
       this.stats.savingFor = plan.fare;
       this.stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       this.debugLog.add({ no_trip: plan.cancel });
       return;
     }
-    this.stats.coins -= plan.fare;
+    this.stats.cents -= plan.fare;
     const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    this.setOff(dest, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${plan.fare}c)`);
+    this.setOff(dest, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
   }
 
   /** A city for a trip of `kind`, with how many there were and its odds noted for the debug log. */
@@ -537,7 +538,7 @@ export class Game {
   /**
    * Once a second: warns (once per city) when enough streets are loaded but
    * no places of note, and once the streets all around him are loaded checks
-   * that the city has a way out and a way to earn coins (severe if not).
+   * that the city has a way out and a way to earn money (severe if not).
    */
   private checkCity(): void {
     const w = this.walker;

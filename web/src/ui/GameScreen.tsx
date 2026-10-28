@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { distanceM, type BBox } from "../core/geo";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
+import { euro } from "../core/money";
 import { MapView, type Padding } from "../map/mapView";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
@@ -164,7 +165,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
               <div class="street">{w.travel ? `Riding to ${w.travel.to.name} by ${w.travel.mode}` : streetLine(w.streetName(), w.isResting())}</div>
             </div>
             <div class="pills">
-              <span class="pill coins">{s.coins}c</span>
+              <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
             </div>
           </div>
@@ -359,7 +360,7 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     <div class="dialog-bg">
       <div class="card dialog" role="alertdialog" aria-label="New city">
         <h2>🔄 Start over in a new city?</h2>
-        <p class="dim">He forgets everything: stats, gear, coins and history. Type RESET to confirm.</p>
+        <p class="dim">He forgets everything: stats, gear, money and history. Type RESET to confirm.</p>
         <input value={word} aria-label="Type RESET" autocapitalize="characters" onInput={(e) => setWord((e.target as HTMLInputElement).value)} />
         <button class="btn danger" disabled={!isResetWord(word)} onClick={onConfirm}>
           Start over

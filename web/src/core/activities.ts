@@ -4,14 +4,15 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Picks an action he can do, leaning towards what he needs.
+import { toCents } from "./money";
 import type { Action, Place, Stats } from "./stats";
 
 export type ActionTable = Record<string, Action[]>;
 
 /** Every action takes this many minutes, whatever its listed time, so he is never still for long. */
 export const MAX_MINUTES = 1;
-/** Below this many coins he looks for work and avoids spending. */
-export const SKINT = 20;
+/** Below this many cents (€20) he looks for work and avoids spending. */
+export const SKINT = 2000;
 /** Extra weight for paid work, and the cut to spending, while he saves for a trip. */
 export const SAVING_EARN_WEIGHT = 4;
 export const SAVING_SPEND_MULT = 0.5;
@@ -73,11 +74,11 @@ export function weight(action: Action, stats: Stats): number {
   for (const [m, v] of Object.entries(action.fx ?? {})) {
     if (m in stats.meters && v > 0) w += ((Math.max(60 - stats.meters[m as keyof Stats["meters"]], 0) / 20) * Math.min(v, 50)) / 20;
   }
-  if (action.item) w += stats.coins > 3 * SKINT ? 1 : 0;
+  if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
-  if (action.earn !== undefined) w += stats.coins < SKINT ? 3 : 0.5;
-  if (action.cost !== undefined && stats.coins - action.cost < SKINT) w *= 0.5;
-  if (stats.coins < stats.savingFor) {
+  if (action.earn !== undefined) w += stats.cents < SKINT ? 3 : 0.5;
+  if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
+  if (stats.cents < stats.savingFor) {
     if (action.earn !== undefined) w += SAVING_EARN_WEIGHT;
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   }
@@ -90,7 +91,7 @@ export function weight(action: Action, stats: Stats): number {
  * or saving up. The strongest need counts.
  */
 export function needWeight(actions: Action[], stats: Stats): number {
-  const broke = stats.coins < SKINT || stats.coins < stats.savingFor;
+  const broke = stats.cents < SKINT || stats.cents < stats.savingFor;
   let need = 0;
   for (const a of actions) {
     if (broke && a.earn !== undefined) need = 1;

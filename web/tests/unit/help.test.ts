@@ -68,7 +68,9 @@ describe("the real help", () => {
     expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
     expect(page("speed").body).toContain("bike: 15 km/h");
     expect(page("trips").body).toMatch(/^- 5%: he travels to a city in another country/m);
-    expect(page("fares").body).toContain("300 km by bus costs about 32c");
+    expect(page("fares").body).toContain("300 km by bus costs about €31.20");
+    expect(page("coins").body).toContain("He starts with €200.");
+    expect(page("health").body + page("coins").body).toContain("€150");
     expect(page("modifiers").body).toContain("Common, no modifiers: 60% of items");
   });
 

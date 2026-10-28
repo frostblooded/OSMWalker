@@ -1,3 +1,4 @@
+import { euro } from "../../src/core/money";
 import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
@@ -51,10 +52,11 @@ describe("rides", () => {
   });
 
   it("cost real prices", () => {
-    expect(T.fare("bus", 300_000)).toBe(24);
-    expect(T.fare("plane", 1_430_000)).toBe(93);
-    expect(T.fare("car", 100_000)).toBe(12);
-    expect(T.fare("bus", 1000)).toBe(1);
+    expect(T.fare("bus", 300_000)).toBe(2400);
+    expect(T.fare("plane", 1_430_000)).toBe(9290);
+    expect(T.fare("car", 100_000)).toBe(1200);
+    expect(T.fare("bus", 1000)).toBe(8);
+    expect(T.fare("bus", 1)).toBe(1);
   });
 
   it("know stations", () => {
@@ -82,7 +84,7 @@ describe("airports", () => {
 describe("planTrip", () => {
   it("takes the bus from the nearest station on a short trip", () => {
     const far = city("Smallton", 1, 0);
-    const p = plan(trips(true).planTrip(far, [0, 0], [CAFE, BUS_STATION], 100, false, 0.99));
+    const p = plan(trips(true).planTrip(far, [0, 0], [CAFE, BUS_STATION], 10_000, false, 0.99));
     expect(p.mode).toBe("bus");
     expect(p.station.name).toBe("Central Bus");
     expect(p.fare).toBe(smalltonFare);
@@ -91,22 +93,22 @@ describe("planTrip", () => {
   });
 
   it("flies between airports on a long trip", () => {
-    const p = plan(trips(true).planTrip(city("Farcity", 10, 10), [0, 0], [BUS_STATION], 1000, false, 0));
+    const p = plan(trips(true).planTrip(city("Farcity", 10, 10), [0, 0], [BUS_STATION], 100_000, false, 0));
     expect(p.mode).toBe("plane");
     expect(p.station.name).toBe("Big Intl");
     expect(p.arrive).toEqual([10.05, 10]);
   });
 
   it("takes the bus far away when there is no airport", () => {
-    expect(plan(trips().planTrip(city("Farcity", 10, 10), [0, 0], [BUS_STATION], 1000, false, 0)).mode).toBe("bus");
+    expect(plan(trips().planTrip(city("Farcity", 10, 10), [0, 0], [BUS_STATION], 100_000, false, 0)).mode).toBe("bus");
   });
 
   it("sends no bus across an ocean", () => {
-    expect(trips().planTrip(city("Overseas", 0, 60), [0, 0], [BUS_STATION], 100_000, false, 0)).toEqual({ error: "too far to go by road, and no airport within reach" });
+    expect(trips().planTrip(city("Overseas", 0, 60), [0, 0], [BUS_STATION], 10_000_000, false, 0)).toEqual({ error: "too far to go by road, and no airport within reach" });
   });
 
   it("fills up and drives with a car", () => {
-    const p = plan(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION, FUEL], 100, true, 0.99));
+    const p = plan(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION, FUEL], 10_000, true, 0.99));
     expect(p.mode).toBe("car");
     expect(p.station.name).toBe("Fuel Stop");
   });
@@ -117,7 +119,7 @@ describe("planTrip", () => {
 
   it("says how much is needed", () => {
     expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99)).toEqual({
-      error: `can't afford the bus to Smallton: needs ${smalltonFare}c, has 3c`,
+      error: `can't afford the bus to Smallton: needs ${euro(smalltonFare)}, has €0.03`,
       short_of: smalltonFare,
     });
   });

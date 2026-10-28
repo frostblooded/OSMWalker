@@ -5,6 +5,7 @@ import { History } from "./history";
 import * as Items from "./items";
 import type { Item, Slot } from "./items";
 import type { Rng } from "./rng";
+import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
 import type { Vehicle } from "./speeds";
 
@@ -36,11 +37,11 @@ export const DIRTY_MOOD_PER_H = 3;
 export const LUCK_RISK_CUT = 0.03;
 export const LUCK_RISK_CAP = 0.5;
 export { LUCK_RARITY_CAP, LUCK_RARITY_PER, rarityBoost } from "./items";
-/** Chance per Luck point, each minute he walks, to find money on the street, up to FIND_CAP; FIND_MIN-FIND_MAX coins. */
+/** Chance per Luck point, each minute he walks, to find money on the street, up to FIND_CAP; FIND_MIN-FIND_MAX cents. */
 export const FIND_PER_LUCK = 0.002;
 export const FIND_CAP = 0.03;
-export const FIND_MIN = 1;
-export const FIND_MAX = 5;
+export const FIND_MIN = 10;
+export const FIND_MAX = 200;
 
 export const moodXpMult = (mood: number) => MOOD_XP_MIN + ((MOOD_XP_MAX - MOOD_XP_MIN) * mood) / 100;
 export const riskMult = (luck: number) => 1 - Math.min(LUCK_RISK_CUT * luck, LUCK_RISK_CAP);
@@ -55,11 +56,14 @@ export const TIRED_ENERGY = 30;
 /** Health lost per hour for each of hunger and thirst at zero. */
 export const STARVING_PER_H = 5;
 export const FIRST_VISIT_XP = 50;
-export const HOSPITAL_FEE = 30;
+/** Cents a tourist pays a hospital ER to be patched up. */
+export const HOSPITAL_FEE = 15000;
+/** Cents he starts with. */
+export const START_CENTS = 20000;
 export const WAKE_HEALTH = 50;
 export const BAG_SIZE = 20;
-/** He won't buy gear that leaves him with fewer coins than this. */
-export const KEEP_COINS = 20;
+/** He won't buy gear that leaves him with fewer cents than this. */
+export const KEEP_CENTS = 2000;
 /** Share of an item's price he gets selling it, before his charm. */
 export const SELL_SHARE = 0.4;
 
@@ -86,8 +90,9 @@ export const xpToNext = (lvl: number) => 100 * lvl;
 export class Stats {
   meters: Record<Meter, number> = { health: 100, energy: 100, fullness: 80, mood: 70, hygiene: 100, thirst: 80 };
   attrs: Record<Attr, number> = { str: 1, cha: 1, wit: 1, luck: 1 };
-  coins = 50;
-  /** Coins a trip he couldn't afford needs; he favours paid work until he has them. */
+  /** His money, in euro cents. */
+  cents = START_CENTS;
+  /** Cents a trip he couldn't afford needs; he favours paid work until he has them. */
   savingFor = 0;
   xp = 0;
   level = 1;
@@ -153,11 +158,11 @@ export class Stats {
   /** Buys and wears `item` if it is an upgrade he can afford; returns the feed line. */
   buy(item: Item, where: string): string {
     const at = where ? ` at ${where}` : "";
-    if (!this.isUpgrade(item) || this.coins - item.price < KEEP_COINS)
-      return this.say(`Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${item.price}c)`);
-    this.coins -= item.price;
+    if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS)
+      return this.say(`Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)})`);
+    this.cents -= item.price;
     this.equip(item);
-    return this.say(`Bought a ${item.rarity} ${item.name}${at} (-${item.price}c)`);
+    return this.say(`Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)})`);
   }
 
   /** Sells the cheapest thing in his bag; returns the feed line. */
@@ -165,7 +170,7 @@ export class Stats {
     const at = where ? ` at ${where}` : "";
     if (!this.bag.length) return this.say(`Had nothing to sell${at}`);
     const item = this.sellCheapest();
-    return this.say(`Sold his ${item.name}${at} (+${this.sellPrice(item)}c)`);
+    return this.say(`Sold his ${item.name}${at} (${signed(this.sellPrice(item))})`);
   }
 
   sellPrice(item: Item): number {
@@ -178,7 +183,7 @@ export class Stats {
       if (it.price < this.bag[i]!.price) i = j;
     });
     const [item] = this.bag.splice(i, 1);
-    this.coins += this.sellPrice(item!);
+    this.cents += this.sellPrice(item!);
     return item!;
   }
 
@@ -187,7 +192,7 @@ export class Stats {
       const sold = this.sellCheapest();
       if (sold.price > item.price) {
         this.bag.push(sold); // keep the better one
-        this.coins += this.sellPrice(item) - this.sellPrice(sold);
+        this.cents += this.sellPrice(item) - this.sellPrice(sold);
         return;
       }
     }
@@ -226,8 +231,8 @@ export class Stats {
       this.walkMin -= 1;
       if (rng.randf() >= findChance(this.attr("luck"))) continue;
       const n = rng.randiRange(FIND_MIN, FIND_MAX);
-      this.coins += n;
-      line = this.say(`Found ${n}c on the street (+${n}c)`);
+      this.cents += n;
+      line = this.say(`Found ${euro(n)} on the street (${signed(n)})`);
     }
     return line;
   }
@@ -259,8 +264,8 @@ export class Stats {
 
   /** True when he has the coins, skills, level and timing for `action`. */
   canDo(action: Action, hour: number): boolean {
-    if ((action.cost ?? 0) > this.coins) return false;
-    if (action.item && this.coins <= KEEP_COINS) return false;
+    if (toCents(action.cost ?? 0) > this.cents) return false;
+    if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
@@ -284,18 +289,18 @@ export class Stats {
       this.applyFx(action.fx ?? {});
       return this.sellLoot(where);
     }
-    let spent = action.cost ?? 0;
+    let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
     let text = action.name;
     const risk = action.risk;
     if (risk && rng.randf() < risk.p * riskMult(this.attr("luck"))) {
-      spent += risk.cost ?? 0;
+      spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
     }
     const earn = action.earn ?? 0;
-    const earned = Array.isArray(earn) ? rng.randiRange(earn[0], earn[1]) : earn;
-    this.coins = Math.max(this.coins - spent + earned, 0);
+    const earned = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
+    this.cents = Math.max(this.cents - spent + earned, 0);
     if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
     const buff = action.buff;
@@ -304,7 +309,7 @@ export class Stats {
       this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
     }
     const net = earned - spent;
-    const money = net ? ` (${net > 0 ? "+" : ""}${net}c)` : "";
+    const money = net ? ` (${signed(net)})` : "";
     return this.say(text + (where ? ` at ${where}` : "") + money);
   }
 
@@ -323,12 +328,13 @@ export class Stats {
 
   /** After fainting: patched up at a hospital for a fee. */
   wakeInHospital(hospital: string): string {
-    this.coins = Math.max(this.coins - HOSPITAL_FEE, 0);
+    const paid = this.cents;
+    this.cents = Math.max(this.cents - HOSPITAL_FEE, 0);
     this.meters.health = WAKE_HEALTH;
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
     this.meters.thirst = Math.max(this.meters.thirst, 30);
-    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (-${HOSPITAL_FEE}c)`);
+    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-Math.min(HOSPITAL_FEE, paid))})`);
   }
 
   say(line: string): string {
@@ -338,7 +344,7 @@ export class Stats {
 
   toJSON() {
     return {
-      meters: this.meters, attrs: this.attrs, coins: this.coins, savingFor: this.savingFor, xp: this.xp, level: this.level,
+      meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
     };
   }
@@ -347,7 +353,7 @@ export class Stats {
     const s = new Stats();
     Object.assign(s.meters, d.meters);
     Object.assign(s.attrs, d.attrs);
-    s.coins = d.coins;
+    s.cents = d.cents;
     s.savingFor = d.savingFor ?? 0;
     s.xp = d.xp;
     s.level = d.level;

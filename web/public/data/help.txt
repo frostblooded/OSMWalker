@@ -82,40 +82,42 @@ An action can:
 - raise or lower his meters (health, energy, fullness, thirst, mood, hygiene),
 - raise his attributes (strength, charm, wits, luck), usually by a small step such as 0.1,
 - give XP,
-- cost coins or pay coins (jobs pay a fixed amount or a random amount in a range),
+- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent),
 - give him a buff or debuff for a while (see Buffs and debuffs),
 - offer him an item to buy, or sell something from his bag.
 
-Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra coins and change his meters, for better or worse.
+Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
 What he did pops up at the top for a few seconds, and goes into his History.
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
 - For each meter the action raises, it gains (60 - meter) / 20 x (amount, at most 50) / 20, but only if that meter is below 60. So the hungrier he is, the more he leans towards food, and the bigger the meal the stronger the pull.
-- Browsing for an item: +1 when he has more than {SKINT_X3} coins.
+- Browsing for an item: +1 when he has more than {SKINT_X3}.
 - Selling his loot: +2.
-- Paid work: +3 while he has fewer than {SKINT} coins, otherwise +0.5.
-- Anything that would leave him under {SKINT} coins weighs half as much.
+- Paid work: +3 while he has less than {SKINT}, otherwise +0.5.
+- Anything that would leave him under {SKINT} weighs half as much.
 - A country's own actions get +{FLAVOUR_WEIGHT} (see Country flavour).
 - While he saves up for a trip, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares).
 
 An action with weight 4 is four times as likely as one with weight 1.
 ## Requirements {needs}
 An action can only be picked when he meets all of its requirements:
-- Coins: he needs at least the action's price.
-- Shopping for an item needs more than {KEEP_COINS} coins.
+- Money: he needs at least the action's price.
+- Shopping for an item needs more than {KEEP_CENTS}.
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Level: some need a minimum level.
 - Time of day, by your device's clock: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}. Bars serve rakia only in the evening, for example.
 - Low meters: some only happen when a meter is low, such as napping under a tree when his energy is under 40, or the soup kitchen when his fullness is under 30.
-## Coins {coins}
-Coins (shown as "c") are his money. He starts with {START_COINS}c. Coins never go below 0.
+## Money {coins}
+His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
 
-He spends coins on food, drinks, tickets, trips and gear, and earns them from jobs, from selling items and from lucky finds. While he has fewer than {SKINT} coins he leans hard towards paid work and away from spending (see How he chooses).
+Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a used bike about {CHEAP_BIKE} and a used car about {CHEAP_CAR}.
 
-He keeps a small reserve: he won't buy gear that would leave him with fewer than {KEEP_COINS}c. Waking up in hospital costs {HOSPITAL_FEE}c.
+He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
+
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Waking up in hospital costs {HOSPITAL_FEE}, about what a tourist pays at an emergency room.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
@@ -189,7 +191,7 @@ Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and f
 Luck does three things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
-- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}) that he finds {FIND_MIN}-{FIND_MAX}c. It shows in his History as "Found 3c on the street".
+- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
@@ -203,14 +205,14 @@ A higher level unlocks better materials for the gear he finds (see Materials) an
 ## Fainting and hospital {fainting}
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
-Waking up costs {HOSPITAL_FEE}c (less if he has less). His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
+Waking up costs {HOSPITAL_FEE} (less if he has less). His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles).
 
 Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
 
-Every browse shows him one random item. He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_COINS}c. If he buys it, he puts it on at once and the old item goes into his bag.
+Every browse shows him one random item. He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
 
 An item's name tells you what it is made of: modifiers before, then the material, then the base item, then a suffix, for example "Mighty Bronze Sword of the Fox".
 ## Materials {materials}
@@ -222,7 +224,7 @@ Every item is made of a material, picked at random from those his level has unlo
 - level 15: Silver / Velvet (power 7)
 - level 25: Mithril / Dragonhide (power 10)
 
-The item's main attribute grows by {POWER_TO_STAT} for each point of power: a Steel Sword gives strength +3. Better materials also cost more: Steel is 5 times the base price, Mithril 15 times.
+The item's main attribute grows by {POWER_TO_STAT} for each point of power: a Steel Sword gives strength +3. Prices are real: a plain Bronze Sword costs {BRONZE_SWORD}. Material changes the price: Wooden or Cotton is half that, Steel or Silk twice, Mithril or Dragonhide ten times.
 ## Modifiers and rarity {modifiers}
 Items can have 0 to 3 modifiers, and the number decides the rarity:
 - Common, no modifiers: {MODS0_PCT} of items
@@ -238,7 +240,7 @@ Each modifier adds {MOD_PRICE_PCT} of the price.
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
-At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth 100c sells for 40c with charm 0, or 50c with charm 5.
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
 
 If his bag is full when another item comes in, he keeps the more valuable of the new item and the cheapest one in the bag, and sells the other on the spot.
 # ✈ Travel
@@ -267,12 +269,12 @@ To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, so a 300 km bus trip takes almost 4 hours of the game being open. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
-Fares are in coins and never free:
-- bus: {BUS_PER_KM}c per km of road,
-- plane: {PLANE_BASE}c plus {PLANE_PER_KM}c per km flown,
-- car: fuel at {FUEL_PER_KM}c per km of road.
+Fares are in euros and never free:
+- bus: {BUS_PER_KM} per km of road,
+- plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
+- car: fuel at {FUEL_PER_KM} per km of road.
 
-Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}c, and a 1,500 km flight about {PLANE_1500}c.
+Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}.
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
@@ -285,7 +287,7 @@ When he reaches a city, the game looks it up on Wikidata: the most populous plac
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city and what he is doing, his coins and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 
@@ -296,7 +298,7 @@ Only three buttons sit on the map, at the bottom right in reach of your thumb: +
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, an XP bar towards the next level, his coins and his speed.
+- Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear adds in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
@@ -322,7 +324,7 @@ Its buttons change the game right away:
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.
 ## New city {new_city}
-New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, coins, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
+New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 
 To just see him somewhere else without losing anything, wait for a trip, or use the Debug buttons.
 ## About Help {help}

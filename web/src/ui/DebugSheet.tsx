@@ -5,6 +5,7 @@ import { useEffect } from "preact/hooks";
 import * as DebugLog from "../core/debugLog";
 import { distanceM } from "../core/geo";
 import { timeText } from "../core/history";
+import { euro } from "../core/money";
 import { CITY_CHANCE, COUNTRY_CHANCE, NO_PLACES_BOOST } from "../core/trips";
 import type { Game } from "../game/game";
 import { biasMin } from "./format";
@@ -71,7 +72,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
         <KV k="Another country" v={pct(COUNTRY_CHANCE * boost)} />
         <KV k="Another city" v={pct(CITY_CHANCE * boost)} />
         {boost > 1 && <p class="small tone-warning">Odds doubled: no places of note in the city box.</p>}
-        {g.stats.savingFor > 0 && <KV k="Saving up for a trip" v={`${g.stats.coins} / ${g.stats.savingFor}c`} />}
+        {g.stats.savingFor > 0 && <KV k="Saving up for a trip" v={`${euro(g.stats.cents)} / ${euro(g.stats.savingFor)}`} />}
         <div class="buttons">
           <button class="btn" onClick={act(() => g.debugNewGoal())}>
             🎯 New goal

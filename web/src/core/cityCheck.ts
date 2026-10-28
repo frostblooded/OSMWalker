@@ -1,5 +1,5 @@
 // Checks that a city lets him go on: a way out (a bus station, an airport or
-// a gas station for a car) and a place where he can earn coins. Missing
+// a gas station for a car) and a place where he can earn money. Missing
 // either is severe: he could be stuck there.
 import type { Activities } from "./activities";
 import type { Place } from "./stats";
@@ -38,8 +38,8 @@ export function problems(s: Summary, city: string): { title: string; details: st
   if (s.gas === 0) out.push({ title: `No gas station in ${city}`, details: ["A car can't refuel here."] });
   if (s.earn === 0) {
     out.push({
-      title: `No way to earn coins in ${city}`,
-      details: ["No loaded place in the city box has an action that pays him, so he can't afford to leave once his coins run out."],
+      title: `No way to earn money in ${city}`,
+      details: ["No loaded place in the city box has an action that pays him, so he can't afford to leave once his money runs out."],
     });
   }
   return out;

@@ -35,7 +35,7 @@ describe("city check", () => {
   });
 
   it("keeps no way out and no work apart", () => {
-    expect(titles([STOP])).toEqual(["Can't leave Sofia", "No gas station in Sofia", "No way to earn coins in Sofia"]);
+    expect(titles([STOP])).toEqual(["Can't leave Sofia", "No gas station in Sofia", "No way to earn money in Sofia"]);
   });
 
   it("counts a bus station as a way out even without gas", () => {

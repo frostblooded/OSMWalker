@@ -2,6 +2,7 @@
 // with his level, and 0-3 modifiers that add stats and name the item
 // ("Mighty Bronze Sword of the Fox"). More modifiers are rarer.
 // There is no combat: gear only adds to his attributes (and speed).
+import { toCents } from "./money";
 import type { Rng } from "./rng";
 import type { Vehicle } from "./speeds";
 
@@ -33,47 +34,47 @@ export type Modifier = { name: string; stats: Stats };
 const b = (base: string, slot: Slot, stat: keyof Stats, price: number, extra: Partial<Base> = {}): Base => ({ base, slot, stat, price, ...extra });
 const cloth = { cloth: true };
 
-/** Bases by the kind of shop that sells them. Vehicles raise his speed by a percentage. */
+/** Bases by the kind of shop that sells them, with the real price in euros of a typical (Bronze/Linen) one. Vehicles raise his speed by a percentage. */
 export const KINDS = {
   weapons: [
-    b("Sword", "weapon", "str", 20), b("Sabre", "weapon", "str", 22), b("Dagger", "weapon", "str", 12), b("Mace", "weapon", "str", 18),
-    b("Axe", "weapon", "str", 18), b("Spear", "weapon", "str", 16), b("Hammer", "weapon", "str", 16), b("Bow", "weapon", "wit", 20),
-    b("Buckler", "offhand", "str", 12), b("Kite Shield", "offhand", "str", 18), b("Tower Shield", "offhand", "str", 24),
-    b("Helmet", "head", "str", 15), b("Mail Shirt", "body", "str", 25),
+    b("Sword", "weapon", "str", 40), b("Sabre", "weapon", "str", 60), b("Dagger", "weapon", "str", 15), b("Mace", "weapon", "str", 35),
+    b("Axe", "weapon", "str", 25), b("Spear", "weapon", "str", 30), b("Hammer", "weapon", "str", 30), b("Bow", "weapon", "wit", 80),
+    b("Buckler", "offhand", "str", 40), b("Kite Shield", "offhand", "str", 60), b("Tower Shield", "offhand", "str", 80),
+    b("Helmet", "head", "str", 50), b("Mail Shirt", "body", "str", 150),
   ],
   improvised: [
-    b("Crowbar", "weapon", "str", 8), b("Wrench", "weapon", "wit", 7), b("Frying Pan", "weapon", "str", 6),
-    b("Rolling Pin", "weapon", "str", 5), b("Umbrella", "weapon", "cha", 6), b("Bin Lid", "offhand", "str", 4),
+    b("Crowbar", "weapon", "str", 12), b("Wrench", "weapon", "wit", 10), b("Frying Pan", "weapon", "str", 15),
+    b("Rolling Pin", "weapon", "str", 8), b("Umbrella", "weapon", "cha", 12), b("Bin Lid", "offhand", "str", 6),
   ],
   clothes: [
-    b("Shirt", "body", "cha", 10, cloth), b("Jacket", "body", "cha", 18, cloth), b("Coat", "body", "cha", 22, cloth),
-    b("Hoodie", "body", "luck", 12, cloth), b("Boots", "feet", "str", 16, cloth), b("Trainers", "feet", "str", 14, cloth),
-    b("Sandals", "feet", "luck", 8, cloth), b("Cap", "head", "cha", 6, cloth), b("Beanie", "head", "wit", 6, cloth),
-    b("Backpack", "bag", "str", 15, cloth),
+    b("Shirt", "body", "cha", 25, cloth), b("Jacket", "body", "cha", 70, cloth), b("Coat", "body", "cha", 120, cloth),
+    b("Hoodie", "body", "luck", 35, cloth), b("Boots", "feet", "str", 80, cloth), b("Trainers", "feet", "str", 70, cloth),
+    b("Sandals", "feet", "luck", 25, cloth), b("Cap", "head", "cha", 15, cloth), b("Beanie", "head", "wit", 12, cloth),
+    b("Backpack", "bag", "str", 40, cloth),
   ],
   trinkets: [
-    b("Ring", "trinket", "luck", 15), b("Amulet", "trinket", "luck", 18), b("Bracelet", "trinket", "cha", 12),
-    b("Earring", "trinket", "cha", 10), b("Pocket Watch", "trinket", "wit", 20), b("Lucky Charm", "trinket", "luck", 8),
+    b("Ring", "trinket", "luck", 40), b("Amulet", "trinket", "luck", 25), b("Bracelet", "trinket", "cha", 15),
+    b("Earring", "trinket", "cha", 12), b("Pocket Watch", "trinket", "wit", 30), b("Lucky Charm", "trinket", "luck", 5),
   ],
   instruments: [
-    b("Lute", "trinket", "cha", 20), b("Guitar", "trinket", "cha", 25), b("Harmonica", "trinket", "cha", 8),
-    b("Drum", "trinket", "str", 15), b("Violin", "trinket", "wit", 30),
+    b("Lute", "trinket", "cha", 300), b("Guitar", "trinket", "cha", 120), b("Harmonica", "trinket", "cha", 25),
+    b("Drum", "trinket", "str", 80), b("Violin", "trinket", "wit", 170),
   ],
-  bicycles: [b("Bike", "vehicle", "speed", 80, { vehicle: "bike" }), b("Racing Bike", "vehicle", "speed", 95, { vehicle: "bike" })],
-  motorcycles: [b("Scooter", "vehicle", "speed", 280, { vehicle: "motorcycle" }), b("Motorbike", "vehicle", "speed", 320, { vehicle: "motorcycle" })],
-  cars: [b("Hatchback", "vehicle", "speed", 780, { vehicle: "car" }), b("Saloon", "vehicle", "speed", 850, { vehicle: "car" })],
+  bicycles: [b("Bike", "vehicle", "speed", 300, { vehicle: "bike" }), b("Racing Bike", "vehicle", "speed", 900, { vehicle: "bike" })],
+  motorcycles: [b("Scooter", "vehicle", "speed", 2500, { vehicle: "motorcycle" }), b("Motorbike", "vehicle", "speed", 6000, { vehicle: "motorcycle" })],
+  cars: [b("Hatchback", "vehicle", "speed", 15000, { vehicle: "car" }), b("Saloon", "vehicle", "speed", 25000, { vehicle: "car" })],
 } satisfies Record<string, Base[]>;
 export type Kind = keyof typeof KINDS;
 
 /** Materials in order of power; each unlocks at a level. */
 export const MATERIALS: Material[] = [
-  { metal: "Wooden", cloth: "Cotton", level: 1, power: 1, price: 1 },
-  { metal: "Copper", cloth: "Wool", level: 1, power: 2, price: 1.5 },
-  { metal: "Bronze", cloth: "Linen", level: 3, power: 3, price: 2 },
-  { metal: "Iron", cloth: "Leather", level: 5, power: 4, price: 3 },
-  { metal: "Steel", cloth: "Silk", level: 10, power: 6, price: 5 },
-  { metal: "Silver", cloth: "Velvet", level: 15, power: 7, price: 8 },
-  { metal: "Mithril", cloth: "Dragonhide", level: 25, power: 10, price: 15 },
+  { metal: "Wooden", cloth: "Cotton", level: 1, power: 1, price: 0.5 },
+  { metal: "Copper", cloth: "Wool", level: 1, power: 2, price: 0.75 },
+  { metal: "Bronze", cloth: "Linen", level: 3, power: 3, price: 1 },
+  { metal: "Iron", cloth: "Leather", level: 5, power: 4, price: 1.5 },
+  { metal: "Steel", cloth: "Silk", level: 10, power: 6, price: 2 },
+  { metal: "Silver", cloth: "Velvet", level: 15, power: 7, price: 4 },
+  { metal: "Mithril", cloth: "Dragonhide", level: 25, power: 10, price: 10 },
 ];
 
 export const PREFIXES: Modifier[] = [
@@ -118,7 +119,7 @@ export function build(base: Base, mat: Material, mods: Modifier[]): Item {
     slot: base.slot,
     stats,
     rarity: RARITY[mods.length]!,
-    price: Math.round(base.price * mat.price * (1 + MOD_PRICE * mods.length)),
+    price: toCents(base.price * mat.price * (1 + MOD_PRICE * mods.length)),
   };
   if (base.vehicle) item.vehicle = base.vehicle;
   return item;
