@@ -1,4 +1,5 @@
-## Network access to OSM services: Overpass for streets, Nominatim for city search.
+## Network access to OSM services: Overpass for streets, Photon (Nominatim as
+## backup) for city search.
 extends Node
 
 const OfmStreets := preload("res://scripts/ofm_streets.gd")
@@ -13,6 +14,11 @@ const OVERPASS_URLS := [
 ## Free vector tiles, no key needed. The TileJSON names the current tile set.
 const OFM_TILEJSON := "https://tiles.openfreemap.org/planet"
 const TILE_TIMEOUT_S := 20.0
+## Built for search-as-you-type and forgiving about typos and accents; the
+## Nominatim policy forbids autocomplete, so it only steps in when Photon fails.
+const PHOTON_URL := "https://photon.komoot.io/api/"
+## Only settlements: cities, towns and villages, suburbs, hamlets.
+const PHOTON_PLACES := "&layer=city&layer=district&layer=locality"
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
@@ -45,6 +51,7 @@ var server_stats := {}  # host -> {ok, fail, last_error, rest_until_ms}
 ## Get streets from OpenFreeMap tiles first, with Overpass as the backup.
 var use_tiles := true
 var _tile_url := ""  # from the TileJSON
+var _search_cache := {}  # lowercased query -> places
 
 
 static func host_of(url: String) -> String:
@@ -181,16 +188,52 @@ func _server_result(url: String, error: String) -> void:
 	server_stats[host] = st
 
 
-## Up to 6 places matching `text`, each {name, lat, lon, bbox}, bbox being
-## [south, west, north, east] or empty. Empty on failure.
-func search_places(text: String) -> Array:
-	var data: Variant = await _get_json("%s?format=jsonv2&limit=6&q=%s" % [NOMINATIM_URL, text.uri_encode()])
+## Up to 6 towns or cities matching `text`, each {name, lat, lon, bbox}, bbox being
+## [south, west, north, east] or empty. Null when every search server fails.
+## Answers are kept for the session, so retyping costs no request.
+func search_places(text: String) -> Variant:
+	var key := text.strip_edges().to_lower()
+	if _search_cache.has(key):
+		return _search_cache[key]
+	var q := text.strip_edges().uri_encode()
+	var places: Variant = photon_places(await _get_json("%s?limit=6%s&q=%s" % [PHOTON_URL, PHOTON_PLACES, q]))
+	if places == null:
+		places = nominatim_places(await _get_json("%s?format=jsonv2&limit=6&featureType=city&q=%s" % [NOMINATIM_URL, q]))
+	if places != null:
+		_search_cache[key] = places
+	return places
+
+
+## Places from a Photon GeoJSON answer, or null if it isn't one.
+static func photon_places(data: Variant) -> Variant:
+	if not data is Dictionary or not data.get("features") is Array:
+		return null
 	var out := []
-	if data is Array:
-		for r in data:
-			var b: Array = r.get("boundingbox", [])
-			var bbox := [float(b[0]), float(b[2]), float(b[1]), float(b[3])] if b.size() == 4 else []
-			out.append({"name": r.get("display_name", ""), "lat": float(r["lat"]), "lon": float(r["lon"]), "bbox": bbox})
+	for f in data["features"]:
+		var p: Dictionary = f.get("properties", {})
+		var c: Array = f.get("geometry", {}).get("coordinates", [])
+		if c.size() < 2:
+			continue
+		var parts := []
+		for k in ["name", "city", "state", "country"]:
+			var v: String = str(p.get(k, ""))
+			if v != "" and not v in parts:
+				parts.append(v)
+		var e: Array = p.get("extent", [])  # [west, north, east, south]
+		var bbox := [float(e[3]), float(e[0]), float(e[1]), float(e[2])] if e.size() == 4 else []
+		out.append({"name": ", ".join(parts), "lat": float(c[1]), "lon": float(c[0]), "bbox": bbox})
+	return out
+
+
+## Places from a Nominatim jsonv2 answer, or null if it isn't one.
+static func nominatim_places(data: Variant) -> Variant:
+	if not data is Array:
+		return null
+	var out := []
+	for r in data:
+		var b: Array = r.get("boundingbox", [])  # [south, north, west, east]
+		var bbox := [float(b[0]), float(b[2]), float(b[1]), float(b[3])] if b.size() == 4 else []
+		out.append({"name": r.get("display_name", ""), "lat": float(r["lat"]), "lon": float(r["lon"]), "bbox": bbox})
 	return out
 
 
