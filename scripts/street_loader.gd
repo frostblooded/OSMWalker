@@ -124,7 +124,8 @@ func _load_cached(c: Vector2i) -> bool:
 		return false
 	graph.add_cell(c, compact)
 	_from_cache += 1
-	if DiskCache.is_stale(e["t"], int(Time.get_unix_time_from_system())):
+	# Saved before places were kept: fetch again for them.
+	if not compact.has("places") or DiskCache.is_stale(e["t"], int(Time.get_unix_time_from_system())):
 		_stale.append(c)
 	return true
 
@@ -164,7 +165,10 @@ func _fetch(group: Array, refresh: bool, tile := false) -> void:
 		_failed.erase(c)
 		if cache:
 			cache.put(cache_name(c), var_to_bytes(builder.out[c]))
-		if not refresh:
+		if refresh:
+			if g.cells.has(c):
+				g.places[c] = builder.out[c]["places"]
+		else:
 			g.add_cell(c, builder.out[c])
 			_downloaded += 1
 			_in_flight.erase(c)

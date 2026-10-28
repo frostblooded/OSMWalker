@@ -1,5 +1,6 @@
 ## Turns an OpenFreeMap (OpenMapTiles schema) vector tile into Overpass-style
-## JSON, so the street graph cannot tell the two sources apart.
+## JSON, so the street graph cannot tell the two sources apart, plus the
+## tile's named places of note (shops, cafes, sights...) under "places".
 ##
 ## Tiles carry no OSM node ids, so a node's id is its position on the tile
 ## grid: the same point gets the same id in every tile. Lines are clipped at
@@ -13,9 +14,11 @@ const TILE_ZOOM := 14
 ## Positions are kept in units of 1/4096 of a z14 tile, which are pixels at zoom 18.
 const UNIT_ZOOM := 18
 const UNITS := 4096
-const LAYERS := ["transportation", "transportation_name"]
+const LAYERS := ["transportation", "transportation_name", "poi"]
 const WALKABLE := ["primary", "secondary", "tertiary", "minor", "service", "track", "path"]
 const NOT_WALKABLE_SUBCLASS := ["platform", "corridor"]
+## Stops and entrances are everywhere and not worth a walk.
+const NOT_A_PLACE_SUBCLASS := ["bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"]
 ## Edge cuts are rounded to this many units (about 2 m), so the two tiles'
 ## slightly different clipped copies of a street meet at the same point.
 const SNAP := 4
@@ -31,7 +34,7 @@ static func node_id(gx: int, gy: int) -> int:
 	return ID_BASE + (gx << 27) + gy
 
 
-## Overpass-style {"elements": [...]} for one z14 tile's pbf bytes.
+## Overpass-style {"elements": [...], "places": [...]} for one z14 tile's pbf bytes.
 static func from_pbf(bytes: PackedByteArray, tile: Vector2i) -> Dictionary:
 	return from_layers(VectorTile.decode(bytes, LAYERS), tile)
 
@@ -46,7 +49,7 @@ static func from_layers(layers: Dictionary, tile: Vector2i) -> Dictionary:
 		var tags: Dictionary = f["tags"]
 		if not WALKABLE.has(tags.get("class")) or NOT_WALKABLE_SUBCLASS.has(tags.get("subclass")):
 			continue
-		for line in f["lines"]:
+		for line in f.get("lines", []):
 			_add_line(line, scale, tile, names, nodes, ways)
 	ways = join_junctions(ways)
 	var elements := []
@@ -54,7 +57,30 @@ static func from_layers(layers: Dictionary, tile: Vector2i) -> Dictionary:
 		elements.append({"type": "node", "id": id, "lat": nodes[id][0], "lon": nodes[id][1]})
 	for w in ways:
 		elements.append({"type": "way", "nodes": w[1], "tags": {"name": w[0]} if w[0] != "" else {}})
-	return {"elements": elements}
+	return {"elements": elements, "places": places(layers.get("poi", {}), tile)}
+
+
+## Named places inside the tile: {name, class, subclass, rank, lat, lon}.
+## A lower rank is more important within its tile.
+static func places(layer: Dictionary, tile: Vector2i) -> Array:
+	var scale: float = float(UNITS) / layer.get("extent", UNITS)
+	var out := []
+	for f in layer.get("features", []):
+		var tags: Dictionary = f["tags"]
+		var name := str(tags.get("name", ""))
+		var subclass := str(tags.get("subclass", ""))
+		if name == "" or NOT_A_PLACE_SUBCLASS.has(subclass):
+			continue
+		var pts: PackedInt32Array = f.get("points", PackedInt32Array())
+		for i in range(0, pts.size() - 1, 2):
+			var p := Vector2(pts[i], pts[i + 1]) * scale
+			if p.x < 0.0 or p.y < 0.0 or p.x >= UNITS or p.y >= UNITS:
+				continue  # the neighbouring tile has it
+			var gx := tile.x * UNITS + p.x
+			var gy := tile.y * UNITS + p.y
+			out.append({"name": name, "class": str(tags.get("class", "")), "subclass": subclass,
+				"rank": int(tags.get("rank", 1)), "lat": Geo.px_to_lat(gy, UNIT_ZOOM), "lon": Geo.px_to_lon(gx, UNIT_ZOOM)})
+	return out
 
 
 ## Tiles drop some junction points, so a side street can end on the middle of
@@ -138,7 +164,7 @@ static func _segment_names(layer: Dictionary, tile: Vector2i) -> Dictionary:
 		var name: String = str(f["tags"].get("name", ""))
 		if name == "":
 			continue
-		for line in f["lines"]:
+		for line in f.get("lines", []):
 			for i in range(0, line.size() - 2, 2):
 				var a := _id_at(Vector2(line[i], line[i + 1]) * scale, tile)
 				var b := _id_at(Vector2(line[i + 2], line[i + 3]) * scale, tile)

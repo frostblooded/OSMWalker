@@ -15,6 +15,7 @@ var nodes := {}  # id -> [lat, lon]
 var adjacency := {}  # id -> {neighbor_id: true}
 var edge_names := {}  # "lo:hi" -> street name
 var cells := {}  # Vector2i -> true, every cell whose streets are all loaded
+var places := {}  # Vector2i -> [{name, class, subclass, rank, lat, lon}], places of note per cell
 
 
 static func cell_of(lat: float, lon: float) -> Vector2i:
@@ -49,7 +50,7 @@ static func cells_by_priority(lat: float, lon: float, ring: int, heading := Vect
 
 ## Splits an Overpass response into compact per-cell data. Each cell gets
 ## every way that has a node inside it, with all of that way's nodes, so the
-## links of every node in the cell are complete.
+## links of every node in the cell are complete, and the places inside it.
 static func compact_cells(data: Dictionary, list: Array) -> Dictionary:
 	var b := CellBuilder.new(data, list)
 	b.step(1 << 62)
@@ -69,8 +70,12 @@ class CellBuilder:
 	func _init(data: Dictionary, list: Array) -> void:
 		_els = data.get("elements", [])
 		for c in list:
-			out[c] = {"ids": PackedInt64Array(), "coords": PackedFloat64Array(), "ways": []}
+			out[c] = {"ids": PackedInt64Array(), "coords": PackedFloat64Array(), "ways": [], "places": []}
 			_seen[c] = {}
+		for p in data.get("places", []):
+			var c := Geo.tile_of(p["lat"], p["lon"], CELL_ZOOM)
+			if out.has(c):
+				out[c]["places"].append(p)
 
 	## Works for about budget_us microseconds. True when finished.
 	func step(budget_us: int) -> bool:
@@ -137,7 +142,18 @@ func add_cell(cell: Vector2i, compact: Dictionary) -> void:
 			_link(a, b)
 			if name != "":
 				edge_names[_key(a, b)] = name
+	places[cell] = compact.get("places", [])
 	cells[cell] = true
+
+
+## Places of note in loaded cells inside [south, west, north, east].
+func places_in(box: Array) -> Array:
+	var out := []
+	for list in places.values():
+		for p in list:
+			if p["lat"] >= box[0] and p["lat"] <= box[2] and p["lon"] >= box[1] and p["lon"] <= box[3]:
+				out.append(p)
+	return out
 
 
 ## Merges an Overpass response covering `bbox`. Only cells entirely inside the
