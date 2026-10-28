@@ -2,6 +2,7 @@
 extends GutTest
 
 const Main := preload("res://scripts/main.gd")
+const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
@@ -33,7 +34,7 @@ func _new_main(with_api: FakeOsmApi = api) -> Main:
 
 
 func _start_in_testville(m: Main) -> void:
-	m.hud.city_chosen.emit("Testville", 42.0, 23.0)
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0, [])
 	await wait_until(func(): return m.walker != null, 2.0)
 
 
@@ -60,12 +61,51 @@ func test_choosing_a_city_starts_the_walk_and_saves() -> void:
 	assert_true(FileAccess.file_exists(SAVE))
 
 
+func test_destinations_come_from_the_chosen_city() -> void:
+	var m := _new_main()
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0, [41.9, 22.9, 42.1, 23.1])
+	await wait_until(func(): return m.walker != null, 2.0)
+	assert_eq(m.walker.bounds, [41.9, 22.9, 42.1, 23.1])
+
+
+func test_city_bounds_survive_a_restart() -> void:
+	var m := _new_main()
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0, [41.9, 22.9, 42.1, 23.1])
+	await wait_until(func(): return m.walker != null, 2.0)
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.walker.bounds, [41.9, 22.9, 42.1, 23.1])
+
+
+func test_old_save_without_city_bounds_gets_them_from_the_city_center() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.walker.bounds = []
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.walker.bounds, Walker.city_bounds(42.0, 23.0, []))
+
+
+func test_search_results_carry_the_city_box() -> void:
+	var m := _new_main()
+	var chosen := []
+	m.hud.city_chosen.connect(func(n, lat, lon, box): chosen.append(box))
+	m.hud.show_results([{"name": "Testville, Nowhere", "lat": 42.0, "lon": 23.0, "bbox": [41.9, 22.9, 42.1, 23.1]}])
+	(m.hud.debug_controls()["result0"] as Button).pressed.emit()
+	assert_eq(chosen, [[41.9, 22.9, 42.1, 23.1]])
+
+
 func test_he_walks_in_real_time() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
 	await wait_seconds(0.6)
 	assert_almost_eq(m.walker.total_m, 0.6 * 200.0 / 60.0, 1.0)
 	assert_ne(m.hud.street_label.text, "")
+
+
+## Meters walked plus minutes rested (as walking meters): what the clock owed him.
+func _covered(m: Main) -> float:
+	return m.walker.total_m + m.walker.rested_m
 
 
 ## Runs the game loop by hand in big steps, as if `seconds` passed.
@@ -84,13 +124,13 @@ func test_catches_up_on_time_away_as_a_fast_forward() -> void:
 	await wait_frames(2)
 	assert_true(m.is_catching_up())
 	assert_lt(m.walker.total_m, 500.0, "not all at once")
-	var before := m.walker.total_m
+	var before := _covered(m)
 	m._step(1.0)
 	# 50x speed: about 167 m in one second of fast-forward.
-	assert_almost_eq(m.walker.total_m - before, 50.0 * 200.0 / 60.0, 15.0)
+	assert_almost_eq(_covered(m) - before, 50.0 * 200.0 / 60.0, 15.0)
 	await _fast_forward(m, 14.0)
 	assert_false(m.is_catching_up())
-	assert_almost_eq(m.walker.total_m, 2000.0, 40.0)
+	assert_almost_eq(_covered(m), 2000.0, 40.0)
 
 
 func test_long_catch_up_ends_within_30_seconds() -> void:
@@ -101,7 +141,7 @@ func test_long_catch_up_ends_within_30_seconds() -> void:
 	assert_true(m.is_catching_up())
 	await _fast_forward(m, 31.0, 1.0)
 	assert_false(m.is_catching_up())
-	assert_almost_eq(m.walker.total_m, 288000.0, 2000.0)
+	assert_almost_eq(_covered(m), 288000.0, 2000.0)
 
 
 func test_zooms_out_while_catching_up_then_back() -> void:
@@ -163,7 +203,7 @@ func test_resumes_from_save_on_next_launch() -> void:
 	first.queue_free()
 	await wait_frames(1)
 
-	var second := _new_main(FakeOsmApi.new())
+	var second := _new_main(autofree(FakeOsmApi.new()))
 	assert_not_null(second.walker)
 	assert_eq(second.city, "Testville")
 	assert_eq(second.debug_state()["screen"], "game")
@@ -197,7 +237,7 @@ func test_reset_button_needs_reset_typed() -> void:
 func test_offline_start_shows_error_and_stays_on_picker() -> void:
 	api.online = false
 	var m := _new_main()
-	m.hud.city_chosen.emit("Testville", 42.0, 23.0)
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0, [])
 	await wait_frames(3)
 	assert_null(m.walker)
 	assert_eq(m.debug_state()["screen"], "picker")
@@ -325,9 +365,17 @@ func test_no_details_while_walking_normally() -> void:
 func test_finding_streets_for_a_new_city_shows_details() -> void:
 	api.delay_frames = 100000
 	var m := _new_main()
-	m.hud.city_chosen.emit("Testville", 42.0, 23.0)
+	m.hud.city_chosen.emit("Testville", 42.0, 23.0, [])
 	await wait_frames(3)
 	var text: String = m.hud._picker_status.text
 	assert_string_contains(text, "Finding streets in Testville")
 	assert_string_contains(text, "downloading")
 	assert_string_contains(text, "Streets:")
+
+
+func test_stands_still_while_resting() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.walker.rest_m = Walker.REST_M
+	m._step(0.1)
+	assert_false(m.character.walking)

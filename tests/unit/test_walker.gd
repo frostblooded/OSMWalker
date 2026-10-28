@@ -41,27 +41,98 @@ func test_position_is_interpolated() -> void:
 	assert_almost_eq(p[1], 23.0, 1e-9)
 
 
-func test_never_goes_straight_back_at_an_intersection() -> void:
-	for s in range(50):
-		walker.rng.seed = s
-		walker.start_at(2)
-		walker.advance(graph.edge_length(2, 1) + 1.0)
-		assert_eq(walker.from_node, 1)
-		assert_ne(walker.to_node, 2, "seed %d went back the way it came" % s)
+func test_heads_for_the_goal_by_the_shortest_route() -> void:
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)  # node 3
+	walker.advance(graph.edge_length(2, 1) + 1.0)
+	assert_eq(walker.from_node, 1)
+	assert_eq(walker.to_node, 3)
 
 
-func test_picks_every_direction_at_random() -> void:
-	var seen := {}
+func test_rests_a_minute_on_arrival() -> void:
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)
+	var trip := graph.edge_length(2, 1) + graph.edge_length(1, 3)
+	walker.advance(trip)
+	assert_eq(walker.from_node, 3)
+	assert_true(walker.is_resting())
+	assert_almost_eq(Walker.REST_M, 200.0, 0.001)
+	walker.advance(Walker.REST_M - 1.0)
+	assert_true(walker.is_resting())
+	assert_eq(walker.from_node, 3)
+	assert_eq(walker.to_node, -1)
+	assert_almost_eq(walker.total_m, trip, 0.001)
+
+
+func test_picks_a_new_goal_inside_the_city_after_resting() -> void:
+	walker.bounds = [41.995, 22.995, 42.005, 23.005]
+	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + Walker.REST_M + 1.0)
+	assert_false(walker.is_resting())
+	assert_ne(walker.goal, [42.0, 23.00135])
+	assert_between(walker.goal[0], 41.995, 42.005)
+	assert_between(walker.goal[1], 22.995, 23.005)
+
+
+func test_random_goals_cover_the_city() -> void:
+	walker.bounds = [41.0, 22.0, 43.0, 24.0]
+	var north := 0
 	for s in range(100):
 		walker.rng.seed = s
-		walker.start_at(2)
-		walker.advance(graph.edge_length(2, 1) + 1.0)
-		seen[walker.to_node] = true
-	assert_eq(seen.keys().size(), 3)
+		walker.pick_goal()
+		assert_between(walker.goal[0], 41.0, 43.0)
+		assert_between(walker.goal[1], 22.0, 24.0)
+		if walker.goal[0] > 42.0:
+			north += 1
+	assert_between(north, 30, 70)
+
+
+func test_unreachable_goal_ends_at_the_closest_street() -> void:
+	walker.start_at(4)
+	walker.set_goal(42.05, 23.0)  # far north, no streets lead there
+	walker.advance(graph.edge_length(4, 1) + graph.edge_length(1, 2))
+	assert_eq(walker.from_node, 2)
+	assert_true(walker.is_resting())
+
+
+func test_walks_to_the_edge_of_loaded_streets_towards_a_far_goal() -> void:
+	var g := _long_street(10)
+	var w := Walker.new(g)
+	w.start_at(0)
+	w.set_goal(42.0, 23.2)
+	w.advance(100000.0)
+	assert_true(w.needs_data(), "waits where the loaded streets end")
+	var p: Array = g.nodes[w.from_node]
+	assert_gt(p[1], 23.0)
+	assert_false(w.is_resting())
+
+
+func test_gives_up_on_a_trip_that_drags_on() -> void:
+	walker.start_at(1)
+	walker.set_goal(42.0, 23.00135)
+	walker.trip_m = Walker.trip_limit_m(walker.trip_start_m) + 1.0
+	walker.advance(1.0)
+	assert_true(walker.is_resting())
+
+
+## East-west street of `n` nodes 500 m apart from (42.0, 23.0), only the first
+## couple of kilometers loaded.
+func _long_street(n: int) -> StreetGraph:
+	var g := StreetGraph.new()
+	for i in n:
+		g.nodes[i] = [42.0, 23.0 + i * 0.00604]
+		if i > 0:
+			g._link(i - 1, i)
+	for i in 4:
+		var p: Array = g.nodes[i]
+		g.cells[StreetGraph.cell_of(p[0], p[1])] = true
+	return g
 
 
 func test_turns_around_at_a_dead_end() -> void:
 	walker.start_at(1)
+	walker.set_goal(42.0, 23.00135)  # node 3
 	walker.prev_node = 3
 	walker.to_node = 5
 	walker.advance(graph.edge_length(1, 5) + 10.0)
@@ -71,9 +142,11 @@ func test_turns_around_at_a_dead_end() -> void:
 
 
 func test_long_walk_keeps_total_distance() -> void:
+	walker.bounds = [41.995, 22.995, 42.005, 23.005]
 	walker.start_at(1)
 	assert_eq(walker.advance(5000.0), 0.0)
-	assert_almost_eq(walker.total_m, 5000.0, 0.001)
+	assert_almost_eq(walker.total_m + walker.rested_m, 5000.0, 0.001)
+	assert_gt(walker.total_m, 0.0)
 
 
 func test_waits_for_map_data_near_unloaded_area() -> void:
@@ -98,7 +171,9 @@ func test_resumes_after_map_data_arrives() -> void:
 
 
 func test_save_and_restore_into_empty_graph() -> void:
+	walker.bounds = [41.995, 22.995, 42.005, 23.005]
 	walker.start_at(2)
+	walker.set_goal(42.0, 23.00135)
 	walker.advance(30.0)
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(walker.to_dict()))
 	var restored := Walker.new()
@@ -106,6 +181,9 @@ func test_save_and_restore_into_empty_graph() -> void:
 	assert_eq(restored.from_node, 2)
 	assert_eq(restored.to_node, 1)
 	assert_almost_eq(restored.total_m, 30.0, 0.0001)
+	assert_eq(restored.goal, [42.0, 23.00135])
+	assert_eq(restored.bounds, walker.bounds)
+	assert_eq(restored.route, walker.route)
 	var a := walker.position()
 	var b := restored.position()
 	assert_almost_eq(b[0], a[0], 1e-9)
@@ -131,3 +209,29 @@ func test_fast_forward_is_at_least_50x() -> void:
 func test_long_fast_forward_still_ends_in_30_seconds() -> void:
 	var owed := Walker.meters_for_elapsed(Walker.MAX_CATCH_UP_S)
 	assert_almost_eq(owed / Walker.fast_forward_mps(owed), 30.0, 0.001)
+
+
+func test_save_keeps_the_rest() -> void:
+	walker.start_at(3)
+	walker.set_goal(42.0, 23.00135)
+	walker.advance(50.0)
+	var restored := Walker.new()
+	restored.load_dict(JSON.parse_string(JSON.stringify(walker.to_dict())))
+	assert_true(restored.is_resting())
+	assert_almost_eq(restored.rest_m, Walker.REST_M - 50.0, 0.001)
+
+
+func test_city_bounds_come_from_the_search_box() -> void:
+	assert_eq(Walker.city_bounds(42.0, 23.0, [41.9, 22.9, 42.1, 23.1]), [41.9, 22.9, 42.1, 23.1])
+
+
+func test_tiny_or_missing_city_box_grows_to_a_walkable_area() -> void:
+	for box in [[], [42.0, 23.0, 42.0, 23.0]]:
+		var b := Walker.city_bounds(42.0, 23.0, box)
+		assert_almost_eq(b[2] - b[0], 2.0 * rad_to_deg(Walker.MIN_CITY_RADIUS_M / 6371008.8), 1e-4)
+		assert_true(b[0] < 42.0 and b[2] > 42.0 and b[1] < 23.0 and b[3] > 23.0)
+
+
+func test_huge_city_box_is_capped() -> void:
+	var b := Walker.city_bounds(42.0, 23.0, [30.0, 10.0, 50.0, 40.0])
+	assert_almost_eq(b[2] - b[0], 2.0 * rad_to_deg(Walker.MAX_CITY_RADIUS_M / 6371008.8), 1e-4)

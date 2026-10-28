@@ -180,11 +180,14 @@ func _server_result(url: String, error: String) -> void:
 	server_stats[host] = st
 
 
-## Up to 6 places matching `text`, each {name, lat, lon}. Empty on failure.
+## Up to 6 places matching `text`, each {name, lat, lon, bbox}, bbox being
+## [south, west, north, east] or empty. Empty on failure.
 func search_places(text: String) -> Array:
 	var data: Variant = await _get_json("%s?format=jsonv2&limit=6&q=%s" % [NOMINATIM_URL, text.uri_encode()])
 	var out := []
 	if data is Array:
 		for r in data:
-			out.append({"name": r.get("display_name", ""), "lat": float(r["lat"]), "lon": float(r["lon"])})
+			var b: Array = r.get("boundingbox", [])
+			var bbox := [float(b[0]), float(b[2]), float(b[1]), float(b[3])] if b.size() == 4 else []
+			out.append({"name": r.get("display_name", ""), "lat": float(r["lat"]), "lon": float(r["lon"]), "bbox": bbox})
 	return out

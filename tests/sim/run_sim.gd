@@ -26,7 +26,7 @@ var t0 := 0
 func _tick():
 	if not emitted:
 		emitted = true
-		m.hud.city_chosen.emit("Sim", 42.0, 23.0)
+		m.hud.city_chosen.emit("Sim", 42.0, 23.0, [41.9, 22.85, 42.1, 23.15])
 	if m.walker == null: return
 	if not started:
 		started = true

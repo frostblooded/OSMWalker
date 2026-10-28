@@ -82,7 +82,7 @@ func _on_search(text: String) -> void:
 	hud.show_results(await api.search_places(text))
 
 
-func _start_city(city_name: String, lat: float, lon: float) -> void:
+func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void:
 	hud.show_picker("Finding streets in %s…" % city_name)
 	var w := Walker.new()
 	loader.graph = w.graph
@@ -102,6 +102,7 @@ func _start_city(city_name: String, lat: float, lon: float) -> void:
 		hud.show_picker("No walkable streets there. Try another place.")
 		return
 	w.start_at(start)
+	w.bounds = Walker.city_bounds(lat, lon, bbox)
 	walker = w
 	city = city_name
 	last_tick = Time.get_unix_time_from_system()
@@ -139,7 +140,7 @@ func _step(delta: float) -> void:
 		_start_catch_up()
 	var here := walker.position()
 	var ring := CATCH_UP_STREET_RING if is_catching_up() else STREET_RING
-	loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _heading()))
+	loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _goal_heading()))
 	# He always walks what is loaded, even while more streets download.
 	var budget := minf(pending_m, _fast_forward_mps * delta) if is_catching_up() else pending_m
 	var walked := budget - walker.advance(budget)
@@ -150,7 +151,7 @@ func _step(delta: float) -> void:
 
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
-	character.walking = not walker.needs_data()
+	character.walking = not walker.needs_data() and not walker.is_resting()
 	camera.position = character.position
 	var view_size := get_viewport_rect().size
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
@@ -189,6 +190,14 @@ func _end_catch_up() -> void:
 	_catch_up_total_m = 0.0
 	if map and map.zoom != player_zoom:
 		map.set_zoom(player_zoom)
+
+
+## Direction to where he is heading (x east, y south), so streets that way load first.
+func _goal_heading() -> Vector2:
+	if walker.goal.is_empty():
+		return _heading()
+	var here := walker.position()
+	return (map.geo_to_local(walker.goal[0], walker.goal[1]) - map.geo_to_local(here[0], here[1])).normalized()
 
 
 ## Direction he is walking on screen (x east, y south), or zero while standing.
@@ -286,6 +295,9 @@ func _load() -> bool:
 	player_zoom = int(d.get("zoom", player_zoom))
 	map.zoom = player_zoom
 	map.set_origin(d["origin"][0], d["origin"][1])
+	if walker.bounds.size() != 4:
+		# Saved before destinations existed: the city is the area around where he started.
+		walker.bounds = Walker.city_bounds(d["origin"][0], d["origin"][1], [])
 	hud.show_game(city)
 	return true
 

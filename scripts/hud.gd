@@ -3,7 +3,7 @@
 extends CanvasLayer
 
 signal search_requested(text: String)
-signal city_chosen(city_name: String, lat: float, lon: float)
+signal city_chosen(city_name: String, lat: float, lon: float, bbox: Array)
 signal zoom_changed(step: int)
 signal reset_confirmed
 
@@ -350,7 +350,7 @@ func show_results(places: Array) -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 32)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func(): city_chosen.emit(p["name"].get_slice(",", 0), p["lat"], p["lon"]))
+		b.pressed.connect(func(): city_chosen.emit(p["name"].get_slice(",", 0), p["lat"], p["lon"], p.get("bbox", [])))
 		_results.add_child(b)
 
 

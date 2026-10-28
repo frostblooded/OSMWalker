@@ -146,3 +146,22 @@ func test_failed_tile_rests_the_tile_server() -> void:
 	assert_null(await api.fetch_street_tile(Vector2i(9253, 6039)))
 	assert_true(api.tiles_resting())
 	assert_eq(api.server_stats[OsmApi.host_of(OsmApi.OFM_TILEJSON)]["fail"], 1)
+
+
+## Answers a city search like Nominatim does.
+class SearchApi:
+	extends "res://scripts/osm_api.gd"
+
+	func _get_json(_url: String, _timeout := 60.0) -> Variant:
+		return [
+			{"display_name": "Sofia, Bulgaria", "lat": "42.69", "lon": "23.32", "boundingbox": ["42.6", "42.8", "23.2", "23.5"]},
+			{"display_name": "Nowhere", "lat": "1.0", "lon": "2.0"},
+		]
+
+
+func test_search_results_carry_the_place_box() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	var places: Array = await api.search_places("Sofia")
+	# Nominatim sends [south, north, west, east]; we use [south, west, north, east].
+	assert_eq(places[0]["bbox"], [42.6, 23.2, 42.8, 23.5])
+	assert_eq(places[1]["bbox"], [])
