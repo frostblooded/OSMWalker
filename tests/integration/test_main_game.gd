@@ -29,6 +29,7 @@ func _new_main(with_api: FakeOsmApi = api) -> Main:
 	m.save_path = SAVE
 	m.street_cache_dir = STREETS
 	m.offline_tiles = true
+	m.roll_source = func(): return 0.99  # no trips unless a test asks for one
 	add_child_autofree(m)
 	return m
 
@@ -379,3 +380,72 @@ func test_stands_still_while_resting() -> void:
 	m.walker.rest_m = Walker.REST_M
 	m._step(0.1)
 	assert_false(m.character.walking)
+
+
+## Starts in Testville with every roll set to `r`, then makes him pick his next spot.
+func _start_and_pick_again(r: float) -> Main:
+	var m := _new_main()
+	m.roll_source = func(): return r
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.walker.goal = []
+	m.walker.rest_m = 0.0
+	m.walker.to_node = -1
+	m._step(0.1)
+	return m
+
+
+func test_first_pick_after_choosing_a_city_never_travels() -> void:
+	var m := _new_main()
+	m.roll_source = func(): return 0.0
+	await _start_in_testville(m)
+	m._step(0.1)
+	assert_false(m.walker.is_traveling())
+	assert_eq(m.walker.goal.size(), 2)
+
+
+func test_a_stay_roll_keeps_him_in_the_city() -> void:
+	var m: Main = await _start_and_pick_again(0.5)
+	assert_false(m.walker.is_traveling())
+	assert_eq(m.city, "Testville")
+
+
+func test_a_city_roll_sends_him_to_another_city_in_the_country() -> void:
+	var m: Main = await _start_and_pick_again(0.1)
+	assert_true(m.walker.is_traveling())
+	var to: Dictionary = m.walker.travel["to"]
+	assert_eq(to["code"], "BGR")
+	assert_true(m.hud.street_label.text.contains(to["name"]), m.hud.street_label.text)
+	assert_true(m.trip_line.visible)
+	assert_lt(m.map.zoom, 12)
+
+
+func test_a_country_roll_sends_him_abroad() -> void:
+	var m: Main = await _start_and_pick_again(0.01)
+	assert_true(m.walker.is_traveling())
+	assert_ne(m.walker.travel["to"]["code"], "BGR")
+
+
+func test_lands_in_the_new_city_and_walks_its_streets() -> void:
+	var m: Main = await _start_and_pick_again(0.1)
+	var to: Dictionary = m.walker.travel["to"]
+	m.roll_source = func(): return 0.5
+	m.last_tick -= m.walker.travel["left_m"] / Walker.SPEED_MPS + 60.0
+	await wait_until(func(): m._step(0.5); return not m.walker.is_traveling(), 5.0)
+	assert_eq(m.city, "%s, %s" % [to["name"], to["country"]])
+	assert_eq(m.hud.city_label.text, m.city)
+	assert_eq(m.loader.graph, m.walker.graph)
+	assert_false(m.trip_line.visible)
+	m._save()
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+	assert_eq(d["country"], "BGR")
+
+
+func test_a_trip_survives_a_restart() -> void:
+	var m: Main = await _start_and_pick_again(0.1)
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_true(again.walker.is_traveling())
+	again._step(0.1)
+	assert_true(again.trip_line.visible)
+	assert_eq(again.country, "BGR")

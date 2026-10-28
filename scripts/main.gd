@@ -1,5 +1,6 @@
 ## Game loop: picks a city, keeps the walker moving in real time (including
-## time spent with the app closed), downloads streets as he nears new ground.
+## time spent with the app closed), downloads streets as he nears new ground,
+## and now and then sends him on a trip to another city.
 extends Node2D
 
 const Walker := preload("res://scripts/walker.gd")
@@ -10,6 +11,7 @@ const Hud := preload("res://scripts/hud.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const StreetLoader := preload("res://scripts/street_loader.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
+const Trips := preload("res://scripts/trips.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
@@ -20,6 +22,8 @@ const STREET_RING := 2
 const CATCH_UP_STREET_RING := 3
 ## The map zooms out to this while catching up, so far fewer tiles are needed.
 const CATCH_UP_ZOOM := 15
+const TRIP_LINE_COLOR := Color(0.85, 0.2, 0.25, 0.85)
+const TRIP_LINE_WIDTH := 8.0
 
 var api: OsmApi  # set before adding to the tree to swap in a fake (tests)
 var save_path := SAVE_PATH
@@ -30,9 +34,15 @@ var character: Character
 var camera: Camera2D
 var hud: Hud
 var loader: StreetLoader
+var trip_line: Line2D
+var trips: Trips
+var rng := RandomNumberGenerator.new()
+var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
 
 var walker: Walker
 var city := ""
+var country := ""  # country code of where he is
+var skip_roll := false  # true until the first destination after choosing a city
 var last_tick := 0.0  # unix time the walk was last advanced to
 var pending_m := 0.0  # meters owed to the walk but not walked yet
 var player_zoom := 17  # the zoom the player picked; the map differs while catching up
@@ -57,6 +67,11 @@ func _ready() -> void:
 	map = MapView.new()
 	map.offline = offline_tiles
 	add_child(map)
+	trip_line = Line2D.new()
+	trip_line.width = TRIP_LINE_WIDTH
+	trip_line.default_color = TRIP_LINE_COLOR
+	trip_line.visible = false
+	add_child(trip_line)
 	character = Character.new()
 	add_child(character)
 	camera = Camera2D.new()
@@ -67,6 +82,8 @@ func _ready() -> void:
 	hud.city_chosen.connect(_start_city)
 	hud.zoom_changed.connect(_on_zoom)
 	hud.reset_confirmed.connect(_reset)
+	trips = Trips.shared()
+	rng.randomize()
 	if not _load():
 		hud.show_picker()
 	print("OSM Walker ready")
@@ -74,8 +91,7 @@ func _ready() -> void:
 
 func _on_zoom(step: int) -> void:
 	player_zoom = clampi(player_zoom + step, 3, 19)
-	if not is_catching_up():
-		map.set_zoom(player_zoom)
+	_apply_zoom()
 
 
 func _on_search(text: String) -> void:
@@ -103,8 +119,10 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 		return
 	w.start_at(start)
 	w.bounds = Walker.city_bounds(lat, lon, bbox)
-	walker = w
+	_attach(w)
 	city = city_name
+	country = trips.country_at(lat, lon)
+	skip_roll = true
 	last_tick = Time.get_unix_time_from_system()
 	pending_m = 0.0
 	_end_catch_up()
@@ -112,6 +130,37 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 	hud.show_game(city)
 	_save()
 	print("Started walking in ", city)
+
+
+func _attach(w: Walker) -> void:
+	walker = w
+	w.trip_planner = _plan_trip
+	w.landed.connect(_on_landed)
+
+
+## Asked on each new destination: maybe a city to travel to instead.
+func _plan_trip() -> Dictionary:
+	if skip_roll:
+		skip_roll = false
+		return {}
+	var r: float = roll_source.call() if roll_source.is_valid() else rng.randf()
+	var here := walker.position()
+	var dest := trips.pick(Trips.roll(r), country, here[0], here[1], rng)
+	if dest.is_empty():
+		return {}
+	print("Travelling to %s, %s" % [dest["name"], dest["country"]])
+	return dest.merged({"bounds": Trips.city_bounds(dest)})
+
+
+func _on_landed(dest: Dictionary) -> void:
+	city = "%s, %s" % [dest["name"], dest["country"]]
+	country = dest["code"]
+	loader.graph = walker.graph
+	loader.reset_failures()
+	map.set_origin(dest["lat"], dest["lon"])
+	hud.show_game(city)
+	_save()
+	print("Arrived in ", city)
 
 
 func _reset() -> void:
@@ -138,9 +187,10 @@ func _step(delta: float) -> void:
 	last_tick = now
 	if not is_catching_up() and pending_m >= Hud.CATCH_UP_MIN_M:
 		_start_catch_up()
-	var here := walker.position()
-	var ring := CATCH_UP_STREET_RING if is_catching_up() else STREET_RING
-	loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _goal_heading()))
+	if not walker.is_traveling():
+		var here := walker.position()
+		var ring := CATCH_UP_STREET_RING if is_catching_up() else STREET_RING
+		loader.request(StreetGraph.cells_by_priority(here[0], here[1], ring, _goal_heading()))
 	# He always walks what is loaded, even while more streets download.
 	var budget := minf(pending_m, _fast_forward_mps * delta) if is_catching_up() else pending_m
 	var walked := budget - walker.advance(budget)
@@ -149,13 +199,18 @@ func _step(delta: float) -> void:
 	if is_catching_up() and pending_m < 1.0:
 		_end_catch_up()
 
+	_apply_zoom()
+	_show_trip_line()
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
 	character.walking = not walker.needs_data() and not walker.is_resting()
 	camera.position = character.position
 	var view_size := get_viewport_rect().size
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
-	hud.set_street(walker.street_name())
+	if walker.is_traveling():
+		hud.set_trip(walker.travel["to"]["name"])
+	else:
+		hud.set_street(walker.street_name())
 	_show_status()
 
 	_save_timer += delta
@@ -181,15 +236,39 @@ func is_catching_up() -> bool:
 func _start_catch_up() -> void:
 	_catch_up_total_m = pending_m
 	_fast_forward_mps = Walker.fast_forward_mps(pending_m)
-	if map.zoom > CATCH_UP_ZOOM:
-		map.set_zoom(CATCH_UP_ZOOM)
+	_apply_zoom()
 
 
 func _end_catch_up() -> void:
 	_fast_forward_mps = 0.0
 	_catch_up_total_m = 0.0
-	if map and map.zoom != player_zoom:
-		map.set_zoom(player_zoom)
+	if map:
+		_apply_zoom()
+
+
+## The player's zoom, zoomed out while catching up, and far out to show a trip.
+func _wanted_zoom() -> int:
+	if walker and walker.is_traveling():
+		var to: Dictionary = walker.travel["to"]
+		return MapView.zoom_to_fit(walker.travel["from"], [to["lat"], to["lon"]], get_viewport_rect().size)
+	if is_catching_up():
+		return mini(player_zoom, CATCH_UP_ZOOM)
+	return player_zoom
+
+
+func _apply_zoom() -> void:
+	var z := _wanted_zoom()
+	if map.zoom != z:
+		map.set_zoom(z)
+
+
+## While travelling, a straight line from where he left to where he is going.
+func _show_trip_line() -> void:
+	trip_line.visible = walker.is_traveling()
+	if trip_line.visible:
+		var a: Array = walker.travel["from"]
+		var to: Dictionary = walker.travel["to"]
+		trip_line.points = PackedVector2Array([map.geo_to_local(a[0], a[1]), map.geo_to_local(to["lat"], to["lon"])])
 
 
 ## Direction to where he is heading (x east, y south), so streets that way load first.
@@ -235,7 +314,9 @@ func loading_details() -> Dictionary:
 		d["total_m"] = maxf(_catch_up_total_m, pending_m)
 		d["pending_m"] = pending_m
 		d["speed_mps"] = _fast_forward_mps
-	if walker.needs_data():
+	if walker.is_traveling():
+		d["doing"] = "travelling to " + walker.travel["to"]["name"]
+	elif walker.needs_data():
 		var p: Array = walker.graph.nodes[walker.from_node]
 		d["doing"] = "waiting for streets here: " + loader.cell_state(StreetGraph.cell_of(p[0], p[1]))
 	elif is_catching_up():
@@ -271,7 +352,7 @@ func _save() -> void:
 	if f == null:
 		return
 	f.store_string(JSON.stringify({
-		"city": city, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
+		"city": city, "country": country, "skip_roll": skip_roll, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
 		# Owed meters are folded back into the clock so they survive a restart.
 		"last_tick": last_tick - pending_m / Walker.SPEED_MPS,
 		"walker": walker.to_dict(),
@@ -284,11 +365,11 @@ func _load() -> bool:
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not d is Dictionary or not d.has("walker"):
 		return false
-	walker = Walker.new()
-	walker.load_dict(d["walker"])
-	if not walker.graph.has_node(walker.from_node):
-		walker = null
+	var w := Walker.new()
+	w.load_dict(d["walker"])
+	if not w.graph.has_node(w.from_node):
 		return false
+	_attach(w)
 	loader.graph = walker.graph
 	city = d.get("city", "")
 	last_tick = float(d.get("last_tick", Time.get_unix_time_from_system()))
@@ -298,6 +379,10 @@ func _load() -> bool:
 	if walker.bounds.size() != 4:
 		# Saved before destinations existed: the city is the area around where he started.
 		walker.bounds = Walker.city_bounds(d["origin"][0], d["origin"][1], [])
+	country = d.get("country", "")
+	if country == "":
+		country = trips.country_at(d["origin"][0], d["origin"][1])
+	skip_roll = bool(d.get("skip_roll", false))
 	hud.show_game(city)
 	return true
 

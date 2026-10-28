@@ -371,6 +371,10 @@ func set_street(street: String) -> void:
 	street_label.text = "Walking along " + street if street != "" else "Wandering along an unnamed path"
 
 
+func set_trip(city: String) -> void:
+	street_label.text = "On the way to " + city
+
+
 func is_confirm_open() -> bool:
 	return _confirm.visible
 

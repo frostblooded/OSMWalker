@@ -3,6 +3,8 @@ extends GutTest
 const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const Fixture := preload("res://tests/support/osm_fixture.gd")
+const Trips := preload("res://scripts/trips.gd")
+const Geo := preload("res://scripts/geo.gd")
 
 var graph: StreetGraph
 var walker: Walker
@@ -235,3 +237,66 @@ func test_tiny_or_missing_city_box_grows_to_a_walkable_area() -> void:
 func test_huge_city_box_is_capped() -> void:
 	var b := Walker.city_bounds(42.0, 23.0, [30.0, 10.0, 50.0, 40.0])
 	assert_almost_eq(b[2] - b[0], 2.0 * rad_to_deg(Walker.MAX_CITY_RADIUS_M / 6371008.8), 1e-4)
+
+
+const TRIP := {"name": "Fartown", "code": "XXX", "country": "X-land", "lat": 43.0, "lon": 24.0,
+	"pop": 50000, "bounds": [42.99, 23.99, 43.01, 24.01]}
+
+
+func test_trip_planner_can_send_him_away_instead_of_to_a_goal() -> void:
+	var asked := [0]
+	walker.trip_planner = func(): asked[0] += 1; return TRIP
+	walker.start_at(2)
+	walker.advance(10.0)
+	assert_eq(asked[0], 1)
+	assert_true(walker.is_traveling())
+	assert_eq(walker.goal, [])
+	assert_false(walker.needs_data())
+
+
+func test_no_trip_keeps_him_walking_to_a_goal() -> void:
+	walker.trip_planner = func(): return {}
+	walker.start_at(2)
+	walker.advance(10.0)
+	assert_false(walker.is_traveling())
+	assert_eq(walker.goal.size(), 2)
+
+
+func test_travel_uses_up_walking_time_along_a_straight_line() -> void:
+	walker.start_at(2)
+	walker.start_travel(TRIP)
+	var trip_m: float = walker.travel["total_m"]
+	assert_almost_eq(trip_m, Trips.travel_s(Geo.distance_m(42.0, 23.0, 43.0, 24.0)) * Walker.SPEED_MPS, 1.0)
+	var total := walker.total_m
+	assert_eq(walker.advance(trip_m / 2.0), 0.0)
+	assert_true(walker.is_traveling())
+	assert_eq(walker.total_m, total, "travel is not walking")
+	var p := walker.position()
+	assert_between(p[0], 42.4, 42.6)
+	assert_almost_eq(p[1], 23.5, 0.001)
+	assert_eq(walker.street_name(), "")
+
+
+func test_arriving_starts_him_in_the_new_city_waiting_for_streets() -> void:
+	walker.start_at(2)
+	walker.start_travel(TRIP)
+	watch_signals(walker)
+	walker.advance(walker.travel["total_m"] + 50.0)
+	assert_signal_emitted_with_parameters(walker, "landed", [TRIP])
+	assert_false(walker.is_traveling())
+	assert_ne(walker.graph, graph, "a fresh street graph for the new city")
+	assert_eq(walker.position(), [43.0, 24.0])
+	assert_eq(walker.bounds, [42.99, 23.99, 43.01, 24.01])
+	assert_true(walker.needs_data())
+
+
+func test_travel_survives_save_and_load() -> void:
+	walker.start_at(2)
+	walker.start_travel(TRIP)
+	walker.advance(1000.0)
+	var d: Dictionary = JSON.parse_string(JSON.stringify(walker.to_dict()))
+	var again := Walker.new()
+	again.load_dict(d)
+	assert_true(again.is_traveling())
+	assert_eq(again.position(), walker.position())
+	assert_eq(again.travel["to"]["name"], "Fartown")
