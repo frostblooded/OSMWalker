@@ -339,10 +339,10 @@ func _start_and_pick_again(r: float, station := true, euros := 5000, airport := 
 	m._step(0.1)
 	m.stats.coins = euros
 	if airport:
+		# One city abroad with airports at both ends, so the trip never depends on luck.
 		var t := Trips.new()
-		t.cities = Trips.shared().cities
-		t.airports = Trips.shared().airports + [{"name": "Testville Airport", "class": "aerodrome",
-			"subclass": "airport", "iata": "TST", "code": "BG", "lat": 42.01, "lon": 23.01, "rank": 1}]
+		t.cities = Trips.parse("Testville\tBGR\tBulgaria\t42.0\t23.0\t100000\nFarburg\tDEU\tGermany\t52.5\t13.4\t3000000\n")
+		t.airports = Trips.parse_airports("Testville Airport\tTST\tBG\t42.01\t23.01\nFarburg Airport\tFAR\tDE\t52.4\t13.5\n")
 		m.trips = t
 	if station:
 		m.walker.graph.places[StreetGraph.cell_of(42.0, 23.00135)] = [BUS_STATION]
@@ -485,8 +485,9 @@ func test_a_trip_survives_a_restart() -> void:
 func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
+	m.walker.set_goal(42.0, 23.00135)  # a goal of his own, so he doesn't pick another meanwhile
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
-	await wait_frames(2)
+	m._step(0.0)  # waiting for frames can miss the HUD refresh
 	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
 	assert_true(m.place_pin.visible)
 	assert_eq(m.place_pin.position, m.map.geo_to_local(42.0, 23.00135))
