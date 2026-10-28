@@ -3,7 +3,8 @@
 ## (re-planning as more load), stays a minute at most, then picks the next one.
 ## With no places loaded yet he heads for a random spot in the city and walks
 ## on without stopping there.
-## Instead of a new spot he may travel to another city (see trips.gd).
+## Instead of a new spot he may travel to another city (see trips.gd): he
+## walks to a bus station, airport or gas station, then rides there.
 ## Pure logic: no nodes, no networking, so it is easy to test.
 extends RefCounted
 
@@ -18,6 +19,9 @@ signal landed(city: Dictionary)
 signal arrived(place: Dictionary)
 ## Picked a new goal or trip: `info` tells how (see debug_log.gd).
 signal picked(info: Dictionary)
+## Reached the station of a trip `plan` (see Trips.plan_trip). Listeners
+## pay for it, or set plan["cancel"] to a reason to stay.
+signal boarding(plan: Dictionary)
 
 ## 200 meters per minute.
 const SPEED_MPS := 200.0 / 60.0
@@ -55,9 +59,10 @@ var rested_m := 0.0
 var trip_m := 0.0  # walked since the current goal was picked
 var trip_start_m := 0.0  # straight-line distance to the goal when it was picked
 var place := {}  # the place of note he is heading to or resting at, {} for a random spot
-## Asked on every destination pick: returns a city to travel to, or {} to stay.
+## Asked on every destination pick: returns a trip plan (see Trips.plan_trip), or {} to stay.
 var trip_planner: Callable
-var travel := {}  # {from: [lat, lon], to: city, total_m, left_m} while on the way
+var departing := {}  # the trip plan while he walks to its station
+var travel := {}  # {from: [lat, lon], to: city, mode, path: [[lat, lon]...], arrive, total_m, left_m} while on the way
 var _skips := 0  # goals given up on in a row
 
 
@@ -108,10 +113,15 @@ func set_goal(lat: float, lon: float) -> void:
 ## are loaded), or sets off on a trip.
 func pick_goal() -> void:
 	if trip_planner.is_valid():
-		var city: Dictionary = trip_planner.call()
-		if not city.is_empty():
-			start_travel(city)
-			picked.emit({"trip": "%s, %s" % [city.get("name", ""), city.get("country", "")]})
+		var plan: Dictionary = trip_planner.call()
+		if plan.has("station"):
+			var st: Dictionary = plan["station"]
+			var city: Dictionary = plan["city"]
+			set_goal(st["lat"], st["lon"])
+			place = st
+			departing = plan
+			picked.emit({"trip": "%s, %s" % [city.get("name", ""), city.get("country", "")],
+				"by": "%s from %s" % [Trips.MODE_NAMES[plan["mode"]], st.get("name", "")]})
 			return
 	if bounds.size() != 4 and graph.has_node(from_node):
 		var p := position()
@@ -143,6 +153,7 @@ func pick_goal() -> void:
 func force_new_goal() -> void:
 	if is_traveling():
 		land_now()
+	departing = {}
 	rest_m = 0.0
 	rest_total_m = 0.0
 	pick_goal()
@@ -172,12 +183,18 @@ static func pick_place(places: Array, r: float) -> Dictionary:
 	return places[-1] if not places.is_empty() else {}
 
 
-## Sets off for `city` ({name, lat, lon, bounds, ...}). The trip uses up
-## walking time, so the clock works as for walking.
-func start_travel(city: Dictionary) -> void:
+## Sets off for `city` ({name, lat, lon, bounds, ...}) by `mode` along
+## `path` ([[lat, lon]...], a straight line to `arrive` or the city when
+## empty). The ride uses up walking time, so the clock works as for walking.
+func start_travel(city: Dictionary, mode: int = Trips.Mode.PLANE, path: Array = [], arrive: Array = []) -> void:
 	var p := position()
-	var m := Trips.travel_s(Geo.distance_m(p[0], p[1], city["lat"], city["lon"])) * SPEED_MPS
-	travel = {"from": p, "to": city, "total_m": m, "left_m": m}
+	if arrive.is_empty():
+		arrive = [float(city["lat"]), float(city["lon"])]
+	if path.size() < 2:
+		path = [p, arrive]
+	var m := Trips.ride_s(mode, path_length_m(path)) * SPEED_MPS
+	travel = {"from": p, "to": city, "mode": mode, "path": path, "arrive": arrive, "total_m": m, "left_m": m}
+	departing = {}
 	place = {}
 	goal = []
 	goal_node = -1
@@ -189,13 +206,45 @@ func is_traveling() -> bool:
 	return not travel.is_empty()
 
 
+## True while he walks to the station of a trip.
+func is_departing() -> bool:
+	return not departing.is_empty()
+
+
+static func path_length_m(path: Array) -> float:
+	var m := 0.0
+	for i in range(1, path.size()):
+		m += Geo.distance_m(path[i - 1][0], path[i - 1][1], path[i][0], path[i][1])
+	return m
+
+
+## The line he rides along, [[lat, lon]...]: older saves only knew both ends.
+func travel_path() -> Array:
+	if travel.has("path"):
+		return travel["path"]
+	var to: Dictionary = travel["to"]
+	return [travel["from"], [to["lat"], to["lon"]]]
+
+
+## At the station: boards unless a listener cancels, then rides off.
+func _board() -> void:
+	var plan := departing
+	departing = {}
+	boarding.emit(plan)
+	if plan.has("cancel"):
+		_move_on()
+		return
+	start_travel(plan["city"], plan["mode"], plan.get("path", []), plan["arrive"])
+
+
 ## Starts over in the destination with a fresh street graph; he stands on a
 ## lone point there until its streets load, then hops onto the nearest one.
 func _land() -> void:
 	var city: Dictionary = travel["to"]
+	var at: Array = travel.get("arrive", [city["lat"], city["lon"]])
 	travel = {}
 	graph = StreetGraph.new()
-	graph.nodes[ARRIVAL_NODE] = [float(city["lat"]), float(city["lon"])]
+	graph.nodes[ARRIVAL_NODE] = [float(at[0]), float(at[1])]
 	start_at(ARRIVAL_NODE)
 	prev_node = -1
 	bounds = city["bounds"] if city.has("bounds") else city_bounds(city["lat"], city["lon"], [])
@@ -293,6 +342,9 @@ func _next_step() -> int:
 ## At a place he stays a minute (listeners may shorten it); a random spot
 ## is only a waypoint.
 func _arrive() -> void:
+	if not departing.is_empty():
+		_board()
+		return
 	if place.is_empty():
 		_move_on()
 		return
@@ -302,6 +354,7 @@ func _arrive() -> void:
 
 ## Drops the goal without stopping; he picks the next one at once.
 func _move_on() -> void:
+	departing = {}
 	goal = []
 	goal_node = -1
 	route = []
@@ -425,14 +478,22 @@ func position() -> Array:
 	return [lerpf(a[0], b[0], t), lerpf(a[1], b[1], t)]
 
 
-## Along the straight line on the map (Web Mercator) between the two cities.
+## Along the ride's path, each leg a straight line on the map (Web Mercator).
 func _travel_position() -> Array:
-	var a: Array = travel["from"]
-	var b: Dictionary = travel["to"]
+	var path := travel_path()
 	var t: float = 1.0 - travel["left_m"] / maxf(travel["total_m"], 0.001)
-	var x := lerpf(Geo.lon_to_px(a[1], 0), Geo.lon_to_px(b["lon"], 0), t)
-	var y := lerpf(Geo.lat_to_px(a[0], 0), Geo.lat_to_px(b["lat"], 0), t)
-	return [Geo.px_to_lat(y, 0), Geo.px_to_lon(x, 0)]
+	var left := t * path_length_m(path)
+	for i in range(1, path.size()):
+		var a: Array = path[i - 1]
+		var b: Array = path[i]
+		var leg := Geo.distance_m(a[0], a[1], b[0], b[1])
+		if left <= leg or i == path.size() - 1:
+			var u := clampf(left / maxf(leg, 0.001), 0.0, 1.0)
+			var x := lerpf(Geo.lon_to_px(a[1], 0), Geo.lon_to_px(b[1], 0), u)
+			var y := lerpf(Geo.lat_to_px(a[0], 0), Geo.lat_to_px(b[0], 0), u)
+			return [Geo.px_to_lat(y, 0), Geo.px_to_lon(x, 0)]
+		left -= leg
+	return path[0]
 
 
 func street_name() -> String:
@@ -452,6 +513,7 @@ func to_dict() -> Dictionary:
 		"bounds": bounds, "goal": goal, "goal_node": goal_node, "route": route,
 		"route_arrives": route_arrives, "rest_m": rest_m, "rest_total_m": rest_total_m, "rested_m": rested_m,
 		"trip_m": trip_m, "trip_start_m": trip_start_m, "travel": travel, "place": place,
+		"departing": departing,
 	}
 	for key in ["prev", "from", "to"]:
 		var id: int = d[key]
@@ -480,13 +542,28 @@ func load_dict(d: Dictionary) -> void:
 	trip_start_m = float(d.get("trip_start_m", 0.0))
 	travel = d.get("travel", {})
 	place = d.get("place", {})
+	departing = d.get("departing", {})
+	if not departing.is_empty():
+		departing["mode"] = int(departing["mode"])
+		departing["arrive"] = _floats(departing["arrive"])
+		if departing.has("path"):
+			departing["path"] = Array(departing["path"]).map(_floats)
 	if not travel.is_empty():
-		travel["from"] = Array(travel["from"]).map(func(v): return float(v))
+		travel["from"] = _floats(travel["from"])
+		travel["mode"] = int(travel.get("mode", Trips.Mode.PLANE))
+		if travel.has("path"):
+			travel["path"] = Array(travel["path"]).map(_floats)
+		if travel.has("arrive"):
+			travel["arrive"] = _floats(travel["arrive"])
 		var city: Dictionary = travel["to"]
 		if city.has("bounds"):
-			city["bounds"] = Array(city["bounds"]).map(func(v): return float(v))
+			city["bounds"] = _floats(city["bounds"])
 	for key in ["prev", "from", "to"]:
 		var id := int(d.get(key, -1))
 		var p: Array = d.get(key + "_pos", [])
 		if id != -1 and p.size() == 2 and not graph.nodes.has(id):
 			graph.nodes[id] = [float(p[0]), float(p[1])]
+
+
+static func _floats(a: Variant) -> Array:
+	return Array(a).map(func(v): return float(v))

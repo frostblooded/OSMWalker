@@ -15,6 +15,9 @@ const FLAVOUR_PATH := "res://data/flavour.json"
 const MAX_MINUTES := 1.0
 ## Below this many coins he looks for work and avoids spending.
 const SKINT := 20
+## Extra weight for paid work, and the cut to spending, while he saves for a trip.
+const SAVING_EARN_WEIGHT := 4.0
+const SAVING_SPEND_MULT := 0.5
 ## Extra weight for a country's own actions, so they come up often.
 const FLAVOUR_WEIGHT := 2.0
 
@@ -75,7 +78,8 @@ func _usual(place: Dictionary) -> Array:
 
 
 ## How much he wants to do `action` now: more when it fills a low meter,
-## pays while he is skint, less when it would leave him broke.
+## pays while he is skint or saving for a trip, less when it would leave
+## him broke or eat into his savings.
 static func weight(action: Dictionary, stats: Stats) -> float:
 	var w := 1.0 + (FLAVOUR_WEIGHT if action.get("flavour", false) else 0.0)
 	var fx: Dictionary = action.get("fx", {})
@@ -90,6 +94,11 @@ static func weight(action: Dictionary, stats: Stats) -> float:
 		w += 3.0 if stats.coins < SKINT else 0.5
 	if stats.coins - int(action.get("cost", 0)) < SKINT and action.has("cost"):
 		w *= 0.5
+	if stats.coins < stats.saving_for:
+		if action.has("earn"):
+			w += SAVING_EARN_WEIGHT
+		if action.has("cost") or action.has("item"):
+			w *= SAVING_SPEND_MULT
 	return w
 
 

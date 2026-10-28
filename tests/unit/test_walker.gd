@@ -281,15 +281,24 @@ const TRIP := {"name": "Fartown", "code": "XXX", "country": "X-land", "lat": 43.
 	"pop": 50000, "bounds": [42.99, 23.99, 43.01, 24.01]}
 
 
-func test_trip_planner_can_send_him_away_instead_of_to_a_goal() -> void:
+const STATION := {"name": "East Bus Station", "class": "bus", "subclass": "bus_station", "rank": 1, "lat": 42.0, "lon": 23.00135}
+
+
+func _plan(extra := {}) -> Dictionary:
+	return {"city": TRIP, "mode": Trips.Mode.BUS, "station": STATION, "fare": 10, "arrive": [43.0, 24.0],
+		"distance_m": 150000.0}.merged(extra, true)
+
+
+func test_a_trip_starts_with_a_walk_to_the_station() -> void:
 	var asked := [0]
-	walker.trip_planner = func(): asked[0] += 1; return TRIP
+	walker.trip_planner = func(): asked[0] += 1; return _plan()
 	walker.start_at(2)
 	walker.advance(10.0)
 	assert_eq(asked[0], 1)
-	assert_true(walker.is_traveling())
-	assert_eq(walker.goal, [])
-	assert_false(walker.needs_data())
+	assert_false(walker.is_traveling(), "walks there first")
+	assert_true(walker.is_departing())
+	assert_eq(walker.place["name"], "East Bus Station")
+	assert_eq(walker.goal, [42.0, 23.00135])
 
 
 func test_no_trip_keeps_him_walking_to_a_goal() -> void:
@@ -297,14 +306,66 @@ func test_no_trip_keeps_him_walking_to_a_goal() -> void:
 	walker.start_at(2)
 	walker.advance(10.0)
 	assert_false(walker.is_traveling())
+	assert_false(walker.is_departing())
 	assert_eq(walker.goal.size(), 2)
+
+
+func _walk_to_station() -> void:
+	walker.trip_planner = func(): return _plan()
+	walker.start_at(2)
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + 1.0)
+
+
+func test_at_the_station_he_boards_and_rides() -> void:
+	var boarded := []
+	walker.boarding.connect(func(plan): boarded.append(plan))
+	_walk_to_station()
+	assert_eq(boarded.size(), 1)
+	assert_true(walker.is_traveling())
+	assert_false(walker.is_departing())
+	assert_eq(walker.travel["mode"], Trips.Mode.BUS)
+	var path_m := Geo.distance_m(42.0, 23.00135, 43.0, 24.0)
+	assert_almost_eq(walker.travel["total_m"], Trips.ride_s(Trips.Mode.BUS, path_m) * Walker.SPEED_MPS, 1.0)
+	assert_false(walker.is_resting(), "no stop at the station")
+
+
+func test_a_cancelled_boarding_keeps_him_in_town() -> void:
+	walker.boarding.connect(func(plan): plan["cancel"] = "can't afford it now")
+	_walk_to_station()
+	assert_false(walker.is_traveling())
+	assert_false(walker.is_departing())
+
+
+func test_the_bus_follows_its_road() -> void:
+	walker.trip_planner = func(): return _plan({"path": [[42.0, 23.00135], [42.0, 24.0], [43.0, 24.0]]})
+	walker.start_at(2)
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + 1.0)
+	var legs := Geo.distance_m(42.0, 23.00135, 42.0, 24.0) + Geo.distance_m(42.0, 24.0, 43.0, 24.0)
+	assert_almost_eq(walker.travel["total_m"], Trips.ride_s(Trips.Mode.BUS, legs) * Walker.SPEED_MPS, 1.0)
+	walker.advance(walker.travel["left_m"] - walker.travel["total_m"] * (1.0 - Geo.distance_m(42.0, 23.00135, 42.0, 24.0) / legs))
+	var p := walker.position()
+	assert_almost_eq(p[0], 42.0, 0.01, "at the corner of the road")
+	assert_almost_eq(p[1], 24.0, 0.01)
+	assert_eq(walker.travel_path().size(), 3)
+
+
+func test_giving_up_on_the_station_drops_the_trip() -> void:
+	walker.trip_planner = func(): return _plan()
+	walker.start_at(2)
+	walker.advance(1.0)
+	walker.trip_planner = func(): return {}
+	walker.trip_m = Walker.trip_limit_m(walker.trip_start_m) + 1.0
+	walker.route = []
+	walker.advance(graph.edge_length(2, 1))
+	assert_false(walker.is_departing())
 
 
 func test_travel_uses_up_walking_time_along_a_straight_line() -> void:
 	walker.start_at(2)
+	var here := walker.position()
 	walker.start_travel(TRIP)
 	var trip_m: float = walker.travel["total_m"]
-	assert_almost_eq(trip_m, Trips.travel_s(Geo.distance_m(42.0, 23.0, 43.0, 24.0)) * Walker.SPEED_MPS, 1.0)
+	assert_almost_eq(trip_m, Trips.ride_s(Trips.Mode.PLANE, Geo.distance_m(here[0], here[1], 43.0, 24.0)) * Walker.SPEED_MPS, 1.0)
 	var total := walker.total_m
 	assert_eq(walker.advance(trip_m / 2.0), 0.0)
 	assert_true(walker.is_traveling())
@@ -328,16 +389,37 @@ func test_arriving_starts_him_in_the_new_city_waiting_for_streets() -> void:
 	assert_true(walker.needs_data())
 
 
-func test_travel_survives_save_and_load() -> void:
+func test_lands_where_the_ride_ends() -> void:
+	walker.trip_planner = func(): return _plan({"mode": Trips.Mode.PLANE, "arrive": [43.05, 24.1]})
 	walker.start_at(2)
-	walker.start_travel(TRIP)
-	walker.advance(1000.0)
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + 1.0)
+	walker.land_now()
+	assert_eq(walker.position(), [43.05, 24.1], "at the airport there")
+
+
+func test_travel_survives_save_and_load() -> void:
+	walker.trip_planner = func(): return _plan({"path": [[42.0, 23.00135], [42.0, 24.0], [43.0, 24.0]]})
+	walker.start_at(2)
+	walker.advance(graph.edge_length(2, 1) + graph.edge_length(1, 3) + 1000.0)
 	var d: Dictionary = JSON.parse_string(JSON.stringify(walker.to_dict()))
 	var again := Walker.new()
 	again.load_dict(d)
 	assert_true(again.is_traveling())
-	assert_eq(again.position(), walker.position())
+	assert_eq(again.travel["mode"], Trips.Mode.BUS)
+	assert_almost_eq(again.position()[0], walker.position()[0], 1e-9)
+	assert_almost_eq(again.position()[1], walker.position()[1], 1e-9)
 	assert_eq(again.travel["to"]["name"], "Fartown")
+
+
+func test_the_walk_to_the_station_survives_save_and_load() -> void:
+	walker.trip_planner = func(): return _plan()
+	walker.start_at(2)
+	walker.advance(10.0)
+	var d: Dictionary = JSON.parse_string(JSON.stringify(walker.to_dict()))
+	var again := Walker.new()
+	again.load_dict(d)
+	assert_true(again.is_departing())
+	assert_eq(int(again.departing["mode"]), Trips.Mode.BUS)
 
 
 func test_tells_how_a_place_was_picked() -> void:
@@ -376,9 +458,10 @@ func test_tells_about_a_trip() -> void:
 	var picks := []
 	walker.picked.connect(func(info): picks.append(info))
 	walker.start_at(2)
-	walker.trip_planner = func(): return {"name": "Far", "country": "Farland", "lat": 43.0, "lon": 24.0}
+	walker.trip_planner = func(): return _plan()
 	walker.pick_goal()
-	assert_eq(picks[0]["trip"], "Far, Farland")
+	assert_eq(picks[0]["trip"], "Fartown, X-land")
+	assert_eq(picks[0]["by"], "bus from East Bus Station")
 
 
 func test_a_forced_new_goal_ends_his_rest() -> void:

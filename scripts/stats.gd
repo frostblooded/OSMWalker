@@ -34,6 +34,7 @@ const SELL_SHARE := 0.4
 var meters := {"health": 100.0, "energy": 100.0, "fullness": 80.0, "mood": 70.0, "hygiene": 100.0, "thirst": 80.0}
 var attrs := {"str": 1.0, "cha": 1.0, "wit": 1.0, "luck": 1.0}
 var coins := 50
+var saving_for := 0  # euros a trip he couldn't afford needs; he favours paid work until he has them
 var xp := 0  # towards the next level
 var level := 1
 var buffs := []  # {name, left (minutes), per_h: {meter: rate}, xp_mult}
@@ -282,7 +283,8 @@ func say(line: String) -> String:
 
 func to_dict() -> Dictionary:
 	return {"meters": meters, "attrs": attrs, "coins": coins, "xp": xp, "level": level,
-		"buffs": buffs, "history": history.to_dict(), "visited": visited.keys(), "gear": gear, "bag": bag}
+		"buffs": buffs, "history": history.to_dict(), "visited": visited.keys(), "gear": gear, "bag": bag,
+		"saving_for": saving_for}
 
 
 func load_dict(d: Dictionary) -> void:
@@ -293,6 +295,7 @@ func load_dict(d: Dictionary) -> void:
 		if attrs.has(a):
 			attrs[a] = float(d["attrs"][a])
 	coins = int(d.get("coins", coins))
+	saving_for = int(d.get("saving_for", 0))
 	xp = int(d.get("xp", 0))
 	level = int(d.get("level", 1))
 	buffs = []

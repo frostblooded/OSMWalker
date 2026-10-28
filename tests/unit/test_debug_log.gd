@@ -54,3 +54,8 @@ func test_a_trip_shows_where_and_its_odds() -> void:
 	assert_string_contains(text, "Paris, France")
 	assert_string_contains(text, "120 cities")
 	assert_string_contains(text, "4.1%")
+
+
+func test_a_trip_says_how_he_goes() -> void:
+	var text := "\n".join(DebugLog.lines({"t": 0, "trip": "Varna, Bulgaria", "by": "bus from Central Station"}, 0))
+	assert_string_contains(text, "Going by bus from Central Station")

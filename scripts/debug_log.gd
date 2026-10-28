@@ -44,6 +44,8 @@ static func lines(e: Dictionary, bias_min: int) -> Array:
 	if e.has("trip"):
 		out.append("Trip to %s: %d cities to pick from by population, this one had %s" % [
 			e["trip"], int(e.get("options", 0)), _pct(float(e.get("chance", 0.0)))])
+		if e.has("by"):
+			out.append("Going by " + e["by"])
 		return out
 	if e.get("no_trip", "") != "":
 		out.append("No trip: " + e["no_trip"])

@@ -218,6 +218,26 @@ func test_needs_steer_the_choice() -> void:
 	assert_gt(Activities.weight(job, stats), Activities.weight(look, stats))
 
 
+func test_saving_for_a_trip_favours_paid_work_and_cuts_spending() -> void:
+	stats.coins = 100
+	var job := {"name": "Wash dishes", "min": 60, "earn": 20}
+	var dinner := {"name": "Dinner", "min": 10, "cost": 30}
+	var job_w := Activities.weight(job, stats)
+	var dinner_w := Activities.weight(dinner, stats)
+	stats.saving_for = 150
+	assert_gt(Activities.weight(job, stats), job_w + 3.0)
+	assert_lt(Activities.weight(dinner, stats), dinner_w)
+	stats.coins = 150
+	assert_almost_eq(Activities.weight(job, stats), job_w, 1e-6, "saved up: back to normal")
+
+
+func test_the_trip_he_saves_for_is_kept() -> void:
+	stats.saving_for = 80
+	var again := Stats.new()
+	again.load_dict(JSON.parse_string(JSON.stringify(stats.to_dict())))
+	assert_eq(again.saving_for, 80)
+
+
 func test_choose_skips_what_he_cannot_do() -> void:
 	stats.coins = 0
 	var pricey := {"name": "Dinner", "min": 10, "cost": 30}

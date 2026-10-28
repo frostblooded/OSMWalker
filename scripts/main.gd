@@ -1,6 +1,7 @@
 ## Game loop: picks a city, keeps the walker moving in real time while the app
 ## is open (he waits where he is while it is closed), downloads streets as he nears new ground,
-## and now and then sends him on a trip to another city. At each place he
+## and now and then sends him on a trip to another city by bus, plane or car
+## (he walks to the station first and pays the fare there). At each place he
 ## does an action that changes his stats (see stats.gd and activities.gd).
 extends Node2D
 
@@ -194,6 +195,7 @@ func _attach(w: Walker) -> void:
 	w.landed.connect(_on_landed)
 	w.arrived.connect(_on_arrived)
 	w.picked.connect(_on_picked)
+	w.boarding.connect(_on_boarding)
 
 
 func _hour() -> int:
@@ -265,8 +267,51 @@ func _plan_trip() -> Dictionary:
 	var dest := _trip_to(kind, here)
 	if dest.is_empty():
 		return {}
-	_set_off(dest)
-	return dest.merged({"bounds": Trips.city_bounds(dest)})
+	dest = dest.merged({"bounds": Trips.city_bounds(dest)})
+	var plan := trips.plan_trip(dest, here, walker.graph.places_in(walker.bounds), stats.coins, _owns_car(), rng.randf())
+	if plan.has("error"):
+		_roll_info["no_trip"] = plan["error"]
+		if plan.has("short_of"):
+			stats.saving_for = plan["short_of"]
+			stats.say("Wants to go to %s but can't afford it yet, so he's saving up" % dest["name"])
+		return {}
+	stats.saving_for = 0
+	var st: Dictionary = plan["station"]
+	stats.say("Heading to %s for the %s to %s (€%d)" % [st["name"], Trips.MODE_NAMES[plan["mode"]], dest["name"], plan["fare"]])
+	if plan["mode"] != Trips.Mode.PLANE:
+		_fetch_route(plan)
+	return plan
+
+
+## The car he drives, from the vehicle gear slot once there is one.
+func _owns_car() -> bool:
+	return stats.has_method("vehicle") and stats.call("vehicle") == "car"
+
+
+## Asks for the road the bus or car takes; a ride that starts before the
+## answer, or without one, goes in a straight line.
+func _fetch_route(plan: Dictionary) -> void:
+	var st: Dictionary = plan["station"]
+	var path: Array = await api.fetch_route([st["lat"], st["lon"]], plan["arrive"])
+	if not path.is_empty() and walker and walker.departing == plan:
+		plan["path"] = path
+
+
+## At the station: pays the fare, or stays and saves up when he has spent
+## too much on the way.
+func _on_boarding(plan: Dictionary) -> void:
+	var dest: Dictionary = plan["city"]
+	var mode: String = Trips.MODE_NAMES[plan["mode"]]
+	var fare: int = plan["fare"]
+	if stats.coins < fare:
+		plan["cancel"] = "can't afford the %s: needs €%d, has €%d" % [mode, fare, stats.coins]
+		stats.saving_for = fare
+		stats.say("Can't afford the %s to %s any more, so he's saving up" % [mode, dest["name"]])
+		debug_log.add({"no_trip": plan["cancel"]})
+		return
+	stats.coins -= fare
+	var how := "Filled up and drove" if plan["mode"] == Trips.Mode.CAR else "Took the %s" % mode
+	_set_off(dest, "%s to %s, %s from %s (€%d)" % [how, dest["name"], dest["country"], plan["station"]["name"], fare])
 
 
 ## A city for a trip of `kind`, with how many there were and its odds in
@@ -282,9 +327,9 @@ func _trip_to(kind: Trips.Kind, here: Array) -> Dictionary:
 	return dest
 
 
-func _set_off(dest: Dictionary) -> void:
+func _set_off(dest: Dictionary, line := "") -> void:
 	print("Travelling to %s, %s" % [dest["name"], dest["country"]])
-	stats.say("Set off for %s, %s" % [dest["name"], dest["country"]])
+	stats.say(line if line != "" else "Set off for %s, %s" % [dest["name"], dest["country"]])
 	stats.history.break_trail()
 
 
@@ -399,7 +444,7 @@ func _step(delta: float) -> void:
 		trail_view.show_history(stats.history, map)
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
 	if walker.is_traveling():
-		hud.set_trip(walker.travel["to"]["name"])
+		hud.set_trip("%s by %s" % [walker.travel["to"]["name"], Trips.MODE_NAMES[walker.travel["mode"]]])
 	else:
 		hud.set_street(walker.street_name(), walker.is_resting())
 	hud.set_wait(walker.rest_left_s() if walker.is_resting() and not walker.is_traveling() else -1.0, walker.rest_fraction())
@@ -477,13 +522,11 @@ func _apply_zoom() -> void:
 		map.set_zoom(z)
 
 
-## While travelling, a straight line from where he left to where he is going.
+## While travelling, the line he rides along: the road for a bus or car, straight for a plane.
 func _show_trip_line() -> void:
 	trip_line.visible = walker.is_traveling()
 	if trip_line.visible:
-		var a: Array = walker.travel["from"]
-		var to: Dictionary = walker.travel["to"]
-		trip_line.points = PackedVector2Array([map.geo_to_local(a[0], a[1]), map.geo_to_local(to["lat"], to["lon"])])
+		trip_line.points = PackedVector2Array(walker.travel_path().map(func(p): return map.geo_to_local(p[0], p[1])))
 
 
 ## Where he is heading or resting: a line on the HUD and a pin on the map.
@@ -660,7 +703,9 @@ func debug_text() -> String:
 
 func _doing_text() -> String:
 	if walker.is_traveling():
-		return "travelling to %s, %.0f km left" % [walker.travel["to"]["name"], walker.travel["left_m"] / Walker.SPEED_MPS * Trips.TRAVEL_MPS / 1000.0]
+		var t: Dictionary = walker.travel
+		return "travelling to %s by %s, %.0f km left" % [t["to"]["name"], Trips.MODE_NAMES[t["mode"]],
+			t["left_m"] / maxf(t["total_m"], 0.001) * Walker.path_length_m(walker.travel_path()) / 1000.0]
 	if walker.is_resting():
 		return "staying %.0f s more at %s" % [walker.rest_left_s(), walker.place.get("name", "a spot")]
 	var target := _goal_target()

@@ -230,3 +230,28 @@ func test_failed_searches_are_not_cached() -> void:
 	await api.search_places("Sofia")
 	api.photon_up = true
 	assert_not_null(await api.search_places("Sofia"))
+
+
+func test_asks_osrm_for_a_driving_route_lon_first() -> void:
+	assert_eq(OsmApi.osrm_url([42.5, 23.25], [43.2, 27.9]),
+		"https://router.project-osrm.org/route/v1/driving/23.25000,42.50000;27.90000,43.20000?overview=simplified&geometries=geojson")
+
+
+func test_reads_the_route_as_lat_lon_points() -> void:
+	var data := {"code": "Ok", "routes": [{"distance": 1000.0, "geometry": {"coordinates": [[23.0, 42.0], [23.5, 42.2], [24.0, 43.0]]}}]}
+	assert_eq(OsmApi.osrm_path(data), [[42.0, 23.0], [42.2, 23.5], [43.0, 24.0]])
+
+
+func test_no_route_reads_as_empty() -> void:
+	assert_eq(OsmApi.osrm_path(null), [])
+	assert_eq(OsmApi.osrm_path({"code": "NoRoute", "routes": []}), [])
+
+
+func test_long_routes_are_thinned_but_keep_both_ends() -> void:
+	var coords := []
+	for i in 1001:
+		coords.append([23.0 + i * 0.001, 42.0])
+	var path := OsmApi.osrm_path({"code": "Ok", "routes": [{"geometry": {"coordinates": coords}}]})
+	assert_lte(path.size(), OsmApi.MAX_ROUTE_POINTS + 1)
+	assert_eq(path[0], [42.0, 23.0])
+	assert_eq(path[-1], [42.0, 24.0])

@@ -10,6 +10,7 @@ const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const Geo := preload("res://scripts/geo.gd")
 const Hud := preload("res://scripts/hud.gd")
+const Trips := preload("res://scripts/trips.gd")
 const SAVE := "user://test_save.json"
 const STREETS := "user://test_streets/"
 
@@ -327,12 +328,24 @@ func test_stands_still_while_resting() -> void:
 	assert_false(m.character.walking)
 
 
+const BUS_STATION := {"name": "Testville Bus Station", "class": "bus", "subclass": "bus_station", "rank": 3, "lat": 42.0, "lon": 23.00135}
+
+
 ## Starts in Testville with every roll set to `r`, then makes him pick his next spot.
-func _start_and_pick_again(r: float) -> Main:
+func _start_and_pick_again(r: float, station := true, euros := 5000, airport := false) -> Main:
 	var m := _new_main()
 	m.roll_source = func(): return r
 	await _start_in_testville(m)
 	m._step(0.1)
+	m.stats.coins = euros
+	if airport:
+		var t := Trips.new()
+		t.cities = Trips.shared().cities
+		t.airports = Trips.shared().airports + [{"name": "Testville Airport", "class": "aerodrome",
+			"subclass": "airport", "iata": "TST", "code": "BG", "lat": 42.01, "lon": 23.01, "rank": 1}]
+		m.trips = t
+	if station:
+		m.walker.graph.places[StreetGraph.cell_of(42.0, 23.00135)] = [BUS_STATION]
 	m.walker.goal = []
 	m.walker.rest_m = 0.0
 	m.walker.to_node = -1
@@ -355,8 +368,81 @@ func test_a_stay_roll_keeps_him_in_the_city() -> void:
 	assert_eq(m.city, "Testville")
 
 
-func test_a_city_roll_sends_him_to_another_city_in_the_country() -> void:
+## Starts in Testville, rolls a city trip and gets him onto the bus.
+func _start_and_ride(r := 0.1, airport := false) -> Main:
+	var m: Main = await _start_and_pick_again(r, true, 5000, airport)
+	assert_true(m.walker.is_departing())
+	m.walker.departing["fare"] = 30
+	m.walker._arrive()
+	m._step(0.0)
+	return m
+
+
+func test_a_city_roll_sends_him_to_the_bus_station_first() -> void:
 	var m: Main = await _start_and_pick_again(0.1)
+	assert_false(m.walker.is_traveling())
+	assert_true(m.walker.is_departing())
+	assert_eq(m.walker.place["name"], "Testville Bus Station")
+	assert_eq(int(m.walker.departing["mode"]), Trips.Mode.BUS)
+	assert_string_contains(m.stats.history.latest(), "Testville Bus Station")
+	assert_string_contains(m.debug_text(), "bus from Testville Bus Station")
+
+
+func test_he_asks_for_the_road_route_and_the_bus_follows_it() -> void:
+	api.route = [[42.0, 23.00135], [42.3, 23.5], [42.6, 24.0]]
+	var m: Main = await _start_and_pick_again(0.1)
+	await wait_until(func(): return m.walker.departing.has("path"), 2.0)
+	assert_eq(api.route_requests.size(), 1)
+	assert_eq(m.walker.departing["path"], api.route)
+	m.stats.coins = 500
+	m.walker._arrive()
+	assert_eq(m.walker.travel_path(), api.route)
+	m._step(0.1)
+	assert_eq(m.trip_line.points.size(), 3, "the trip line follows the road")
+
+
+func test_boarding_pays_the_fare() -> void:
+	var m: Main = await _start_and_ride()
+	assert_true(m.walker.is_traveling())
+	assert_eq(m.stats.coins, 4970)
+	assert_string_contains(m.stats.history.latest(), "€30")
+
+
+func test_no_money_at_the_station_means_no_ride() -> void:
+	var m: Main = await _start_and_pick_again(0.1)
+	m.stats.coins = 5
+	m.walker.departing["fare"] = 30
+	m.walker._arrive()
+	assert_false(m.walker.is_traveling())
+	assert_eq(m.stats.coins, 5)
+	assert_eq(m.stats.saving_for, 30)
+
+
+func test_a_trip_he_cannot_afford_waits_and_he_saves_up() -> void:
+	var m := _new_main()
+	m.roll_source = func(): return 0.1
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.walker.graph.places[StreetGraph.cell_of(42.0, 23.00135)] = [BUS_STATION]
+	m.stats.coins = 0
+	m.walker.goal = []
+	m.walker.rest_m = 0.0
+	m.walker.to_node = -1
+	m._step(0.1)
+	assert_false(m.walker.is_departing())
+	assert_gt(m.stats.saving_for, 0)
+	assert_string_contains(m.debug_text(), "can't afford the bus")
+
+
+func test_no_bus_station_means_no_trip_and_says_why() -> void:
+	var m: Main = await _start_and_pick_again(0.1, false)
+	assert_false(m.walker.is_departing())
+	assert_false(m.walker.is_traveling())
+	assert_string_contains(m.debug_text(), "no bus station or airport within reach")
+
+
+func test_a_city_roll_sends_him_to_another_city_in_the_country() -> void:
+	var m: Main = await _start_and_ride()
 	assert_true(m.walker.is_traveling())
 	var to: Dictionary = m.walker.travel["to"]
 	assert_eq(to["code"], "BGR")
@@ -366,13 +452,13 @@ func test_a_city_roll_sends_him_to_another_city_in_the_country() -> void:
 
 
 func test_a_country_roll_sends_him_abroad() -> void:
-	var m: Main = await _start_and_pick_again(0.01)
+	var m: Main = await _start_and_ride(0.01, true)
 	assert_true(m.walker.is_traveling())
 	assert_ne(m.walker.travel["to"]["code"], "BGR")
 
 
 func test_lands_in_the_new_city_and_walks_its_streets() -> void:
-	var m: Main = await _start_and_pick_again(0.1)
+	var m: Main = await _start_and_ride()
 	var to: Dictionary = m.walker.travel["to"]
 	m.roll_source = func(): return 0.5
 	m.walker.advance(m.walker.travel["left_m"] + 60.0)
@@ -387,7 +473,7 @@ func test_lands_in_the_new_city_and_walks_its_streets() -> void:
 
 
 func test_a_trip_survives_a_restart() -> void:
-	var m: Main = await _start_and_pick_again(0.1)
+	var m: Main = await _start_and_ride()
 	m._save()
 	var again := _new_main(autofree(FakeOsmApi.new()))
 	assert_true(again.walker.is_traveling())
@@ -753,9 +839,9 @@ func test_walking_draws_a_trail() -> void:
 
 
 func test_trips_go_in_the_history_and_break_the_trail() -> void:
-	var m: Main = await _start_and_pick_again(0.1)
+	var m: Main = await _start_and_ride()
 	var to: Dictionary = m.walker.travel["to"]
-	assert_string_contains(m.stats.history.latest(), "Set off for " + to["name"])
+	assert_string_contains(m.stats.history.latest(), "Took the bus to " + to["name"])
 	m.roll_source = func(): return 0.5
 	m.walker.advance(m.walker.travel["left_m"] + 60.0)
 	await wait_until(func(): m._step(0.5); return not m.walker.is_traveling(), 5.0)

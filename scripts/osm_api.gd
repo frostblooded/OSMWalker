@@ -1,5 +1,5 @@
 ## Network access to OSM services: Overpass for streets, Photon (Nominatim as
-## backup) for city search.
+## backup) for city search, OSRM for road routes between cities.
 extends Node
 
 const OfmStreets := preload("res://scripts/ofm_streets.gd")
@@ -20,6 +20,10 @@ const PHOTON_URL := "https://photon.komoot.io/api/"
 ## Only settlements: cities, towns and villages, suburbs, hamlets.
 const PHOTON_PLACES := "&layer=city&layer=district&layer=locality"
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
+## Public OSRM demo server: one driving route per trip by bus or car.
+const OSRM_URL := "https://router.project-osrm.org/route/v1/driving/"
+## Most points a route keeps, so saves stay small.
+const MAX_ROUTE_POINTS := 300
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
 
@@ -244,3 +248,28 @@ func fetch_city_facts(lat: float, lon: float) -> Array:
 	if data is Dictionary:
 		return data.get("results", {}).get("bindings", [])
 	return []
+
+
+## The road route from `a` to `b` ([lat, lon] each) as [[lat, lon]...], or
+## [] on failure.
+func fetch_route(a: Array, b: Array) -> Array:
+	return osrm_path(await _get_json(osrm_url(a, b), 30.0))
+
+
+static func osrm_url(a: Array, b: Array) -> String:
+	return "%s%.5f,%.5f;%.5f,%.5f?overview=simplified&geometries=geojson" % [OSRM_URL, a[1], a[0], b[1], b[0]]
+
+
+## OSRM's answer as [[lat, lon]...], thinned to MAX_ROUTE_POINTS; [] when it
+## has no route.
+static func osrm_path(data: Variant) -> Array:
+	if not data is Dictionary or data.get("code", "") != "Ok" or data.get("routes", []).is_empty():
+		return []
+	var coords: Array = data["routes"][0].get("geometry", {}).get("coordinates", [])
+	var step := maxi(ceili(coords.size() / float(MAX_ROUTE_POINTS)), 1)
+	var out := []
+	for i in range(0, coords.size(), step):
+		out.append([float(coords[i][1]), float(coords[i][0])])
+	if coords.size() > 1 and (coords.size() - 1) % step != 0:
+		out.append([float(coords[-1][1]), float(coords[-1][0])])
+	return out if out.size() >= 2 else []
