@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#eeebe3" />
+    <title>OSM Walker</title>
+    <meta name="description" content="A little character wanders real OpenStreetMap streets, 200 m a minute." />
+    <style>
+      /* Inline so the first frame paints before any script loads. */
+      html, body { margin: 0; height: 100%; background: #eeebe3; color: #222; font: 16px/1.4 system-ui, sans-serif; }
+      #boot { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; }
+      #boot h1 { margin: 0; font-size: 28px; }
+      #boot p { margin: 8px 0 0; color: #666; }
+    </style>
+  </head>
+  <body>
+    <div id="boot"><div><h1>OSM Walker</h1><p>Loading…</p></div></div>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
