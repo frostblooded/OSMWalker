@@ -32,7 +32,7 @@ const browser = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-const requests = { search: 0, streets: 0, streetTiles: 0, tiles: 0 };
+const requests = { search: 0, streets: 0, streetTiles: 0, tiles: 0, wikidata: 0 };
 await context.route(/nominatim\.openstreetmap\.org/, (r) => {
   requests.search++;
   r.fulfill({ json: [{ display_name: "Testville, Nowhere", lat: "42.0", lon: "23.0", boundingbox: ["41.99", "42.01", "22.99", "23.01"] }], headers: cors });
@@ -50,6 +50,12 @@ await context.route(/tiles\.openfreemap\.org/, (r) => {
   }
   requests.streetTiles++;
   r.fulfill({ body: OFM_TILE, contentType: "application/x-protobuf", headers: cors });
+});
+// Wikidata SPARQL: city trivia for random spots.
+await context.route(/query\.wikidata\.org/, (r) => {
+  requests.wikidata++;
+  const row = { cityLabel: { value: "Testville" }, capLabel: { value: "Nowhere" }, pop: { value: "12345" } };
+  r.fulfill({ json: { head: { vars: [] }, results: { bindings: [row] } }, headers: cors });
 });
 await context.route(/tile\.openstreetmap\.org/, (r) => {
   requests.tiles++;
@@ -116,6 +122,8 @@ try {
   assert.ok(after.total_m - before > 5, `walked only ${after.total_m - before} m in 3 s`);
   assert.match(after.street, /along /);
   assert.ok(requests.tiles > 0, "map tiles were requested");
+  assert.equal(requests.wikidata, 1, "the city was looked up on Wikidata once");
+  assert.equal(after.city_facts, 2, "city trivia from Wikidata");
 
   step = "survives reload";
   await page.waitForTimeout(1000);

@@ -2,6 +2,7 @@
 extends Node
 
 const OfmStreets := preload("res://scripts/ofm_streets.gd")
+const CityFacts := preload("res://scripts/city_facts.gd")
 
 ## Public Overpass servers, tried in order; the main one is often busy (429/504).
 const OVERPASS_URLS := [
@@ -191,3 +192,12 @@ func search_places(text: String) -> Array:
 			var bbox := [float(b[0]), float(b[2]), float(b[1]), float(b[3])] if b.size() == 4 else []
 			out.append({"name": r.get("display_name", ""), "lat": float(r["lat"]), "lon": float(r["lon"]), "bbox": bbox})
 	return out
+
+
+## Wikidata facts about the city around (lat, lon), as SPARQL result rows.
+## Empty on failure.
+func fetch_city_facts(lat: float, lon: float) -> Array:
+	var data: Variant = await _get_json(CityFacts.url(lat, lon), 30.0)
+	if data is Dictionary:
+		return data.get("results", {}).get("bindings", [])
+	return []
