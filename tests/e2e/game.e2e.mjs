@@ -154,6 +154,13 @@ try {
   await until((s) => s.total_m > moving + 3, "walking on cached streets");
   assert.equal(requests.streets + requests.streetTiles, streetsBefore, "no street downloads after reload");
 
+  step = "menu";
+  assert.equal((await state()).rects.history, undefined, "History hides in the menu");
+  await tap("menu");
+  const menu = await until((s) => s.rects.history && s.rects.new_city, "menu open");
+  assert.deepEqual(menu.overlaps, [], "texts overlap with the menu open");
+  await page.screenshot({ path: `${shots}/2c-menu.png` });
+
   step = "history panel";
   await tap("history");
   const hist = await until((s) => s.history_open && s.rects.history_panel, "history panel open");
@@ -168,6 +175,7 @@ try {
   await until((s) => !s.history_open, "history panel closed");
 
   step = "reset needs RESET";
+  await tap("menu");
   await tap("new_city");
   await until((s) => s.confirm_visible, "reset dialog");
   await tap("confirm_box");

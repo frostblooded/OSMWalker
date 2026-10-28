@@ -231,7 +231,9 @@ func test_offline_start_shows_error_and_stays_on_picker() -> void:
 func test_buttons_are_big_enough_to_tap() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
-	for key in ["new_city", "zoom_in"]:
+	m.hud.open_menu()
+	await wait_frames(2)
+	for key in ["menu", "new_city", "history", "zoom_in"]:
 		var c: Control = m.hud.debug_controls()[key]
 		assert_gte(c.size.y, 100.0, key)
 		assert_gte(c.size.x, 100.0, key)
@@ -648,6 +650,18 @@ func test_nothing_overlaps_with_the_history_open() -> void:
 	assert_eq(m.hud.overlapping_texts(), [])
 
 
+func test_nothing_overlaps_with_the_menu_open() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.hud.open_menu()
+	m.hud.set_goal_view(true)
+	m._step(0.01)
+	await wait_frames(3)
+	assert_true(m.hud.debug_controls()["new_city"].is_visible_in_tree())
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
 func test_nothing_overlaps_in_the_reset_dialog() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
@@ -751,12 +765,12 @@ func test_history_panel_shows_the_trail_and_numbered_markers() -> void:
 	assert_true(m.trail_view.visible)
 	assert_gt(m.trail_view.markers.size(), 0)
 	assert_eq(m.hud.history_rows(), m.stats.history.entries.size())
-	assert_false(m.hud.debug_controls()["new_city"].is_visible_in_tree(), "map buttons hide under the panel")
+	assert_false(m.hud.debug_controls()["menu"].is_visible_in_tree(), "map buttons hide under the panel")
 	m.hud.close_history()
 	m._step(0.1)
 	assert_false(m.trail_view.visible)
 	assert_eq(m.map.zoom, m.player_zoom)
-	assert_true(m.hud.debug_controls()["new_city"].is_visible_in_tree())
+	assert_true(m.hud.debug_controls()["menu"].is_visible_in_tree())
 
 
 func test_tapping_a_history_entry_centers_the_map_on_it() -> void:

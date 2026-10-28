@@ -1,6 +1,6 @@
 ## All on-screen UI, sized for small touchscreens: city search, status bar,
 ## his mini stats and latest action (tap for the full sheet), zoom buttons,
-## the history panel, and the reset button guarded by typing RESET.
+## the ☰ menu, the history panel, and the reset button guarded by typing RESET.
 extends CanvasLayer
 
 signal search_requested(text: String)
@@ -19,6 +19,7 @@ const History := preload("res://scripts/history.gd")
 
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
+const ZOOM := Vector2(100, 100)
 const PANEL_BG := Color(1, 1, 1, 0.92)
 ## Meters in the mini stats row: short name, colour.
 const MINI_BARS := {"health": ["HP", Color("#d7263d")], "energy": ["EN", Color("#f4b400")], "fullness": ["FU", Color("#2e9e44")]}
@@ -52,6 +53,9 @@ var _reset_button: Button
 var _back_button: Button
 var _zoom_in: Button
 var _history_button: Button
+var _menu_button: Button
+var _menu_items: VBoxContainer
+var _menu_backdrop: Control
 var _top: Control
 var _map_buttons := []  # hidden while the history panel is up
 var _credit: Label
@@ -182,8 +186,8 @@ func _build_game_ui() -> void:
 	zoom_col.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	zoom_col.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	for step in [1, -1]:
-		var b := _button("+" if step > 0 else "−", BIG)
-		b.add_theme_font_size_override("font_size", 64)
+		var b := _button("+" if step > 0 else "−", ZOOM)
+		b.add_theme_font_size_override("font_size", 52)
 		b.pressed.connect(func(): zoom_changed.emit(step))
 		if step > 0:
 			_zoom_in = b
@@ -191,30 +195,41 @@ func _build_game_ui() -> void:
 	_game_ui.add_child(zoom_col)
 	_map_buttons.append(zoom_col)
 
-	var reset := _button("New city", Vector2(250, BIG.y))
-	reset.add_theme_font_size_override("font_size", 34)
-	reset.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-	reset.offset_bottom = -90
-	reset.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	reset.pressed.connect(_open_confirm)
-	_reset_button = reset
-	_game_ui.add_child(reset)
+	# Rarely used buttons live in a menu over the ☰ button, so the map stays clear.
+	_menu_backdrop = Control.new()
+	_menu_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_menu_backdrop.visible = false
+	_menu_backdrop.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			close_menu())
+	_game_ui.add_child(_menu_backdrop)
 
-	var hist := _button("History", Vector2(250, BIG.y))
-	hist.add_theme_font_size_override("font_size", 34)
-	hist.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-	hist.offset_bottom = -90 - BIG.y - 16
-	hist.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hist.pressed.connect(open_history)
-	_history_button = hist
-	_game_ui.add_child(hist)
-	_map_buttons += [reset, hist]
+	_menu_items = VBoxContainer.new()
+	_menu_items.add_theme_constant_override("separation", 16)
+	_menu_items.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
+	_menu_items.offset_bottom = -90 - BIG.y - 16
+	_menu_items.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_menu_items.visible = false
+	_game_ui.add_child(_menu_items)
+	_history_button = add_menu_item("History", open_history)
+	_reset_button = add_menu_item("New city", _open_confirm)
+
+	var menu := _button("", BIG)
+	menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
+	menu.offset_bottom = -90
+	menu.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	menu.pressed.connect(func(): close_menu() if is_menu_open() else open_menu())
+	_add_burger_lines(menu)
+	_menu_button = menu
+	_game_ui.add_child(menu)
+	_map_buttons.append(menu)
 
 	# Shown while the map shows his goal instead of following him.
 	var back := _button("Back to him", Vector2(250, BIG.y))
 	back.add_theme_font_size_override("font_size", 34)
 	back.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-	back.offset_bottom = -90 - 2 * (BIG.y + 16)
+	back.offset_left = 24 + BIG.x + 16  # beside ☰, clear of the menu above it
+	back.offset_bottom = -90
 	back.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	back.visible = false
 	back.pressed.connect(func(): back_tapped.emit())
@@ -229,6 +244,60 @@ func _build_game_ui() -> void:
 	credit.add_theme_constant_override("outline_size", 10)
 	_game_ui.add_child(credit)
 	_credit = credit
+
+
+## Three bars drawn on the ☰ button; the font has no ☰ glyph.
+func _add_burger_lines(b: Button) -> void:
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	col.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	col.grow_vertical = Control.GROW_DIRECTION_BOTH
+	col.add_theme_constant_override("separation", 12)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in 3:
+		var line := ColorRect.new()
+		line.color = Color(0.9, 0.9, 0.9)
+		line.custom_minimum_size = Vector2(56, 8)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(line)
+	b.add_child(col)
+
+
+## Adds a big button to the ☰ menu; tapping it closes the menu and calls `on_tap`.
+func add_menu_item(text: String, on_tap: Callable) -> Button:
+	var b := _button(text, Vector2(250, BIG.y))
+	b.add_theme_font_size_override("font_size", 34)
+	b.pressed.connect(func():
+		close_menu()
+		on_tap.call())
+	_menu_items.add_child(b)
+	return b
+
+
+## Adds a big on/off switch to the ☰ menu; flipping it keeps the menu open.
+func add_menu_toggle(text: String, on: bool, on_toggle: Callable) -> CheckButton:
+	var t := CheckButton.new()
+	t.text = text
+	t.button_pressed = on
+	t.custom_minimum_size = Vector2(250, BIG.y)
+	t.add_theme_font_size_override("font_size", 34)
+	t.toggled.connect(on_toggle)
+	_menu_items.add_child(t)
+	return t
+
+
+func open_menu() -> void:
+	_menu_items.visible = true
+	_menu_backdrop.visible = true
+
+
+func close_menu() -> void:
+	_menu_items.visible = false
+	_menu_backdrop.visible = false
+
+
+func is_menu_open() -> bool:
+	return _menu_items.visible
 
 
 ## Bar and countdown in the top panel while he stays somewhere.
@@ -376,6 +445,7 @@ func _build_history() -> void:
 
 
 func open_history() -> void:
+	close_menu()
 	_history.visible = true
 	_show_map_buttons(false)
 	_history_sig = ""
@@ -647,6 +717,7 @@ func show_picker(message := "") -> void:
 	_picker.visible = true
 	_game_ui.visible = false
 	_history.visible = false
+	close_menu()
 	_show_map_buttons(true)
 	_picker_status.text = message
 	_search_button.disabled = false
@@ -744,7 +815,7 @@ static func _describe(c: Control) -> String:
 func debug_controls() -> Dictionary:
 	return {
 		"search_box": _search_box, "search_button": _search_button, "result0": _first_live(_results),
-		"new_city": _reset_button, "zoom_in": _zoom_in, "goal": place_label, "back_to_him": _back_button,
+		"new_city": _reset_button, "zoom_in": _zoom_in, "menu": _menu_button, "menu_backdrop": _menu_backdrop, "goal": place_label, "back_to_him": _back_button,
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,

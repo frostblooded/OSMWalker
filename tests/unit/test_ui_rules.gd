@@ -139,3 +139,79 @@ func test_back_to_him_button_shows_only_in_the_goal_view() -> void:
 	watch_signals(hud)
 	hud.debug_controls()["back_to_him"].pressed.emit()
 	assert_signal_emitted(hud, "back_tapped")
+
+
+func _game_hud() -> Hud:
+	var hud: Hud = autofree(Hud.new())
+	add_child(hud)
+	hud.show_game("Sofia")
+	return hud
+
+
+func test_menu_items_stay_hidden_until_the_menu_opens() -> void:
+	var hud := _game_hud()
+	var c := hud.debug_controls()
+	assert_true(c["menu"].is_visible_in_tree())
+	assert_false(c["history"].is_visible_in_tree())
+	assert_false(c["new_city"].is_visible_in_tree())
+	assert_true(c["zoom_in"].is_visible_in_tree(), "zoom stays on the map")
+	c["menu"].pressed.emit()
+	assert_true(hud.is_menu_open())
+	assert_true(c["history"].is_visible_in_tree())
+	assert_true(c["new_city"].is_visible_in_tree())
+	c["menu"].pressed.emit()
+	assert_false(hud.is_menu_open(), "tapping ☰ again closes it")
+
+
+func test_picking_a_menu_item_closes_the_menu() -> void:
+	var hud := _game_hud()
+	var c := hud.debug_controls()
+	c["menu"].pressed.emit()
+	c["history"].pressed.emit()
+	assert_false(hud.is_menu_open())
+	assert_true(hud.is_history_open())
+
+
+func test_tapping_the_map_closes_the_menu() -> void:
+	var hud := _game_hud()
+	hud.open_menu()
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	hud.debug_controls()["menu_backdrop"].gui_input.emit(tap)
+	assert_false(hud.is_menu_open())
+
+
+func test_other_features_can_add_menu_items() -> void:
+	var hud := _game_hud()
+	var hits := [0]
+	var b: Button = hud.add_menu_item("Debug", func(): hits[0] += 1)
+	assert_false(b.is_visible_in_tree())
+	hud.open_menu()
+	assert_true(b.is_visible_in_tree())
+	b.pressed.emit()
+	assert_eq(hits[0], 1)
+	assert_false(hud.is_menu_open())
+
+
+func test_menu_button_is_big_and_zoom_buttons_are_smaller() -> void:
+	var hud := _game_hud()
+	await wait_frames(2)
+	var c := hud.debug_controls()
+	assert_gte(c["menu"].size.y, 100.0)
+	assert_gte(c["menu"].size.x, 100.0)
+	assert_lt(c["zoom_in"].size.y, 132.0, "zoom buttons got smaller")
+	assert_gte(c["zoom_in"].size.y, 100.0, "but stay easy to tap")
+
+
+func test_menu_can_hold_a_big_toggle() -> void:
+	var hud := _game_hud()
+	var seen := []
+	var t: CheckButton = hud.add_menu_toggle("Show route", true, func(on): seen.append(on))
+	assert_true(t.button_pressed)
+	hud.open_menu()
+	await wait_frames(2)
+	assert_gte(t.size.y, 100.0)
+	t.toggled.emit(false)
+	assert_eq(seen, [false])
+	assert_true(hud.is_menu_open(), "a toggle keeps the menu open")
