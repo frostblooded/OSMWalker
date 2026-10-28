@@ -789,40 +789,6 @@
    }
   }
  ],
- "shop/bakery": [
-  {
-   "name": "Pastry for the road",
-   "min": 3,
-   "cost": 3,
-   "fx": {
-    "fullness": 15,
-    "mood": 8,
-    "xp": 5
-   }
-  },
-  {
-   "name": "Fresh loaf, eaten warm",
-   "min": 5,
-   "cost": 2,
-   "fx": {
-    "fullness": 25,
-    "xp": 5
-   }
-  },
-  {
-   "name": "Early-morning shift",
-   "min": 90,
-   "earn": 25,
-   "fx": {
-    "fullness": 15,
-    "energy": -15,
-    "xp": 20
-   },
-   "needs": {
-    "time": "morning"
-   }
-  }
- ],
  "museum": [
   {
    "name": "Full visit",
@@ -2231,27 +2197,6 @@
    }
   }
  ],
- "shop/hairdresser": [
-  {
-   "name": "Haircut",
-   "min": 30,
-   "cost": 8,
-   "fx": {
-    "cha": 0.5,
-    "mood": 10,
-    "xp": 5
-   }
-  },
-  {
-   "name": "Shave",
-   "min": 15,
-   "cost": 4,
-   "fx": {
-    "hygiene": 10,
-    "xp": 5
-   }
-  }
- ],
  "shop/beauty": [
   {
    "name": "Spa treatment",
@@ -3250,6 +3195,1266 @@
     "p": 0.1,
     "text": "worth 3c",
     "cost": -3
+   }
+  }
+ ],
+ "bakery": [
+  {
+   "name": "Pastry for the road",
+   "min": 3,
+   "cost": 3,
+   "fx": {
+    "fullness": 15,
+    "mood": 8,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Fresh loaf, eaten warm",
+   "min": 5,
+   "cost": 2,
+   "fx": {
+    "fullness": 25,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Early-morning shift",
+   "min": 90,
+   "earn": 25,
+   "fx": {
+    "fullness": 15,
+    "energy": -15,
+    "xp": 20
+   },
+   "needs": {
+    "time": "morning"
+   }
+  },
+  {
+   "name": "Cinnamon roll still warm",
+   "min": 4,
+   "cost": 3,
+   "fx": {
+    "fullness": 15,
+    "mood": 10,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Day-old bread for cheap",
+   "min": 3,
+   "cost": 1,
+   "fx": {
+    "fullness": 15,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Burek and a yoghurt drink",
+   "min": 8,
+   "cost": 4,
+   "fx": {
+    "fullness": 30,
+    "thirst": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "hairdresser": [
+  {
+   "name": "Haircut",
+   "min": 30,
+   "cost": 8,
+   "fx": {
+    "cha": 0.5,
+    "mood": 10,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Shave",
+   "min": 15,
+   "cost": 4,
+   "fx": {
+    "hygiene": 10,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Bold new style",
+   "min": 45,
+   "cost": 15,
+   "fx": {
+    "cha": 1.0,
+    "mood": 5,
+    "xp": 10
+   },
+   "risk": {
+    "p": 0.2,
+    "text": "it looks awful",
+    "fx": {
+     "mood": -20,
+     "cha": -0.5
+    }
+   }
+  },
+  {
+   "name": "Sweep up hair for tips",
+   "min": 60,
+   "earn": [
+    8,
+    14
+   ],
+   "fx": {
+    "energy": -10,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Gossip with the regulars",
+   "min": 15,
+   "fx": {
+    "mood": 8,
+    "wit": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "butcher": [
+  {
+   "name": "Hot sausage from the counter",
+   "min": 5,
+   "cost": 4,
+   "fx": {
+    "fullness": 25,
+    "str": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Bag of jerky for the road",
+   "min": 3,
+   "cost": 6,
+   "fx": {
+    "fullness": 15,
+    "xp": 3
+   },
+   "buff": {
+    "name": "Snacking",
+    "min": 120,
+    "per_h": {
+     "fullness": 5
+    }
+   }
+  },
+  {
+   "name": "Learn to tell the cuts apart",
+   "min": 20,
+   "fx": {
+    "wit": 0.2,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Haul carcasses for the butcher",
+   "min": 90,
+   "earn": [
+    20,
+    30
+   ],
+   "fx": {
+    "energy": -20,
+    "hygiene": -15,
+    "str": 0.3,
+    "xp": 20
+   },
+   "needs": {
+    "str": 3
+   }
+  }
+ ],
+ "school": [
+  {
+   "name": "Read the notice board",
+   "min": 5,
+   "fx": {
+    "wit": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Help at the school fair",
+   "min": 60,
+   "earn": [
+    5,
+    12
+   ],
+   "fx": {
+    "mood": 10,
+    "cha": 0.2,
+    "xp": 15
+   },
+   "needs": {
+    "time": "day"
+   }
+  },
+  {
+   "name": "Sit in on an evening class",
+   "min": 60,
+   "cost": 5,
+   "fx": {
+    "wit": 0.5,
+    "energy": -10,
+    "xp": 25
+   },
+   "needs": {
+    "time": "evening"
+   }
+  },
+  {
+   "name": "Shoot hoops in the schoolyard",
+   "min": 20,
+   "fx": {
+    "str": 0.1,
+    "mood": 8,
+    "energy": -10,
+    "thirst": -5,
+    "xp": 8
+   }
+  }
+ ],
+ "atm": [
+  {
+   "name": "Check his balance",
+   "min": 2,
+   "fx": {
+    "wit": 0.05,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Find a coin by the ATM",
+   "min": 1,
+   "earn": [
+    1,
+    5
+   ],
+   "fx": {
+    "luck": 0.1,
+    "mood": 5,
+    "xp": 2
+   },
+   "needs": {
+    "luck": 2
+   }
+  }
+ ],
+ "office": [
+  {
+   "name": "Temp at the front desk",
+   "min": 120,
+   "earn": [
+    25,
+    40
+   ],
+   "fx": {
+    "energy": -20,
+    "mood": -5,
+    "cha": 0.2,
+    "xp": 25
+   },
+   "needs": {
+    "time": "day"
+   }
+  },
+  {
+   "name": "Deliver a parcel inside",
+   "min": 15,
+   "earn": [
+    4,
+    8
+   ],
+   "fx": {
+    "energy": -5,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Free coffee in the lobby",
+   "min": 5,
+   "fx": {
+    "energy": 10,
+    "thirst": 5,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Fix someone's printer",
+   "min": 30,
+   "earn": [
+    10,
+    20
+   ],
+   "fx": {
+    "wit": 0.3,
+    "xp": 15
+   },
+   "needs": {
+    "wit": 3
+   }
+  }
+ ],
+ "office/employment_agency": [
+  {
+   "name": "Sign up for odd jobs",
+   "min": 20,
+   "fx": {
+    "cha": 0.1,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Day of shifting boxes",
+   "min": 120,
+   "earn": [
+    30,
+    45
+   ],
+   "fx": {
+    "energy": -30,
+    "str": 0.4,
+    "xp": 30
+   },
+   "needs": {
+    "time": "day"
+   }
+  },
+  {
+   "name": "Job interview",
+   "min": 30,
+   "earn": [
+    0,
+    30
+   ],
+   "fx": {
+    "cha": 0.3,
+    "mood": -5,
+    "xp": 20
+   },
+   "needs": {
+    "cha": 3
+   }
+  }
+ ],
+ "office/coworking": [
+  {
+   "name": "Rent a desk for an hour",
+   "min": 60,
+   "cost": 8,
+   "fx": {
+    "wit": 0.4,
+    "energy": -5,
+    "xp": 20
+   }
+  },
+  {
+   "name": "Freelance gig on a borrowed laptop",
+   "min": 120,
+   "earn": [
+    30,
+    60
+   ],
+   "fx": {
+    "energy": -20,
+    "wit": 0.3,
+    "xp": 30
+   },
+   "needs": {
+    "wit": 4
+   }
+  },
+  {
+   "name": "Networking breakfast",
+   "min": 30,
+   "fx": {
+    "fullness": 15,
+    "cha": 0.3,
+    "xp": 10
+   },
+   "needs": {
+    "time": "morning"
+   }
+  }
+ ],
+ "office/government": [
+  {
+   "name": "Queue for a form",
+   "min": 60,
+   "fx": {
+    "mood": -15,
+    "wit": 0.2,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Get a stamp on the wrong form",
+   "min": 30,
+   "cost": 3,
+   "fx": {
+    "mood": -10,
+    "xp": 5
+   }
+  }
+ ],
+ "office/diplomatic": [
+  {
+   "name": "Admire the flags",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Ask about visas, just in case",
+   "min": 20,
+   "fx": {
+    "wit": 0.2,
+    "xp": 8
+   }
+  }
+ ],
+ "office/lawyer": [
+  {
+   "name": "Ask a free legal question",
+   "min": 10,
+   "fx": {
+    "wit": 0.3,
+    "xp": 8
+   },
+   "needs": {
+    "cha": 2
+   }
+  }
+ ],
+ "office/estate_agent": [
+  {
+   "name": "Gawk at house prices in the window",
+   "min": 5,
+   "fx": {
+    "mood": -5,
+    "wit": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Hand out flyers for the agent",
+   "min": 60,
+   "earn": [
+    10,
+    18
+   ],
+   "fx": {
+    "energy": -15,
+    "cha": 0.2,
+    "xp": 15
+   }
+  }
+ ],
+ "bicycle_rental": [
+  {
+   "name": "Rent a bike for a spin",
+   "min": 15,
+   "cost": 3,
+   "fx": {
+    "mood": 15,
+    "str": 0.2,
+    "energy": -10,
+    "thirst": -5,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Ride to the river and back",
+   "min": 15,
+   "cost": 5,
+   "fx": {
+    "mood": 20,
+    "energy": -15,
+    "thirst": -10,
+    "xp": 15
+   },
+   "risk": {
+    "p": 0.1,
+    "text": "he fell off",
+    "fx": {
+     "health": -10,
+     "mood": -10
+    }
+   }
+  }
+ ],
+ "bicycle": [
+  {
+   "name": "Pump up a stranger's tyre",
+   "min": 5,
+   "fx": {
+    "cha": 0.1,
+    "mood": 5,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Fix bikes in the workshop",
+   "min": 90,
+   "earn": [
+    20,
+    30
+   ],
+   "fx": {
+    "hygiene": -10,
+    "wit": 0.3,
+    "xp": 20
+   },
+   "needs": {
+    "wit": 2
+   }
+  },
+  {
+   "name": "Try the fanciest bike",
+   "min": 10,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "parking": [
+  {
+   "name": "Help someone parallel park",
+   "min": 5,
+   "earn": [
+    0,
+    3
+   ],
+   "fx": {
+    "cha": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Wash cars for coins",
+   "min": 60,
+   "earn": [
+    10,
+    20
+   ],
+   "fx": {
+    "hygiene": -10,
+    "energy": -15,
+    "xp": 15
+   }
+  }
+ ],
+ "fuel": [
+  {
+   "name": "Hot dog from the station",
+   "min": 5,
+   "cost": 4,
+   "fx": {
+    "fullness": 25,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Cold drink from the fridge",
+   "min": 2,
+   "cost": 2,
+   "fx": {
+    "thirst": 30,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Night shift at the till",
+   "min": 120,
+   "earn": [
+    25,
+    40
+   ],
+   "fx": {
+    "energy": -25,
+    "xp": 25
+   },
+   "needs": {
+    "time": "night"
+   }
+  }
+ ],
+ "car": [
+  {
+   "name": "Kick the tyres of a sports car",
+   "min": 10,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Hand tools to the mechanic",
+   "min": 60,
+   "earn": [
+    15,
+    25
+   ],
+   "fx": {
+    "hygiene": -20,
+    "str": 0.2,
+    "wit": 0.2,
+    "xp": 20
+   }
+  }
+ ],
+ "veterinary": [
+  {
+   "name": "Pet the dogs in the waiting room",
+   "min": 10,
+   "fx": {
+    "mood": 20,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Walk a recovering dog",
+   "min": 30,
+   "earn": [
+    5,
+    10
+   ],
+   "fx": {
+    "mood": 15,
+    "energy": -10,
+    "xp": 12
+   }
+  }
+ ],
+ "yoga": [
+  {
+   "name": "Drop-in yoga class",
+   "min": 60,
+   "cost": 10,
+   "fx": {
+    "health": 10,
+    "mood": 15,
+    "energy": -10,
+    "xp": 15
+   },
+   "buff": {
+    "name": "Limber",
+    "min": 180,
+    "per_h": {
+     "mood": 3
+    }
+   }
+  },
+  {
+   "name": "Stretch in the lobby",
+   "min": 10,
+   "fx": {
+    "health": 3,
+    "mood": 5,
+    "xp": 3
+   }
+  }
+ ],
+ "escape_game": [
+  {
+   "name": "Escape room with strangers",
+   "min": 60,
+   "cost": 15,
+   "fx": {
+    "wit": 0.8,
+    "cha": 0.2,
+    "mood": 15,
+    "xp": 30
+   },
+   "needs": {
+    "wit": 3
+   },
+   "risk": {
+    "p": 0.3,
+    "text": "they ran out of time",
+    "fx": {
+     "mood": -15
+    }
+   }
+  }
+ ],
+ "ferry_terminal": [
+  {
+   "name": "Watch the ferries come in",
+   "min": 15,
+   "fx": {
+    "mood": 12,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Help load luggage",
+   "min": 60,
+   "earn": [
+    12,
+    20
+   ],
+   "fx": {
+    "energy": -15,
+    "str": 0.3,
+    "xp": 15
+   }
+  }
+ ],
+ "swimming_pool": [
+  {
+   "name": "Swim laps",
+   "min": 45,
+   "cost": 5,
+   "fx": {
+    "str": 0.5,
+    "hygiene": 40,
+    "energy": -20,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Sunbathe",
+   "min": 40,
+   "fx": {
+    "mood": 15,
+    "xp": 5
+   },
+   "risk": {
+    "p": 0.3,
+    "text": "and got sunburned",
+    "fx": {
+     "health": -5
+    }
+   }
+  },
+  {
+   "name": "Waterslides",
+   "min": 30,
+   "cost": 12,
+   "fx": {
+    "mood": 30,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Lifeguard shift",
+   "min": 120,
+   "earn": 40,
+   "fx": {
+    "xp": 25
+   },
+   "needs": {
+    "str": 6
+   }
+  }
+ ],
+ "climbing": [
+  {
+   "name": "Bouldering session",
+   "min": 60,
+   "cost": 12,
+   "fx": {
+    "str": 0.6,
+    "energy": -25,
+    "mood": 10,
+    "xp": 20
+   },
+   "risk": {
+    "p": 0.1,
+    "text": "he slipped",
+    "fx": {
+     "health": -10
+    }
+   }
+  }
+ ],
+ "boxing": [
+  {
+   "name": "Hit the heavy bag",
+   "min": 30,
+   "cost": 5,
+   "fx": {
+    "str": 0.5,
+    "energy": -20,
+    "hygiene": -15,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Spar a round",
+   "min": 15,
+   "fx": {
+    "str": 0.4,
+    "health": -10,
+    "mood": 5,
+    "xp": 20
+   },
+   "needs": {
+    "str": 4
+   }
+  }
+ ],
+ "billiards": [
+  {
+   "name": "Game of pool",
+   "min": 30,
+   "cost": 3,
+   "fx": {
+    "wit": 0.2,
+    "mood": 10,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Hustle a game",
+   "min": 30,
+   "earn": [
+    -10,
+    25
+   ],
+   "fx": {
+    "luck": 0.2,
+    "cha": 0.2,
+    "xp": 15
+   },
+   "needs": {
+    "wit": 3
+   }
+  }
+ ],
+ "ice_rink": [
+  {
+   "name": "Skate in circles",
+   "min": 30,
+   "cost": 6,
+   "fx": {
+    "mood": 15,
+    "energy": -15,
+    "xp": 10
+   },
+   "risk": {
+    "p": 0.25,
+    "text": "he fell on his bum",
+    "fx": {
+     "health": -5,
+     "mood": -5
+    }
+   }
+  }
+ ],
+ "tennis": [
+  {
+   "name": "Hit balls against the wall",
+   "min": 20,
+   "fx": {
+    "str": 0.2,
+    "energy": -15,
+    "thirst": -10,
+    "xp": 8
+   }
+  }
+ ],
+ "picnic_site": [
+  {
+   "name": "Picnic lunch",
+   "min": 30,
+   "cost": 6,
+   "fx": {
+    "fullness": 35,
+    "mood": 15,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Nap on a picnic bench",
+   "min": 15,
+   "fx": {
+    "energy": 20,
+    "xp": 3
+   }
+  }
+ ],
+ "recycling": [
+  {
+   "name": "Return bottles for the deposit",
+   "min": 10,
+   "earn": [
+    1,
+    4
+   ],
+   "fx": {
+    "xp": 5
+   }
+  }
+ ],
+ "hackerspace": [
+  {
+   "name": "Solder something at open night",
+   "min": 60,
+   "fx": {
+    "wit": 0.7,
+    "mood": 10,
+    "xp": 25
+   },
+   "needs": {
+    "time": "evening"
+   }
+  }
+ ],
+ "shelter": [
+  {
+   "name": "Wait out the weather",
+   "min": 10,
+   "fx": {
+    "energy": 8,
+    "xp": 2
+   }
+  }
+ ],
+ "theme_park": [
+  {
+   "name": "Roller coaster",
+   "min": 20,
+   "cost": 15,
+   "fx": {
+    "mood": 30,
+    "energy": -10,
+    "xp": 15
+   },
+   "risk": {
+    "p": 0.15,
+    "text": "he lost his lunch",
+    "fx": {
+     "fullness": -30,
+     "mood": -10
+    }
+   }
+  }
+ ],
+ "water_park": [
+  {
+   "name": "Down the big slide",
+   "min": 30,
+   "cost": 12,
+   "fx": {
+    "mood": 25,
+    "hygiene": 15,
+    "energy": -15,
+    "xp": 15
+   }
+  }
+ ],
+ "aquarium": [
+  {
+   "name": "Stare at the jellyfish",
+   "min": 30,
+   "cost": 8,
+   "fx": {
+    "mood": 20,
+    "wit": 0.2,
+    "xp": 15
+   }
+  }
+ ],
+ "chess": [
+  {
+   "name": "Lose a game of chess to a pensioner",
+   "min": 30,
+   "fx": {
+    "wit": 0.5,
+    "mood": -5,
+    "xp": 20
+   }
+  }
+ ],
+ "karting": [
+  {
+   "name": "Ten laps of go-karts",
+   "min": 15,
+   "cost": 15,
+   "fx": {
+    "mood": 25,
+    "luck": 0.2,
+    "xp": 15
+   }
+  }
+ ],
+ "shop/florist": [
+  {
+   "name": "Smell the flowers",
+   "min": 5,
+   "fx": {
+    "mood": 10,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Buy a flower for his buttonhole",
+   "min": 3,
+   "cost": 2,
+   "fx": {
+    "cha": 0.3,
+    "xp": 5
+   },
+   "buff": {
+    "name": "Dapper",
+    "min": 240,
+    "per_h": {
+     "mood": 2
+    }
+   }
+  },
+  {
+   "name": "Make deliveries by bike",
+   "min": 90,
+   "earn": [
+    15,
+    25
+   ],
+   "fx": {
+    "energy": -20,
+    "xp": 20
+   }
+  }
+ ],
+ "shop/massage": [
+  {
+   "name": "Back massage",
+   "min": 30,
+   "cost": 20,
+   "fx": {
+    "health": 10,
+    "mood": 20,
+    "energy": 15,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Foot massage after the walk",
+   "min": 20,
+   "cost": 12,
+   "fx": {
+    "energy": 20,
+    "mood": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "shop/tattoo": [
+  {
+   "name": "Tiny anchor tattoo",
+   "min": 60,
+   "cost": 25,
+   "fx": {
+    "cha": 0.8,
+    "mood": 10,
+    "health": -5,
+    "xp": 15
+   },
+   "risk": {
+    "p": 0.1,
+    "text": "it's spelled wrong",
+    "fx": {
+     "mood": -20,
+     "cha": -0.5
+    }
+   }
+  },
+  {
+   "name": "Flip through the flash book",
+   "min": 10,
+   "fx": {
+    "mood": 5,
+    "xp": 3
+   }
+  }
+ ],
+ "shop/optician": [
+  {
+   "name": "Free eye test",
+   "min": 20,
+   "fx": {
+    "wit": 0.2,
+    "health": 3,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Try on silly glasses",
+   "min": 10,
+   "fx": {
+    "mood": 10,
+    "xp": 3
+   }
+  }
+ ],
+ "shop/pet": [
+  {
+   "name": "Watch the puppies",
+   "min": 10,
+   "fx": {
+    "mood": 15,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Clean the fish tanks",
+   "min": 60,
+   "earn": [
+    10,
+    18
+   ],
+   "fx": {
+    "hygiene": -10,
+    "xp": 15
+   }
+  }
+ ],
+ "shop/confectionery": [
+  {
+   "name": "Bag of sweets",
+   "min": 3,
+   "cost": 3,
+   "fx": {
+    "mood": 15,
+    "fullness": 5,
+    "health": -2,
+    "xp": 3
+   },
+   "buff": {
+    "name": "Sugar rush",
+    "min": 30,
+    "per_h": {
+     "energy": 20
+    }
+   }
+  },
+  {
+   "name": "Free samples",
+   "min": 5,
+   "fx": {
+    "mood": 8,
+    "fullness": 3,
+    "xp": 3
+   },
+   "needs": {
+    "cha": 2
+   }
+  }
+ ],
+ "shop/chocolate": [
+  {
+   "name": "Bag of sweets",
+   "min": 3,
+   "cost": 3,
+   "fx": {
+    "mood": 15,
+    "fullness": 5,
+    "health": -2,
+    "xp": 3
+   },
+   "buff": {
+    "name": "Sugar rush",
+    "min": 30,
+    "per_h": {
+     "energy": 20
+    }
+   }
+  },
+  {
+   "name": "Free samples",
+   "min": 5,
+   "fx": {
+    "mood": 8,
+    "fullness": 3,
+    "xp": 3
+   },
+   "needs": {
+    "cha": 2
+   }
+  }
+ ],
+ "shop/tailor": [
+  {
+   "name": "Get his trousers taken in",
+   "min": 30,
+   "cost": 8,
+   "fx": {
+    "cha": 0.5,
+    "xp": 8
+   }
+  }
+ ],
+ "shop/newsagent": [
+  {
+   "name": "Read the papers standing up",
+   "min": 10,
+   "fx": {
+    "wit": 0.2,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Lottery ticket",
+   "min": 2,
+   "cost": 2,
+   "earn": [
+    0,
+    4
+   ],
+   "fx": {
+    "luck": 0.1,
+    "xp": 2
+   }
+  }
+ ],
+ "shop/mobile_phone": [
+  {
+   "name": "Charge his phone at the counter",
+   "min": 10,
+   "fx": {
+    "mood": 5,
+    "xp": 3
+   },
+   "needs": {
+    "cha": 2
+   }
+  }
+ ],
+ "shop/coffee": [
+  {
+   "name": "Bag of beans to sniff",
+   "min": 5,
+   "cost": 4,
+   "fx": {
+    "energy": 10,
+    "mood": 5,
+    "xp": 3
+   }
+  }
+ ],
+ "shop/tobacco": [
+  {
+   "name": "Buy a postcard",
+   "min": 2,
+   "cost": 1,
+   "fx": {
+    "mood": 5,
+    "xp": 3
    }
   }
  ]
