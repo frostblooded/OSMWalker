@@ -52,7 +52,6 @@ var stats := Stats.new()
 var activities: Activities
 var city_facts := []  # trivia actions for random spots, from Wikidata
 var clock_hour := -1  # >= 0 pins the hour of day (tests)
-var doing := ""  # what he is doing while he stays somewhere, shown over the countdown
 
 var walker: Walker
 var city := ""
@@ -185,13 +184,11 @@ func _on_arrived(place: Dictionary) -> void:
 		stats.say("Reached %s for the first time (+%d XP)" % [place["name"], bonus])
 	elif not place.is_empty():
 		stats.say("Reached " + place["name"])
-	doing = "Resting at " + place.get("name", "")
 	var options := activities.for_place(place, country) + city_facts
 	var action := Activities.choose(options, stats, _hour(), rng.randf())
 	if action.is_empty():
 		return
 	stats.do(action, place.get("name", ""), rng)
-	doing = "%s at %s" % [action["name"], place.get("name", "")]
 	walker.rest_for(Activities.rest_minutes(action))
 
 
@@ -216,7 +213,6 @@ func _faint() -> void:
 			_track()
 	walker.rest_for(Activities.MAX_MINUTES)
 	walker.place = hospital
-	doing = "Recovering at " + hospital.get("name", "the hospital")
 
 
 ## Looks the city up on Wikidata in the background for trivia at random
@@ -305,7 +301,8 @@ func _step(delta: float) -> void:
 	if walker.is_traveling():
 		hud.set_trip(walker.travel["to"]["name"])
 	else:
-		hud.set_street(walker.street_name())
+		hud.set_street(walker.street_name(), walker.is_resting())
+	hud.set_wait(walker.rest_left_s() if walker.is_resting() and not walker.is_traveling() else -1.0, walker.rest_fraction())
 	_show_place()
 	_show_status()
 
@@ -392,10 +389,6 @@ func _heading() -> Vector2:
 
 
 func _show_status() -> void:
-	if walker.is_resting() and not walker.is_traveling():
-		hud.set_status("%s\nMoving again in %s" % [doing if doing != "" else "Resting", countdown_text(walker.rest_left_s())],
-			Hud.Bar.PROGRESS, walker.rest_fraction())
-		return
 	if not walker.needs_data():
 		hud.set_status("")
 		return
@@ -407,13 +400,6 @@ func _show_status() -> void:
 		hud.set_status("Can't reach the map server. Retrying…", Hud.Bar.NONE, 0.0, details)
 	else:
 		hud.set_status("Loading streets…", Hud.Bar.BUSY, 0.0, details)
-
-
-## Seconds left as m:ss, rounded up so it reads 1:00 at the start and
-## never 0:00 while he still waits.
-static func countdown_text(seconds: float) -> String:
-	var s := ceili(maxf(seconds - 0.001, 0.0))
-	return "%d:%02d" % [s / 60, s % 60]
 
 
 ## Everything the loading details show: what he is doing,
@@ -516,6 +502,7 @@ func debug_state() -> Dictionary:
 		"history_entries": stats.history.entries.size(),
 		"trail_markers": trail_view.markers.size() if trail_view.visible else 0,
 		"confirm_enabled": hud.is_confirm_enabled(),
+		"overlaps": hud.overlapping_texts(),
 		"rects": rects,
 	}
 

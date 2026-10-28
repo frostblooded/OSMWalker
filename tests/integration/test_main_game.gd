@@ -12,12 +12,21 @@ const SAVE := "user://test_save.json"
 const STREETS := "user://test_streets/"
 
 var api: FakeOsmApi
+var _window_size: Vector2i
+
+
+func before_all() -> void:
+	_window_size = get_tree().root.size
 
 
 func before_each() -> void:
 	DirAccess.remove_absolute(SAVE)
 	DiskCache.new(STREETS).clear()
 	api = FakeOsmApi.new()
+
+
+func after_each() -> void:
+	get_tree().root.size = _window_size
 
 
 func after_all() -> void:
@@ -407,17 +416,18 @@ func test_shows_a_countdown_while_he_is_at_a_place() -> void:
 	m.walker.place = CAFE
 	m.walker.arrived.emit(CAFE)
 	m._step(0.01)
-	assert_eq(m.hud.overlay_label.text, "Espresso at the bar at Cafe East\nMoving again in 1:00")
-	assert_true(m.hud.progress_bar.visible)
-	assert_false(m.hud.progress_bar.indeterminate)
+	assert_true(m.hud.wait_bar.is_visible_in_tree(), "in the top panel")
+	assert_eq(m.hud.wait_label.text, "Moving again in 1:00")
+	assert_false(m.hud.overlay_label.visible, "nothing over the map")
+	assert_string_contains(m.hud.street_label.text, "Stopped on")
 	for i in 15:
 		m._step(1.0)
-	assert_string_contains(m.hud.overlay_label.text, "Moving again in 0:45")
-	assert_almost_eq(m.hud.progress_bar.value, 25.0, 1.0)
+	assert_eq(m.hud.wait_label.text, "Moving again in 0:45")
+	assert_almost_eq(m.hud.wait_bar.value, 25.0, 1.0)
 	for i in 46:
 		m._step(1.0)
 	assert_false(m.walker.is_resting())
-	assert_false(m.hud.overlay_label.visible)
+	assert_false(m.hud.wait_bar.is_visible_in_tree())
 
 
 func test_first_visit_gives_bonus_xp() -> void:
@@ -470,7 +480,7 @@ func test_fainting_wakes_him_at_a_hospital_for_a_fee() -> void:
 	assert_eq(m.walker.place["name"], "City Hospital")
 	assert_almost_eq(m.walker.rest_m, Walker.REST_M, 0.01, "out again after a minute")
 	m._step(0.01)
-	assert_string_contains(m.hud.overlay_label.text, "Recovering at City Hospital")
+	assert_true(m.hud.wait_bar.is_visible_in_tree())
 
 
 func test_stats_survive_a_restart() -> void:
@@ -482,6 +492,89 @@ func test_stats_survive_a_restart() -> void:
 	var again := _new_main(autofree(FakeOsmApi.new()))
 	assert_eq(again.stats.coins, 99)
 	assert_eq(again.stats.feed[-1], "Remember me")
+
+
+func test_loading_message_sits_below_the_top_panel() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.say("Read that about 9,010,000 people live in the People's Republic of Bulgaria, which is a long line")
+	api.delay_frames = 100000
+	_forget_streets(m)
+	await wait_frames(3)
+	assert_true(m.hud.overlay_label.visible)
+	assert_gte(m.hud.overlay_label.get_global_rect().position.y, m.hud.top_height())
+
+
+const LONG_LINE := "Read that about 9,010,000 people live in the People's Republic of Bulgaria, which is a long line"
+
+
+## Long city, street, place and feed texts, the worst case for the top panel.
+func _crowd_the_top_panel(m: Main) -> void:
+	get_tree().root.size = Vector2i(720, 1560)  # a portrait phone
+	m.hud.show_game("Sofia-City, People's Republic of Bulgaria")
+	m.stats.say(LONG_LINE)
+	m.walker.place = CAFE.merged({"name": "The Very Long Name Of A Little Corner Cafe By The Old Tram Depot"})
+
+
+func test_nothing_overlaps_while_walking() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m._step(0.01)
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_while_he_stays_somewhere() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.activities = Activities.new({"cafe": [{"name": "Espresso at the bar", "min": 3}]})
+	m.walker.arrived.emit(CAFE)
+	_crowd_the_top_panel(m)
+	m._step(0.01)
+	await wait_frames(3)
+	assert_true(m.hud.wait_bar.is_visible_in_tree())
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_while_streets_load() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	api.delay_frames = 100000
+	_forget_streets(m)
+	await wait_frames(3)
+	assert_true(m.hud.overlay_label.visible)
+	assert_true(m.hud.detail_label.visible)
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_with_the_history_open() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.hud.open_history()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_in_the_reset_dialog() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.hud._open_confirm()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_on_the_picker() -> void:
+	get_tree().root.size = Vector2i(720, 1560)
+	var m := _new_main()
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [])
 
 
 func test_new_city_starts_a_fresh_character() -> void:
