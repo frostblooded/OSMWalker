@@ -14,7 +14,10 @@ const text = async (name: string) => (await get(name)).text();
 const table = async <T>(name: string, parse: (text: string) => T[]) => parseStream((await get(name)).body!, parse);
 
 /** Lets the browser draw and handle taps between bits of work. */
-const yieldNow = () => new Promise<void>((ok) => setTimeout(ok, 0));
+export const yieldNow = () => new Promise<void>((ok) => setTimeout(ok, 0));
+
+/** Runs `f` once the page has nothing else to do. */
+export const whenIdle = (f: () => void) => (window.requestIdleCallback ?? ((g: () => void) => setTimeout(g, 200)))(f);
 
 /** Work time per task before yielding: well under the 50 ms long-task line even on a slow phone. */
 const SLICE_MS = 8;
@@ -59,6 +62,7 @@ export function loadData(): Promise<GameData> {
     const actions = JSON.parse(a) as ActionTable;
     await yieldNow();
     const flavour = JSON.parse(f) as Record<string, ActionTable>;
+    await yieldNow();
     return { actions, flavour, cities, airports };
   });
   return pending;
