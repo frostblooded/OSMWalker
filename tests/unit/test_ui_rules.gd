@@ -108,3 +108,34 @@ func test_mini_stat_names_stay_on_one_line() -> void:
 	for bar in hud.bars.values():
 		var name_label: Label = bar.get_parent().get_child(bar.get_index() - 1)
 		assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_OFF, name_label.text)
+
+
+func test_goal_line_names_the_place_and_how_far_it_is() -> void:
+	assert_eq(Hud.goal_text("Cafe East", 1234.0), "Going to Cafe East · 1.2 km")
+	assert_eq(Hud.goal_text("", 350.4), "Going to a random spot · 350 m")
+
+
+func test_tapping_the_goal_line_asks_to_see_the_goal() -> void:
+	var hud: Hud = autofree(Hud.new())
+	add_child(hud)
+	hud.show_game("Sofia")
+	hud.set_goal("Going to Cafe East · 1.2 km")
+	watch_signals(hud)
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	hud.place_label.gui_input.emit(tap)
+	assert_signal_emitted(hud, "goal_tapped")
+	assert_eq(hud.place_label.mouse_filter, Control.MOUSE_FILTER_STOP, "the tap stops here, so the sheet stays shut")
+
+
+func test_back_to_him_button_shows_only_in_the_goal_view() -> void:
+	var hud: Hud = autofree(Hud.new())
+	add_child(hud)
+	hud.show_game("Sofia")
+	assert_false(hud.debug_controls()["back_to_him"].is_visible_in_tree())
+	hud.set_goal_view(true)
+	assert_true(hud.debug_controls()["back_to_him"].is_visible_in_tree())
+	watch_signals(hud)
+	hud.debug_controls()["back_to_him"].pressed.emit()
+	assert_signal_emitted(hud, "back_tapped")

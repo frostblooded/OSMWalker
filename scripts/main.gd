@@ -45,6 +45,8 @@ var trip_line: Line2D
 var place_pin: Node2D
 var trail_view: TrailView
 var history_focus := []  # [lat, lon] of the tapped history entry, [] for the whole trail
+var goal_view := false  # the map shows him and his goal instead of following him
+var _goal_view_of := []  # [lat, lon] of the goal the view was opened for
 var trips: Trips
 var rng := RandomNumberGenerator.new()
 var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
@@ -97,6 +99,8 @@ func _ready() -> void:
 	hud.reset_confirmed.connect(_reset)
 	hud.history_toggled.connect(_on_history_toggled)
 	hud.history_entry_tapped.connect(_on_history_tapped)
+	hud.goal_tapped.connect(_on_goal_tapped)
+	hud.back_tapped.connect(func(): goal_view = false)
 	trips = Trips.shared()
 	activities = Activities.shared()
 	rng.randomize()
@@ -124,6 +128,14 @@ func _on_history_tapped(i: int) -> void:
 		return
 	history_focus = e["at"]
 	trail_view.highlight = stats.history.number(i)
+
+
+## Tapping the goal line shows him and the goal together; tapping it again follows him.
+func _on_goal_tapped() -> void:
+	if walker == null:
+		return
+	_goal_view_of = _goal_target()
+	goal_view = not goal_view and not _goal_view_of.is_empty()
 
 
 func _on_search(text: String) -> void:
@@ -288,13 +300,21 @@ func _step(delta: float) -> void:
 		_faint()
 	hud.set_stats(stats)
 
+	if goal_view and (_goal_target() != _goal_view_of or trail_view.visible):
+		goal_view = false  # a new goal, a trip or the history ends it
+	hud.set_goal_view(goal_view)
 	_apply_zoom()
 	_show_trip_line()
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
 	character.walking = not walker.needs_data() and not walker.is_resting()
 	var view_size := get_viewport_rect().size
-	camera.position = _history_center(view_size) if trail_view.visible else character.position
+	if trail_view.visible:
+		camera.position = _history_center(view_size)
+	elif goal_view:
+		camera.position = _goal_center()
+	else:
+		camera.position = character.position
 	if trail_view.visible:
 		trail_view.show_history(stats.history, map)
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
@@ -332,7 +352,25 @@ func _history_center(view_size: Vector2) -> Vector2:
 	return map.geo_to_local(at[0], at[1]) + Vector2(0, view_size.y / 4.0 - hud.top_height() / 2.0)
 
 
-## The player's zoom, far out to show a trip, or fitting the trail while the history is open.
+## The map left showing below the top panel.
+func _map_area(view_size: Vector2) -> Vector2:
+	return Vector2(view_size.x, maxf(view_size.y - hud.top_height(), 1.0))
+
+
+## [south, west, north, east] around him and his goal.
+func _goal_box() -> Array:
+	var p := walker.position()
+	var g := _goal_view_of
+	return [minf(p[0], g[0]), minf(p[1], g[1]), maxf(p[0], g[0]), maxf(p[1], g[1])]
+
+
+## Camera spot that puts him and his goal mid-way in the map below the top panel.
+func _goal_center() -> Vector2:
+	var b := _goal_box()
+	return map.geo_to_local((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0) - Vector2(0, hud.top_height() / 2.0)
+
+
+## The player's zoom, far out to show a trip, fitting him and his goal, or fitting the trail while the history is open.
 func _wanted_zoom() -> int:
 	if trail_view and trail_view.visible:
 		if not history_focus.is_empty():
@@ -344,6 +382,8 @@ func _wanted_zoom() -> int:
 	if walker and walker.is_traveling():
 		var to: Dictionary = walker.travel["to"]
 		return MapView.zoom_to_fit(walker.travel["from"], [to["lat"], to["lon"]], get_viewport_rect().size)
+	if goal_view:
+		return MapView.zoom_to_fit_box(_goal_box(), _map_area(get_viewport_rect().size), player_zoom)
 	return player_zoom
 
 
@@ -362,13 +402,30 @@ func _show_trip_line() -> void:
 		trip_line.points = PackedVector2Array([map.geo_to_local(a[0], a[1]), map.geo_to_local(to["lat"], to["lon"])])
 
 
-## The place of note he is heading to: its name on the HUD and a pin on the map.
+## Where he is heading or resting: a line on the HUD and a pin on the map.
 func _show_place() -> void:
-	var pl := walker.place
-	hud.set_place(pl.get("name", ""), walker.is_resting())
-	place_pin.visible = not pl.is_empty()
-	if place_pin.visible:
-		place_pin.position = map.geo_to_local(pl["lat"], pl["lon"])
+	var at := _goal_target()
+	place_pin.visible = not at.is_empty()
+	if at.is_empty():
+		hud.set_goal("")
+		return
+	place_pin.position = map.geo_to_local(at[0], at[1])
+	var name: String = walker.place.get("name", "")
+	if walker.is_resting():
+		hud.set_goal(Hud.resting_text(name) if name != "" else "")
+	else:
+		var here := walker.position()
+		hud.set_goal(Hud.goal_text(name, Geo.distance_m(here[0], here[1], at[0], at[1])))
+
+
+## [lat, lon] of the place of note or random spot he is heading to or
+## resting at, [] while he has none or travels to another city.
+func _goal_target() -> Array:
+	if walker.is_traveling():
+		return []
+	if not walker.place.is_empty():
+		return [walker.place["lat"], walker.place["lon"]]
+	return walker.goal
 
 
 ## Direction to where he is heading (x east, y south), so streets that way load first.
@@ -495,6 +552,9 @@ func debug_state() -> Dictionary:
 		"city": city,
 		"street": hud.street_label.text,
 		"place": walker.place.get("name", "") if walker else "",
+		"goal_line": hud.place_label.text if hud.place_label.is_visible_in_tree() else "",
+		"goal_view": goal_view,
+		"sheet_open": hud.is_sheet_open(),
 		"city_facts": city_facts.size(),
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),

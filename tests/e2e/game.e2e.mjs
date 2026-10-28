@@ -127,6 +127,20 @@ try {
   assert.equal(requests.wikidata, 1, "the city was looked up on Wikidata once");
   assert.equal(after.city_facts, 2, "city trivia from Wikidata");
 
+  step = "goal line zooms to his goal";
+  await until((s) => /^(Going to|Resting at) /.test(s.goal_line), "goal line in the top panel");
+  // His goal can change between looking and tapping, which ends the view, so try a few times.
+  for (let i = 0; i < 3 && !(await state()).goal_view; i++) {
+    await tap("goal");
+    await page.waitForTimeout(300);
+  }
+  const goalView = await until((s) => s.goal_view && s.rects.back_to_him, "goal view with Back to him");
+  assert.equal(goalView.sheet_open, false, "tapping the goal line does not open the stats sheet");
+  assert.deepEqual(goalView.overlaps, [], "texts overlap in the goal view");
+  await page.screenshot({ path: `${shots}/2b-goal.png` });
+  await tap("back_to_him");
+  await until((s) => !s.goal_view && !s.rects.back_to_him, "following him again");
+
   step = "survives reload";
   await page.waitForTimeout(1000);
   const streetsBefore = requests.streets + requests.streetTiles;

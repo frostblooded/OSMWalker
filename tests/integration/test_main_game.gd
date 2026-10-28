@@ -8,6 +8,8 @@ const Stats := preload("res://scripts/stats.gd")
 const Activities := preload("res://scripts/activities.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
+const Geo := preload("res://scripts/geo.gd")
+const Hud := preload("res://scripts/hud.gd")
 const SAVE := "user://test_save.json"
 const STREETS := "user://test_streets/"
 
@@ -383,14 +385,100 @@ func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	await _start_in_testville(m)
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
 	await wait_frames(2)
-	assert_eq(m.hud.place_label.text, "Walking to Cafe East")
+	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
 	assert_true(m.place_pin.visible)
 	assert_eq(m.place_pin.position, m.map.geo_to_local(42.0, 23.00135))
 	assert_eq(m.debug_state()["place"], "Cafe East")
 	m.walker.place = {}
-	await wait_frames(2)
-	assert_false(m.place_pin.visible)
+	m.walker.goal = []
+	m.walker.start_travel({"name": "Far", "lat": 43.0, "lon": 24.0})
+	m._step(0.0)
+	assert_false(m.place_pin.visible, "nothing while he travels to another city")
 	assert_false(m.hud.place_label.visible)
+
+
+func test_shows_a_random_spot_goal_with_a_pin() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.walker.set_goal(42.001, 23.0)
+	m._step(0.0)
+	var here := m.walker.position()
+	var dist := Geo.distance_m(here[0], here[1], 42.001, 23.0)
+	assert_eq(m.hud.place_label.text, Hud.goal_text("", dist))
+	assert_true(m.hud.place_label.visible)
+	assert_true(m.place_pin.visible)
+	assert_eq(m.place_pin.position, m.map.geo_to_local(42.001, 23.0))
+	assert_eq(m.debug_state()["goal_line"], m.hud.place_label.text)
+
+
+## Puts the goal far enough away that the map has to zoom out to show both.
+func _far_goal(m: Main) -> void:
+	m.walker.set_goal(42.02, 23.02)
+	m._step(0.0)
+
+
+func test_tapping_the_goal_fits_him_and_the_goal_on_the_map() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_far_goal(m)
+	m.hud.goal_tapped.emit()
+	m._step(0.0)
+	await wait_frames(2)
+	assert_true(m.goal_view)
+	assert_lt(m.map.zoom, m.player_zoom, "zoomed out to fit both")
+	var view := get_viewport().get_visible_rect().size
+	var shown := Rect2(m.camera.position - view / 2.0, view)
+	shown = Rect2(shown.position + Vector2(0, m.hud.top_height()), shown.size - Vector2(0, m.hud.top_height()))
+	assert_true(shown.has_point(m.character.position), "he is on screen below the top panel")
+	assert_true(shown.has_point(m.place_pin.position), "the goal is on screen below the top panel")
+	assert_true(m.hud.debug_controls()["back_to_him"].is_visible_in_tree())
+
+
+func test_back_to_him_follows_him_again() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_far_goal(m)
+	m.hud.goal_tapped.emit()
+	m._step(0.0)
+	m.hud.back_tapped.emit()
+	m._step(0.0)
+	assert_false(m.goal_view)
+	assert_eq(m.map.zoom, m.player_zoom)
+	assert_eq(m.camera.position, m.character.position)
+	assert_false(m.hud.debug_controls()["back_to_him"].is_visible_in_tree())
+
+
+func test_tapping_the_goal_again_follows_him_again() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_far_goal(m)
+	m.hud.goal_tapped.emit()
+	m.hud.goal_tapped.emit()
+	m._step(0.0)
+	assert_false(m.goal_view)
+
+
+func test_goal_view_ends_when_the_goal_changes() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_far_goal(m)
+	m.hud.goal_tapped.emit()
+	m._step(0.0)
+	m.walker.set_goal(41.99, 22.99)
+	m._step(0.0)
+	assert_false(m.goal_view)
+	assert_eq(m.camera.position, m.character.position)
+
+
+func test_nothing_overlaps_in_the_goal_view() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.hud.goal_tapped.emit()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_true(m.hud.debug_controls()["back_to_him"].is_visible_in_tree())
+	assert_eq(m.hud.overlapping_texts(), [])
 
 
 const CAFE := {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
