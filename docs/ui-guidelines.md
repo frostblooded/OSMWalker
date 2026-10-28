@@ -114,7 +114,29 @@ things at a time. A label full of lines is the most common mistake here.
 - Panels over the map leave what you need to see uncovered. History and
   Debug take the bottom half, so you can still see him above.
 
-## 7. Checklist for every UI change
+## 7. Mobile game patterns
+
+- **HUD shows game state only.** Anything over the map must tell you
+  something live (where he is, where he goes, his bars, the countdown). The
+  rest sits one tap away.
+- **Status top-left, actions bottom.** The eye starts top-left, so status
+  goes there. Frequent buttons sit low, in reach of one thumb. Rare and
+  risky ones (New city, Debug) go in the ☰ menu, away from the thumb.
+- **Every tap answers within about 100 ms** with a pressed state, so the
+  player knows it landed.
+- **Sheets over the map**: a visible ✕ Close at the top, Esc / Back closes
+  them too, and never open a sheet on top of another sheet. Short tasks and
+  reference info go in a sheet; long reading (Help) gets a full page.
+- **Search suggestions**: 4 to 8 rows, big text, divider lines, and the
+  part the player has not typed yet in bold.
+- **Waiting**: any wait over 1 s gets an indicator with a short "what is
+  happening" line ("🛣 Loading streets…"). Bars only move forward; when a
+  percentage is unknown, count steps ("step 2 of 3"). Never a static
+  "Loading…" text alone.
+- **Messages fade**: one-off news (a new feed line, "Saved") shows as a
+  short toast instead of taking a permanent line.
+
+## 8. Checklist for every UI change
 
 1. Is anything a wall of text? Split it into cards, key/value rows, zebra
    rows or collapsibles.
@@ -138,3 +160,9 @@ things at a time. A label full of lines is the most common mistake here.
 - Roblox UI and UX design (consistency, pressed states, feedback, vibrant for critical, muted for the rest): https://create.roblox.com/docs/production/game-design/ui-ux-design
 - Zebra striping helps in long lists and tables: https://me.konigi.com/blog/zebra-striping-does-it-really-help/
 - Anthropic, improving frontend design (commit to one look, strong contrast in size and weight, a dominant colour with sharp accents): https://claude.com/es/resources/articles/improving-frontend-design-through-skills
+- Mobile game UX and retention (thumb zones, status top-left, HUD density, tap feedback in about 100 ms): https://ejaw.net/how-mobile-game-ux-interface-design-drives-player-retention-in-2026
+- One-handed mobile games (main buttons in the lower third, menus out of the play area): https://bitesizebyte.blogspot.com/2026/01/how-to-design-mobile-games-for-one.html
+- Nielsen Norman Group, bottom sheets (visible close, Back dismisses, don't stack sheets, keep them short): https://www.nngroup.com/articles/bottom-sheet/
+- Baymard, autocomplete design (4 to 8 suggestions on mobile, bold the predicted part, big rows): https://baymard.com/blog/autocomplete-design
+- Progress indicators in mobile UX (indicator after 1 s, explain the wait, bars never go back, count steps): https://babich.biz/blog/progress-indicators
+- Anthropic cookbook, prompting for frontend aesthetics (named colour tokens, depth instead of flat panels, a few strong motion moments): https://platform.claude.com/cookbook/coding-prompting-for-frontend-aesthetics
