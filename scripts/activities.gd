@@ -10,8 +10,9 @@ const Stats := preload("res://scripts/stats.gd")
 
 const ACTIONS_PATH := "res://data/actions.json"
 const FLAVOUR_PATH := "res://data/flavour.json"
-## Actions take their listed time, but never more than this many minutes.
-const MAX_MINUTES := 15.0
+## Every action takes this many minutes, whatever its listed time, so he is
+## never still for long.
+const MAX_MINUTES := 1.0
 ## Below this many coins he looks for work and avoids spending.
 const SKINT := 20
 ## Extra weight for a country's own actions, so they come up often.
@@ -107,5 +108,5 @@ static func choose(actions: Array, stats: Stats, hour: int, r: float) -> Diction
 	return options[-1] if not options.is_empty() else {}
 
 
-static func rest_minutes(action: Dictionary) -> float:
-	return minf(float(action.get("min", 1)), MAX_MINUTES)
+static func rest_minutes(_action: Dictionary) -> float:
+	return MAX_MINUTES

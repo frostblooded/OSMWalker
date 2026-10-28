@@ -396,7 +396,28 @@ func test_does_an_action_on_arriving_at_a_place() -> void:
 	assert_string_contains(line, "Cafe East")
 	m._step(0.01)
 	assert_eq(m.hud.feed_label.text, line)
-	assert_between(m.walker.rest_m, 0.0, 15.0 * 60.0 * Walker.SPEED_MPS + 0.01)
+	assert_almost_eq(m.walker.rest_m, Walker.REST_M, 0.1)
+
+
+func test_shows_a_countdown_while_he_is_at_a_place() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.activities = Activities.new({"cafe": [{"name": "Espresso at the bar", "min": 3}]})
+	m.walker.place = CAFE
+	m.walker.arrived.emit(CAFE)
+	m._step(0.01)
+	assert_eq(m.hud.overlay_label.text, "Espresso at the bar at Cafe East\nMoving again in 1:00")
+	assert_true(m.hud.progress_bar.visible)
+	assert_false(m.hud.progress_bar.indeterminate)
+	for i in 15:
+		m._step(1.0)
+	assert_string_contains(m.hud.overlay_label.text, "Moving again in 0:45")
+	assert_almost_eq(m.hud.progress_bar.value, 25.0, 1.0)
+	for i in 46:
+		m._step(1.0)
+	assert_false(m.walker.is_resting())
+	assert_false(m.hud.overlay_label.visible)
 
 
 func test_first_visit_gives_bonus_xp() -> void:
@@ -447,7 +468,9 @@ func test_fainting_wakes_him_at_a_hospital_for_a_fee() -> void:
 	assert_eq(m.stats.coins, 50 - Stats.HOSPITAL_FEE)
 	assert_eq(m.walker.from_node, 5, "moved to the street by the hospital")
 	assert_eq(m.walker.place["name"], "City Hospital")
-	assert_true(m.walker.is_resting())
+	assert_almost_eq(m.walker.rest_m, Walker.REST_M, 0.01, "out again after a minute")
+	m._step(0.01)
+	assert_string_contains(m.hud.overlay_label.text, "Recovering at City Hospital")
 
 
 func test_stats_survive_a_restart() -> void:
@@ -481,7 +504,7 @@ func test_arrival_uses_the_country_flavour() -> void:
 	assert_string_contains(m.stats.feed[-1], "Local brew")
 
 
-func test_city_trivia_from_wikidata_happens_at_random_spots() -> void:
+func test_city_trivia_from_wikidata_happens_at_places() -> void:
 	var m := _new_main()
 	m.api.city_rows = [{"cityLabel": {"value": "Testville"}, "capLabel": {"value": "Nowhere"}}]
 	await _start_in_testville(m)
@@ -489,8 +512,8 @@ func test_city_trivia_from_wikidata_happens_at_random_spots() -> void:
 	assert_eq(m.api.city_lookups.size(), 1)
 	assert_eq(m.city_facts.size(), 1)
 	m.clock_hour = 12
-	m.activities = Activities.new({"_spot": []})
-	m.walker.arrived.emit({})
+	m.activities = Activities.new({"cafe": []})
+	m.walker.arrived.emit(CAFE)
 	assert_string_contains(m.stats.feed[-1], "capital of Nowhere")
 
 

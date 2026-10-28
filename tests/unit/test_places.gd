@@ -97,7 +97,6 @@ func _walker_with_places(places: Array) -> Walker:
 
 func test_walks_to_a_place_and_rests_there() -> void:
 	var w := _walker_with_places([_place("Cafe East", 42.0, 23.00135)])
-	w.place_chance = 1.0
 	w.pick_goal()
 	assert_eq(w.place["name"], "Cafe East")
 	assert_eq(w.goal, [42.0, 23.00135])
@@ -106,17 +105,17 @@ func test_walks_to_a_place_and_rests_there() -> void:
 	assert_eq(w.place["name"], "Cafe East", "still there while resting")
 
 
-func test_random_spot_has_no_place() -> void:
+func test_always_heads_for_a_place_when_one_is_loaded() -> void:
 	var w := _walker_with_places([_place("Cafe East", 42.0, 23.00135)])
-	w.place = _place("Old", 0.0, 0.0)
-	w.place_chance = 0.0
-	w.pick_goal()
-	assert_eq(w.place, {})
+	for s in 20:
+		w.rng.seed = s
+		w.pick_goal()
+		assert_eq(w.place.get("name", ""), "Cafe East")
 
 
 func test_no_places_loaded_falls_back_to_a_random_spot() -> void:
 	var w := _walker_with_places([])
-	w.place_chance = 1.0
+	w.place = _place("Old", 0.0, 0.0)
 	w.pick_goal()
 	assert_eq(w.place, {})
 	assert_eq(w.goal.size(), 2)
@@ -124,7 +123,6 @@ func test_no_places_loaded_falls_back_to_a_random_spot() -> void:
 
 func test_does_not_pick_the_place_he_is_at() -> void:
 	var w := _walker_with_places([_place("Here", 42.001, 23.0), _place("Cafe East", 42.0, 23.00135, 50)])
-	w.place_chance = 1.0
 	for s in 20:
 		w.rng.seed = s
 		w.pick_goal()
@@ -133,7 +131,6 @@ func test_does_not_pick_the_place_he_is_at() -> void:
 
 func test_place_survives_save_and_load() -> void:
 	var w := _walker_with_places([_place("Cafe East", 42.0, 23.00135)])
-	w.place_chance = 1.0
 	w.pick_goal()
 	var restored := Walker.new()
 	restored.load_dict(JSON.parse_string(JSON.stringify(w.to_dict())))
