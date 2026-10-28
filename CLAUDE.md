@@ -13,7 +13,7 @@ These mirror the Claude project instructions. Keep both in sync.
 
 ## Project
 
-- **What it is**: OSM Walker, a tamagotchi-like mobile/browser game. A little character walks real OpenStreetMap streets at 200 m per minute, picking a random direction at each intersection and turning around at dead ends. He keeps walking while the app is closed (caught up on reopen, capped at 24 h). The player picks a starting city by search; "New city" resets only after typing RESET. The UI must stay big and touch-friendly for small phone screens.
+- **What it is**: OSM Walker, a tamagotchi-like mobile/browser game. A little character walks real OpenStreetMap streets at 200 m per minute, picking a random direction at each intersection and turning around at dead ends. He walks only while the app is open; while it is closed he waits where he is and carries on from there on reopen. The player picks a starting city by search; "New city" resets only after typing RESET. The UI must stay big and touch-friendly for small phone screens.
 - **Stack**: Godot 4.7.2, GDScript only, gl_compatibility renderer, single-threaded web export (GitHub Pages). OSM raster tiles, Overpass API for streets, Nominatim for city search. Tests use GUT 9.7.1 (vendored in `addons/gut`) and Playwright for browser e2e.
 - **Setup**: install Godot 4.7.2 and run `godot --headless --import` once.
 - **Run**: open the project in Godot and press Play, or play the deployed web build at https://frostblooded.github.io/OSMWalker/.
