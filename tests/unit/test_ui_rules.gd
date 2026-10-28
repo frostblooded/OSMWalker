@@ -262,3 +262,11 @@ func test_help_buttons_are_big_enough_to_tap() -> void:
 	hud.open_help("health")
 	await wait_frames(2)
 	assert_gte(c["help_back"].size.y, 100.0)
+
+
+func test_help_page_lists_are_striped_rows() -> void:
+	var hud := _game_hud()
+	hud.open_help("actions")
+	var rows: Array = hud.debug_controls()["help_panel"].list_rows()
+	assert_gte(rows.size(), 4)
+	assert_ne(rows[0].get_theme_stylebox("panel").bg_color, rows[1].get_theme_stylebox("panel").bg_color, "zebra stripes")

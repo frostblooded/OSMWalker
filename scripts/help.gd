@@ -48,6 +48,22 @@ static func parse(text: String) -> Array:
 	return sections
 
 
+## A page's text as cards: one per paragraph, {text, items}, where items
+## are its "- " lines, shown as rows.
+static func blocks(body: String) -> Array:
+	var out := []
+	for chunk in body.split("\n\n", false):
+		var text := []
+		var items := []
+		for line in chunk.strip_edges().split("\n"):
+			if line.begins_with("- "):
+				items.append(line.substr(2).strip_edges())
+			else:
+				text.append(line.strip_edges())
+		out.append({"text": " ".join(text), "items": items})
+	return out
+
+
 ## The page with `id`, or {} when there is none.
 static func page(id: String) -> Dictionary:
 	for s in shared():

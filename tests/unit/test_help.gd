@@ -93,3 +93,11 @@ func test_every_gear_slot_and_rarity_is_explained() -> void:
 	for m in Items.MATERIALS:
 		assert_string_contains(text, m["metal"].to_lower())
 		assert_string_contains(text, m["cloth"].to_lower())
+
+
+func test_a_page_splits_into_cards_with_list_rows() -> void:
+	var b := Help.blocks("First para.\n\nAn action can:\n- raise meters,\n- give XP.\n\nLast.")
+	assert_eq(b.size(), 3)
+	assert_eq(b[0], {"text": "First para.", "items": []})
+	assert_eq(b[1], {"text": "An action can:", "items": ["raise meters,", "give XP."]})
+	assert_eq(b[2]["text"], "Last.")
