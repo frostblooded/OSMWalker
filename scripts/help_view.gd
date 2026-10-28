@@ -1,12 +1,19 @@
-## The Help screen over the whole game: a list of topics by section, and a
-## page for each that replaces the list until Back is tapped. Text comes
-## from help.gd.
+## The Help screen over the whole game: a card per section with its topics,
+## and a page for each topic that replaces the list until Back is tapped.
+## A page is a card per paragraph; its "- " lines are striped rows. Text
+## comes from help.gd; layout follows docs/ui-guidelines.md.
 extends ColorRect
 
 const Help := preload("res://scripts/help.gd")
 
 const PANEL_BG := Color(1, 1, 1, 0.97)
+const CARD_BG := Color("#f2f2f2")
+const ROW_BG := [Color("#ffffff"), Color("#e6e6e6")]
 const TEXT := Color(0.1, 0.1, 0.1)
+const LABEL := Color("#5e5e5e")
+const TITLE_SIZE := 40
+const HEADING_SIZE := 32
+const BODY_SIZE := 28
 
 var back_button: Button
 var close_button: Button
@@ -14,7 +21,9 @@ var first_topic: Button
 var _title: Label
 var _scroll: ScrollContainer
 var _list: VBoxContainer
-var _body: Label
+var _page: VBoxContainer
+var _page_text := ""
+var _rows := []  # striped rows on the open page
 
 
 func _init() -> void:
@@ -22,11 +31,7 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	var box := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = PANEL_BG
-	sb.set_corner_radius_all(24)
-	sb.set_content_margin_all(24)
-	box.add_theme_stylebox_override("panel", sb)
+	box.add_theme_stylebox_override("panel", _style(PANEL_BG, 24, 24))
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
 	add_child(box)
 	var col := VBoxContainer.new()
@@ -38,7 +43,7 @@ func _init() -> void:
 	back_button = _button("Back", Vector2(170, 110))
 	back_button.pressed.connect(show_list)
 	head.add_child(back_button)
-	_title = _label("Help", 40)
+	_title = _label("Help", TITLE_SIZE, TEXT)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
 	close_button = _button("Close", Vector2(190, 110))
@@ -54,36 +59,58 @@ func _init() -> void:
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(inner)
 
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 12)
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list = _column(16)
 	inner.add_child(_list)
 	for s in Help.shared():
-		var head_label := _label(s["title"], 30)
-		head_label.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
-		_list.add_child(head_label)
+		var card := _card()
+		var items := _column(12)
+		items.add_child(_label(s["title"], HEADING_SIZE, LABEL))
 		for p in s["pages"]:
 			var b := _button(p["title"], Vector2(0, 110))
-			b.add_theme_font_size_override("font_size", 34)
+			b.add_theme_font_size_override("font_size", 30)
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.pressed.connect(show_page.bind(p["id"]))
-			_list.add_child(b)
+			items.add_child(b)
 			if first_topic == null:
 				first_topic = b
+		card.add_child(items)
+		_list.add_child(card)
 
-	_body = _label("", 30)
-	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(_body)
+	_page = _column(16)
+	inner.add_child(_page)
 	show_list()
 
 
-func _label(text: String, size: int) -> Label:
+static func _style(bg: Color, radius: int, pad: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(radius)
+	sb.set_content_margin_all(pad)
+	return sb
+
+
+func _column(gap: int) -> VBoxContainer:
+	var c := VBoxContainer.new()
+	c.add_theme_constant_override("separation", gap)
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c
+
+
+func _card() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _style(CARD_BG, 16, 16))
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return p
+
+
+func _label(text: String, size: int, tint: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", TEXT)
+	l.add_theme_color_override("font_color", tint)
 	return l
 
 
@@ -91,7 +118,7 @@ func _button(text: String, min_size: Vector2) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = min_size
-	b.add_theme_font_size_override("font_size", 36)
+	b.add_theme_font_size_override("font_size", 34)
 	return b
 
 
@@ -115,7 +142,7 @@ func is_open() -> bool:
 func show_list() -> void:
 	_title.text = "Help"
 	_list.visible = true
-	_body.visible = false
+	_page.visible = false
 	back_button.visible = false
 	_scroll.scroll_vertical = 0
 
@@ -125,9 +152,27 @@ func show_page(id: String) -> void:
 	if p.is_empty():
 		return
 	_title.text = p["title"]
-	_body.text = p["body"]
+	_page_text = p["body"]
+	for c in _page.get_children():
+		_page.remove_child(c)
+		c.queue_free()
+	_rows = []
+	for b in Help.blocks(p["body"]):
+		var card := _card()
+		var col := _column(8)
+		if b["text"] != "":
+			col.add_child(_label(b["text"], BODY_SIZE, TEXT))
+		for i in b["items"].size():
+			var item: String = b["items"][i]
+			var row := PanelContainer.new()
+			row.add_theme_stylebox_override("panel", _style(ROW_BG[i % 2], 8, 12))
+			row.add_child(_label(item, BODY_SIZE, TEXT))
+			col.add_child(row)
+			_rows.append(row)
+		card.add_child(col)
+		_page.add_child(card)
 	_list.visible = false
-	_body.visible = true
+	_page.visible = true
 	back_button.visible = true
 	_scroll.scroll_vertical = 0
 
@@ -138,4 +183,9 @@ func page_title() -> String:
 
 
 func page_text() -> String:
-	return _body.text if _body.visible else ""
+	return _page_text if _page.visible else ""
+
+
+## The striped list rows on the open page, top to bottom.
+func list_rows() -> Array:
+	return _rows
