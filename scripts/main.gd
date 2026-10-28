@@ -1,6 +1,7 @@
 ## Game loop: picks a city, keeps the walker moving in real time while the app
 ## is open (he waits where he is while it is closed), downloads streets as he nears new ground,
-## and now and then sends him on a trip to another city.
+## and now and then sends him on a trip to another city. At each place he
+## does an action that changes his stats (see stats.gd and activities.gd).
 extends Node2D
 
 const Walker := preload("res://scripts/walker.gd")
@@ -13,6 +14,9 @@ const StreetLoader := preload("res://scripts/street_loader.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const Trips := preload("res://scripts/trips.gd")
 const PlacePin := preload("res://scripts/place_pin.gd")
+const Stats := preload("res://scripts/stats.gd")
+const Activities := preload("res://scripts/activities.gd")
+const Geo := preload("res://scripts/geo.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
@@ -38,6 +42,9 @@ var place_pin: Node2D
 var trips: Trips
 var rng := RandomNumberGenerator.new()
 var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
+var stats := Stats.new()
+var activities: Activities
+var clock_hour := -1  # >= 0 pins the hour of day (tests)
 
 var walker: Walker
 var city := ""
@@ -79,6 +86,7 @@ func _ready() -> void:
 	hud.zoom_changed.connect(_on_zoom)
 	hud.reset_confirmed.connect(_reset)
 	trips = Trips.shared()
+	activities = Activities.shared()
 	rng.randomize()
 	if not _load():
 		hud.show_picker()
@@ -115,6 +123,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 		return
 	w.start_at(start)
 	w.bounds = Walker.city_bounds(lat, lon, bbox)
+	stats = Stats.new()
 	_attach(w)
 	city = city_name
 	country = trips.country_at(lat, lon)
@@ -130,6 +139,45 @@ func _attach(w: Walker) -> void:
 	walker = w
 	w.trip_planner = _plan_trip
 	w.landed.connect(_on_landed)
+	w.arrived.connect(_on_arrived)
+
+
+func _hour() -> int:
+	return clock_hour if clock_hour >= 0 else int(Time.get_datetime_dict_from_system()["hour"])
+
+
+## At a destination: a first-visit bonus, then an action he can do there,
+## which sets how long he stays.
+func _on_arrived(place: Dictionary) -> void:
+	var bonus := stats.visit(place)
+	if bonus > 0:
+		stats.say("First visit to %s (+%d XP)" % [place["name"], bonus])
+	var action := Activities.choose(activities.for_place(place), stats, _hour(), rng.randf())
+	if action.is_empty():
+		return
+	stats.do(action, place.get("name", ""), rng)
+	walker.rest_for(Activities.rest_minutes(action))
+
+
+## Health at zero: he wakes at the nearest known hospital, poorer.
+func _faint() -> void:
+	var here := walker.position()
+	var hospital := {}
+	var best := INF
+	for p in walker.graph.places_in(walker.bounds):
+		var d := Geo.distance_m(here[0], here[1], p["lat"], p["lon"])
+		if p["class"] == "hospital" and d < best:
+			best = d
+			hospital = p
+	stats.wake_in_hospital(hospital.get("name", ""))
+	if walker.is_traveling():
+		return
+	if not hospital.is_empty():
+		var node := walker.graph.nearest_node(hospital["lat"], hospital["lon"])
+		if node != -1:
+			walker.start_at(node)
+	walker.rest_for(Activities.MAX_MINUTES)
+	walker.place = hospital
 
 
 ## Asked on each new destination: maybe a city to travel to instead.
@@ -159,6 +207,7 @@ func _on_landed(dest: Dictionary) -> void:
 
 func _reset() -> void:
 	walker = null
+	stats = Stats.new()
 	DirAccess.remove_absolute(save_path)
 	map.clear()
 	hud.set_status("")
@@ -178,7 +227,13 @@ func _step(delta: float) -> void:
 		var here := walker.position()
 		loader.request(StreetGraph.cells_by_priority(here[0], here[1], STREET_RING, _goal_heading()))
 	# He walks what is loaded and waits at the edge until more streets arrive.
-	walker.advance(minf(delta, MAX_STEP_S) * Walker.SPEED_MPS)
+	var dt := minf(delta, MAX_STEP_S)
+	var before := walker.total_m
+	walker.advance(dt * Walker.SPEED_MPS)
+	stats.pass_time(dt / 60.0, walker.total_m - before)
+	if stats.fainted():
+		_faint()
+	hud.set_stats(stats)
 
 	_apply_zoom()
 	_show_trip_line()
@@ -305,7 +360,7 @@ func _save() -> void:
 		return
 	f.store_string(JSON.stringify({
 		"city": city, "country": country, "skip_roll": skip_roll, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
-		"walker": walker.to_dict(),
+		"walker": walker.to_dict(), "stats": stats.to_dict(),
 	}))
 
 
@@ -320,6 +375,8 @@ func _load() -> bool:
 	if not w.graph.has_node(w.from_node):
 		return false
 	_attach(w)
+	stats = Stats.new()
+	stats.load_dict(d.get("stats", {}))
 	loader.graph = walker.graph
 	city = d.get("city", "")
 	player_zoom = int(d.get("zoom", player_zoom))

@@ -1,5 +1,6 @@
 ## All on-screen UI, sized for small touchscreens: city search, status bar,
-## zoom buttons, and the reset button guarded by typing RESET.
+## his mini stats and latest action (tap for the full sheet), zoom buttons,
+## and the reset button guarded by typing RESET.
 extends CanvasLayer
 
 signal search_requested(text: String)
@@ -13,9 +14,17 @@ enum Bar { NONE, PROGRESS, BUSY }
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
 const PANEL_BG := Color(1, 1, 1, 0.92)
+## Meters in the mini stats row: short name, colour.
+const MINI_BARS := {"health": ["HP", Color("#d7263d")], "energy": ["EN", Color("#f4b400")], "fullness": ["FU", Color("#2e9e44")]}
 
 var street_label: Label
 var place_label: Label
+var bars := {}  # meter -> ProgressBar in the mini stats row
+var money_label: Label
+var feed_label: Label  # his latest action
+var sheet_label: Label
+var _sheet: Control
+var _stats: RefCounted  # the Stats shown, kept for the sheet
 var city_label: Label
 var overlay_label: Label
 var progress_bar: ProgressBar
@@ -39,6 +48,7 @@ func _ready() -> void:
 	_build_picker()
 	_build_confirm()
 	_build_status()
+	_build_sheet()
 
 
 ## Status message with a loading bar under it, over the top of the map.
@@ -126,7 +136,15 @@ func _build_game_ui() -> void:
 	col.add_child(city_label)
 	col.add_child(street_label)
 	col.add_child(place_label)
+	col.add_child(_build_mini_stats())
+	feed_label = _label("", 26)
+	feed_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))
+	col.add_child(feed_label)
 	top.add_child(col)
+	# The whole panel is the button for the full stats sheet.
+	top.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			open_sheet())
 	_game_ui.add_child(top)
 
 	var zoom_col := VBoxContainer.new()
@@ -160,6 +178,110 @@ func _build_game_ui() -> void:
 	credit.add_theme_color_override("font_outline_color", Color.WHITE)
 	credit.add_theme_constant_override("outline_size", 10)
 	_game_ui.add_child(credit)
+
+
+func _build_mini_stats() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for m in MINI_BARS:
+		var l := _label(MINI_BARS[m][0], 24)
+		l.autowrap_mode = TextServer.AUTOWRAP_OFF
+		row.add_child(l)
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 24)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bg := StyleBoxFlat.new()
+		bg.bg_color = Color(0, 0, 0, 0.12)
+		bg.set_corner_radius_all(12)
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = MINI_BARS[m][1]
+		fill.set_corner_radius_all(12)
+		bar.add_theme_stylebox_override("background", bg)
+		bar.add_theme_stylebox_override("fill", fill)
+		bars[m] = bar
+		row.add_child(bar)
+	money_label = _label("", 26)
+	money_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	row.add_child(money_label)
+	return row
+
+
+## Full-screen sheet: every stat, his buffs and the activity log.
+func _build_sheet() -> void:
+	_sheet = ColorRect.new()
+	(_sheet as ColorRect).color = Color(0, 0, 0, 0.6)
+	_sheet.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_sheet.visible = false
+	add_child(_sheet)
+	var box := _panel()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 16)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sheet_label = _label("", 30)
+	sheet_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(sheet_label)
+	col.add_child(scroll)
+	var close := _button("Close")
+	close.pressed.connect(close_sheet)
+	col.add_child(close)
+	box.add_child(col)
+	_sheet.add_child(box)
+
+
+func open_sheet() -> void:
+	_sheet.visible = true
+	_fill_sheet()
+
+
+func close_sheet() -> void:
+	_sheet.visible = false
+
+
+func is_sheet_open() -> bool:
+	return _sheet.visible
+
+
+## Shows `stats` (a Stats) in the mini row, the feed line and the sheet.
+func set_stats(stats: RefCounted) -> void:
+	_stats = stats
+	for m in bars:
+		bars[m].value = stats.meters[m]
+	money_label.text = "%dc · Lv %d" % [stats.coins, stats.level]
+	feed_label.text = stats.feed[-1] if not stats.feed.is_empty() else ""
+	feed_label.visible = feed_label.text != ""
+	if _sheet.visible:
+		_fill_sheet()
+
+
+static func sheet_text(stats: RefCounted) -> String:
+	var lines := ["Level %d · %d / %d XP · %d coins" % [stats.level, stats.xp, stats.xp_to_next(stats.level), stats.coins], ""]
+	for m in stats.meters:
+		lines.append("%s: %d / 100" % [m.capitalize(), roundi(stats.meters[m])])
+	lines.append("")
+	lines.append("Strength %.1f · Charm %.1f · Wits %.1f · Luck %.1f" % [stats.attrs["str"], stats.attrs["cha"], stats.attrs["wit"], stats.attrs["luck"]])
+	if not stats.buffs.is_empty():
+		lines.append("")
+		for b in stats.buffs:
+			lines.append("%s (%d min left)" % [b["name"], ceili(b["left"])])
+	lines.append("")
+	lines.append("What he's been up to:")
+	var recent: Array = stats.feed.duplicate()
+	recent.reverse()
+	for l in recent:
+		lines.append("• " + l)
+	return "\n".join(lines)
+
+
+func _fill_sheet() -> void:
+	if _stats:
+		sheet_label.text = sheet_text(_stats)
 
 
 func _build_picker() -> void:

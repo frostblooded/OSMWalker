@@ -94,3 +94,13 @@ func test_detail_text_lists_each_server() -> void:
 	}})
 	assert_string_contains(t, "overpass-api.de: 0 ok, 3 failed (HTTP 502), resting")
 	assert_string_contains(t, "overpass.private.coffee: 2 ok, 0 failed")
+
+
+func test_mini_stat_names_stay_on_one_line() -> void:
+	var hud: Hud = autofree(Hud.new())
+	add_child(hud)
+	hud.show_game("Sofia")
+	await wait_frames(2)
+	for bar in hud.bars.values():
+		var name_label: Label = bar.get_parent().get_child(bar.get_index() - 1)
+		assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_OFF, name_label.text)

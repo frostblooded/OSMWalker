@@ -4,6 +4,7 @@ extends GutTest
 const Main := preload("res://scripts/main.gd")
 const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
+const Stats := preload("res://scripts/stats.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const SAVE := "user://test_save.json"
@@ -380,3 +381,91 @@ func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	await wait_frames(2)
 	assert_false(m.place_pin.visible)
 	assert_false(m.hud.place_label.visible)
+
+
+const CAFE := {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
+
+
+func test_does_an_action_on_arriving_at_a_place() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.clock_hour = 12
+	m.walker.arrived.emit(CAFE)
+	var line: String = m.stats.feed[-1]
+	assert_string_contains(line, "Cafe East")
+	m._step(0.01)
+	assert_eq(m.hud.feed_label.text, line)
+	assert_between(m.walker.rest_m, 0.0, 15.0 * 60.0 * Walker.SPEED_MPS + 0.01)
+
+
+func test_first_visit_gives_bonus_xp() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.walker.arrived.emit(CAFE)
+	assert_gte(m.stats.xp, Stats.FIRST_VISIT_XP)
+
+
+func test_time_and_walking_wear_him_down() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	var before: float = m.stats.get_meter("fullness")
+	for i in 30:
+		m._step(1.0)
+	assert_lt(m.stats.get_meter("fullness"), before)
+
+
+func test_mini_bars_show_his_stats() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.coins = 42
+	m.stats.meters["health"] = 30.0
+	m._step(0.1)
+	assert_string_contains(m.hud.money_label.text, "42c")
+	assert_almost_eq(m.hud.bars["health"].value, 30.0, 0.5)
+
+
+func test_tapping_the_stats_opens_the_full_sheet() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.say("Did a thing")
+	m._step(0.1)
+	m.hud.open_sheet()
+	assert_true(m.hud.is_sheet_open())
+	assert_string_contains(m.hud.sheet_label.text, "Did a thing")
+	assert_string_contains(m.hud.sheet_label.text, "Level 1")
+	m.hud.close_sheet()
+	assert_false(m.hud.is_sheet_open())
+
+
+func test_fainting_wakes_him_at_a_hospital_for_a_fee() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	var hospital := {"name": "City Hospital", "class": "hospital", "subclass": "hospital", "rank": 1, "lat": 42.0, "lon": 22.99865}
+	m.walker.graph.places[StreetGraph.cell_of(42.0, 23.0)] = [hospital]
+	m.stats.meters["health"] = 0.0
+	m._step(0.1)
+	assert_eq(m.stats.get_meter("health"), Stats.WAKE_HEALTH)
+	assert_eq(m.stats.coins, 50 - Stats.HOSPITAL_FEE)
+	assert_eq(m.walker.from_node, 5, "moved to the street by the hospital")
+	assert_eq(m.walker.place["name"], "City Hospital")
+	assert_true(m.walker.is_resting())
+
+
+func test_stats_survive_a_restart() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.coins = 99
+	m.stats.say("Remember me")
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.stats.coins, 99)
+	assert_eq(again.stats.feed[-1], "Remember me")
+
+
+func test_new_city_starts_a_fresh_character() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.stats.coins = 99
+	m._reset()
+	await _start_in_testville(m)
+	assert_eq(m.stats.coins, 50)
