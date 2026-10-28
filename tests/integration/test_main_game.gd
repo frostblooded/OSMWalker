@@ -6,6 +6,7 @@ const Walker := preload("res://scripts/walker.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const Stats := preload("res://scripts/stats.gd")
 const Activities := preload("res://scripts/activities.gd")
+const Items := preload("res://scripts/items.gd")
 const FakeOsmApi := preload("res://tests/support/fake_osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const Geo := preload("res://scripts/geo.gd")
@@ -570,7 +571,7 @@ func test_tapping_the_stats_opens_the_full_sheet() -> void:
 	m._step(0.1)
 	m.hud.open_sheet()
 	assert_true(m.hud.is_sheet_open())
-	assert_string_contains(m.hud.sheet_label.text, "Level 1")
+	assert_has(m.hud.sheet.texts(), "Level 1")
 	m.hud.close_sheet()
 	assert_false(m.hud.is_sheet_open())
 
@@ -680,6 +681,24 @@ func test_nothing_overlaps_with_the_menu_open() -> void:
 	await wait_frames(3)
 	assert_true(m.hud.debug_controls()["new_city"].is_visible_in_tree())
 	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_on_a_full_stats_sheet() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	for slot in Items.SLOTS:
+		m.stats.equip({"name": "Legendary Mighty Gleaming Mithril Thing Of The Old Tram Depot", "slot": slot, "stats": {"str": 1.0}, "rarity": "Legendary", "price": 99})
+	for i in Stats.BAG_SIZE:
+		m.stats.bag.append({"name": "Uncommon Very Long Named Copper Ring Of Luck %d" % i, "slot": "trinket", "stats": {"luck": 1.0}, "rarity": "Uncommon", "price": 15})
+	for i in 4:
+		m.stats.buffs.append({"name": "A long lasting caffeine rush from the corner cafe %d" % i, "left": 120.0, "per_h": {"energy": -5.0 if i % 2 else 5.0}, "xp_mult": 1.0})
+	m.hud.open_sheet()
+	m._step(0.01)
+	for h in [1560, 1280]:
+		get_tree().root.size = Vector2i(720, h)
+		await wait_frames(3)
+		assert_eq(m.hud.overlapping_texts(), [], "at 720 x %d" % h)
 
 
 func test_nothing_overlaps_in_the_reset_dialog() -> void:

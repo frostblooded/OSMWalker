@@ -21,6 +21,7 @@ enum Bar { NONE, PROGRESS, BUSY }
 const History := preload("res://scripts/history.gd")
 const Trips := preload("res://scripts/trips.gd")
 const HelpView := preload("res://scripts/help_view.gd")
+const SheetView := preload("res://scripts/sheet_view.gd")
 
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
@@ -34,7 +35,7 @@ var place_label: Label
 var bars := {}  # meter -> ProgressBar in the mini stats row
 var money_label: Label
 var feed_label: Label  # his latest action
-var sheet_label: Label
+var sheet: SheetView
 var _sheet: Control
 var _stats: RefCounted  # the Stats shown, kept for the sheet
 var city_label: Label
@@ -408,29 +409,11 @@ func _build_mini_stats() -> HBoxContainer:
 	return row
 
 
-## Full-screen sheet: every stat, his gear and his buffs.
+## Full-screen RPG character sheet: every stat, his gear and his buffs.
 func _build_sheet() -> void:
-	_sheet = ColorRect.new()
-	(_sheet as ColorRect).color = Color(0, 0, 0, 0.6)
-	_sheet.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_sheet.visible = false
-	add_child(_sheet)
-	var box := _panel()
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 24)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 16)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sheet_label = _label("", 30)
-	sheet_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(sheet_label)
-	col.add_child(scroll)
-	var close := _button("Close")
-	close.pressed.connect(close_sheet)
-	col.add_child(close)
-	box.add_child(col)
-	_sheet.add_child(box)
+	sheet = SheetView.new()
+	_sheet = sheet
+	add_child(sheet)
 
 
 func open_sheet() -> void:
@@ -656,32 +639,9 @@ func set_stats(stats: RefCounted) -> void:
 	_fill_history()
 
 
-static func sheet_text(stats: RefCounted) -> String:
-	var lines := ["Level %d · %d / %d XP · %d coins" % [stats.level, stats.xp, stats.xp_to_next(stats.level), stats.coins], ""]
-	for m in stats.meters:
-		lines.append("%s: %d / 100" % [m.capitalize(), roundi(stats.meters[m])])
-	lines.append("")
-	lines.append("Strength %.1f · Charm %.1f · Wits %.1f · Luck %.1f" % [stats.attrs["str"], stats.attrs["cha"], stats.attrs["wit"], stats.attrs["luck"]])
-	lines.append("")
-	for slot in stats.gear:
-		var it: Dictionary = stats.gear[slot]
-		lines.append("%s: %s (%s)" % [slot.capitalize(), it["name"], it["rarity"]])
-	if stats.gear.is_empty():
-		lines.append("No gear yet")
-	if not stats.bag.is_empty():
-		lines.append("Bag (%d): %s" % [stats.bag.size(), ", ".join(stats.bag.map(func(it): return it["name"]))])
-	if not stats.buffs.is_empty():
-		lines.append("")
-		for b in stats.buffs:
-			lines.append("%s (%d min left)" % [b["name"], ceili(b["left"])])
-	lines.append("")
-	lines.append("Tap History to see what he's been up to.")
-	return "\n".join(lines)
-
-
 func _fill_sheet() -> void:
 	if _stats:
-		sheet_label.text = sheet_text(_stats)
+		sheet.fill(_stats)
 
 
 func _build_picker() -> void:

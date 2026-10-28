@@ -4,7 +4,7 @@ extends GutTest
 
 const Items := preload("res://scripts/items.gd")
 const Stats := preload("res://scripts/stats.gd")
-const Hud := preload("res://scripts/hud.gd")
+const SheetView := preload("res://scripts/sheet_view.gd")
 
 var rng := RandomNumberGenerator.new()
 var stats: Stats
@@ -152,6 +152,7 @@ func test_no_shopping_when_skint_or_selling_an_empty_bag() -> void:
 func test_sheet_lists_gear_and_bag() -> void:
 	stats.equip(_sword(2.0))
 	stats.bag.append({"name": "Copper Ring", "slot": "trinket", "stats": {"luck": 1.0}, "rarity": "Common", "price": 15})
-	var text := Hud.sheet_text(stats)
-	assert_string_contains(text, "Weapon: Bronze Sword")
-	assert_string_contains(text, "Copper Ring")
+	var sheet: SheetView = autofree(SheetView.new())
+	sheet.fill(stats)
+	assert_has(sheet.texts(), "Bronze Sword")
+	assert_has(sheet.texts(), "Copper Ring")

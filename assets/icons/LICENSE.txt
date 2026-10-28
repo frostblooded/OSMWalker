@@ -1,0 +1,3 @@
+Icons by Lorc, Delapouite and contributors at https://game-icons.net,
+licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+Recoloured white by tools/make_icons.py so the game can tint them.

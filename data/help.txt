@@ -237,7 +237,13 @@ The + and - zoom buttons stay on the map in the bottom right.
 ## The stats panel and sheet {sheet}
 The white panel at the top shows the city, the street he is on, his HP, EN and FU bars, his coins and level, and the last thing he did.
 
-Tap it to open the full Stats sheet: his level and XP, all six meters, his four attributes, every piece of gear he wears with its rarity, what is in his bag and his buffs with the minutes they have left.
+Tap it to open his Character sheet, a set of cards:
+- Level, an XP bar towards the next level, and his coins.
+- Vitals: a coloured bar and the value for each of his six meters.
+- Attributes: a tile for each, with the part his gear adds in green.
+- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
+- Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.
+- Effects: his buffs with the minutes they have left. A green sparkle is a good effect, a red bottle a bad one.
 ## History {history}
 History (in the menu) lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints.
 
