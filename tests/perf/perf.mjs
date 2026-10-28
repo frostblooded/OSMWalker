@@ -26,10 +26,13 @@ const cdp = await context.newCDPSession(page);
 await cdp.send("Performance.enable");
 await cdp.send("Network.enable");
 await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 85, downloadThroughput: 9e6 / 8, uploadThroughput: 1.5e6 / 8 });
-await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+await cdp.send("Emulation.setCPUThrottlingRate", { rate: Number(process.env.PERF_CPU ?? 4) });
 await page.addInitScript(() => {
   window.__longTasks = [];
   new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__longTasks.push([e.startTime, e.duration]))).observe({ type: "longtask", buffered: true });
+  // Long animation frames say which script made a frame slow, so a failing run shows the culprit.
+  window.__frames = [];
+  new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__frames.push({ start: Math.round(e.startTime), ms: Math.round(e.duration), block: Math.round(e.blockingDuration), render: Math.round(e.renderStart ? e.startTime + e.duration - e.renderStart : 0), scripts: e.scripts.map((s) => `${s.invoker || s.invokerType} @ ${s.sourceURL.split("/").pop()}:${s.sourceCharPosition} ${Math.round(s.duration)}ms`) }))).observe({ type: "long-animation-frame", buffered: true });
 });
 
 await page.goto(`http://localhost:${PORT}/`);
@@ -52,7 +55,8 @@ const m0 = await metric();
 await page.waitForTimeout(10000);
 const m1 = await metric();
 const longTasks = await page.evaluate((ready) => window.__longTasks.filter(([start]) => start > ready).length, load.ready);
-if (process.env.PERF_DEBUG) console.log(await page.evaluate(() => JSON.stringify(window.__longTasks)), load);
+const late = await page.evaluate((ready) => ({ tasks: window.__longTasks.filter(([start]) => start > ready).map(([s, d]) => [Math.round(s), Math.round(d)]), frames: window.__frames.filter((f) => f.start + f.ms > ready) }), load.ready);
+if (late.tasks.length || process.env.PERF_DEBUG) console.log("Long tasks after ready:", JSON.stringify(late, null, 1), "ready", Math.round(load.ready));
 
 const results = {
   transfer_kb: Math.round(load.transfer / 1024),

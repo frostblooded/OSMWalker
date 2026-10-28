@@ -1,4 +1,5 @@
 import { render } from "preact";
+import { loadData, whenIdle } from "./app/data";
 import { App } from "./ui/App";
 // Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
 import "@fontsource/fredoka/latin-600.css";
@@ -18,7 +19,9 @@ requestAnimationFrame(() => setTimeout(() => performance.mark("osmwalker:ready")
 
 // Offline play and instant restarts; registered after the game is up so it doesn't compete with first load.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  addEventListener("load", () => {
+  // Starting the worker is real work on the page, so it waits until the game data has
+  // loaded and the page is idle, rather than landing on top of the loading.
+  const register = () => {
     navigator.serviceWorker.register("./sw.js").catch(() => undefined);
     // What this first visit fetched without the worker (before it ran, or before it took
     // control of the page, like the city lists loading at idle), so it is there offline
@@ -30,5 +33,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       send([new URL("./", location.href).href, ...missed(performance.getEntriesByType("resource"))]);
       new PerformanceObserver((list) => send(missed(list.getEntries()))).observe({ type: "resource" });
     });
-  });
+  };
+  const later = () => whenIdle(register);
+  addEventListener("load", () => whenIdle(() => void loadData().then(later, later)));
 }

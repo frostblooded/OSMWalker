@@ -1,6 +1,6 @@
 // Which screen shows: the picker for a new player, the game for a saved one.
 import { useEffect, useState } from "preact/hooks";
-import { loadData } from "../app/data";
+import { loadData, whenIdle, yieldNow } from "../app/data";
 import { Game, SAVE_KEY } from "../game/game";
 import { Api, type SearchPlace } from "../net/api";
 import { StreetClient } from "../streets/client";
@@ -10,10 +10,11 @@ import { Picker } from "./Picker";
 const api = new Api();
 let game: Promise<Game> | null = null;
 
-/** The game, made once the data has arrived; the streets worker starts with it. */
+/** The game, made once the data has arrived; the streets worker starts with it. Each step is its own task, so none is long. */
 function getGame(): Promise<Game> {
-  game ??= loadData().then((data) => {
+  game ??= loadData().then(async (data) => {
     const streets = new StreetClient();
+    await yieldNow();
     const g = new Game({ api, load: streets.load, data });
     streets.onProblem = (t) => g.problems.warn(t);
     return g;
@@ -46,8 +47,7 @@ export function App() {
       });
     } else {
       // The picker needs none of it, so fetch it once the page is up.
-      const idle = (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200))) as (f: () => void) => void;
-      idle(() => void getGame().then(setGame));
+      whenIdle(() => void getGame().then(setGame));
     }
   }, []);
 
