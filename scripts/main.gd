@@ -18,12 +18,15 @@ const Stats := preload("res://scripts/stats.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Geo := preload("res://scripts/geo.gd")
 const CityFacts := preload("res://scripts/city_facts.gd")
+const TrailView := preload("res://scripts/trail_view.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
 const SAVE_EVERY_S := 5.0
 ## Longest frame that counts as walking, so a hidden tab or a stall never jumps him ahead.
 const MAX_STEP_S := 1.0
+## Zoom used when a history entry is tapped, unless the player's is closer.
+const HISTORY_SPOT_ZOOM := 16
 ## Cells kept loaded around him: 2 means 5 x 5 cells, about 6 x 4.5 km.
 const STREET_RING := 2
 const TRIP_LINE_COLOR := Color(0.85, 0.2, 0.25, 0.85)
@@ -40,6 +43,8 @@ var hud: Hud
 var loader: StreetLoader
 var trip_line: Line2D
 var place_pin: Node2D
+var trail_view: TrailView
+var history_focus := []  # [lat, lon] of the tapped history entry, [] for the whole trail
 var trips: Trips
 var rng := RandomNumberGenerator.new()
 var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
@@ -77,6 +82,9 @@ func _ready() -> void:
 	place_pin = PlacePin.new()
 	place_pin.visible = false
 	add_child(place_pin)
+	trail_view = TrailView.new()
+	trail_view.visible = false
+	add_child(trail_view)
 	character = Character.new()
 	add_child(character)
 	camera = Camera2D.new()
@@ -87,6 +95,8 @@ func _ready() -> void:
 	hud.city_chosen.connect(_start_city)
 	hud.zoom_changed.connect(_on_zoom)
 	hud.reset_confirmed.connect(_reset)
+	hud.history_toggled.connect(_on_history_toggled)
+	hud.history_entry_tapped.connect(_on_history_tapped)
 	trips = Trips.shared()
 	activities = Activities.shared()
 	rng.randomize()
@@ -98,6 +108,22 @@ func _ready() -> void:
 func _on_zoom(step: int) -> void:
 	player_zoom = clampi(player_zoom + step, 3, 19)
 	_apply_zoom()
+
+
+func _on_history_toggled(open: bool) -> void:
+	history_focus = []
+	trail_view.highlight = -1
+	trail_view.visible = open
+	if walker:
+		_apply_zoom()
+
+
+func _on_history_tapped(i: int) -> void:
+	var e: Dictionary = stats.history.entries[i]
+	if e["at"].is_empty():
+		return
+	history_focus = e["at"]
+	trail_view.highlight = stats.history.number(i)
 
 
 func _on_search(text: String) -> void:
@@ -152,9 +178,12 @@ func _hour() -> int:
 ## At a destination: a first-visit bonus, then an action he can do there,
 ## which sets how long he stays.
 func _on_arrived(place: Dictionary) -> void:
+	_track()
 	var bonus := stats.visit(place)
 	if bonus > 0:
-		stats.say("First visit to %s (+%d XP)" % [place["name"], bonus])
+		stats.say("Reached %s for the first time (+%d XP)" % [place["name"], bonus])
+	elif not place.is_empty():
+		stats.say("Reached " + place["name"])
 	var options := activities.for_place(place, country)
 	if place.is_empty():
 		options += city_facts
@@ -182,6 +211,8 @@ func _faint() -> void:
 		var node := walker.graph.nearest_node(hospital["lat"], hospital["lon"])
 		if node != -1:
 			walker.start_at(node)
+			stats.history.break_trail()
+			_track()
 	walker.rest_for(Activities.MAX_MINUTES)
 	walker.place = hospital
 
@@ -207,12 +238,16 @@ func _plan_trip() -> Dictionary:
 	if dest.is_empty():
 		return {}
 	print("Travelling to %s, %s" % [dest["name"], dest["country"]])
+	stats.say("Set off for %s, %s" % [dest["name"], dest["country"]])
+	stats.history.break_trail()
 	return dest.merged({"bounds": Trips.city_bounds(dest)})
 
 
 func _on_landed(dest: Dictionary) -> void:
 	city = "%s, %s" % [dest["name"], dest["country"]]
 	country = dest["code"]
+	_track()
+	stats.say("Arrived in " + city)
 	_learn_city(dest["lat"], dest["lon"])
 	loader.graph = walker.graph
 	loader.reset_failures()
@@ -227,6 +262,7 @@ func _reset() -> void:
 	stats = Stats.new()
 	DirAccess.remove_absolute(save_path)
 	map.clear()
+	trail_view.visible = false
 	hud.set_status("")
 	hud.show_picker()
 
@@ -248,6 +284,8 @@ func _step(delta: float) -> void:
 	var before := walker.total_m
 	walker.advance(dt * Walker.SPEED_MPS)
 	stats.pass_time(dt / 60.0, walker.total_m - before)
+	if not walker.is_traveling():
+		_track()
 	if stats.fainted():
 		_faint()
 	hud.set_stats(stats)
@@ -257,8 +295,10 @@ func _step(delta: float) -> void:
 	var p := walker.position()
 	character.position = map.geo_to_local(p[0], p[1])
 	character.walking = not walker.needs_data() and not walker.is_resting()
-	camera.position = character.position
 	var view_size := get_viewport_rect().size
+	camera.position = _history_center(view_size) if trail_view.visible else character.position
+	if trail_view.visible:
+		trail_view.show_history(stats.history, map)
 	map.show_area(Rect2(camera.position - view_size / 2.0, view_size), _heading())
 	if walker.is_traveling():
 		hud.set_trip(walker.travel["to"]["name"])
@@ -273,8 +313,35 @@ func _step(delta: float) -> void:
 		_save()
 
 
-## The player's zoom, or far out to show a trip.
+## His spot goes in the history and extends the trail.
+func _track() -> void:
+	var p := walker.position()
+	stats.history.move_to(p[0], p[1])
+
+
+## The map left showing above the history panel, between it and the top panel.
+func _history_area(view_size: Vector2) -> Vector2:
+	return Vector2(view_size.x, maxf(view_size.y / 2.0 - hud.top_height(), 1.0))
+
+
+## Camera spot that puts the tapped entry, or the whole trail, mid-way in the map above the panel.
+func _history_center(view_size: Vector2) -> Vector2:
+	var at := history_focus
+	if at.is_empty():
+		var b: Array = stats.history.bounds()
+		at = [(b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0] if not b.is_empty() else walker.position()
+	return map.geo_to_local(at[0], at[1]) + Vector2(0, view_size.y / 4.0 - hud.top_height() / 2.0)
+
+
+## The player's zoom, far out to show a trip, or fitting the trail while the history is open.
 func _wanted_zoom() -> int:
+	if trail_view and trail_view.visible:
+		if not history_focus.is_empty():
+			return maxi(player_zoom, HISTORY_SPOT_ZOOM)
+		var b: Array = stats.history.bounds()
+		if not b.is_empty():
+			return MapView.zoom_to_fit_box(b, _history_area(get_viewport_rect().size), player_zoom)
+		return player_zoom
 	if walker and walker.is_traveling():
 		var to: Dictionary = walker.travel["to"]
 		return MapView.zoom_to_fit(walker.travel["from"], [to["lat"], to["lon"]], get_viewport_rect().size)
@@ -432,6 +499,9 @@ func debug_state() -> Dictionary:
 		"city_facts": city_facts.size(),
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),
+		"history_open": hud.is_history_open(),
+		"history_entries": stats.history.entries.size(),
+		"trail_markers": trail_view.markers.size() if trail_view.visible else 0,
 		"confirm_enabled": hud.is_confirm_enabled(),
 		"rects": rects,
 	}

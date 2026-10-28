@@ -174,6 +174,22 @@ func test_stats_survive_save_and_load() -> void:
 	assert_eq(back.visit(_cafe()), 0)
 
 
+func test_what_he_says_goes_in_the_history_where_he_is() -> void:
+	stats.history.move_to(42.0, 23.0)
+	stats.say("Waved")
+	assert_eq(stats.history.entries[-1]["text"], "Waved")
+	assert_eq(stats.history.entries[-1]["at"], [42.0, 23.0])
+	assert_gt(stats.history.entries[-1]["t"], 0)
+	var back := Stats.new()
+	back.load_dict(JSON.parse_string(JSON.stringify(stats.to_dict())))
+	assert_eq(back.history.entries[-1]["at"], [42.0, 23.0])
+
+
+func test_old_saves_keep_their_feed_lines() -> void:
+	stats.load_dict({"feed": ["Old news"]})
+	assert_eq(stats.feed, ["Old news"])
+
+
 func test_action_list_comes_from_subclass_then_class_then_generic() -> void:
 	var data := {"shop/bakery": [{"name": "Loaf"}], "shop": [{"name": "Browse"}], "_generic": [{"name": "Look"}], "_spot": [{"name": "Sit"}]}
 	var acts := Activities.new(data)
