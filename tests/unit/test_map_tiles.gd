@@ -33,3 +33,11 @@ func test_tiles_ahead_win_over_tiles_behind() -> void:
 	var ahead := MapView.priority(Vector2(2, 0), Vector2.ZERO, MapView.Kind.SHOW, Vector2(1, 0))
 	var behind := MapView.priority(Vector2(-2, 0), Vector2.ZERO, MapView.Kind.SHOW, Vector2(1, 0))
 	assert_lt(ahead, behind)
+
+
+func test_zooms_out_to_fit_both_ends_of_a_trip() -> void:
+	var size := Vector2(720, 1280)
+	assert_eq(MapView.zoom_to_fit([42.0, 23.0], [42.01, 23.01], size), 12)
+	var sofia_varna := MapView.zoom_to_fit([42.7, 23.3], [43.2, 27.9], size)
+	assert_between(sofia_varna, 6, 8)
+	assert_eq(MapView.zoom_to_fit([42.7, 23.3], [-33.9, 151.2], size), 3)

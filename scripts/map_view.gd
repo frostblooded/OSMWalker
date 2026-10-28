@@ -71,6 +71,16 @@ func geo_to_local(lat: float, lon: float) -> Vector2:
 		Geo.lat_to_px(lat, zoom) - Geo.lat_to_px(origin_lat, zoom))
 
 
+## Closest zoom (12 at most) where both [lat, lon] points fit well inside `size`.
+static func zoom_to_fit(a: Array, b: Array, size: Vector2) -> int:
+	for z in range(12, 3, -1):
+		var dx := absf(Geo.lon_to_px(a[1], z) - Geo.lon_to_px(b[1], z))
+		var dy := absf(Geo.lat_to_px(a[0], z) - Geo.lat_to_px(b[0], z))
+		if dx <= size.x * 0.7 and dy <= size.y * 0.7:
+			return z
+	return 3
+
+
 ## Tiles overlapping `view` (local px, origin at world px ox, oy), grown by `ring`.
 static func tile_range(view: Rect2, ox: float, oy: float, ring: int, z := 19) -> Rect2i:
 	var n := 1 << z
