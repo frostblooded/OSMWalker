@@ -5,6 +5,7 @@
 extends ColorRect
 
 const Help := preload("res://scripts/help.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")
 
 const PANEL_BG := Color(1, 1, 1, 0.97)
 const CARD_BG := Color("#f2f2f2")
@@ -51,9 +52,7 @@ func _init() -> void:
 	head.add_child(close_button)
 	col.add_child(head)
 
-	_scroll = ScrollContainer.new()
-	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll = UiKit.scroll()
 	col.add_child(_scroll)
 	var inner := VBoxContainer.new()
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -70,7 +69,8 @@ func _init() -> void:
 			b.add_theme_font_size_override("font_size", 30)
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.pressed.connect(show_page.bind(p["id"]))
+			b.mouse_filter = Control.MOUSE_FILTER_PASS  # drags on a topic still scroll the list
+			b.pressed.connect(func(): if not _scroll.is_dragging(): show_page(p["id"]))
 			items.add_child(b)
 			if first_topic == null:
 				first_topic = b
