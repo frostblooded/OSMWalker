@@ -80,3 +80,9 @@ func test_bundled_list_has_the_world() -> void:
 	var all := Trips.shared()
 	assert_gt(all.cities.size(), 5000)
 	assert_eq(all.country_at(42.69, 23.32), "BGR")
+
+
+func test_lists_the_options_for_a_trip() -> void:
+	var opts := trips.options(Trips.Kind.CITY, "AAA", 0.0, 0.0)
+	assert_eq(opts.map(func(c): return c["name"]), ["Smallton"], "Nexttown is too close to count as another city")
+	assert_eq(trips.options(Trips.Kind.STAY, "AAA", 0.0, 0.0), [])

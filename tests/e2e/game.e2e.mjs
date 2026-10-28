@@ -174,6 +174,18 @@ try {
   await tap("history_close");
   await until((s) => !s.history_open, "history panel closed");
 
+  step = "debug panel";
+  await tap("menu");
+  await tap("debug");
+  const dbg = await until((s) => s.debug_open && s.rects.debug_goal, "debug panel open");
+  assert.ok(dbg.rects.debug_goal[3] / dpr >= 44, "New goal is big enough to tap");
+  await tap("debug_goal");
+  await until((s) => s.debug_picks > dbg.debug_picks, "New goal adds a pick to the debug log");
+  await page.screenshot({ path: `${shots}/3b-debug.png` });
+  assert.deepEqual((await state()).overlaps, [], "texts overlap with the debug panel open");
+  await tap("debug_close");
+  await until((s) => !s.debug_open, "debug panel closed");
+
   step = "reset needs RESET";
   await tap("menu");
   await tap("new_city");
