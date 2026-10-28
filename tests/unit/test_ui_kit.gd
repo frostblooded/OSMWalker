@@ -32,3 +32,12 @@ func test_rows_alternate_backgrounds() -> void:
 func test_sizes_follow_the_guidelines() -> void:
 	assert_gte(UiKit.SMALL, 24)
 	assert_gte(UiKit.TAP, 96)
+
+
+func test_cards_and_rows_let_drags_through_to_the_list() -> void:
+	var c := UiKit.card("", "x")
+	var z := UiKit.zebra(0)
+	autofree(c["card"])
+	autofree(z)
+	assert_eq(c["card"].mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	assert_eq(z.mouse_filter, Control.MOUSE_FILTER_IGNORE)

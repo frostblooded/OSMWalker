@@ -80,6 +80,7 @@ static func box(color: Color, radius := 16, pad := S3, edge := Color.TRANSPARENT
 ## column for its content. Returns {card, body, value}.
 static func card(icon: String, title: String, value := "", tint := INK) -> Dictionary:
 	var c := PanelContainer.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE  # drags on it still scroll the list
 	c.add_theme_stylebox_override("panel", box(CARD_BG, 18, S3, EDGE))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", S1)
@@ -122,6 +123,7 @@ static func kv_row(key: String, value: String, value_color := INK) -> HBoxContai
 ## the returned container.
 static func zebra(i: int) -> PanelContainer:
 	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE  # drags on it still scroll the list
 	p.add_theme_stylebox_override("panel", box(ROW_A if i % 2 == 0 else ROW_B, 12, S2))
 	return p
 
