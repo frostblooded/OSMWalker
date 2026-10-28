@@ -152,7 +152,7 @@ func _on_arrived(place: Dictionary) -> void:
 	var bonus := stats.visit(place)
 	if bonus > 0:
 		stats.say("First visit to %s (+%d XP)" % [place["name"], bonus])
-	var action := Activities.choose(activities.for_place(place), stats, _hour(), rng.randf())
+	var action := Activities.choose(activities.for_place(place, country), stats, _hour(), rng.randf())
 	if action.is_empty():
 		return
 	stats.do(action, place.get("name", ""), rng)
