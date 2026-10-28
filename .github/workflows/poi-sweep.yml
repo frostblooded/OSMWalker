@@ -1,0 +1,31 @@
+name: POI sweep
+
+# Lists every POI class/subclass in real OpenFreeMap tiles, with examples,
+# and which ones data/actions.json has no actions for. Run it by hand, or it
+# runs when the sweep or the actions change. Report: the job summary and the
+# poi_tags artifact.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - tools/poi_sweep.py
+      - data/actions.json
+      - .github/workflows/poi-sweep.yml
+
+jobs:
+  sweep:
+    name: Sweep POI tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/poi_sweep.py
+      - run: pip install mapbox-vector-tile==2.1.0
+      - run: python3 tools/poi_sweep.py poi_tags.tsv | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: poi_tags
+          path: poi_tags.tsv
