@@ -11,14 +11,29 @@ const text = async (name: string) => {
   return r.text();
 };
 
+/** Lets the browser draw and handle taps between bits of work. */
+const yieldNow = () => new Promise<void>((ok) => setTimeout(ok, 0));
+
+/** Parses a big TSV a slice of lines at a time, so no single task blocks the page (long tasks hurt taps on phones). */
+async function parseInSlices<T>(tsv: string, parse: (text: string) => T[], lines = 1000): Promise<T[]> {
+  const all = tsv.split("\n");
+  const out: T[] = [];
+  for (let i = 0; i < all.length; i += lines) {
+    out.push(...parse(all.slice(i, i + lines).join("\n")));
+    await yieldNow();
+  }
+  return out;
+}
+
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), text("cities.tsv"), text("airports.tsv")]).then(([a, f, c, p]) => ({
-    actions: JSON.parse(a) as ActionTable,
-    flavour: JSON.parse(f) as Record<string, ActionTable>,
-    cities: parseCities(c),
-    airports: parseAirports(p),
-  }));
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), text("cities.tsv"), text("airports.tsv")]).then(async ([a, f, c, p]) => {
+    const actions = JSON.parse(a) as ActionTable;
+    await yieldNow();
+    const flavour = JSON.parse(f) as Record<string, ActionTable>;
+    await yieldNow();
+    return { actions, flavour, cities: await parseInSlices(c, parseCities), airports: await parseInSlices(p, parseAirports) };
+  });
   return pending;
 }

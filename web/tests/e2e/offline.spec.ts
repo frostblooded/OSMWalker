@@ -1,0 +1,19 @@
+// The service worker: a returning player can open the game with no network.
+import { expect, test } from "@playwright/test";
+import { mockServices } from "./mock";
+
+test.use({ serviceWorkers: "allow" });
+
+test("opens offline after one visit, where he was", async ({ context, page }) => {
+  await mockServices(context);
+  await page.goto("./");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.getByLabel("City name").fill("Sofia");
+  await page.getByRole("button", { name: /Sofia/ }).click();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.waitForTimeout(1500); // a save, and the map's first tiles
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator(".city")).toContainText("Sofia, Bulgaria", { timeout: 20000 });
+  await expect(page.locator(".marker.him")).toBeVisible();
+});

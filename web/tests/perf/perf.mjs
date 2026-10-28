@@ -52,6 +52,7 @@ const m0 = await metric();
 await page.waitForTimeout(10000);
 const m1 = await metric();
 const longTasks = await page.evaluate((ready) => window.__longTasks.filter(([start]) => start > ready).length, load.ready);
+if (process.env.PERF_DEBUG) console.log(await page.evaluate(() => JSON.stringify(window.__longTasks)), load);
 
 const results = {
   transfer_kb: Math.round(load.transfer / 1024),
