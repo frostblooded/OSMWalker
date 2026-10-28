@@ -33,16 +33,13 @@ export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
 export const GOAL_PEAK_M = 500;
 export const GOAL_SPREAD = 0.6;
 /** A goal straight ahead (along his last leg) weighs this many times one straight behind. */
-export const HEADING_RATIO = 2;
-/** Places among his last RECENT_COUNT goals weigh this much less. */
-export const RECENT_COUNT = 10;
-export const RECENT_WEIGHT = 0.1;
+export const HEADING_RATIO = 3;
 /** Tries at a random spot near and ahead of him before taking any spot in the box. */
 export const SPOT_TRIES = 30;
 
 export type Vec = [number, number];
 export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
-export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; recent_w: number; weight: number };
+export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number };
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
@@ -145,8 +142,8 @@ export class Walker {
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
-  /** The last RECENT_COUNT places picked, oldest first. */
-  recent: LatLon[] = [];
+  /** How much a place meets his needs (1 = not at all); set by the game. */
+  needWeight: ((p: Place) => number) | null = null;
   /** The trip plan while he walks to its station. */
   departing: Plan | null = null;
   travel: Travel | null = null;
@@ -211,8 +208,6 @@ export class Walker {
       const pl = options[i]!;
       this.setGoal(pl.lat, pl.lon);
       this.place = pl;
-      this.recent.push([pl.lat, pl.lon]);
-      this.recent = this.recent.slice(-RECENT_COUNT);
       Object.assign(info, parts[i], {
         r,
         place: pl.name,
@@ -257,13 +252,13 @@ export class Walker {
   /** How much a place weighs as his next goal, and why. */
   weigh(p: Place): Weights {
     const rank_w = rankWeight(p);
-    if (!this.here()) return { rank_w, dist_m: 0, dist_w: 1, heading_w: 1, recent_w: 1, weight: rank_w };
+    const need_w = this.needWeight?.(p) ?? 1;
+    if (!this.here()) return { rank_w, dist_m: 0, dist_w: 1, heading_w: 1, need_w, weight: rank_w * need_w };
     const here = this.position();
     const d = distanceM(here[0], here[1], p.lat, p.lon);
-    const recent_w = this.recent.some((q) => distanceM(q[0], q[1], p.lat, p.lon) <= ARRIVE_M) ? RECENT_WEIGHT : 1;
     const dist_w = distanceWeight(d);
     const heading_w = headingWeight(this.heading(), offsetM(here[0], here[1], p.lat, p.lon));
-    return { rank_w, dist_m: d, dist_w, heading_w, recent_w, weight: rank_w * dist_w * heading_w * recent_w };
+    return { rank_w, dist_m: d, dist_w, heading_w, need_w, weight: rank_w * dist_w * heading_w * need_w };
   }
 
   /** A spot in the city box, drawn with the same distance and heading odds as places; anywhere in the box when he has no position yet or no luck. */
@@ -333,7 +328,6 @@ export class Walker {
     const t = this.travel!;
     this.travel = null;
     this.legFrom = null;
-    this.recent = [];
     this.graph = new StreetGraph();
     this.graph.nodes.set(ARRIVAL_NODE, [t.arrive[0], t.arrive[1]]);
     this.startAt(ARRIVAL_NODE);
@@ -499,6 +493,21 @@ export class Walker {
     return m + distanceM(end[0], end[1], this.goal[0], this.goal[1]);
   }
 
+  /** His planned way to the goal: along the loaded streets, then a straight bit past them (null when the streets get there). */
+  routeLine(): { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null {
+    if (!this.goal || !this.here()) return null;
+    const streets: LatLon[] = [this.position()];
+    for (const id of [this.toNode, ...this.route]) {
+      if (id === null) continue;
+      const p = this.graph.nodes.get(id);
+      if (!p) break;
+      streets.push(p);
+    }
+    const end = streets.at(-1)!;
+    const rest: [LatLon, LatLon] | null = distanceM(end[0], end[1], this.goal[0], this.goal[1]) > ARRIVE_M ? [end, [this.goal[0], this.goal[1]]] : null;
+    return { streets, rest };
+  }
+
   /** Seconds until he moves again. */
   restLeftS(): number {
     return this.restM / SPEED_MPS;
@@ -641,7 +650,6 @@ export class Walker {
       trip_start_m: this.tripStartM,
       place: this.place,
       leg_from: this.legFrom,
-      recent: this.recent,
       departing: this.departing,
       travel: this.travel,
     };
@@ -667,7 +675,6 @@ export class Walker {
     w.tripStartM = d.trip_start_m;
     w.place = d.place;
     w.legFrom = d.leg_from;
-    w.recent = d.recent;
     w.departing = d.departing;
     w.travel = d.travel;
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
@@ -698,7 +705,6 @@ export type WalkerSave = {
   trip_start_m: number;
   place: Place | null;
   leg_from: LatLon | null;
-  recent: LatLon[];
   departing: Plan | null;
   travel: Travel | null;
 };

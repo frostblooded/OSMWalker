@@ -55,11 +55,11 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Recent: places among his last {RECENT_COUNT} goals weigh {RECENT_PCT} as much, so he explores instead of going back and forth between two cafes.
+Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip, for paid work. Only his strongest need counts.
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
-While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · 14 min". A 🎯 pin on the map marks the goal.
+While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is approximate: it is the planned route at his current speed. A 🎯 pin on the map marks the goal.
 
 Tap that line to see him and his goal on the map together. Tap "Back to him" (or the line again) to follow him again. The view also goes back to him by itself when he picks a new goal.
 
@@ -276,13 +276,15 @@ When he reaches a city, the game looks it up on Wikidata: the most populous plac
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city, his coins and level, the street he is on (or the ride he is on) and his goal with the distance and walking time. While he rests it shows the countdown and a bar. Red lines in it warn about anything that could leave him stuck (see Debug).
+The card at the top shows the city and what he is doing, his coins and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 
-The bar at the bottom, in reach of your thumb, opens the Menu, his History and his Stats. The + and − zoom buttons stay on the right edge of the map.
+Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. "Back to him" shows up at the bottom whenever the map is not following him.
 ## The menu {menu}
-☰ Menu (bottom left) holds Help, Debug, the City area switch and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Help, Debug, the Route to goal and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+
+Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, an XP bar towards the next level, his coins and his speed.

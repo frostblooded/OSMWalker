@@ -4,7 +4,7 @@
 // bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. No DOM here: the
 // app calls step() and the screens read the state.
-import { Activities, choose, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, needWeight, restMinutes, type ActionTable } from "../core/activities";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
@@ -77,6 +77,8 @@ export class Game {
   /** Trivia actions for random spots, from Wikidata. */
   cityFacts: Action[] = [];
   showCityArea = false;
+  /** Draws his planned way to the goal; off until the player turns it on. */
+  showRoute = false;
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
@@ -175,6 +177,7 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
+    w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
       arrived: (p) => this.onArrived(p),
@@ -487,8 +490,9 @@ export class Game {
     const raw = this.storage?.getItem(SETTINGS_KEY);
     if (!raw) return;
     try {
-      const d = JSON.parse(raw) as { show_city_area?: boolean; problems?: unknown };
+      const d = JSON.parse(raw) as { show_city_area?: boolean; show_route?: boolean; problems?: unknown };
       this.showCityArea = !!d.show_city_area;
+      this.showRoute = !!d.show_route;
       Object.assign(this.problems, Problems.fromJSON(d.problems), { quiet: this.problems.quiet });
     } catch {
       this.problems.warn("Settings were unreadable; using defaults");
@@ -497,7 +501,7 @@ export class Game {
 
   saveSettings(): void {
     try {
-      this.storage?.setItem(SETTINGS_KEY, JSON.stringify({ show_city_area: this.showCityArea, problems: this.problems }));
+      this.storage?.setItem(SETTINGS_KEY, JSON.stringify({ show_city_area: this.showCityArea, show_route: this.showRoute, problems: this.problems }));
     } catch {
       // Out of space: settings are only a convenience.
     }
@@ -507,6 +511,12 @@ export class Game {
     this.showCityArea = on;
     this.saveSettings();
     if (on) void this.learnOutline();
+    this.changed();
+  }
+
+  setShowRoute(on: boolean): void {
+    this.showRoute = on;
+    this.saveSettings();
     this.changed();
   }
 

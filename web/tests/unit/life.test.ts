@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { Activities, choose, restMinutes, weight, type ActionTable } from "../../src/core/activities";
+import { Activities, choose, NEED_AT, NEED_BOOST, needWeight, restMinutes, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
@@ -319,6 +319,34 @@ describe("speed", () => {
     const back = roundTrip(stats);
     expect(back.vehicle()).toBe("motorcycle");
     expect(back.speedMps()).toBeCloseTo(stats.speedMps());
+  });
+});
+
+describe("need-driven goals", () => {
+  const eat: Action = { name: "Eat", min: 1, cost: 5, fx: { fullness: 40 } };
+  const work: Action = { name: "Wash dishes", min: 1, earn: 10 };
+  it("weigh 1 when nothing he needs is there", () => {
+    expect(needWeight([eat], stats)).toBe(1);
+    expect(needWeight([], stats)).toBe(1);
+  });
+  it("weigh more the lower the meter the place refills", () => {
+    stats.meters.fullness = NEED_AT / 2;
+    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST / 2, 6);
+    stats.meters.fullness = 0;
+    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(needWeight([work], stats)).toBe(1);
+  });
+  it("send him to paid work when he is broke or saving up", () => {
+    stats.coins = 0;
+    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+    stats.coins = 500;
+    stats.savingFor = 1000;
+    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+  });
+  it("peek at a place's actions without counting it as unknown", () => {
+    const acts = new Activities({ _generic: [{ name: "Look", min: 1 }] });
+    expect(acts.peek({ class: "odd", subclass: "x" })).toHaveLength(1);
+    expect(acts.unknown).toEqual({});
   });
 });
 

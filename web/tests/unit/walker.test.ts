@@ -328,6 +328,31 @@ describe("walk left", () => {
   });
 });
 
+describe("route line", () => {
+  it("follows his planned streets from where he is, then goes straight to the goal", () => {
+    walker.startAt(n(2));
+    walker.setGoal(42.0, 23.06);
+    walker.advance(10);
+    const line = walker.routeLine()!;
+    expect(line.streets[0]).toEqual(walker.position());
+    expect(line.streets[1]).toEqual(graph.nodes.get(walker.toNode!));
+    expect(line.streets).toHaveLength(2 + walker.route.filter((id) => graph.hasNode(id)).length);
+    expect(line.rest).toEqual([line.streets.at(-1), [42.0, 23.06]]);
+  });
+
+  it("has no straight part when the streets reach the goal", () => {
+    walker.startAt(n(2));
+    walker.setGoal(...graph.nodes.get(n(3))!);
+    walker.advance(10);
+    expect(walker.routeLine()!.rest).toBeNull();
+  });
+
+  it("is null without a goal", () => {
+    walker.startAt(n(2));
+    expect(walker.routeLine()).toBeNull();
+  });
+});
+
 describe("map data", () => {
   const SMALL = [41.9995, 22.999, 42.0005, 23.001] as [number, number, number, number];
 
@@ -394,13 +419,11 @@ describe("saves", () => {
     expect(back.restFraction()).toBeCloseTo(0, 3);
   });
 
-  it("keep his last leg and recent places", () => {
+  it("keep his last leg", () => {
     walker.startAt(n(1));
     walker.setGoal(42.001, 23.0);
-    walker.recent = [[42.0, 23.0]];
     const back = roundTrip(walker);
     expect(back.legFrom).toEqual(walker.legFrom);
-    expect(back.recent).toEqual([[42.0, 23.0]]);
   });
 });
 
@@ -448,7 +471,8 @@ describe("goal weights", () => {
     expect(W.distanceWeight(0)).toBe(W.distanceWeight(1));
   });
 
-  it("weigh straight ahead twice straight back", () => {
+  it("weigh straight ahead three times straight back", () => {
+    expect(W.HEADING_RATIO).toBe(3);
     const north: W.Vec = [0, 1];
     const ahead = W.headingWeight(north, [0, 500]);
     const back = W.headingWeight(north, [0, -500]);
@@ -480,7 +504,7 @@ describe("goal weights", () => {
     return w;
   }
 
-  it("multiply rank, distance, heading and recent", () => {
+  it("multiply rank, distance, heading and need", () => {
     const w = atCross();
     w.legFrom = moved(42, 23, [0, -500]);
     const ahead = moved(42, 23, [0, 500]);
@@ -490,10 +514,12 @@ describe("goal weights", () => {
     expect(Math.abs(parts.dist_m - 500)).toBeLessThan(2);
     expect(parts.dist_w).toBeCloseTo(W.distanceWeight(parts.dist_m), 6);
     expect(parts.heading_w).toBeCloseTo(W.headingWeight([0, 1], [0, 500]), 3);
-    expect(parts.recent_w).toBe(1);
+    expect(parts.need_w).toBe(1);
     expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
-    w.recent = [ahead];
-    expect(w.weigh(p).recent_w).toBeCloseTo(W.RECENT_WEIGHT, 6);
+    w.needWeight = (q) => (q.name === "Ahead" ? 4 : 1);
+    const needy = w.weigh(p);
+    expect(needy.need_w).toBe(4);
+    expect(needy.weight).toBeCloseTo(4 * parts.weight, 6);
   });
 
   it("take his heading from where his last leg started", () => {
@@ -518,7 +544,6 @@ describe("goal weights", () => {
       w.rng = new Rng(s);
       w.startAt(n(1));
       w.legFrom = moved(42, 23, [-500, 0]);
-      w.recent = [];
       w.pickGoal();
       counts[w.place!.name] = (counts[w.place!.name] ?? 0) + 1;
     }
@@ -528,13 +553,20 @@ describe("goal weights", () => {
     expect(c("Mid west")).toBeGreaterThan(c("Far east"));
   });
 
-  it("remember picked places as recent", () => {
+  it("lean towards places that meet his needs", () => {
     const w = atCross();
-    const ll = moved(42, 23, [0, 500]);
-    setPlaces(w.graph, [cafe("Only", ll[0], ll[1])]);
-    for (let i = 0; i < W.RECENT_COUNT + 3; i++) w.pickGoal();
-    expect(w.recent).toHaveLength(W.RECENT_COUNT);
-    expect(w.recent[w.recent.length - 1]).toEqual(ll);
+    const a = moved(42, 23, [500, 0]);
+    const b = moved(42, 23, [-500, 0]);
+    setPlaces(w.graph, [cafe("Food", a[0], a[1]), cafe("Other", b[0], b[1])]);
+    w.needWeight = (q) => (q.name === "Food" ? 5 : 1);
+    let food = 0;
+    for (let s = 0; s < 300; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      food += +(w.place!.name === "Food");
+    }
+    expect(food).toBeGreaterThan(220);
   });
 
   it("draw random spots near and ahead", () => {
@@ -740,10 +772,8 @@ describe("trips", () => {
   it("forget the old heading on landing", () => {
     walker.startAt(n(1));
     walker.setGoal(42.001, 23.0);
-    walker.recent = [[42, 23]];
     walker.startTravel(far);
     walker.landNow();
     expect(walker.legFrom).toBeNull();
-    expect(walker.recent).toEqual([]);
   });
 });

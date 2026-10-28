@@ -14,6 +14,6 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await page.waitForTimeout(1500); // a save, and the map's first tiles
   await context.setOffline(true);
   await page.reload();
-  await expect(page.locator(".city")).toContainText("Sofia, Bulgaria", { timeout: 20000 });
+  await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
   await expect(page.locator(".marker.him")).toBeVisible();
 });

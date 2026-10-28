@@ -84,8 +84,9 @@ describe("debug log", () => {
   });
 
   it("explains the weight parts", () => {
-    const text = D.lines({ t: 0, in_box: 1, place: "A", rank: 1, weight: 0.5, total_weight: 1, rank_w: 1, dist_w: 0.5, dist_m: 812.4, heading_w: 1, recent_w: 1 }, 0).join("\n");
+    const text = D.lines({ t: 0, in_box: 1, place: "A", rank: 1, weight: 0.5, total_weight: 1, rank_w: 1, dist_w: 0.5, dist_m: 812.4, heading_w: 1, need_w: 1 }, 0).join("\n");
     expect(text).toContain("distance 0.50 (812 m away)");
+    expect(text).toContain("× need 1.00");
   });
 
   it("says why a random spot was used", () => {

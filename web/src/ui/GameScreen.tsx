@@ -89,7 +89,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       return;
     }
     const h = game.stats.history;
-    const sheetH = (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) + (document.querySelector<HTMLElement>(".thumbs")?.offsetHeight ?? 0);
+    const sheetH = (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) + 0;
     v.setPadding({ ...padding(), bottom: sheetH + 12 });
     drawEvents();
     const box = h.bounds();
@@ -154,25 +154,37 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
     <div class="game">
       <div class="map" ref={mapEl} />
       <div class="top" ref={topEl}>
-        <div class="card" aria-live="polite">
-          <div class="city">
-            <span>🏙 {game.city}</span>
-            <span>
-              {s.coins}c · Lv {s.level}
+        <section class="card hud" aria-live="polite" aria-label="Where he is">
+          <div class="hud-head">
+            <span class="hud-icon" aria-hidden="true">
+              {w.travel ? rideIcon(w.travel.mode) : w.isResting() ? "⏸" : "🚶"}
             </span>
+            <div class="grow">
+              <div class="city">{game.city.split(",")[0]} · {w.travel ? "riding" : w.isResting() ? "resting" : "walking"}</div>
+              <div class="street">{w.travel ? `Riding to ${w.travel.to.name} by ${w.travel.mode}` : streetLine(w.streetName(), w.isResting())}</div>
+            </div>
+            <div class="pills">
+              <span class="pill coins">{s.coins}c</span>
+              <span class="pill level">Lv {s.level}</span>
+            </div>
           </div>
-          <div class="street">{w.travel ? `${rideIcon(w.travel.mode)} Riding to ${w.travel.to.name} by ${w.travel.mode}` : streetLine(w.streetName(), w.isResting())}</div>
           <GoalChip game={game} onTap={showGoal} />
+          <div class="minibars" aria-hidden="true">
+            <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
+            <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
+            <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
+          </div>
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting game={game} />
-          {game.severeNow.map((p) => (
-            <button class="notice error link" key={p.title} onClick={() => setSheet("debug")}>
-              ⛔ {p.title} ›
+          {game.severeNow.length > 0 && (
+            <button class="notice error link" onClick={() => setSheet("debug")}>
+              ⛔ {game.severeNow[0]!.title}
+              {game.severeNow.length > 1 && ` (+${game.severeNow.length - 1} more)`} ›
             </button>
-          ))}
-        </div>
+          )}
+        </section>
         {s.history.entries.length > 0 && (
-          <div class="card toast" key={s.history.entries.length}>
+          <div class="toast" role="status" key={s.history.entries.length}>
             {s.history.latest()}
           </div>
         )}
@@ -190,14 +202,18 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           🙂 Back to him
         </button>
       )}
-      <nav class="thumbs" aria-label="Main">
-        <Thumb icon="☰" label="Menu" dot={game.problems.unseen > 0} onClick={() => setSheet(sheet === "menu" ? null : "menu")} />
-        <Thumb icon="📜" label="History" onClick={() => setSheet(sheet === "history" ? null : "history")} />
-        <Thumb icon="🧍" label="Stats" onClick={() => setSheet(sheet === "stats" ? null : "stats")} />
-      </nav>
+      <button class="btn round burger" aria-label="Menu" onClick={() => setSheet(sheet === "menu" ? null : "menu")}>
+        ☰{game.problems.unseen > 0 && <span class="dot" />}
+      </button>
       {sheet === "menu" && (
         <SheetBox title="☰ Menu" onClose={close}>
           <div class="menu">
+            <button class="btn" onClick={() => setSheet("history")}>
+              📜 History
+            </button>
+            <button class="btn" onClick={() => setSheet("stats")}>
+              🧍 Stats
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -209,6 +225,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             </button>
             <button class="btn" onClick={() => setSheet("debug")}>
               🐞 Debug {game.problems.unseen > 0 && <span class="dot" aria-label="new problems" />}
+            </button>
+            <button class="btn" role="switch" aria-checked={game.showRoute} onClick={() => game.setShowRoute(!game.showRoute)}>
+              🧭 Route to goal <span class={`switch${game.showRoute ? " on" : ""}`} aria-hidden="true" />
             </button>
             <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
               🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />
@@ -260,7 +279,7 @@ function GoalChip({ game, onTap }: { game: Game; onTap: () => void }) {
   if (w.isResting()) {
     return (
       <div class="chip" role="timer">
-        <span>⏳ Resting at {name || "a spot"}</span>
+        <span class="grow">⏳ Resting at {name || "a spot"}</span>
         <span class="eta">Moving again in {countdown(w.restLeftS())}</span>
       </div>
     );
@@ -269,10 +288,13 @@ function GoalChip({ game, onTap }: { game: Game; onTap: () => void }) {
   const left = w.walkLeftM();
   return (
     <button class="chip" onClick={onTap} aria-label="Show him and his goal">
-      <span>
-        🎯 {w.isDeparting() ? "Heading to" : "Going to"} {name || "a random spot"} · {dist(distanceM(here[0], here[1], target[0], target[1]))}
+      <span class="grow">
+        🎯 {w.isDeparting() ? "Heading to" : "Going to"} {name || "a random spot"}
       </span>
-      {left !== null && <span class="eta">{walkTime(left, w.speedMps)}</span>}
+      <span class="eta">
+        {dist(distanceM(here[0], here[1], target[0], target[1]))}
+        {left !== null && ` · ${walkTime(left, w.speedMps)}`}
+      </span>
     </button>
   );
 }
@@ -296,15 +318,14 @@ function Waiting({ game }: { game: Game }) {
   );
 }
 
-function Thumb({ icon, label, dot, onClick }: { icon: string; label: string; dot?: boolean; onClick: () => void }) {
+function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {
   return (
-    <button class="btn" onClick={onClick}>
-      <span aria-hidden="true">
-        {icon}
-        {dot && <span class="dot" />}
-      </span>
-      <span>{label}</span>
-    </button>
+    <div class="minibar">
+      <span>{icon}</span>
+      <div class="track">
+        <div style={{ width: `${Math.round(Math.min(Math.max(share, 0), 1) * 100)}%`, background: color }} />
+      </div>
+    </div>
   );
 }
 

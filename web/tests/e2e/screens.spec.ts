@@ -37,7 +37,8 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
 
 test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   await startInSofia(page);
-  await page.getByRole("button", { name: "Stats" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
   for (const t of ["Level 1", "Vitals", "Health", "Attributes", "Strength", "Gear", "Vehicle", "Bag", "Effects"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
@@ -51,7 +52,8 @@ test("History lists what he did and shows it on the map", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Debug/ }).click();
   await page.getByRole("button", { name: /New city/ }).click();
-  await page.getByRole("button", { name: "History" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });
   await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
   await expect(sheet.locator(".num").first()).toHaveText("1");
@@ -70,6 +72,26 @@ test("Debug shows the city, problems and buttons that work", async ({ page }) =>
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /New goal/ }).click();
   await expect(sheet).toBeHidden();
+});
+
+test("Only zoom and the menu sit on the map", async ({ page }) => {
+  await startInSofia(page);
+  const onMap = await page.locator(".game > button, .game > .zoom > button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()));
+  expect(onMap.sort()).toEqual(["Menu", "Zoom in", "Zoom out"]);
+  await expect(page.locator(".chip .eta")).toContainText(/~\d+ min|<1 min/, { timeout: 20000 });
+});
+
+test("Route switch draws his route and is remembered", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const sw = page.getByRole("switch", { name: /Route to goal/ });
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await page.reload();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("switch", { name: /Route to goal/ })).toHaveAttribute("aria-checked", "true");
 });
 
 test("City area switch is remembered", async ({ page }) => {

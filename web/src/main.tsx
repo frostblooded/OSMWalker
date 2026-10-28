@@ -1,5 +1,9 @@
 import { render } from "preact";
 import { App } from "./ui/App";
+// Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
+import "@fontsource/fredoka/latin-600.css";
+import "@fontsource/nunito/latin-700.css";
+import "@fontsource/nunito/latin-800.css";
 import "./ui/app.css";
 
 render(<App />, document.getElementById("app")!);

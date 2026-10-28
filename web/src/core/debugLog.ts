@@ -73,7 +73,7 @@ export function lines(e: Entry, biasMin: number): string[] {
     out.push(`Place dice ${num(e.r).toFixed(4)} → ${str(e.place)} (${str(e.class)}, rank ${rank}, weight ${w.toFixed(3)} of ${total.toFixed(3)} = ${pct(w / Math.max(total, 0.0001))})`);
     if ("dist_w" in e) {
       out.push(
-        `Weight = rank ${num(e.rank_w, 1).toFixed(2)} × distance ${num(e.dist_w).toFixed(2)} (${Math.trunc(num(e.dist_m))} m away) × heading ${num(e.heading_w, 1).toFixed(2)} × recent ${num(e.recent_w, 1).toFixed(2)}`,
+        `Weight = rank ${num(e.rank_w, 1).toFixed(2)} × distance ${num(e.dist_w).toFixed(2)} (${Math.trunc(num(e.dist_m))} m away) × heading ${num(e.heading_w, 1).toFixed(2)} × need ${num(e.need_w, 1).toFixed(2)}`,
       );
     }
   } else if ("fallback" in e) {

@@ -6,7 +6,7 @@ export function dist(m: number): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
-/** Walking time for `meters` at `mps`: "<1 min", "~8 min", "~1 h 5 min". */
+/** Walking time for `meters` at `mps`, approximate: "<1 min", "~8 min", "~1 h 5 min". */
 export function walkTime(meters: number, mps: number): string {
   const mins = Math.round(meters / mps / 60);
   if (mins < 1) return "<1 min";

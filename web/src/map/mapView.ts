@@ -14,6 +14,7 @@ const TRAIL_COLOR = "#1a5fb4";
 const TRIP_COLOR = "#c01c28";
 const AREA_COLOR = "#e8730c";
 const OUTLINE_COLOR = "#7b3fbf";
+const ROUTE_COLOR = "#ff7a3d";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
@@ -47,6 +48,7 @@ export class MapView {
   private tripKey = "";
   private trailOn = false;
   private areaKey = "";
+  private routeKey = "";
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
 
@@ -102,6 +104,18 @@ export class MapView {
       source: "area",
       paint: { "line-color": ["match", ["get", "kind"], "box", AREA_COLOR, OUTLINE_COLOR], "line-width": 3, "line-opacity": 0.8 },
     });
+    // His planned route: solid along the streets, dashed in a straight line where they are not loaded yet.
+    this.map.addSource("route", { type: "geojson", data: none });
+    for (const [id, kind, dash] of [["route", "streets", undefined], ["route-rest", "rest", [1, 1.5]]] as const) {
+      this.map.addLayer({
+        id,
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "kind"], kind],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ROUTE_COLOR, "line-width": 5, "line-opacity": 0.9, ...(dash ? { "line-dasharray": [...dash] } : {}) },
+      });
+    }
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
     this.map.setLayoutProperty("trail", "visibility", "none");
     this.addLine("trip", TRIP_COLOR, 4, 0.85, [2, 1]);
@@ -173,6 +187,19 @@ export class MapView {
     if (key === this.tripKey) return;
     this.tripKey = key;
     (this.map.getSource("trip") as GeoJSONSource | undefined)?.setData(line(path ? [path] : []));
+  }
+
+  /** His planned route to the goal, or none; only sent to MapLibre when `key` changes. */
+  setRoute(key: string, route: () => { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null): void {
+    if (key === this.routeKey) return;
+    this.routeKey = key;
+    const r = key ? route() : null;
+    const features: GeoJSON.Feature[] = [];
+    if (r) {
+      if (r.streets.length > 1) features.push({ ...line([r.streets]), properties: { kind: "streets" } });
+      if (r.rest) features.push({ ...line([r.rest]), properties: { kind: "rest" } });
+    }
+    (this.map.getSource("route") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
   }
 
   /** Numbered markers where things in his History happened. */

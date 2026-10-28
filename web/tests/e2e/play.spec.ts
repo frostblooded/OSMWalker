@@ -17,7 +17,7 @@ test("picks a city and walks its streets", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await startInSofia(page);
-  await expect(page.locator(".city")).toContainText("Sofia, Bulgaria");
+  await expect(page.locator(".hud .city")).toContainText("Sofia");
   await expect(page.locator(".marker.him")).toBeVisible();
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
   await expect(page.locator(".chip")).toContainText(/Going to|Heading to/, { timeout: 10000 });
@@ -29,7 +29,7 @@ test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await page.waitForTimeout(1500);
   await page.reload();
-  await expect(page.locator(".city")).toContainText("Sofia, Bulgaria", { timeout: 20000 });
+  await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
 });
 
 test("New city asks for RESET first", async ({ page }) => {

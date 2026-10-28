@@ -112,6 +112,14 @@ describe("game", () => {
     expect(again.stats.history.entries.length).toBe(g.stats.history.entries.length);
   });
 
+  it("starts with the route line off and remembers the switch", () => {
+    const { g, storage } = game();
+    expect(g.showRoute).toBe(false);
+    g.setShowRoute(true);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    expect(again.showRoute).toBe(true);
+  });
+
   it("starts over on reset but keeps the problem log", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);

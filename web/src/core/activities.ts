@@ -17,6 +17,10 @@ export const SAVING_EARN_WEIGHT = 4;
 export const SAVING_SPEND_MULT = 0.5;
 /** Extra weight for a country's own actions, so they come up often. */
 export const FLAVOUR_WEIGHT = 2;
+/** Below this a meter is a need: places that refill it pull his next goal towards them. */
+export const NEED_AT = 40;
+/** A place that meets an empty need weighs 1 + NEED_BOOST times as much as his goal. */
+export const NEED_BOOST = 4;
 
 export class Activities {
   data: ActionTable;
@@ -37,10 +41,16 @@ export class Activities {
     return [...this.usual(place), ...local(place, this.flavour[country] ?? {})];
   }
 
-  private usual(place: Partial<Place> | null): Action[] {
+  /** Like forPlace, without noting places that have no actions of their own yet. */
+  peek(place: Partial<Place> | null, country = ""): Action[] {
+    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {})];
+  }
+
+  private usual(place: Partial<Place> | null, note = true): Action[] {
     const keys = keysOf(place);
     for (const k of keys) if (this.data[k]) return this.data[k];
     if (!place) return [];
+    if (!note) return this.data._generic ?? [];
     const u = (this.unknown[keys[0]!] ??= { count: 0, example: place.name ?? "" });
     u.count++;
     return this.data._generic ?? [];
@@ -72,6 +82,23 @@ export function weight(action: Action, stats: Stats): number {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   }
   return w;
+}
+
+/**
+ * How much a place with `actions` pulls his next goal: 1, up to 1 + NEED_BOOST
+ * when one of them refills a meter that is empty, or pays while he is broke
+ * or saving up. The strongest need counts.
+ */
+export function needWeight(actions: Action[], stats: Stats): number {
+  const broke = stats.coins < SKINT || stats.coins < stats.savingFor;
+  let need = 0;
+  for (const a of actions) {
+    if (broke && a.earn !== undefined) need = 1;
+    for (const [m, v] of Object.entries(a.fx ?? {})) {
+      if (v > 0 && m in stats.meters) need = Math.max(need, Math.max(NEED_AT - stats.meters[m as keyof Stats["meters"]], 0) / NEED_AT);
+    }
+  }
+  return 1 + NEED_BOOST * need;
 }
 
 /** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. */
