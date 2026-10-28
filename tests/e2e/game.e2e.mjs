@@ -29,6 +29,7 @@ const cors = { "Access-Control-Allow-Origin": "*" };
 
 const browser = await chromium.launch({
   channel: process.env.E2E_CHANNEL || undefined,
+  executablePath: process.env.E2E_EXECUTABLE || undefined,
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
@@ -205,6 +206,25 @@ try {
   await tap("debug_goal");
   await until((s) => s.debug_picks > dbg.debug_picks, "New goal adds a pick to the debug log");
   await page.screenshot({ path: `${shots}/3b-debug.png` });
+  step = "touch scroll follows the finger";
+  {
+    const s0 = await state();
+    const [px, py, pw, ph] = s0.rects.debug_panel.map((v) => v / dpr);
+    const x = px + pw / 2, y0 = py + ph - 60, dist = 150;
+    const cdp = await context.newCDPSession(page);
+    const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+    await touch("touchStart", y0);
+    for (let i = 1; i <= 15; i++) {
+      await touch("touchMove", y0 - (dist * i) / 15);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(200);
+    const s1 = await state();
+    await touch("touchEnd", y0 - dist);
+    const moved = (s1.debug_scroll - s0.debug_scroll) * s1.canvas_scale / dpr;  // in CSS px
+    console.log(`touch scroll: finger ${dist} px, list ${moved.toFixed(1)} px`);
+    assert.ok(Math.abs(moved - dist) <= dist * 0.15, `the list moved ${moved.toFixed(1)} CSS px for a ${dist} px drag`);
+  }
   assert.deepEqual((await state()).overlaps, [], "texts overlap with the debug panel open");
   await tap("debug_close");
   await until((s) => !s.debug_open, "debug panel closed");

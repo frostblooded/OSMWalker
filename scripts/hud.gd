@@ -74,6 +74,7 @@ var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
 var debug_label: Label
 var debug_alert_label: Label  # red: what looks wrong about the city
+var debug_scroll: ScrollContainer
 var city_area_toggle: CheckButton  # set by main
 var _badges := []  # red dots shown while there are unseen warnings or errors
 var _debug: Control
@@ -516,6 +517,7 @@ func _build_debug() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	debug_scroll = scroll
 	debug_label = _label("", 24)
 	debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(debug_label)

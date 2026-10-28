@@ -825,6 +825,8 @@ func debug_state() -> Dictionary:
 		"confirm_visible": hud.is_confirm_open(),
 		"history_open": hud.is_history_open(),
 		"debug_open": hud.is_debug_open(),
+		"debug_scroll": hud.debug_scroll.scroll_vertical if hud.debug_scroll else 0,
+		"canvas_scale": xf.get_scale().x,
 		"debug_picks": debug_log.entries.size(),
 		"history_entries": stats.history.entries.size(),
 		"trail_markers": trail_view.markers.size() if trail_view.visible else 0,
