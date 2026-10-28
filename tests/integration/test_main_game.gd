@@ -481,3 +481,24 @@ func test_arrival_uses_the_country_flavour() -> void:
 		{"ZZZ": {"cafe": [{"name": "Local brew", "min": 1}]}})
 	m.walker.arrived.emit(CAFE)
 	assert_string_contains(m.stats.feed[-1], "Local brew")
+
+
+func test_city_trivia_from_wikidata_happens_at_random_spots() -> void:
+	var m := _new_main()
+	m.api.city_rows = [{"cityLabel": {"value": "Testville"}, "capLabel": {"value": "Nowhere"}}]
+	await _start_in_testville(m)
+	await wait_until(func(): return m.city_facts.size() > 0, 1.0)
+	assert_eq(m.api.city_lookups.size(), 1)
+	assert_eq(m.city_facts.size(), 1)
+	m.clock_hour = 12
+	m.activities = Activities.new({"_spot": []})
+	m.walker.arrived.emit({})
+	assert_string_contains(m.stats.feed[-1], "capital of Nowhere")
+
+
+func test_no_trivia_when_wikidata_is_unreachable() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	await wait_until(func(): return m.api.city_lookups.size() > 0, 1.0)
+	await wait_seconds(0.1)
+	assert_eq(m.city_facts, [])

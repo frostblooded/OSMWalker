@@ -17,6 +17,7 @@ const PlacePin := preload("res://scripts/place_pin.gd")
 const Stats := preload("res://scripts/stats.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Geo := preload("res://scripts/geo.gd")
+const CityFacts := preload("res://scripts/city_facts.gd")
 
 const SAVE_PATH := "user://save.json"
 const STREET_CACHE_DIR := "user://streets/"
@@ -44,6 +45,7 @@ var rng := RandomNumberGenerator.new()
 var roll_source: Callable  # returns the trip roll in [0, 1); tests swap in fixed rolls
 var stats := Stats.new()
 var activities: Activities
+var city_facts := []  # trivia actions for random spots, from Wikidata
 var clock_hour := -1  # >= 0 pins the hour of day (tests)
 
 var walker: Walker
@@ -127,6 +129,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 	_attach(w)
 	city = city_name
 	country = trips.country_at(lat, lon)
+	_learn_city(lat, lon)
 	skip_roll = true
 	_apply_zoom()
 	map.set_origin(lat, lon)
@@ -152,7 +155,10 @@ func _on_arrived(place: Dictionary) -> void:
 	var bonus := stats.visit(place)
 	if bonus > 0:
 		stats.say("First visit to %s (+%d XP)" % [place["name"], bonus])
-	var action := Activities.choose(activities.for_place(place, country), stats, _hour(), rng.randf())
+	var options := activities.for_place(place, country)
+	if place.is_empty():
+		options += city_facts
+	var action := Activities.choose(options, stats, _hour(), rng.randf())
 	if action.is_empty():
 		return
 	stats.do(action, place.get("name", ""), rng)
@@ -180,6 +186,16 @@ func _faint() -> void:
 	walker.place = hospital
 
 
+## Looks the city up on Wikidata in the background for trivia at random
+## spots. An answer for a city he has since left is dropped.
+func _learn_city(lat: float, lon: float) -> void:
+	city_facts = []
+	var asked := city
+	var rows: Array = await api.fetch_city_facts(lat, lon)
+	if city == asked:
+		city_facts = CityFacts.actions(rows)
+
+
 ## Asked on each new destination: maybe a city to travel to instead.
 func _plan_trip() -> Dictionary:
 	if skip_roll:
@@ -197,6 +213,7 @@ func _plan_trip() -> Dictionary:
 func _on_landed(dest: Dictionary) -> void:
 	city = "%s, %s" % [dest["name"], dest["country"]]
 	country = dest["code"]
+	_learn_city(dest["lat"], dest["lon"])
 	loader.graph = walker.graph
 	loader.reset_failures()
 	map.set_origin(dest["lat"], dest["lon"])
@@ -389,6 +406,7 @@ func _load() -> bool:
 	if country == "":
 		country = trips.country_at(d["origin"][0], d["origin"][1])
 	skip_roll = bool(d.get("skip_roll", false))
+	_learn_city(d["origin"][0], d["origin"][1])
 	hud.show_game(city)
 	return true
 
@@ -411,6 +429,7 @@ func debug_state() -> Dictionary:
 		"city": city,
 		"street": hud.street_label.text,
 		"place": walker.place.get("name", "") if walker else "",
+		"city_facts": city_facts.size(),
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),
 		"confirm_enabled": hud.is_confirm_enabled(),

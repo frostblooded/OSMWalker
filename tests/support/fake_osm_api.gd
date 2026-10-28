@@ -10,6 +10,8 @@ var first_servers: Array = []  # which server each request tried first
 var searches: Array = []
 var tile_requests: Array = []  # z14 tiles asked for
 var tiles_online := true
+var city_rows: Array = []  # Wikidata answer; [] acts like no answer
+var city_lookups: Array = []  # [lat, lon] asked for
 
 
 func fetch_streets(bbox: Array, first_server := 0) -> Variant:
@@ -37,3 +39,9 @@ func search_places(text: String) -> Array:
 	if not online:
 		return []
 	return [{"name": "Testville, Nowhere", "lat": 42.0, "lon": 23.0}]
+
+
+func fetch_city_facts(lat: float, lon: float) -> Array:
+	city_lookups.append([lat, lon])
+	await get_tree().process_frame
+	return city_rows if online else []
