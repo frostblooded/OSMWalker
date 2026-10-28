@@ -15,10 +15,15 @@ performance.mark("osmwalker:ready");
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => undefined);
-    // What this first visit fetched before the worker ran, so it is there offline too.
+    // What this first visit fetched without the worker (before it ran, or before it took
+    // control of the page, like the city lists loading at idle), so it is there offline
+    // too. Once the worker controls the page every request goes through it and nothing
+    // more is sent.
     void navigator.serviceWorker.ready.then((reg) => {
-      const page = new URL("./", location.href).href;
-      reg.active?.postMessage({ cache: [page, ...performance.getEntriesByType("resource").map((e) => e.name)] });
+      const missed = (list: PerformanceEntryList) => (list as PerformanceResourceTiming[]).filter((e) => !e.workerStart).map((e) => e.name);
+      const send = (urls: string[]) => urls.length && reg.active?.postMessage({ cache: urls });
+      send([new URL("./", location.href).href, ...missed(performance.getEntriesByType("resource"))]);
+      new PerformanceObserver((list) => send(missed(list.getEntries()))).observe({ type: "resource" });
     });
   });
 }
