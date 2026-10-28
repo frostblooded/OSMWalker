@@ -214,6 +214,8 @@ Every time he picks a new goal he rolls the trip dice:
 - {CITY_PCT}: he travels to another city in the same country,
 - otherwise he stays and picks a place in this city.
 
+While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots.
+
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
 Travelling takes one hour per {TRAVEL_KM_PER_H} km in a straight line, at least {MIN_TRAVEL_H} hour and at most {MAX_TRAVEL_H} hours. During the trip "Travelling to" shows, a red line marks the way, and his meters keep changing as usual. When he lands, the new city's streets load and he carries on from its centre.
@@ -241,14 +243,18 @@ History (in the menu) lists his last {HISTORY_SIZE} events, newest first, each w
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
 ## Debug {debug}
-Debug (in the menu) is for testing and curious players. It shows the city box, where he is and what he is doing, how many street squares and places are loaded, the city's trivia, and how each of his last {DEBUG_SIZE} goals was picked: every dice roll, the odds and why.
+Debug (in the menu) is for testing and curious players. At the top, red lines point out anything that looks wrong with the current city: no places of note, no trivia, failing street downloads, or him being outside the city box.
+
+Below that it shows the city box, where he is and what he is doing, how many street squares and places are loaded, the city's trivia, the last {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game, and how each of his last {DEBUG_SIZE} goals was picked: every dice roll, the odds and why. A random spot always counts as a warning. A red dot on ☰ and Debug means there are warnings or errors you haven't looked at yet. The warnings and errors are kept even through New city.
+
+City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
 
 Its buttons change the game right away:
 - New goal ends any stop or trip and picks a new goal now, rolling the trip dice again.
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.
 ## New city {new_city}
-New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, coins, gear, bag, History and Debug log), you have to type RESET in capitals and confirm.
+New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, coins, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 
 To just see him somewhere else without losing anything, wait for a trip, or use the Debug buttons.
 ## About Help {help}

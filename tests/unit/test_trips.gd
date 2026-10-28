@@ -86,3 +86,10 @@ func test_lists_the_options_for_a_trip() -> void:
 	var opts := trips.options(Trips.Kind.CITY, "AAA", 0.0, 0.0)
 	assert_eq(opts.map(func(c): return c["name"]), ["Smallton"], "Nexttown is too close to count as another city")
 	assert_eq(trips.options(Trips.Kind.STAY, "AAA", 0.0, 0.0), [])
+
+
+func test_doubled_odds_send_him_away_half_the_time() -> void:
+	assert_eq(Trips.roll(0.099, 2.0), Trips.Kind.COUNTRY)
+	assert_eq(Trips.roll(0.1, 2.0), Trips.Kind.CITY)
+	assert_eq(Trips.roll(0.499, 2.0), Trips.Kind.CITY)
+	assert_eq(Trips.roll(0.5, 2.0), Trips.Kind.STAY)

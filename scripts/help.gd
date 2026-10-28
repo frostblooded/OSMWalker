@@ -13,6 +13,7 @@ const Activities := preload("res://scripts/activities.gd")
 const History := preload("res://scripts/history.gd")
 const CityFacts := preload("res://scripts/city_facts.gd")
 const DebugLog := preload("res://scripts/debug_log.gd")
+const Problems := preload("res://scripts/problems.gd")
 
 const PATH := "res://data/help.txt"
 
@@ -123,6 +124,10 @@ static func values() -> Dictionary:
 		"HISTORY_SIZE": str(History.SIZE),
 		"TRAIL_KM": str(roundi(History.MAX_TRAIL * History.TRAIL_STEP_M / 1000.0)),
 		"DEBUG_SIZE": str(DebugLog.SIZE),
+		"MAX_WARNINGS": str(Problems.MAX_WARNINGS),
+		"MAX_ERRORS": str(Problems.MAX_ERRORS),
+		"NO_PLACES_COUNTRY_PCT": _pct(Trips.COUNTRY_CHANCE * Trips.NO_PLACES_BOOST),
+		"NO_PLACES_CITY_PCT": _pct(Trips.CITY_CHANCE * Trips.NO_PLACES_BOOST),
 		"TRIVIA_KM": str(CityFacts.RADIUS_KM),
 		"TRIVIA_TWINS": str(CityFacts.MAX_TWINS),
 		"TRIVIA_WIT": num(CityFacts.FX["wit"]),

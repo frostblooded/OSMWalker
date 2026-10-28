@@ -20,8 +20,14 @@ const Geo := preload("res://scripts/geo.gd")
 const CityFacts := preload("res://scripts/city_facts.gd")
 const TrailView := preload("res://scripts/trail_view.gd")
 const DebugLog := preload("res://scripts/debug_log.gd")
+const Problems := preload("res://scripts/problems.gd")
+const CityArea := preload("res://scripts/city_area.gd")
 
 const SAVE_PATH := "user://save.json"
+## Kept apart from the save, so New city keeps them: debug toggles and the warning log.
+const SETTINGS_PATH := "user://settings.json"
+## Street cells loaded with no places of note before the city counts as having none.
+const NO_PLACES_CELLS := 9
 const STREET_CACHE_DIR := "user://streets/"
 const SAVE_EVERY_S := 5.0
 ## Longest frame that counts as walking, so a hidden tab or a stall never jumps him ahead.
@@ -35,6 +41,7 @@ const TRIP_LINE_WIDTH := 8.0
 
 var api: OsmApi  # set before adding to the tree to swap in a fake (tests)
 var save_path := SAVE_PATH
+var settings_path := SETTINGS_PATH
 var street_cache_dir := STREET_CACHE_DIR
 var offline_tiles := false  # tests skip tile downloads
 var map: MapView
@@ -71,6 +78,12 @@ var debug_log := DebugLog.new()
 var _roll_info := {}  # how the trip dice went for the pick being made
 var _forced := ""  # the debug button behind the pick being made, "" for none
 var _debug_timer := 0.0
+var problems: Problems = Problems.shared()
+var city_area: CityArea
+var show_city_area := false
+var city_outline := []  # rings of [lat, lon] for _outline_of
+var _outline_of := ""  # the city city_outline belongs to, "" before it is asked for
+var _no_places_warned := ""  # the city already warned about having no places
 
 
 func _ready() -> void:
@@ -84,6 +97,9 @@ func _ready() -> void:
 	map = MapView.new()
 	map.offline = offline_tiles
 	add_child(map)
+	city_area = CityArea.new()
+	city_area.visible = false
+	add_child(city_area)
 	trip_line = Line2D.new()
 	trip_line.width = TRIP_LINE_WIDTH
 	trip_line.default_color = TRIP_LINE_COLOR
@@ -109,9 +125,14 @@ func _ready() -> void:
 	hud.history_entry_tapped.connect(_on_history_tapped)
 	hud.goal_tapped.connect(_on_goal_tapped)
 	hud.back_tapped.connect(func(): goal_view = false)
-	hud.debug_toggled.connect(func(open): if open: _refresh_debug())
+	hud.debug_toggled.connect(func(open): if open:
+		problems.mark_seen()
+		_refresh_debug())
 	hud.debug_goal_pressed.connect(debug_new_goal)
 	hud.debug_trip_pressed.connect(debug_trip)
+	problems.clear()
+	_load_settings()
+	hud.city_area_toggle = hud.add_menu_toggle("City area", show_city_area, _on_city_area_toggled)
 	trips = Trips.shared()
 	activities = Activities.shared()
 	rng.randomize()
@@ -162,6 +183,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 	while not w.graph.cells.has(home):
 		if loader.has_failed(home):
 			loader.reset_failures()
+			Problems.warn_now("Couldn't load the streets where he starts in " + city_name)
 			hud.show_picker("Couldn't load streets. Check your connection and try again.")
 			return
 		loader.request(StreetGraph.cells_by_priority(lat, lon, STREET_RING))
@@ -170,6 +192,7 @@ func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void
 		await get_tree().process_frame
 	var start := w.graph.nearest_node(lat, lon)
 	if start == -1:
+		Problems.warn_now("No walkable streets at the start of " + city_name)
 		hud.show_picker("No walkable streets there. Try another place.")
 		return
 	w.start_at(start)
@@ -212,6 +235,7 @@ func _on_arrived(place: Dictionary) -> void:
 	var options := activities.for_place(place, country) + city_facts
 	var action := Activities.choose(options, stats, _hour(), rng.randf())
 	if action.is_empty():
+		Problems.warn_now("Nothing to do at " + place.get("name", "a random spot"))
 		return
 	stats.do(action, place.get("name", ""), rng)
 	walker.rest_for(Activities.rest_minutes(action))
@@ -227,6 +251,8 @@ func _faint() -> void:
 		if p["class"] == "hospital" and d < best:
 			best = d
 			hospital = p
+	if hospital.is_empty():
+		Problems.warn_now("Fainted with no hospital loaded nearby; he wakes where he is")
 	stats.wake_in_hospital(hospital.get("name", ""))
 	if walker.is_traveling():
 		return
@@ -248,6 +274,8 @@ func _learn_city(lat: float, lon: float) -> void:
 	var rows: Array = await api.fetch_city_facts(lat, lon)
 	if city == asked:
 		city_facts = CityFacts.actions(rows)
+		if city_facts.is_empty():
+			Problems.warn_now("No Wikidata trivia for " + city)
 
 
 ## Asked on each new destination: maybe a city to travel to instead.
@@ -257,8 +285,9 @@ func _plan_trip() -> Dictionary:
 		_roll_info = {"skipped": "first pick in a new city"}
 		return {}
 	var r: float = roll_source.call() if roll_source.is_valid() else rng.randf()
-	var kind := Trips.roll(r)
-	_roll_info = {"roll": r, "outcome": ["stay", "city", "country"][kind]}
+	var boost := Trips.NO_PLACES_BOOST if _no_places() else 1.0
+	var kind := Trips.roll(r, boost)
+	_roll_info = {"roll": r, "boost": boost, "outcome": ["stay", "city", "country"][kind]}
 	if kind == Trips.Kind.STAY:
 		return {}
 	var here := walker.position()
@@ -276,6 +305,7 @@ func _trip_to(kind: Trips.Kind, here: Array) -> Dictionary:
 	var dest := trips.pick(kind, country, here[0], here[1], rng)
 	if dest.is_empty():
 		_roll_info["no_trip"] = "no other city to go to"
+		Problems.warn_now("A trip was rolled but there is no city to go to from " + city)
 		return {}
 	var total: float = opts.reduce(func(acc, c): return acc + c["pop"], 0.0)
 	_roll_info.merge({"options": opts.size(), "chance": dest["pop"] / maxf(total, 1.0)})
@@ -297,6 +327,11 @@ func _on_picked(info: Dictionary) -> void:
 	_roll_info = {}
 	if hud.is_debug_open():
 		_refresh_debug()
+
+
+## True when no places of note are loaded in the city box.
+func _no_places() -> bool:
+	return walker.bounds.size() == 4 and walker.graph.places_in(walker.bounds).is_empty()
 
 
 ## Debug button: ends any rest or trip and picks a new goal now, rolling
@@ -406,9 +441,13 @@ func _step(delta: float) -> void:
 	_show_place()
 	_show_status()
 	_debug_timer += delta
-	if hud.is_debug_open() and _debug_timer >= DEBUG_EVERY_S:
+	if _debug_timer >= DEBUG_EVERY_S:
 		_debug_timer = 0.0
-		_refresh_debug()
+		_check_city()
+		if hud.is_debug_open():
+			_refresh_debug()
+	hud.set_problem_badge(problems.unseen)
+	_show_city_area()
 
 	_save_timer += delta
 	if _save_timer >= SAVE_EVERY_S:
@@ -577,10 +616,12 @@ func _notification(what: int) -> void:
 
 
 func _save() -> void:
+	_save_settings()
 	if walker == null:
 		return
 	var f := FileAccess.open(save_path, FileAccess.WRITE)
 	if f == null:
+		Problems.error_now("Couldn't save the game (%s)" % error_string(FileAccess.get_open_error()))
 		return
 	f.store_string(JSON.stringify({
 		"city": city, "country": country, "skip_roll": skip_roll, "origin": [map.origin_lat, map.origin_lon], "zoom": player_zoom,
@@ -593,10 +634,12 @@ func _load() -> bool:
 		return false
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not d is Dictionary or not d.has("walker"):
+		Problems.error_now("The saved game was unreadable; starting over")
 		return false
 	var w := Walker.new()
 	w.load_dict(d["walker"])
 	if not w.graph.has_node(w.from_node):
+		Problems.error_now("The saved game had no spot for him; starting over")
 		return false
 	_attach(w)
 	stats = Stats.new()
@@ -619,8 +662,85 @@ func _load() -> bool:
 	return true
 
 
+func _load_settings() -> void:
+	if not FileAccess.file_exists(settings_path):
+		return
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(settings_path))
+	if not d is Dictionary:
+		Problems.warn_now("Settings were unreadable; using defaults")
+		return
+	show_city_area = bool(d.get("show_city_area", false))
+	problems.load_dict(d.get("problems", {}))
+
+
+func _save_settings() -> void:
+	var f := FileAccess.open(settings_path, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"show_city_area": show_city_area, "problems": problems.to_dict()}))
+
+
+func _on_city_area_toggled(on: bool) -> void:
+	show_city_area = on
+	_save_settings()
+
+
+## The city area overlay, with the real outline fetched once per city.
+func _show_city_area() -> void:
+	city_area.visible = show_city_area and walker != null and not walker.is_traveling() and not trail_view.visible
+	if not city_area.visible:
+		return
+	if _outline_of != city:
+		_learn_outline()
+	city_area.show_area(walker.bounds, city_outline if _outline_of == city else [], map)
+
+
+func _learn_outline() -> void:
+	var asked := city
+	_outline_of = city
+	city_outline = []
+	var c := [map.origin_lat, map.origin_lon]
+	var rings: Array = await api.fetch_city_outline(c[0], c[1])
+	if city == asked:
+		city_outline = rings
+
+
+## Once a second: warns (once per city) when enough streets are loaded but
+## no places of note.
+func _check_city() -> void:
+	if walker == null or walker.is_traveling() or _no_places_warned == city:
+		return
+	if walker.graph.cells.size() >= NO_PLACES_CELLS and _no_places():
+		_no_places_warned = city
+		Problems.warn_now("No places of note in %s after loading %d street cells; goals are random spots and trips are %dx as likely" % [
+			city, walker.graph.cells.size(), int(Trips.NO_PLACES_BOOST)])
+
+
+## Things that look wrong about the current city, for the top of the debug panel.
+func city_alerts() -> Array:
+	var out := []
+	if walker == null:
+		return out
+	if walker.is_traveling():
+		return out
+	if _no_places():
+		out.append("No places of note in the city box (%d street cells loaded): goals are random spots and trip odds are doubled" % walker.graph.cells.size())
+	if city_facts.is_empty():
+		out.append("No Wikidata trivia for this city")
+	if loader.is_failing():
+		out.append("Street downloads are failing")
+	var here := walker.position()
+	var b := walker.bounds
+	if b.size() == 4 and not (here[0] >= b[0] and here[0] <= b[2] and here[1] >= b[1] and here[1] <= b[3]):
+		out.append("He is outside the city box")
+	if show_city_area and _outline_of == city and city_outline.is_empty():
+		out.append("No real city outline from Nominatim")
+	if problems.errors.size() > 0:
+		out.append("%d error(s) logged below" % problems.errors.size())
+	return out
+
+
 func _refresh_debug() -> void:
-	hud.set_debug(debug_text())
+	hud.set_debug(debug_text(), city_alerts())
 
 
 ## Everything known about the current city and how his last goals were
@@ -647,6 +767,11 @@ func debug_text() -> String:
 		out.append("  · " + f["name"])
 	out.append("Trip dice each pick: %d%% country, %d%% city, else stay%s" % [
 		Trips.COUNTRY_CHANCE * 100, Trips.CITY_CHANCE * 100, "; next pick skips the dice" if skip_roll else ""])
+	out.append("")
+	out.append("Errors and warnings, newest first:")
+	var bias0: int = Time.get_time_zone_from_system().get("bias", 0)
+	var lines := problems.lines(bias0)
+	out.append_array(lines if not lines.is_empty() else ["None."])
 	out.append("")
 	out.append("Goal picks, newest first:")
 	var bias: int = Time.get_time_zone_from_system().get("bias", 0)

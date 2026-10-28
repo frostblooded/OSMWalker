@@ -2,6 +2,7 @@
 ## the unix time it was saved, so stale entries can be refreshed.
 extends RefCounted
 
+const Problems := preload("res://scripts/problems.gd")
 const MAX_AGE_S := 30 * 86400
 
 var dir: String
@@ -23,6 +24,7 @@ func has(name: String) -> bool:
 func put(name: String, bytes: PackedByteArray, saved_at := int(Time.get_unix_time_from_system())) -> void:
 	var f := FileAccess.open(dir + name, FileAccess.WRITE)
 	if f == null:
+		Problems.warn_now("Couldn't write %s to the cache (%s)" % [name, error_string(FileAccess.get_open_error())])
 		return
 	f.store_64(saved_at)
 	f.store_buffer(bytes)

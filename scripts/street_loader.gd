@@ -3,6 +3,7 @@
 ## first, a few downloads run at once, and the 4 cells of a tile come together.
 extends Node
 
+const Problems := preload("res://scripts/problems.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
 const OsmApi := preload("res://scripts/osm_api.gd")
@@ -121,6 +122,7 @@ func _load_cached(c: Vector2i) -> bool:
 		return false
 	var compact: Variant = bytes_to_var(e["bytes"])
 	if not compact is Dictionary:
+		Problems.warn_now("Cached streets for cell %s were unreadable; downloading again" % c)
 		return false
 	graph.add_cell(c, compact)
 	_from_cache += 1
@@ -150,6 +152,7 @@ func _fetch(group: Array, refresh: bool, tile := false) -> void:
 		for c in group:
 			_in_flight.erase(c)
 		if not refresh:
+			Problems.warn_now("Couldn't download streets for %d cell(s) near %s" % [group.size(), group[0]])
 			_failing = true
 			_failed_downloads += 1
 			for c in group:

@@ -9,6 +9,8 @@ const Geo := preload("res://scripts/geo.gd")
 const CITIES_PATH := "res://data/cities.tsv"
 const COUNTRY_CHANCE := 0.05
 const CITY_CHANCE := 0.20
+## Trip odds are multiplied by this while the city has no places of note.
+const NO_PLACES_BOOST := 2.0
 ## Travel takes about an hour per 500 km, between 1 and 12 hours.
 const TRAVEL_MPS := 500000.0 / 3600.0
 const MIN_TRAVEL_S := 3600.0
@@ -48,11 +50,12 @@ static func parse(text: String) -> Array:
 	return out
 
 
-## What a roll means: r is uniform in [0, 1).
-static func roll(r: float) -> Kind:
-	if r < COUNTRY_CHANCE:
+## What a roll means: r is uniform in [0, 1). `boost` multiplies the trip
+## odds (2 in a city with no places of note).
+static func roll(r: float, boost := 1.0) -> Kind:
+	if r < COUNTRY_CHANCE * boost:
 		return Kind.COUNTRY
-	if r < COUNTRY_CHANCE + CITY_CHANCE:
+	if r < (COUNTRY_CHANCE + CITY_CHANCE) * boost:
 		return Kind.CITY
 	return Kind.STAY
 

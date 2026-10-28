@@ -11,6 +11,7 @@ const DiskCache := preload("res://scripts/disk_cache.gd")
 const Geo := preload("res://scripts/geo.gd")
 const Hud := preload("res://scripts/hud.gd")
 const SAVE := "user://test_save.json"
+const SETTINGS := "user://test_settings.json"
 const STREETS := "user://test_streets/"
 
 var api: FakeOsmApi
@@ -23,6 +24,7 @@ func before_all() -> void:
 
 func before_each() -> void:
 	DirAccess.remove_absolute(SAVE)
+	DirAccess.remove_absolute(SETTINGS)
 	DiskCache.new(STREETS).clear()
 	api = FakeOsmApi.new()
 
@@ -40,6 +42,7 @@ func _new_main(with_api: FakeOsmApi = api) -> Main:
 	var m := Main.new()
 	m.api = with_api
 	m.save_path = SAVE
+	m.settings_path = SETTINGS
 	m.street_cache_dir = STREETS
 	m.offline_tiles = true
 	m.roll_source = func(): return 0.99  # no trips unless a test asks for one
@@ -399,6 +402,7 @@ func test_a_trip_survives_a_restart() -> void:
 func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	var m := _new_main()
 	await _start_in_testville(m)
+	m.walker.set_goal(42.0, 23.00135)  # a goal of his own could replace the place below
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
 	await wait_frames(2)
 	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
@@ -606,6 +610,8 @@ func test_loading_message_sits_below_the_top_panel() -> void:
 	_forget_streets(m)
 	await wait_frames(3)
 	assert_true(m.hud.overlay_label.visible)
+	# The top panel may grow a frame before the message moves down with it.
+	await wait_until(func(): return m.hud.overlay_label.get_global_rect().position.y >= m.hud.top_height(), 1.0)
 	assert_gte(m.hud.overlay_label.get_global_rect().position.y, m.hud.top_height())
 
 
@@ -913,3 +919,99 @@ func test_nothing_overlaps_in_help() -> void:
 		m.hud.open_help(id)
 		await wait_frames(3)
 		assert_eq(m.hud.overlapping_texts(), [], id)
+
+
+func test_debug_panel_warns_when_the_city_has_no_places() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.hud.open_debug()
+	m._step(0.1)
+	assert_string_contains(m.hud.debug_alert_label.text, "No places of note")
+	m.walker.graph.places[StreetGraph.cell_of(42.0, 23.0)] = [CAFE]
+	m._refresh_debug()
+	assert_false(m.hud.debug_alert_label.text.contains("No places of note"))
+
+
+func test_a_random_spot_is_logged_as_a_warning() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	assert_true(m.problems.warnings.any(func(w): return w["text"].contains("random spot")), str(m.problems.warnings))
+
+
+func test_no_places_doubles_the_trip_odds() -> void:
+	var m: Main = await _start_and_pick_again(0.4)  # stay normally, a city trip when doubled
+	assert_true(m.walker.is_traveling())
+	assert_string_contains(m.debug_text(), "doubled")
+
+
+func test_places_keep_the_normal_trip_odds() -> void:
+	var m := _new_main()
+	m.roll_source = func(): return 0.4
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.walker.graph.places[StreetGraph.cell_of(42.0, 23.0)] = [CAFE]
+	m.walker.goal = []
+	m.walker.rest_m = 0.0
+	m.walker.to_node = -1
+	m._step(0.1)
+	assert_false(m.walker.is_traveling())
+
+
+func test_failed_downloads_show_up_in_the_debug_panel_with_a_badge() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.problems.mark_seen()
+	m.hud.set_problem_badge(0)
+	api.online = false
+	_forget_streets(m)
+	await wait_frames(4)
+	m._step(0.1)
+	assert_gt(m.problems.warnings.size(), 0)
+	assert_true(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
+	m.hud.open_debug()
+	m._step(0.1)
+	assert_string_contains(m.hud.debug_label.text, "Warning")
+	assert_eq(m.problems.unseen, 0, "opening the panel marks them seen")
+	assert_false(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
+
+
+func test_problems_survive_a_restart_and_a_new_city() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.problems.error("something broke")
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.problems.errors[-1]["text"], "something broke")
+	again._reset()
+	await _start_in_testville(again)
+	assert_eq(again.problems.errors[-1]["text"], "something broke")
+
+
+func test_city_area_toggle_shades_the_city_box_and_is_remembered() -> void:
+	api.outline = [[[41.99, 22.99], [41.99, 23.01], [42.01, 23.01], [41.99, 22.99]]]
+	var m := _new_main()
+	await _start_in_testville(m)
+	assert_false(m.city_area.visible)
+	m.hud.debug_controls()["city_area"].button_pressed = true
+	await wait_frames(2)
+	m._step(0.1)
+	assert_true(m.city_area.visible)
+	assert_eq(m.city_area.box.size(), 4)
+	assert_eq(m.city_area.box[0], m.map.geo_to_local(m.walker.bounds[0], m.walker.bounds[1]))
+	await wait_until(func(): m._step(0.05); return m.city_area.outlines.size() == 1, 2.0)
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_true(again.hud.debug_controls()["city_area"].button_pressed, "remembered after a reload")
+
+
+func test_nothing_overlaps_with_the_problem_badge() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.problems.warn("x")
+	m.hud.open_menu()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_true(m.hud.debug_controls()["problem_badge"].is_visible_in_tree())
+	assert_eq(m.hud.overlapping_texts(), [])

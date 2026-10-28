@@ -12,6 +12,7 @@ var tile_requests: Array = []  # z14 tiles asked for
 var tiles_online := true
 var city_rows: Array = []  # Wikidata answer; [] acts like no answer
 var city_lookups: Array = []  # [lat, lon] asked for
+var outline: Array = []  # city outline rings to answer with
 
 
 func fetch_streets(bbox: Array, first_server := 0) -> Variant:
@@ -45,3 +46,8 @@ func fetch_city_facts(lat: float, lon: float) -> Array:
 	city_lookups.append([lat, lon])
 	await get_tree().process_frame
 	return city_rows if online else []
+
+
+func fetch_city_outline(lat: float, lon: float) -> Array:
+	await get_tree().process_frame
+	return outline if online else []

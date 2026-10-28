@@ -39,8 +39,10 @@ static func lines(e: Dictionary, bias_min: int) -> Array:
 	if e.has("skipped"):
 		out.append("Trip dice not rolled: " + e["skipped"])
 	elif e.has("roll"):
-		out.append("Trip dice %.4f → %s (country below %.2f, city below %.2f, else stay)" % [
-			e["roll"], e.get("outcome", "?"), Trips.COUNTRY_CHANCE, Trips.COUNTRY_CHANCE + Trips.CITY_CHANCE])
+		var boost := float(e.get("boost", 1.0))
+		out.append("Trip dice %.4f → %s (country below %.2f, city below %.2f, else stay)%s" % [
+			e["roll"], e.get("outcome", "?"), Trips.COUNTRY_CHANCE * boost, (Trips.COUNTRY_CHANCE + Trips.CITY_CHANCE) * boost,
+			"; odds doubled: no places in the city box" if boost > 1.0 else ""])
 	if e.has("trip"):
 		out.append("Trip to %s: %d cities to pick from by population, this one had %s" % [
 			e["trip"], int(e.get("options", 0)), _pct(float(e.get("chance", 0.0)))])

@@ -6,6 +6,7 @@
 ## from there next time; a blurry low-zoom layer covers gaps while tiles load.
 extends Node2D
 
+const Problems := preload("res://scripts/problems.gd")
 const Geo := preload("res://scripts/geo.gd")
 const OsmApi := preload("res://scripts/osm_api.gd")
 const DiskCache := preload("res://scripts/disk_cache.gd")
@@ -224,6 +225,8 @@ func _load_tile(key: String, z: int, x: int, y: int) -> void:
 	else:
 		_failed[key] = Time.get_ticks_msec()
 		_tile_failures += 1
+		if not offline:
+			Problems.warn_now("Map tile download failed: %s" % OsmApi.describe_failure(res[0], res[1]))
 	_pump()
 
 

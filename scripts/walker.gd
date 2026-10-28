@@ -7,6 +7,7 @@
 ## Pure logic: no nodes, no networking, so it is easy to test.
 extends RefCounted
 
+const Problems := preload("res://scripts/problems.gd")
 const StreetGraph := preload("res://scripts/street_graph.gd")
 const Geo := preload("res://scripts/geo.gd")
 const Trips := preload("res://scripts/trips.gd")
@@ -135,6 +136,7 @@ func pick_goal() -> void:
 	info["spot"] = goal
 	info["fallback"] = "no places loaded in the city box yet" if info["in_box"] == 0 \
 		else "every loaded place is within %d m of him" % int(ARRIVE_M)
+	Problems.warn_now("Picked a random spot: " + info["fallback"])
 	picked.emit(info)
 
 
@@ -235,6 +237,7 @@ func advance(meters: float) -> float:
 				return meters
 			if graph.neighbors(from_node).is_empty():
 				# Isolated node (e.g. the street was removed from OSM): hop to the nearest street.
+				Problems.warn_now("Stood on a corner with no streets; hopping to the nearest street")
 				var p: Array = graph.nodes[from_node]
 				var near := graph.nearest_node(p[0], p[1])
 				if near == -1 or near == from_node:
@@ -243,6 +246,7 @@ func advance(meters: float) -> float:
 				continue
 			to_node = _next_step()
 			if to_node == -1 and _skips > MAX_SKIPS:
+				Problems.warn_now("Gave up on %d goals in a row; wandering down a street instead" % _skips)
 				# Already as close as he gets to every goal tried: wander a street instead.
 				_skips = 0
 				var near := graph.neighbors(from_node)

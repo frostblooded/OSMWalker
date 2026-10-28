@@ -230,3 +230,21 @@ func test_failed_searches_are_not_cached() -> void:
 	await api.search_places("Sofia")
 	api.photon_up = true
 	assert_not_null(await api.search_places("Sofia"))
+
+
+func test_city_outline_reads_polygons_and_multipolygons() -> void:
+	var poly := {"geojson": {"type": "Polygon", "coordinates": [[[23.0, 42.0], [23.1, 42.0], [23.1, 42.1], [23.0, 42.0]]]}}
+	assert_eq(OsmApi.outline_rings(poly), [[[42.0, 23.0], [42.0, 23.1], [42.1, 23.1], [42.0, 23.0]]])
+	var multi := {"geojson": {"type": "MultiPolygon", "coordinates": [
+		[[[23.0, 42.0], [23.1, 42.0], [23.0, 42.0]]], [[[24.0, 43.0], [24.1, 43.0], [24.0, 43.0]]]]}}
+	assert_eq(OsmApi.outline_rings(multi).size(), 2)
+	assert_eq(OsmApi.outline_rings({"geojson": {"type": "Point", "coordinates": [23.0, 42.0]}}), [])
+	assert_eq(OsmApi.outline_rings(null), [])
+
+
+func test_city_outline_url_asks_nominatim_for_the_city_polygon() -> void:
+	var url := OsmApi.outline_url(42.5, 23.25)
+	assert_string_contains(url, "nominatim.openstreetmap.org/reverse")
+	assert_string_contains(url, "lat=42.5")
+	assert_string_contains(url, "polygon_geojson=1")
+	assert_string_contains(url, "zoom=10")

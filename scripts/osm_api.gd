@@ -3,6 +3,7 @@
 extends Node
 
 const OfmStreets := preload("res://scripts/ofm_streets.gd")
+const Problems := preload("res://scripts/problems.gd")
 const CityFacts := preload("res://scripts/city_facts.gd")
 
 ## Public Overpass servers, tried in order; the main one is often busy (429/504).
@@ -20,6 +21,7 @@ const PHOTON_URL := "https://photon.komoot.io/api/"
 ## Only settlements: cities, towns and villages, suburbs, hamlets.
 const PHOTON_PLACES := "&layer=city&layer=district&layer=locality"
 const NOMINATIM_URL := "https://nominatim.openstreetmap.org/search"
+const NOMINATIM_REVERSE_URL := "https://nominatim.openstreetmap.org/reverse"
 const USER_AGENT := "OSMWalker/0.1 (https://github.com/frostblooded/OSMWalker)"
 const WALKABLE := "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway"
 
@@ -76,7 +78,7 @@ static func describe_failure(result: int, code: int) -> String:
 
 func _fail(url: String, error: String) -> void:
 	last_error = {"host": host_of(url), "error": error, "at_ms": Time.get_ticks_msec()}
-	push_warning("OSM request failed (%s): %s" % [error, url.left(120)])
+	Problems.warn_now("Request to %s failed: %s" % [host_of(url), error])
 
 
 ## GETs `url` and returns the body, or null on any failure.
@@ -244,3 +246,34 @@ func fetch_city_facts(lat: float, lon: float) -> Array:
 	if data is Dictionary:
 		return data.get("results", {}).get("bindings", [])
 	return []
+
+
+## Nominatim's city-level area around (lat, lon), with its outline simplified.
+static func outline_url(lat: float, lon: float) -> String:
+	return "%s?format=jsonv2&zoom=10&polygon_geojson=1&polygon_threshold=0.001&lat=%s&lon=%s" % [
+		NOMINATIM_REVERSE_URL, lat, lon]
+
+
+## Rings of [lat, lon] from a Nominatim answer's GeoJSON outline; [] when it
+## has no area.
+static func outline_rings(data: Variant) -> Array:
+	if not data is Dictionary or not data.get("geojson") is Dictionary:
+		return []
+	var g: Dictionary = data["geojson"]
+	var polys: Array = []
+	match g.get("type", ""):
+		"Polygon": polys = [g["coordinates"]]
+		"MultiPolygon": polys = g["coordinates"]
+	var out := []
+	for poly in polys:
+		for ring in poly:
+			out.append(Array(ring).map(func(p): return [float(p[1]), float(p[0])]))
+	return out
+
+
+## The city's real outline around (lat, lon) as rings, [] on failure.
+func fetch_city_outline(lat: float, lon: float) -> Array:
+	var rings := outline_rings(await _get_json(outline_url(lat, lon), 30.0))
+	if rings.is_empty():
+		Problems.warn_now("No city outline from Nominatim near %.4f, %.4f" % [lat, lon])
+	return rings

@@ -73,6 +73,9 @@ var _history_rows: VBoxContainer
 var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
 var debug_label: Label
+var debug_alert_label: Label  # red: what looks wrong about the city
+var city_area_toggle: CheckButton  # set by main
+var _badges := []  # red dots shown while there are unseen warnings or errors
 var _debug: Control
 var _help: HelpView
 var _help_button: Button
@@ -244,6 +247,15 @@ func _build_game_ui() -> void:
 	menu.pressed.connect(func(): close_menu() if is_menu_open() else open_menu())
 	_add_burger_lines(menu)
 	_menu_button = menu
+	for b in [menu, _debug_button]:
+		var dot := _label("●", 34)
+		dot.add_theme_color_override("font_color", Color("#d7263d"))
+		dot.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 2)
+		dot.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.visible = false
+		b.add_child(dot)
+		_badges.append(dot)
 	_game_ui.add_child(menu)
 	_map_buttons.append(menu)
 
@@ -489,6 +501,10 @@ func _build_debug() -> void:
 	_debug_close.pressed.connect(close_debug)
 	head.add_child(_debug_close)
 	col.add_child(head)
+	debug_alert_label = _label("", 26)
+	debug_alert_label.add_theme_color_override("font_color", Color("#c01c28"))
+	debug_alert_label.visible = false
+	col.add_child(debug_alert_label)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	_debug_goal = _debug_action("New goal", func(): debug_goal_pressed.emit())
@@ -531,9 +547,19 @@ func is_debug_open() -> bool:
 	return _debug.visible
 
 
-func set_debug(text: String) -> void:
+func set_debug(text: String, alerts := []) -> void:
 	if debug_label.text != text:
 		debug_label.text = text
+	var a := "\n".join(alerts.map(func(x): return "⚠ " + x))
+	if debug_alert_label.text != a:
+		debug_alert_label.text = a
+	debug_alert_label.visible = a != ""
+
+
+## Red dots on ☰ and Debug while `unseen` warnings or errors wait.
+func set_problem_badge(unseen: int) -> void:
+	for dot in _badges:
+		dot.visible = unseen > 0
 
 
 ## Opens Help on its topic list, or straight on the page `id` (see data/help.txt).
@@ -965,6 +991,7 @@ func debug_controls() -> Dictionary:
 		"new_city": _reset_button, "zoom_in": _zoom_in, "menu": _menu_button, "menu_backdrop": _menu_backdrop, "goal": place_label, "back_to_him": _back_button,
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),
+		"city_area": city_area_toggle, "problem_badge": _badges[0] if not _badges.is_empty() else null,
 		"debug": _debug_button, "debug_panel": _debug, "debug_close": _debug_close,
 		"debug_goal": _debug_goal, "debug_city": _debug_city, "debug_country": _debug_country,
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
