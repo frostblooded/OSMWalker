@@ -44,6 +44,10 @@ var _picker: Control
 var _search_box: LineEdit
 var _search_button: Button
 var _results: VBoxContainer
+var _typing_timer: Timer
+## Seconds of no typing before the picker searches by itself.
+var autocomplete_delay := 0.4
+const AUTOCOMPLETE_MIN_CHARS := 3
 var _picker_status: Label
 var _confirm: Control
 var _confirm_box: LineEdit
@@ -500,11 +504,17 @@ func _build_picker() -> void:
 	_search_box.custom_minimum_size = Vector2(0, 110)
 	_search_box.add_theme_font_size_override("font_size", 40)
 	_search_box.text_submitted.connect(func(_t): _on_search())
+	_search_box.text_changed.connect(_on_typed)
 	col.add_child(_search_box)
 
 	_search_button = _button("Search")
 	_search_button.pressed.connect(_on_search)
 	col.add_child(_search_button)
+
+	_typing_timer = Timer.new()
+	_typing_timer.one_shot = true
+	_typing_timer.timeout.connect(func(): _search(false))
+	add_child(_typing_timer)
 
 	_picker_status = _label("", 30, HORIZONTAL_ALIGNMENT_CENTER)
 	col.add_child(_picker_status)
@@ -620,21 +630,40 @@ func _open_confirm() -> void:
 
 
 func _on_search() -> void:
+	_search(true)
+
+
+func _on_typed(text: String) -> void:
+	if text.strip_edges().length() >= AUTOCOMPLETE_MIN_CHARS:
+		_typing_timer.start(autocomplete_delay)
+	else:
+		_typing_timer.stop()
+
+
+## Searches for the typed text; `submitted` (Search or Enter) also hides the keyboard.
+func _search(submitted: bool) -> void:
+	_typing_timer.stop()
 	var text := _search_box.text.strip_edges()
 	if text == "":
 		return
-	_search_box.release_focus()  # hides the on-screen keyboard
-	_search_button.disabled = true
+	if submitted:
+		_search_box.release_focus()  # hides the on-screen keyboard
 	_picker_status.text = "Searching…"
-	for c in _results.get_children():
-		c.queue_free()
 	search_requested.emit(text)
 
 
-func show_results(places: Array) -> void:
-	_search_button.disabled = false
-	_picker_status.text = "Tap a place" if places else "Nothing found. Check your connection or try another name."
-	for p in places:
+## Shows the places found for `for_text`, dropping answers to text the player
+## has since changed. Null `places` means the search servers failed.
+func show_results(places: Variant, for_text := "") -> void:
+	if for_text != "" and for_text != _search_box.text.strip_edges():
+		return
+	if places == null:
+		_picker_status.text = "Couldn't reach the search server. Check your connection and try again."
+	else:
+		_picker_status.text = "Tap a place" if places else "Nothing found. Try another name."
+	for c in _results.get_children():
+		c.queue_free()
+	for p in places if places != null else []:
 		var b := _button(p["name"])
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 32)
@@ -743,7 +772,7 @@ static func _describe(c: Control) -> String:
 ## Controls the e2e test taps, by name.
 func debug_controls() -> Dictionary:
 	return {
-		"search_box": _search_box, "search_button": _search_button, "result0": _first_live(_results),
+		"search_box": _search_box, "search_button": _search_button, "picker_status": _picker_status, "result0": _first_live(_results),
 		"new_city": _reset_button, "zoom_in": _zoom_in, "goal": place_label, "back_to_him": _back_button,
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),

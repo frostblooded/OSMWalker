@@ -139,7 +139,7 @@ func _on_goal_tapped() -> void:
 
 
 func _on_search(text: String) -> void:
-	hud.show_results(await api.search_places(text))
+	hud.show_results(await api.search_places(text), text)
 
 
 func _start_city(city_name: String, lat: float, lon: float, bbox: Array) -> void:

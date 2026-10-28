@@ -148,20 +148,75 @@ func test_failed_tile_rests_the_tile_server() -> void:
 	assert_eq(api.server_stats[OsmApi.host_of(OsmApi.OFM_TILEJSON)]["fail"], 1)
 
 
-## Answers a city search like Nominatim does.
+## Answers a city search like Photon or Nominatim do, or fails like a down server.
 class SearchApi:
 	extends "res://scripts/osm_api.gd"
+	var photon_up := true
+	var nominatim_up := true
+	var asked: Array = []
 
-	func _get_json(_url: String, _timeout := 60.0) -> Variant:
+	func _get_json(url: String, _timeout := 60.0) -> Variant:
+		asked.append(url)
+		if url.begins_with(PHOTON_URL):
+			return {"features": [{
+				"geometry": {"type": "Point", "coordinates": [2.8261, 49.4179]},
+				"properties": {"name": "Compiègne", "state": "Hauts-de-France", "country": "France",
+					"osm_key": "place", "osm_value": "town", "extent": [2.7672, 49.4498, 2.8981, 49.3793]},
+			}, {
+				"geometry": {"type": "Point", "coordinates": [2.0, 1.0]},
+				"properties": {"name": "Nowhere"},
+			}]} if photon_up else null
 		return [
 			{"display_name": "Sofia, Bulgaria", "lat": "42.69", "lon": "23.32", "boundingbox": ["42.6", "42.8", "23.2", "23.5"]},
 			{"display_name": "Nowhere", "lat": "1.0", "lon": "2.0"},
-		]
+		] if nominatim_up else null
 
 
-func test_search_results_carry_the_place_box() -> void:
+func test_search_asks_photon_without_needing_the_accent() -> void:
 	var api: SearchApi = add_child_autofree(SearchApi.new())
-	var places: Array = await api.search_places("Sofia")
+	var places: Variant = await api.search_places("compiegne France")
+	assert_eq(api.asked.size(), 1)
+	assert_true(api.asked[0].begins_with(OsmApi.PHOTON_URL))
+	assert_string_contains(api.asked[0], "q=compiegne%20France")
+	assert_eq(places[0]["name"], "Compiègne, Hauts-de-France, France")
+	assert_almost_eq(places[0]["lat"], 49.4179, 0.0001)
+	assert_almost_eq(places[0]["lon"], 2.8261, 0.0001)
+	# Photon sends [west, north, east, south]; we use [south, west, north, east].
+	assert_eq(places[0]["bbox"], [49.3793, 2.7672, 49.4498, 2.8981])
+	assert_eq(places[1]["name"], "Nowhere")
+	assert_eq(places[1]["bbox"], [])
+
+
+func test_search_falls_back_to_nominatim_when_photon_fails() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	api.photon_up = false
+	var places: Variant = await api.search_places("Sofia")
+	assert_eq(api.asked.size(), 2)
+	assert_true(api.asked[1].begins_with(OsmApi.NOMINATIM_URL))
 	# Nominatim sends [south, north, west, east]; we use [south, west, north, east].
 	assert_eq(places[0]["bbox"], [42.6, 23.2, 42.8, 23.5])
 	assert_eq(places[1]["bbox"], [])
+
+
+func test_search_is_null_when_every_server_fails() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	api.photon_up = false
+	api.nominatim_up = false
+	assert_null(await api.search_places("Sofia"))
+
+
+func test_search_answers_repeat_queries_from_the_cache() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	var first: Variant = await api.search_places("Compiegne")
+	var again: Variant = await api.search_places("  compiegne ")
+	assert_eq(api.asked.size(), 1)
+	assert_eq(again, first)
+
+
+func test_failed_searches_are_not_cached() -> void:
+	var api: SearchApi = add_child_autofree(SearchApi.new())
+	api.photon_up = false
+	api.nominatim_up = false
+	await api.search_places("Sofia")
+	api.photon_up = true
+	assert_not_null(await api.search_places("Sofia"))
