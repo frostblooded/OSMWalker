@@ -1,0 +1,45 @@
+import { describe, expect, it } from "vitest";
+import * as F from "../../src/ui/format";
+import { WALK, BIKE } from "../../src/core/speeds";
+
+describe("texts", () => {
+  it("show distances", () => {
+    expect(F.dist(850.4)).toBe("850 m");
+    expect(F.dist(1234)).toBe("1.2 km");
+  });
+
+  it("show walking times at his speed", () => {
+    expect(F.walkTime(20, WALK)).toBe("<1 min");
+    expect(F.walkTime(1000, WALK)).toBe("~12 min");
+    expect(F.walkTime(6000, WALK)).toBe("~1 h 12 min");
+    expect(F.walkTime(1000, BIKE)).toBe("~4 min");
+  });
+
+  it("count down to the next move", () => {
+    expect(F.countdown(60)).toBe("1:00");
+    expect(F.countdown(59.2)).toBe("1:00");
+    expect(F.countdown(0.5)).toBe("0:01");
+    expect(F.countdown(0)).toBe("0:00");
+  });
+
+  it("show speeds in km/h", () => {
+    expect(F.speed(WALK)).toBe("5 km/h");
+    expect(F.speed(BIKE * 1.1)).toBe("16.5 km/h");
+  });
+
+  it("describe his street", () => {
+    expect(F.streetLine("Vitosha", false)).toBe("Walking along Vitosha");
+    expect(F.streetLine("", false)).toBe("Wandering along an unnamed path");
+    expect(F.streetLine("", true)).toBe("Stopped on an unnamed path");
+  });
+
+  it("only unlock reset on the exact word", () => {
+    expect(F.isResetWord(" RESET ")).toBe(true);
+    expect(F.isResetWord("reset")).toBe(false);
+  });
+
+  it("split typed text from the suggestion", () => {
+    expect(F.typedSplit("Sofia, Bulgaria", "sof")).toEqual(["Sof", "ia, Bulgaria"]);
+    expect(F.typedSplit("Plovdiv", "sof")).toEqual(["", "Plovdiv"]);
+  });
+});

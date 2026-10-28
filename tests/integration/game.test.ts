@@ -1,0 +1,241 @@
+// The game loop with real Sofia streets, fake servers and fixed dice.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import type { Tile } from "../../src/core/geo";
+import { cellKey, type Cell } from "../../src/core/graph";
+import { fromPbf } from "../../src/core/ofm";
+import { Rng } from "../../src/core/rng";
+import type { Place } from "../../src/core/stats";
+import { parseAirports, parseCities } from "../../src/core/trips";
+import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Api } from "../../src/net/api";
+import type { LoadFn } from "../../src/streets/client";
+import { dataFile } from "../support/data";
+
+const WEST: Tile = { x: 9253, y: 6039 };
+const START: [number, number] = [42.687, 23.319];
+const CAFE: Place = { name: "Cafe Near", class: "cafe", subclass: "cafe", rank: 1, lat: 42.6885, lon: 23.3215 };
+const BUS: Place = { name: "Central Bus", class: "bus", subclass: "bus_station", rank: 1, lat: 42.6862, lon: 23.3172 };
+const CITIES = "Sofia\tBGR\tBulgaria\t42.6975\t23.3241\t1200000\nPlovdiv\tBGR\tBulgaria\t42.15\t24.75\t340000\nParis\tFRA\tFrance\t48.85\t2.35\t2100000\n";
+
+const pbf = (t: Tile) => new Uint8Array(readFileSync(fileURLToPath(new URL(`../fixtures/ofm/14_${t.x}_${t.y}.pbf`, import.meta.url))));
+const empty = (): Cell => ({ ids: new Float64Array(), coords: new Float64Array(), ways: [], places: [] });
+
+/** Real streets for the two Sofia tiles, nothing elsewhere. */
+function streets(places: Place[] = [CAFE, BUS], fail = false): { load: LoadFn; asked: Tile[] } {
+  const asked: Tile[] = [];
+  const load: LoadFn = async (tile) => {
+    asked.push(tile);
+    if (fail) return { error: "HTTP 503 (server overloaded)" };
+    if (tile.y === 6039 && (tile.x === 9253 || tile.x === 9254)) {
+      const cell = fromPbf(pbf(tile), tile);
+      return { cell: { ...cell, places: tile.x === 9253 ? places : [] }, from: "tile", stale: false };
+    }
+    return { cell: empty(), from: "tile", stale: false };
+  };
+  return { load, asked };
+}
+
+class MemStorage {
+  m = new Map<string, string>();
+  getItem(k: string) {
+    return this.m.get(k) ?? null;
+  }
+  setItem(k: string, v: string) {
+    this.m.set(k, v);
+  }
+  removeItem(k: string) {
+    this.m.delete(k);
+  }
+}
+
+function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number } = {}) {
+  const api = new Api(async () => new Response("", { status: 503 }));
+  const data = {
+    actions: JSON.parse(dataFile("actions.json")),
+    flavour: {},
+    cities: parseCities(CITIES),
+    airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
+  };
+  const storage = new MemStorage();
+  const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
+  g.problems.quiet = true;
+  return { g, storage };
+}
+
+/** Steps a second at a time. */
+function run(g: Game, seconds: number): void {
+  for (let i = 0; i < seconds; i++) g.step(1);
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+describe("game", () => {
+  it("starts walking in a city once the streets there load", async () => {
+    const { g } = game();
+    expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("");
+    expect(g.walker).not.toBeNull();
+    expect(g.country).toBe("BGR");
+    expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
+    await tick();
+    run(g, 30);
+    expect(g.walker!.totalM).toBeCloseTo(30 * (5 / 3.6), 3); // 5 km/h on foot
+  });
+
+  it("says when the streets can't load", async () => {
+    const { g } = game({ fail: true });
+    expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("Couldn't load streets. Check your connection and try again.");
+    expect(g.problems.warnings.map((w) => w.text)).toContain("Couldn't load the streets where he starts in Sofia, Bulgaria");
+  });
+
+  it("walks to a place, does something there and rests", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 400);
+    expect(g.stats.visited.size).toBeGreaterThan(0);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
+    expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
+  });
+
+  it("keeps the walk across a save", async () => {
+    const { g, storage } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 20);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.problems.quiet = true;
+    expect(again.load()).toBe(true);
+    expect(again.city).toBe("Sofia, Bulgaria");
+    expect(again.walker!.totalM).toBeCloseTo(g.walker!.totalM, 6);
+    expect(again.walker!.position()[0]).toBeCloseTo(g.walker!.position()[0], 9);
+    expect(again.stats.history.entries.length).toBe(g.stats.history.entries.length);
+  });
+
+  it("starts with the route line off and remembers the switch", () => {
+    const { g, storage } = game();
+    expect(g.showRoute).toBe(false);
+    g.setShowRoute(true);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    expect(again.showRoute).toBe(true);
+  });
+
+  it("starts over on reset but keeps the problem log", async () => {
+    const { g, storage } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.problems.warn("kept");
+    g.save();
+    g.reset();
+    expect(g.walker).toBeNull();
+    expect(storage.getItem(SAVE_KEY)).toBeNull();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    expect(again.load()).toBe(false);
+    expect(again.problems.warnings.map((w) => w.text)).toContain("kept");
+  });
+
+  it("skips the trip dice on the first pick, then rolls", async () => {
+    const { g } = game({ roll: 0.99 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2);
+    expect(g.debugLog.entries[0]!.skipped).toBe("first pick in a new city");
+    g.debugNewGoal();
+    expect(g.debugLog.entries.at(-1)).toMatchObject({ roll: 0.99, outcome: "stay", forced: "goal" });
+  });
+
+  it("walks to the bus station for a trip, pays and rides", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    const w = g.walker!;
+    expect(w.isDeparting()).toBe(true);
+    expect(w.departing!.station.name).toBe("Central Bus");
+    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to Plovdiv");
+    const fare = w.departing!.fare;
+    for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
+    expect(w.isTraveling()).toBe(true);
+    expect(g.stats.cents).toBe(50_000 - fare);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
+  });
+
+  it("saves up when he can't afford a trip", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 1;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
+    expect(g.stats.savingFor).toBeGreaterThan(1);
+    expect(g.debugLog.entries.at(-1)!.no_trip).toContain("can't afford the bus to Plovdiv");
+  });
+
+  it("lands in another country on the debug button, with a fresh graph", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const old = g.walker!.graph;
+    g.debugTrip("country");
+    expect(g.city).toBe("Paris, France");
+    expect(g.country).toBe("FRA");
+    expect(g.walker!.graph).not.toBe(old);
+    expect(g.loader.graph).toBe(g.walker!.graph);
+    expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "country", trip: "Paris, France" });
+  });
+
+  it("wakes in hospital after fainting", async () => {
+    const hospital: Place = { name: "St Anna", class: "hospital", subclass: "hospital", rank: 1, lat: 42.688, lon: 23.316 };
+    const { g } = game({ places: [hospital, CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.health = 0;
+    const coins = g.stats.cents;
+    g.step(1);
+    expect(g.walker!.place).toEqual(hospital);
+    expect(g.walker!.isResting()).toBe(true);
+    expect(g.stats.cents).toBeLessThan(coins);
+  });
+
+  it("flags a city with no way out once the area is loaded", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.areaLoaded()).toBe(true);
+    expect(g.severeNow.map((p) => p.title)).toContain("Can't leave Sofia, Bulgaria");
+    expect(g.problems.severe[0]!.details.at(-1)).toContain("0 bus stations");
+  });
+
+  it("lists what looks wrong with the city for Debug", async () => {
+    const { g } = game({ places: [] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    const alerts = g.cityAlerts();
+    expect(alerts.filter((a) => a.level === "error").map((a) => a.text)).toContain("⛔ Can't leave Sofia, Bulgaria");
+    expect(alerts.map((a) => a.text)).toContain("No places of note in the city box: he walks to random spots");
+    expect(alerts.map((a) => a.text)).toContain("No trivia for this city");
+    expect(alerts[0]!.level).toBe("error");
+  });
+
+  it("has no alerts for a fine city", async () => {
+    const { g } = game({ places: [CAFE, BUS, { ...BUS, name: "Fuel", class: "fuel", subclass: "fuel" }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.cityAlerts().filter((a) => a.text !== "No trivia for this city")).toEqual([]);
+  });
+
+  it("tells listeners about changes", async () => {
+    const { g } = game();
+    let n = 0;
+    g.subscribe(() => n++);
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(n).toBeGreaterThan(0);
+  });
+});

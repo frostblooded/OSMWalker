@@ -1,0 +1,333 @@
+# ℹ Getting started
+## What OSM Walker is {about}
+OSM Walker is a little life you watch, not steer. A small character walks the real streets of a real city, taken from OpenStreetMap. He picks places to visit, walks there, does something at each one, and slowly gets stronger, richer and more experienced.
+
+You don't control him. Everything he does is decided by the rules on these pages: where he goes, what he does there, what he buys, and when he travels to another city or country. Your part is to check in, see where he has got to, and read what he has been up to.
+
+Each page in this Help explains one part of the game in detail, with the real numbers the game uses.
+## Choosing a city {city_search}
+On the first launch you pick where he starts. Start typing the name of a town or city. After {SEARCH_MIN_CHARS} letters and a short pause, suggestions appear by themselves; you can also tap 🔍 or press Enter to search right away. Only towns, cities, villages and suburbs are suggested, and missing accents or small typos are fine ("compiegne" finds Compiegne). Tap a suggestion to start there.
+
+If the search servers can't be reached, it says "Couldn't reach the search server": check your connection and try again. "Nothing found" means there really is no such place. Answers are remembered until you close the game, so searching the same name again is instant.
+
+The game then downloads the streets around that spot. He starts on the street corner nearest to the result and stays inside that city until he travels somewhere else (see Trips to other cities).
+
+The area of the result decides the city box he picks goals in. It is grown or shrunk so that it reaches at least {MIN_CITY_KM} km and at most {MAX_CITY_KM} km from the centre, so a tiny village still has room to walk and a whole country never counts as one city.
+## Only while the game is open {offline}
+He walks and lives only while the game is open on screen. While it is closed, or the browser tab is hidden, he waits exactly where he is: he doesn't walk, his meters don't drop and buffs don't run down. When you come back he carries on from the same spot.
+
+Time in the game is real time while the game is open: one minute on your clock is one minute for him. A single step never counts for more than {MAX_STEP_S} second, so a stall or a hidden tab can't make him jump ahead.
+
+The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
+# 🚶 Walking
+## How he walks {walking}
+On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
+
+He always walks towards a goal (see Places of note and His goal). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
+
+If he has walked more than 2.5 times the straight-line distance to his goal plus 2 km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
+## Speed and vehicles {speed}
+His speed depends on how he gets about:
+- on foot: {WALK_KMH} km/h,
+- bike: {BIKE_KMH} km/h,
+- scooter or motorbike: {MOTORCYCLE_KMH} km/h,
+- car: {CITY_CAR_KMH} km/h (city traffic).
+
+He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
+
+Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy.
+
+Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
+## Places of note {places}
+His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
+
+Each place has a rank from the map, where 1 is the most important in its area, so big sights and busy shops come up more often than small ones. How far away a place is and which way it lies count too (see Picking the next goal).
+
+If no places have loaded yet, he heads for a random spot in the city box instead and walks on through it without stopping.
+
+He counts as arrived when he is within {ARRIVE_M} m of the place.
+## Picking the next goal {goal_pick}
+He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
+
+Rank: 1 / rank, so a rank 1 place weighs 1 and a rank 4 place weighs 0.25.
+
+Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off smoothly both ways: a place {NEAR_M} m away weighs {NEAR_PCT} as much, one {FAR_KM} km away {FAR_PCT}, so he hops between nearby spots and only now and then crosses the city.
+
+Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
+
+Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip, for paid work. Only his strongest need counts.
+
+Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
+## His goal {goal}
+While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is approximate: it is the planned route at his current speed. A 🎯 pin on the map marks the goal.
+
+Tap that line to see him and his goal on the map together. Tap "Back to him" (or the line again) to follow him again. The view also goes back to him by itself when he picks a new goal.
+
+While he stays at a place the line reads "Resting at" and the place's name.
+## Staying somewhere {countdown}
+At each place of note he stops and does one action (see What he does at places). Every stop lasts exactly {STAY_MIN} minute, whatever the action is, so he is never standing still for long.
+
+While he stays, the top card shows "Moving again in 0:59" and an orange bar that fills up as the minute passes. When it is full he picks his next goal and sets off.
+## The map {map}
+The map is drawn from OpenStreetMap data by OpenFreeMap. He is the round orange face; the map follows him as he walks. Drag the map to look around, then tap "Back to him" to follow him again.
+
+Use the + and − buttons on the right to zoom in and out; the zoom is remembered. Streets are downloaded in squares around him, {STREET_SQUARES} by {STREET_SQUARES} map tiles of about {TILE_KM} km each (smaller far from the equator), and the squares in the direction he is heading load first. Streets he has seen are kept on the device for {CACHE_DAYS} days, so the same city loads faster next time and works with a weak connection.
+
+During a trip to another city a red line shows the way from where he left to where he is going, and the map zooms out to fit it.
+# 🎯 Actions
+## What he does at places {actions}
+Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
+
+An action can:
+- raise or lower his meters (health, energy, fullness, thirst, mood, hygiene),
+- raise his attributes (strength, charm, wits, luck), usually by a small step such as 0.1,
+- give XP,
+- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent),
+- give him a buff or debuff for a while (see Buffs and debuffs),
+- offer him an item to buy, or sell something from his bag.
+
+Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
+
+What he did pops up at the top for a few seconds, and goes into his History.
+## How he chooses {choosing}
+At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
+- Every action starts with weight 1.
+- For each meter the action raises, it gains (60 - meter) / 20 x (amount, at most 50) / 20, but only if that meter is below 60. So the hungrier he is, the more he leans towards food, and the bigger the meal the stronger the pull.
+- Browsing for an item: +1 when he has more than {SKINT_X3}.
+- Selling his loot: +2.
+- Paid work: +3 while he has less than {SKINT}, otherwise +0.5.
+- Anything that would leave him under {SKINT} weighs half as much.
+- A country's own actions get +{FLAVOUR_WEIGHT} (see Country flavour).
+- While he saves up for a trip, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares).
+
+An action with weight 4 is four times as likely as one with weight 1.
+## Requirements {needs}
+An action can only be picked when he meets all of its requirements:
+- Money: he needs at least the action's price.
+- Shopping for an item needs more than {KEEP_CENTS}.
+- Selling needs something in his bag.
+- Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
+- Level: some need a minimum level.
+- Time of day, by your device's clock: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}. Bars serve rakia only in the evening, for example.
+- Low meters: some only happen when a meter is low, such as napping under a tree when his energy is under 40, or the soup kitchen when his fullness is under 30.
+## Money {coins}
+His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
+
+Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a used bike about {CHEAP_BIKE} and a used car about {CHEAP_CAR}.
+
+He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
+
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Waking up in hospital costs {HOSPITAL_FEE}, about what a tourist pays at an emergency room.
+## Buffs and debuffs {buffs}
+Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
+
+A buff can change a meter every hour it lasts (Caffeinated: +5 energy per hour; Healthy: +1 health per hour; Hungover: -3 energy and -2 mood per hour), or multiply the XP he gets from actions (Inspired: double XP). Several XP buffs multiply together. A buff can also raise an attribute while it lasts: Lucky (from a big tip or rubbing a statue) adds {LUCKY_LUCK} luck.
+
+Doing an action that gives a buff he already has starts that buff over at its full length instead of stacking it.
+
+# ❤ Body stats
+## Health {health}
+Health (HP, the red bar) goes from 0 to 100 and starts at {START_HEALTH}.
+
+He loses health when he is starving or parched: {STARVING_PER_H} health per hour while fullness is at 0, and another {STARVING_PER_H} per hour while thirst is at 0. Some risky actions and drinks also cost a little health.
+
+He gets health back from hospitals, doctors, pharmacies, rest and good food, and from buffs such as Healthy.
+
+When health reaches 0 he faints and wakes up in hospital (see Fainting and hospital).
+## Energy {energy}
+Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
+
+He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
+
+When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
+## Fullness {fullness}
+Fullness (FU, the green bar) is how fed he is, from 0 to 100, starting at {START_FULLNESS}.
+
+It drops by {FULLNESS_PER_H} every hour the game is open, so from full it lasts about {FULLNESS_HOURS} hours. Meals, snacks and buffs such as Snacking fill it.
+
+Under 60 he leans more and more towards food. At 0 he starts losing {STARVING_PER_H} health per hour until he eats.
+## Thirst {thirst}
+Thirst is how well watered he is, from 0 to 100 (higher is better), starting at {START_THIRST}.
+
+It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts about {THIRST_HOURS} hours. Drinks, drinking fountains, cafes and bars fill it.
+
+Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
+## Mood {mood}
+Mood is how happy he is, from 0 to 100, starting at {START_MOOD}.
+
+It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
+
+When mood is under 60 he leans towards cheerful actions.
+
+Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
+## Hygiene {hygiene}
+Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
+
+It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hotel rooms, the laundry, a spa and the toilets raise it; sweaty jobs and workouts lower it.
+
+When hygiene is under 60 he leans towards actions that clean him up.
+
+Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
+# 💪 Attributes
+## Strength {str}
+Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
+
+Strength unlocks physical actions: for example hauling for the butcher needs 3, arm-wrestling bets 4, loading cargo at the harbour 5, a lifeguard shift 6. Those mostly pay well.
+
+The number counted for requirements is his own strength plus every strength bonus on his gear.
+## Charm {cha}
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments.
+
+Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
+
+Charm also gets him better prices when he sells: each point adds 5% to what a shop pays (see The bag and selling).
+## Wits {wit}
+Wits start at 1. They grow from reading, learning, games, puzzles and city trivia, from levelling up, and from gear such as bows, beanies, wrenches, pocket watches and violins.
+
+Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing a printer 3, a freelance gig 4, volunteering as a museum guide 6.
+## Luck {luck}
+Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
+
+Luck does three things:
+- Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
+- Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
+- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
+It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
+# ⭐ Progress
+## XP and levels {xp}
+He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs; XP from actions is multiplied by buffs such as Inspired.
+
+Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
+
+Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. On a tie, strength comes first, then charm, wits and luck.
+
+A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
+## Fainting and hospital {fainting}
+When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
+
+Waking up costs {HOSPITAL_FEE} (less if he has less). His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
+# 🎒 Items and gear
+## Gear and items {items}
+He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles).
+
+Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
+
+Every browse shows him one random item. He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
+
+An item's name tells you what it is made of: modifiers before, then the material, then the base item, then a suffix, for example "Mighty Bronze Sword of the Fox".
+## Materials {materials}
+Every item is made of a material, picked at random from those his level has unlocked. Metal items and cloth items use different names for the same steps:
+- level 1: Wooden / Cotton (power 1) and Copper / Wool (power 2)
+- level 3: Bronze / Linen (power 3)
+- level 5: Iron / Leather (power 4)
+- level 10: Steel / Silk (power 6)
+- level 15: Silver / Velvet (power 7)
+- level 25: Mithril / Dragonhide (power 10)
+
+The item's main attribute grows by {POWER_TO_STAT} for each point of power: a Steel Sword gives strength +3. Prices are real: a plain Bronze Sword costs {BRONZE_SWORD}. Material changes the price: Wooden or Cotton is half that, Steel or Silk twice, Mithril or Dragonhide ten times.
+## Modifiers and rarity {modifiers}
+Items can have 0 to 3 modifiers, and the number decides the rarity:
+- Common, no modifiers: {MODS0_PCT} of items
+- Uncommon, 1 modifier: {MODS1_PCT}
+- Rare, 2 modifiers: {MODS2_PCT}
+- Legendary, 3 modifiers: {MODS3_PCT}
+
+Those are the odds at luck 0. Each point of luck lifts the roll by {LUCK_RARITY_PCT}, up to {LUCK_RARITY_CAP_PCT}, so a lucky walker finds rarer items more often.
+
+The first modifier is always a suffix: of the Bear (strength +2), of the Fox (wits +2), of the Peacock (charm +2), of Fortune (luck +2) or of the Owl (wits +1, luck +1). The others are prefixes, never the same one twice: Mighty (strength +2), Charming (charm +2), Clever (wits +2), Lucky (luck +2), Sharp (strength +1, wits +1) or Gleaming (charm +1, luck +1).
+
+Each modifier adds {MOD_PRICE_PCT} of the price.
+## The bag and selling {bag}
+Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
+
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
+
+If his bag is full when another item comes in, he keeps the more valuable of the new item and the cheapest one in the bag, and sells the other on the spot.
+# ✈ Travel
+## Trips to other cities {trips}
+Every time he picks a new goal he rolls the trip dice:
+- {COUNTRY_PCT}: he travels to a city in another country,
+- {CITY_PCT}: he travels to another city in the same country,
+- otherwise he stays and picks a place in this city.
+
+While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots.
+
+The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
+
+A trip is never free: he first walks to a bus station, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares).
+
+In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
+## Stations and getting there {stations}
+How he goes depends on the distance in a straight line:
+- under {PLANE_FROM_KM} km he always goes by road,
+- from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
+- over {PLANE_ALWAYS_KM} km he always flies.
+
+By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead, fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+
+To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
+
+The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, so a 300 km bus trip takes almost 4 hours of the game being open. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
+## Fares {fares}
+Fares are in euros and never free:
+- bus: {BUS_PER_KM} per km of road,
+- plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
+- car: fuel at {FUEL_PER_KM} per km of road.
+
+Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}.
+
+He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. If he spends too much on the way to the station, he turns back and saves up the same way.
+## Country flavour {flavour}
+{FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
+
+To make them come up often, each one gets +{FLAVOUR_WEIGHT} weight when he chooses (see How he chooses). They follow the same requirements as every other action.
+## City trivia {trivia}
+When he reaches a city, the game looks it up on Wikidata: the most populous place within {TRIVIA_KM} km of the centre, and facts about it such as when it was founded, how many people live there, how high it is, up to {TRIVIA_TWINS} twin towns, who it is named after and what it is the capital of.
+
+Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
+# 📱 Screens and buttons
+## The top card and buttons {screen}
+The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+
+What he just did pops up under it for a few seconds.
+
+Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. "Back to him" shows up at the bottom whenever the map is not following him.
+## The menu {menu}
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Help, Debug, the Route to goal and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+
+Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
+## The Stats sheet {sheet}
+🧍 Stats opens his character sheet, a set of cards:
+- Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Vitals: a coloured bar and the value for each of his six meters.
+- Attributes: a tile for each, with the part his gear adds in green.
+- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
+- Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.
+- Effects: his buffs with the minutes they have left.
+## History {history}
+📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints.
+
+While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
+## Debug {debug}
+Debug (in the menu) is for testing and curious players.
+
+Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
+
+At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
+
+Then come three logs, closed at first: the city's trivia, Problems (the last {MAX_SEVERE} severe problems, {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: every dice roll, the odds and why. A random spot always counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
+
+City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
+
+Its buttons change the game right away:
+- New goal ends any stop or trip and picks a new goal now, rolling the trip dice again.
+- New city sends him straight to another city in the same country.
+- New country sends him straight to a city in another country.
+## New city {new_city}
+New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
+
+To just see him somewhere else without losing anything, wait for a trip, or use the Debug buttons.
+## About Help {help}
+Help (in the menu) explains every part of the game on its own page. Tap a topic to open it and Back to return to the list.
+
+The numbers on these pages come straight from the game, so they are always the ones it really uses. Help is updated whenever a mechanic changes.

@@ -1,0 +1,47 @@
+// Fake map services for the browser tests: city search, a tiny OpenFreeMap
+// style, the Sofia street tiles from the fixtures, and empty answers for the rest.
+import type { BrowserContext } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`../fixtures/ofm/${name}`, import.meta.url)));
+export const SOFIA = { name: "Sofia", lat: 42.687, lon: 23.319 };
+const TILES = "https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf";
+
+export const STYLE = {
+  version: 8,
+  sources: { openmaptiles: { type: "vector", tiles: [TILES], minzoom: 0, maxzoom: 14 } },
+  layers: [
+    { id: "background", type: "background", paint: { "background-color": "#f2efe9" } },
+    { id: "roads", type: "line", source: "openmaptiles", "source-layer": "transportation", paint: { "line-color": "#ffffff", "line-width": 4 } },
+    { id: "building-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", paint: {} },
+  ],
+};
+
+export type Mock = { asked: string[] };
+
+export async function mockServices(context: BrowserContext, opts: { failSearch?: boolean } = {}): Promise<Mock> {
+  const asked: string[] = [];
+  await context.route(/^https:\/\/(?!localhost)/, async (route) => {
+    const url = route.request().url();
+    asked.push(url);
+    if (url.startsWith("https://photon.komoot.io/")) {
+      if (opts.failSearch) return route.fulfill({ status: 503 });
+      return route.fulfill({
+        json: { features: [{ geometry: { coordinates: [SOFIA.lon, SOFIA.lat] }, properties: { name: "Sofia", country: "Bulgaria", extent: [23.2, 42.8, 23.5, 42.6] } }] },
+      });
+    }
+    if (url === "https://tiles.openfreemap.org/styles/liberty") return route.fulfill({ json: STYLE });
+    if (url === "https://tiles.openfreemap.org/planet") return route.fulfill({ json: { tiles: [TILES] } });
+    const tile = url.match(/planet\/test\/14\/(\d+)\/(\d+)\.pbf$/);
+    if (tile) {
+      const name = `14_${tile[1]}_${tile[2]}.pbf`;
+      if (name === "14_9253_6039.pbf" || name === "14_9254_6039.pbf") return route.fulfill({ body: fixture(name), contentType: "application/x-protobuf" });
+      return route.fulfill({ body: Buffer.alloc(0), contentType: "application/x-protobuf" });
+    }
+    if (url.includes("/planet/test/")) return route.fulfill({ body: Buffer.alloc(0) }); // other zooms: nothing to draw
+    if (url.startsWith("https://query.wikidata.org/")) return route.fulfill({ json: { results: { bindings: [] } } });
+    return route.fulfill({ status: 404 });
+  });
+  return { asked };
+}
