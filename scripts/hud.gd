@@ -11,11 +11,15 @@ signal history_toggled(open: bool)
 signal history_entry_tapped(index: int)  # index into History.entries
 signal goal_tapped
 signal back_tapped
+signal debug_toggled(open: bool)
+signal debug_goal_pressed
+signal debug_trip_pressed(kind: int)  # Trips.Kind
 
 ## What kind of bar goes under the status message.
 enum Bar { NONE, PROGRESS, BUSY }
 
 const History := preload("res://scripts/history.gd")
+const Trips := preload("res://scripts/trips.gd")
 
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
@@ -59,6 +63,13 @@ var _history: Control
 var _history_rows: VBoxContainer
 var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
+var debug_label: Label
+var _debug: Control
+var _debug_button: Button
+var _debug_close: Button
+var _debug_goal: Button
+var _debug_city: Button
+var _debug_country: Button
 
 
 func _ready() -> void:
@@ -68,6 +79,7 @@ func _ready() -> void:
 	_build_status()
 	_build_sheet()
 	_build_history()
+	_build_debug()
 
 
 ## Status message with a loading bar under it, over the top of the map.
@@ -210,11 +222,21 @@ func _build_game_ui() -> void:
 	_game_ui.add_child(hist)
 	_map_buttons += [reset, hist]
 
+	var dbg := _button("Debug", Vector2(250, BIG.y))
+	dbg.add_theme_font_size_override("font_size", 34)
+	dbg.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
+	dbg.offset_bottom = -90 - 2 * (BIG.y + 16)
+	dbg.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	dbg.pressed.connect(open_debug)
+	_debug_button = dbg
+	_game_ui.add_child(dbg)
+	_map_buttons.append(dbg)
+
 	# Shown while the map shows his goal instead of following him.
 	var back := _button("Back to him", Vector2(250, BIG.y))
 	back.add_theme_font_size_override("font_size", 34)
 	back.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-	back.offset_bottom = -90 - 2 * (BIG.y + 16)
+	back.offset_bottom = -90 - 3 * (BIG.y + 16)
 	back.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	back.visible = false
 	back.pressed.connect(func(): back_tapped.emit())
@@ -373,6 +395,75 @@ func _build_history() -> void:
 	scroll.add_child(_history_rows)
 	col.add_child(scroll)
 	_history.add_child(col)
+
+
+## The bottom half of the screen for debugging: buttons that force a new
+## goal or trip, everything about the city and how each goal was picked.
+func _build_debug() -> void:
+	_debug = _panel()
+	_debug.anchor_left = 0.0
+	_debug.anchor_right = 1.0
+	_debug.anchor_top = 0.5
+	_debug.anchor_bottom = 1.0
+	_debug.offset_bottom = -64  # the map credit stays readable under it
+	_debug.visible = false
+	_game_ui.add_child(_debug)
+	_game_ui.move_child(_debug, _credit.get_index())
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	var head := HBoxContainer.new()
+	var title := _label("Debug", 40)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	_debug_close = _button("Close", Vector2(220, 110))
+	_debug_close.pressed.connect(close_debug)
+	head.add_child(_debug_close)
+	col.add_child(head)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_debug_goal = _debug_action("New goal", func(): debug_goal_pressed.emit())
+	_debug_city = _debug_action("New city", func(): debug_trip_pressed.emit(Trips.Kind.CITY))
+	_debug_country = _debug_action("New country", func(): debug_trip_pressed.emit(Trips.Kind.COUNTRY))
+	for b in [_debug_goal, _debug_city, _debug_country]:
+		row.add_child(b)
+	col.add_child(row)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	debug_label = _label("", 24)
+	debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(debug_label)
+	col.add_child(scroll)
+	_debug.add_child(col)
+
+
+func _debug_action(text: String, on_press: Callable) -> Button:
+	var b := _button(text, Vector2(0, 110))
+	b.add_theme_font_size_override("font_size", 30)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.pressed.connect(on_press)
+	return b
+
+
+func open_debug() -> void:
+	_debug.visible = true
+	_show_map_buttons(false)
+	debug_toggled.emit(true)
+
+
+func close_debug() -> void:
+	_debug.visible = false
+	_show_map_buttons(true)
+	debug_toggled.emit(false)
+
+
+func is_debug_open() -> bool:
+	return _debug.visible
+
+
+func set_debug(text: String) -> void:
+	if debug_label.text != text:
+		debug_label.text = text
 
 
 func open_history() -> void:
@@ -711,28 +802,40 @@ static func _first_live(box: Node) -> Control:
 ## Pairs of visible texts, bars and buttons on screen that overlap, as
 ## "name / name" lines; tests check it stays empty. Panels behind them
 ## (the top panel, dialogs) are not checked, only what is drawn on them.
+## Only the part of a text inside its scroll box counts, and only the open
+## dialog or sheet while one covers the screen.
 func overlapping_texts() -> Array:
 	var items := []
-	_collect_drawn(self, items)
+	var top: Node = self
+	for modal in [_confirm, _sheet]:
+		if modal.visible:
+			top = modal
+	_collect_drawn(top, items, Rect2(-1e9, -1e9, 2e9, 2e9))
 	var hits := []
 	for i in items.size():
 		for j in range(i + 1, items.size()):
-			var a: Control = items[i]
-			var b: Control = items[j]
+			var a: Control = items[i][0]
+			var b: Control = items[j][0]
 			if a.is_ancestor_of(b) or b.is_ancestor_of(a):
 				continue
-			if a.get_global_rect().grow(-1.0).intersects(b.get_global_rect().grow(-1.0)):
+			if (items[i][1] as Rect2).grow(-1.0).intersects((items[j][1] as Rect2).grow(-1.0)):
 				hits.append("%s / %s" % [_describe(a), _describe(b)])
 	return hits
 
 
-func _collect_drawn(node: Node, out: Array) -> void:
+## Adds [control, visible rect] for each drawn text under `node`.
+func _collect_drawn(node: Node, out: Array, clip: Rect2) -> void:
 	for c in node.get_children():
 		if c is Control and not c.is_visible_in_tree():
 			continue
-		if (c is Label or c is ProgressBar or c is Button or c is LineEdit) and c.size.x > 2.0 and c.size.y > 2.0:
-			out.append(c)
-		_collect_drawn(c, out)
+		var inner := clip
+		if c is Control:
+			var r: Rect2 = c.get_global_rect().intersection(clip)
+			if (c is Label or c is ProgressBar or c is Button or c is LineEdit) and r.size.x > 2.0 and r.size.y > 2.0:
+				out.append([c, r])
+			if c.clip_contents:
+				inner = r
+		_collect_drawn(c, out, inner)
 
 
 static func _describe(c: Control) -> String:
@@ -747,5 +850,7 @@ func debug_controls() -> Dictionary:
 		"new_city": _reset_button, "zoom_in": _zoom_in, "goal": place_label, "back_to_him": _back_button,
 		"history": _history_button, "history_panel": _history, "history_close": _history_close,
 		"history_row0": _first_live(_history_rows),
+		"debug": _debug_button, "debug_panel": _debug, "debug_close": _debug_close,
+		"debug_goal": _debug_goal, "debug_city": _debug_city, "debug_country": _debug_country,
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
 	}

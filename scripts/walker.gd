@@ -16,6 +16,8 @@ signal landed(city: Dictionary)
 ## Reached a destination: `place` is the place of note, or {} for a random spot.
 ## Listeners may change how long he stays with rest_for().
 signal arrived(place: Dictionary)
+## Picked a new goal or trip: `info` tells how (see debug_log.gd).
+signal picked(info: Dictionary)
 
 ## 200 meters per minute.
 const SPEED_MPS := 200.0 / 60.0
@@ -109,20 +111,51 @@ func pick_goal() -> void:
 		var city: Dictionary = trip_planner.call()
 		if not city.is_empty():
 			start_travel(city)
+			picked.emit({"trip": "%s, %s" % [city.get("name", ""), city.get("country", "")]})
 			return
 	if bounds.size() != 4 and graph.has_node(from_node):
 		var p := position()
 		bounds = city_bounds(p[0], p[1], [])
 	var options := graph.places_in(bounds)
+	var info := {"in_box": options.size(), "cells": graph.cells.size()}
 	if graph.has_node(from_node):
 		var here := position()
 		options = options.filter(func(q): return Geo.distance_m(here[0], here[1], q["lat"], q["lon"]) > ARRIVE_M)
+	info["too_close"] = info["in_box"] - options.size()
 	if not options.is_empty():
-		var pl := pick_place(options, rng.randf())
+		var r := rng.randf()
+		var pl := pick_place(options, r)
 		set_goal(pl["lat"], pl["lon"])
 		place = pl
+		info.merge({"r": r, "place": pl.get("name", ""), "class": pl.get("class", ""), "rank": int(pl.get("rank", 1)),
+			"total_weight": options.reduce(func(acc, q): return acc + place_weight(q), 0.0)})
+		picked.emit(info)
 		return
 	set_goal(rng.randf_range(bounds[0], bounds[2]), rng.randf_range(bounds[1], bounds[3]))
+	info["spot"] = goal
+	info["fallback"] = "no places loaded in the city box yet" if info["in_box"] == 0 \
+		else "every loaded place is within %d m of him" % int(ARRIVE_M)
+	picked.emit(info)
+
+
+## Debug: drops any rest or trip (landing where he was headed) and picks
+## the next goal right away.
+func force_new_goal() -> void:
+	if is_traveling():
+		land_now()
+	rest_m = 0.0
+	rest_total_m = 0.0
+	pick_goal()
+
+
+## Ends the trip now, in its destination.
+func land_now() -> void:
+	if is_traveling():
+		_land()
+
+
+static func place_weight(p: Dictionary) -> float:
+	return 1.0 / maxi(int(p["rank"]), 1)
 
 
 ## One of `places`, picked with weight 1 / rank so important ones come up
@@ -130,10 +163,10 @@ func pick_goal() -> void:
 static func pick_place(places: Array, r: float) -> Dictionary:
 	var total := 0.0
 	for p in places:
-		total += 1.0 / maxi(int(p["rank"]), 1)
+		total += place_weight(p)
 	r *= total
 	for p in places:
-		r -= 1.0 / maxi(int(p["rank"]), 1)
+		r -= place_weight(p)
 		if r < 0.0:
 			return p
 	return places[-1] if not places.is_empty() else {}

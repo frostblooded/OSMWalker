@@ -786,3 +786,89 @@ func test_history_survives_a_restart_but_not_a_new_city() -> void:
 	assert_eq(again.stats.history.entries[-1]["at"], [42.001, 23.0])
 	again._reset()
 	assert_eq(again.stats.history.entries, [])
+
+
+func test_debug_button_opens_the_debug_panel_with_city_info() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.hud.debug_controls()["debug"].pressed.emit()
+	m._step(0.1)
+	assert_true(m.hud.is_debug_open())
+	var text: String = m.hud.debug_label.text
+	assert_string_contains(text, "Testville")
+	assert_string_contains(text, "BGR")
+	assert_string_contains(text, "street cells")
+	assert_string_contains(text, "Trivia")
+	assert_string_contains(text, "first pick in a new city", "the first pick is in the log")
+	m.hud.debug_controls()["debug_close"].pressed.emit()
+	assert_false(m.hud.is_debug_open())
+
+
+func test_new_goal_button_rerolls_and_heads_off_at_once() -> void:
+	var m := _new_main()
+	var rolls := [0]
+	m.roll_source = func(): rolls[0] += 1; return 0.99
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.walker.rest_for(1.0)
+	m.hud.debug_controls()["debug_goal"].pressed.emit()
+	assert_false(m.walker.is_resting())
+	assert_eq(m.walker.goal.size(), 2)
+	assert_eq(rolls[0], 1, "the trip dice are rolled even for the first pick")
+	assert_string_contains(m.debug_text(), "New goal button")
+	assert_string_contains(m.debug_text(), "0.9900")
+
+
+func test_new_city_button_lands_him_in_another_city_of_the_country() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.hud.debug_controls()["debug_city"].pressed.emit()
+	assert_false(m.walker.is_traveling(), "arrives at once")
+	assert_eq(m.country, "BGR")
+	assert_ne(m.city, "Testville")
+	assert_string_contains(m.debug_text(), m.city)
+
+
+func test_new_country_button_lands_him_abroad() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m.hud.debug_controls()["debug_country"].pressed.emit()
+	assert_false(m.walker.is_traveling())
+	assert_ne(m.country, "BGR")
+
+
+func test_debug_log_survives_a_restart_but_not_a_new_city() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m._step(0.1)
+	m._save()
+	var again := _new_main(autofree(FakeOsmApi.new()))
+	assert_eq(again.debug_log.entries.size(), 1)
+	again._reset()
+	assert_eq(again.debug_log.entries, [])
+
+
+func test_nothing_overlaps_with_the_debug_panel_open() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	for i in 20:
+		m.debug_new_goal()
+	m.hud.open_debug()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_with_the_debug_button_and_back_to_him() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	_crowd_the_top_panel(m)
+	m.hud.goal_tapped.emit()
+	m._step(0.01)
+	await wait_frames(3)
+	assert_true(m.hud.debug_controls()["debug"].is_visible_in_tree())
+	assert_eq(m.hud.overlapping_texts(), [])
