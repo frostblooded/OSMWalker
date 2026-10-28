@@ -334,4 +334,6 @@ To just see him somewhere else without losing anything, wait for a trip, or use 
 ## About Help {help}
 Help (in the menu) explains every part of the game on its own page. Tap a topic to open it and Back to return to the list.
 
+To find something fast, type in the search box at the top. Results appear as you type: every page that holds all the words you typed, in any order, with pages whose title matches first. Words are matched from their start ("fast" finds "faster", but "fee" doesn't find "coffee"), and capitals and accents don't matter ("cafe" finds "Café"). Each result shows the line where your word was found, with the word marked. Tap one to open the page; Back brings you to your results, and ✖ clears the box and shows the full list again.
+
 The numbers on these pages come straight from the game, so they are always the ones it really uses. Help is updated whenever a mechanic changes.

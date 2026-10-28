@@ -54,6 +54,62 @@ export function blocks(body: string): Block[] {
     });
 }
 
+/** Lower case without accents, one character per character so indexes still line up. */
+const fold = (t: string) => Array.from(t, (c) => (c.normalize("NFD")[0] ?? c).toLowerCase()[0] ?? c).join("");
+
+/** Each page's folded title and body, made once instead of on every key press. */
+const folded = new WeakMap<Page, [string, string]>();
+const foldPage = (p: Page) => {
+  let f = folded.get(p);
+  if (!f) folded.set(p, (f = [fold(p.title), fold(p.body)]));
+  return f;
+};
+
+/** Where `word` first starts a word in `text`, or -1 ("fee" isn't found in "coffee"). */
+function findWord(text: string, word: string): number {
+  for (let i = text.indexOf(word); i >= 0; i = text.indexOf(word, i + 1)) {
+    if (i === 0 || !/[\p{L}\p{N}]/u.test(text[i - 1]!)) return i;
+  }
+  return -1;
+}
+
+export type Hit = { page: Page; section: string; snip: [string, string, string] };
+const SNIP_BEFORE = 40;
+const SNIP_AFTER = 70;
+
+/** Pages that hold every word of `query` (any case, accents ignored), the
+ * ones whose title holds them first, each with the line around the match. */
+export function search(sections: Section[], query: string): Hit[] {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const hits: (Hit & { rank: number })[] = [];
+  for (const s of sections) {
+    for (const page of s.pages) {
+      const [title, body] = foldPage(page);
+      const inTitle = words.filter((w) => findWord(title, w) >= 0).length;
+      if (!words.every((w) => findWord(title, w) >= 0 || findWord(body, w) >= 0)) continue;
+      hits.push({ page, section: s.title, snip: snippet(page.body, body, words), rank: words.length - inTitle });
+    }
+  }
+  return hits.sort((a, b) => a.rank - b.rank).map(({ rank: _, ...h }) => h);
+}
+
+/** The line of `text` around the first body match, cut to a phone-sized bit. */
+function snippet(text: string, folded: string, words: string[]): [string, string, string] {
+  const found = words.map((w) => [findWord(folded, w), w.length] as const).filter(([i]) => i >= 0);
+  if (!found.length) return ["", "", text.split("\n")[0]!.slice(0, SNIP_AFTER)];
+  const [at, len] = found.reduce((a, b) => (b[0] < a[0] ? b : a));
+  const start = text.lastIndexOf("\n", at) + 1;
+  const end = (text.indexOf("\n", at) + 1 || text.length + 1) - 1;
+  // Cut at spaces so no word is chopped in half.
+  let from = Math.max(start, at - SNIP_BEFORE);
+  if (from > start) from = text.indexOf(" ", from) + 1 || from;
+  let to = Math.min(end, at + len + SNIP_AFTER);
+  if (to < end) to = Math.max(at + len, text.lastIndexOf(" ", to));
+  const before = text.slice(from, at).replace(/^- /, "");
+  return [(from > start ? "…" : "") + before, text.slice(at, at + len), text.slice(at + len, to) + (to < end ? "…" : "")];
+}
+
 export const fill = (text: string, vals: Record<string, string>) => text.replace(/\{([A-Z0-9_]+)\}/g, (m, k: string) => vals[k] ?? m);
 
 export const build = (text: string, data: GameData) => parse(fill(text, values(data)));
