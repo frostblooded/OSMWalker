@@ -4,6 +4,7 @@ const Help := preload("res://scripts/help.gd")
 const Stats := preload("res://scripts/stats.gd")
 const Items := preload("res://scripts/items.gd")
 const Trips := preload("res://scripts/trips.gd")
+const Walker := preload("res://scripts/walker.gd")
 
 const SAMPLE := """# Basics
 ## How he walks {walking}
@@ -60,6 +61,14 @@ func _ids() -> Array:
 	return ids
 
 
+func test_goal_weights_come_from_the_walker() -> void:
+	var v := Help.values()
+	assert_eq(v["GOAL_PEAK_M"], str(int(Walker.GOAL_PEAK_M)))
+	assert_eq(v["HEADING_RATIO"], Help.num(Walker.HEADING_RATIO))
+	assert_eq(v["RECENT_COUNT"], str(Walker.RECENT_COUNT))
+	assert_eq(v["FAR_PCT"], Help._pct(Walker.distance_weight(2000.0)))
+
+
 func test_every_stat_has_its_own_page() -> void:
 	var ids := _ids()
 	for m in Stats.METERS + Stats.ATTRS:
@@ -68,7 +77,7 @@ func test_every_stat_has_its_own_page() -> void:
 
 func test_every_mechanic_has_a_page() -> void:
 	var ids := _ids()
-	for id in ["walking", "goal", "places", "countdown", "actions", "choosing", "needs", "coins", "buffs",
+	for id in ["walking", "goal", "places", "goal_pick", "countdown", "actions", "choosing", "needs", "coins", "buffs",
 			"xp", "items", "materials", "modifiers", "bag", "fainting", "trips", "flavour", "trivia", "offline",
 			"history", "debug", "new_city", "menu", "map"]:
 		assert_has(ids, id, "%s has a Help page" % id)

@@ -401,7 +401,7 @@ func test_shows_the_place_he_heads_to_with_a_pin() -> void:
 	await _start_in_testville(m)
 	m.walker.set_goal(42.0, 23.00135)  # so he does not reach an earlier, nearby goal mid-test
 	m.walker.place = {"name": "Cafe East", "class": "cafe", "subclass": "cafe", "rank": 1, "lat": 42.0, "lon": 23.00135}
-	await wait_frames(2)
+	m._step(0.0)  # waiting frames alone sometimes left the label a step behind
 	assert_string_starts_with(m.hud.place_label.text, "Going to Cafe East · ")
 	assert_true(m.place_pin.visible)
 	assert_eq(m.place_pin.position, m.map.geo_to_local(42.0, 23.00135))
@@ -605,7 +605,9 @@ func test_loading_message_sits_below_the_top_panel() -> void:
 	m.stats.say("Read that about 9,010,000 people live in the People's Republic of Bulgaria, which is a long line")
 	api.delay_frames = 100000
 	_forget_streets(m)
-	await wait_frames(3)
+	# The top panel grows as the long line wraps, which can take a few frames.
+	await wait_until(func(): return m.hud.overlay_label.visible \
+		and m.hud.overlay_label.get_global_rect().position.y >= m.hud.top_height(), 1.0)
 	assert_true(m.hud.overlay_label.visible)
 	assert_gte(m.hud.overlay_label.get_global_rect().position.y, m.hud.top_height())
 

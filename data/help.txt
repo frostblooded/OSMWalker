@@ -29,11 +29,23 @@ If he has walked more than 2.5 times the straight-line distance to his goal plus
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
-Each place has a rank from the map, where 1 is the most important in its area. A place's chance of being picked is 1 / rank compared with all the others, so big sights and busy shops come up more often than small ones.
+Each place has a rank from the map, where 1 is the most important in its area, so big sights and busy shops come up more often than small ones. How far away a place is and which way it lies count too (see Picking the next goal).
 
 If no places have loaded yet, he heads for a random spot in the city box instead and walks on through it without stopping.
 
 He counts as arrived when he is within {ARRIVE_M} m of the place.
+## Picking the next goal {goal_pick}
+He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
+
+Rank: 1 / rank, so a rank 1 place weighs 1 and a rank 4 place weighs 0.25.
+
+Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off smoothly both ways: a place {NEAR_M} m away weighs {NEAR_PCT} as much, one {FAR_KM} km away {FAR_PCT}, so he hops between nearby spots and only now and then crosses the city.
+
+Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
+
+Recent: places among his last {RECENT_COUNT} goals weigh {RECENT_PCT} as much, so he explores instead of going back and forth between two cafes.
+
+Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
 While he walks, the white panel at the top shows where he is going and how far it is, for example "Going to Central Market - 1.2 km". A pin on the map marks the goal.
 
