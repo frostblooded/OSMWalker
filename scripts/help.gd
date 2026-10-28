@@ -8,6 +8,7 @@ extends RefCounted
 const Stats := preload("res://scripts/stats.gd")
 const Items := preload("res://scripts/items.gd")
 const Trips := preload("res://scripts/trips.gd")
+const Speeds := preload("res://scripts/speeds.gd")
 const Walker := preload("res://scripts/walker.gd")
 const Activities := preload("res://scripts/activities.gd")
 const History := preload("res://scripts/history.gd")
@@ -131,9 +132,22 @@ static func values() -> Dictionary:
 		"COUNTRY_PCT": _pct(Trips.COUNTRY_CHANCE),
 		"CITY_PCT": _pct(Trips.CITY_CHANCE),
 		"SAME_CITY_KM": str(int(Trips.SAME_CITY_M / 1000.0)),
-		"TRAVEL_KM_PER_H": str(roundi(Trips.TRAVEL_MPS * 3.6)),
-		"MIN_TRAVEL_H": str(int(Trips.MIN_TRAVEL_S / 3600.0)),
-		"MAX_TRAVEL_H": str(int(Trips.MAX_TRAVEL_S / 3600.0)),
+		"PLANE_FROM_KM": str(int(Trips.PLANE_FROM_M / 1000.0)),
+		"PLANE_ALWAYS_KM": str(int(Trips.PLANE_ALWAYS_M / 1000.0)),
+		"MAX_ROAD_KM": str(int(Trips.MAX_ROAD_M / 1000.0)),
+		"AIRPORT_KM": str(int(Trips.AIRPORT_REACH_M / 1000.0)),
+		"BUS_KMH": str(roundi(Speeds.BUS * 3.6)),
+		"CAR_KMH": str(roundi(Speeds.CAR_ROAD * 3.6)),
+		"PLANE_KMH": str(roundi(Speeds.PLANE * 3.6)),
+		"BUS_EUR_PER_KM": num(Trips.BUS_EUR_PER_KM),
+		"PLANE_BASE_EUR": num(Trips.PLANE_BASE_EUR),
+		"PLANE_EUR_PER_KM": num(Trips.PLANE_EUR_PER_KM),
+		"FUEL_EUR_PER_KM": num(Trips.FUEL_EUR_PER_KM),
+		"ROAD_FACTOR": num(Trips.ROAD_FACTOR),
+		"BUS_300_EUR": str(Trips.fare(Trips.Mode.BUS, 300000.0 * Trips.ROAD_FACTOR)),
+		"PLANE_1500_EUR": str(Trips.fare(Trips.Mode.PLANE, 1500000.0)),
+		"SAVING_EARN": "+" + num(Activities.SAVING_EARN_WEIGHT),
+		"SAVING_SPEND_PCT": _pct(Activities.SAVING_SPEND_MULT),
 		"MIN_TRIP_CITY_KM": num(Trips.MIN_CITY_RADIUS_M / 1000.0),
 		"MAX_TRIP_CITY_KM": str(int(Trips.MAX_CITY_RADIUS_M / 1000.0)),
 		"HISTORY_SIZE": str(History.SIZE),
@@ -152,6 +166,7 @@ static func values() -> Dictionary:
 	v["ACTION_COUNT"] = str(acts.values().reduce(func(n, a): return n + a.size(), 0))
 	v["FLAVOUR_COUNTRIES"] = str(flav.size())
 	v["FLAVOUR_ACTIONS"] = str(flav.values().reduce(func(n, t): return n + t.values().reduce(func(m, a): return m + a.size(), 0), 0))
+	v["AIRPORT_COUNT"] = str(Trips.shared().airports.size())
 	var cities: Array = Trips.shared().cities
 	v["CITY_COUNT"] = str(cities.size())
 	var codes := {}

@@ -69,7 +69,7 @@ func test_every_stat_has_its_own_page() -> void:
 func test_every_mechanic_has_a_page() -> void:
 	var ids := _ids()
 	for id in ["walking", "goal", "places", "countdown", "actions", "choosing", "needs", "coins", "buffs",
-			"xp", "items", "materials", "modifiers", "bag", "fainting", "trips", "flavour", "trivia", "offline",
+			"xp", "items", "materials", "modifiers", "bag", "fainting", "trips", "stations", "fares", "flavour", "trivia", "offline",
 			"history", "debug", "new_city", "menu", "map"]:
 		assert_has(ids, id, "%s has a Help page" % id)
 
@@ -101,3 +101,15 @@ func test_a_page_splits_into_cards_with_list_rows() -> void:
 	assert_eq(b[0], {"text": "First para.", "items": []})
 	assert_eq(b[1], {"text": "An action can:", "items": ["raise meters,", "give XP."]})
 	assert_eq(b[2]["text"], "Last.")
+
+
+func test_travel_pages_quote_the_real_speeds_and_fares() -> void:
+	var stations: String = Help.page("stations")["body"]
+	assert_string_contains(stations, "80 km/h")
+	assert_string_contains(stations, "800 km/h")
+	assert_string_contains(stations, "%d km" % int(Trips.AIRPORT_REACH_M / 1000.0))
+	var fares: String = Help.page("fares")["body"]
+	assert_string_contains(fares, "€0.08")
+	assert_string_contains(fares, "€50")
+	assert_string_contains(fares, "€0.03")
+	assert_string_contains(fares, "€0.12")

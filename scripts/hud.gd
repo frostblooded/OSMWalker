@@ -199,6 +199,8 @@ func _build_game_ui() -> void:
 			open_sheet())
 	_game_ui.add_child(top)
 	_top = top
+	# The panel grows a frame after its text changes: keep the message under it.
+	top.resized.connect(func(): if _game_ui.visible: _status_box.offset_top = top_height() + 24)
 
 	var zoom_col := VBoxContainer.new()
 	zoom_col.add_theme_constant_override("separation", 16)

@@ -216,9 +216,29 @@ Every time he picks a new goal he rolls the trip dice:
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
-Travelling takes one hour per {TRAVEL_KM_PER_H} km in a straight line, at least {MIN_TRAVEL_H} hour and at most {MAX_TRAVEL_H} hours. During the trip "Travelling to" shows, a red line marks the way, and his meters keep changing as usual. When he lands, the new city's streets load and he carries on from its centre.
+A trip is never free: he first walks to a bus station, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). If there is no way out or he can't pay, he stays, the debug log says why, and he saves up for it (see Fares).
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
+## Stations and getting there {stations}
+How he goes depends on the distance in a straight line:
+- under {PLANE_FROM_KM} km he always goes by road,
+- from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
+- over {PLANE_ALWAYS_KM} km he always flies.
+
+By road he takes the bus from the nearest bus station among the places loaded around him. If he wears a car, he walks to the nearest gas station instead, fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+
+To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
+
+The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, so a 300 km bus trip takes almost 4 hours of the game being open. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
+## Fares {fares}
+Prices are in euros, from real tickets:
+- bus: €{BUS_EUR_PER_KM} per km of road,
+- plane: €{PLANE_BASE_EUR} plus €{PLANE_EUR_PER_KM} per km flown,
+- car: fuel at €{FUEL_EUR_PER_KM} per km of road.
+
+Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about €{BUS_300_EUR}, and a 1,500 km flight about €{PLANE_1500_EUR}. Bus prices come from six real routes (Berlin to Munich, Paris to Berlin, Munich to Lyon, London to Manchester, Sofia to Varna, New York to Boston); flight prices from real one-way fares.
+
+He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
