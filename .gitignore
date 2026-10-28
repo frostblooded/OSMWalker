@@ -1,5 +1,6 @@
-.godot/
-/build/
-*.tmp
 node_modules/
-/e2e-screenshots/
+dist/
+test-results/
+playwright-report/
+perf-results/
+*.tmp

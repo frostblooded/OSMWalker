@@ -1,5 +1,5 @@
 """Counts every POI class/subclass in OpenFreeMap tiles around some big
-cities, with example names, and marks the ones data/actions.json has no
+cities, with example names, and marks the ones public/data/actions.json has no
 actions for yet. Run by .github/workflows/poi-sweep.yml (the sandbox the
 game is built in can't reach the tile host).
 
@@ -62,7 +62,7 @@ def tally(features, counts, examples, city):
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "poi_tags.tsv"
     url = json.loads(get(TILEJSON))["tiles"][0]
-    actions = json.load(open("data/actions.json", encoding="utf-8"))
+    actions = json.load(open("public/data/actions.json", encoding="utf-8"))
     counts = collections.Counter()
     examples = collections.defaultdict(list)
     for city, (lat, lon) in CITIES.items():

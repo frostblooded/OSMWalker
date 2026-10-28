@@ -1,7 +1,7 @@
 name: POI sweep
 
 # Lists every POI class/subclass in real OpenFreeMap tiles, with examples,
-# and which ones data/actions.json has no actions for. Run it by hand, or it
+# and which ones public/data/actions.json has no actions for. Run it by hand, or it
 # runs when the sweep or the actions change. Report: the job summary and the
 # poi_tags artifact.
 on:
@@ -9,7 +9,7 @@ on:
   pull_request:
     paths:
       - tools/poi_sweep.py
-      - data/actions.json
+      - public/data/actions.json
       - .github/workflows/poi-sweep.yml
 
 jobs:
