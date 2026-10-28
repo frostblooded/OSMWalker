@@ -124,10 +124,11 @@ try {
   await page.screenshot({ path: `${shots}/2-game.png` });
 
   step = "walks";
+  // He walks at 5 km/h, about 4 m in 3 s.
   const before = (await state()).total_m;
   await page.waitForTimeout(3000);
   const after = await state();
-  assert.ok(after.total_m - before > 5, `walked only ${after.total_m - before} m in 3 s`);
+  assert.ok(after.total_m - before > 2, `walked only ${after.total_m - before} m in 3 s`);
   assert.match(after.street, /along |Stopped on /);
   assert.deepEqual(after.overlaps, [], "texts overlap on the game screen");
   assert.ok(requests.tiles > 0, "map tiles were requested");
