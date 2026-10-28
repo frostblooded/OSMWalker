@@ -174,6 +174,22 @@ try {
   await tap("history_close");
   await until((s) => !s.history_open, "history panel closed");
 
+  step = "help";
+  await tap("menu");
+  await tap("help");
+  const help = await until((s) => s.help_open && s.rects.help_topic0, "help topic list");
+  assert.ok(help.rects.help_topic0[3] / dpr >= 44, "Help topics are big enough to tap");
+  assert.deepEqual(help.overlaps, [], "texts overlap on the help list");
+  await page.screenshot({ path: `${shots}/3a-help.png` });
+  await tap("help_topic0");
+  const helpPage = await until((s) => s.rects.help_back && s.help_title !== "Help", "help page open");
+  assert.deepEqual(helpPage.overlaps, [], "texts overlap on a help page");
+  await page.screenshot({ path: `${shots}/3a-help-page.png` });
+  await tap("help_back");
+  await until((s) => s.help_title === "Help" && s.rects.help_topic0, "back on the help list");
+  await tap("help_close");
+  await until((s) => !s.help_open, "help closed");
+
   step = "debug panel";
   await tap("menu");
   await tap("debug");

@@ -215,3 +215,50 @@ func test_menu_can_hold_a_big_toggle() -> void:
 	t.toggled.emit(false)
 	assert_eq(seen, [false])
 	assert_true(hud.is_menu_open(), "a toggle keeps the menu open")
+
+
+func test_help_opens_from_the_menu_on_a_list_of_topics() -> void:
+	var hud := _game_hud()
+	var c := hud.debug_controls()
+	assert_false(c["help"].is_visible_in_tree(), "Help sits in the menu")
+	hud.open_menu()
+	c["help"].pressed.emit()
+	assert_false(hud.is_menu_open())
+	assert_true(hud.is_help_open())
+	assert_true(c["help_topic0"].is_visible_in_tree(), "the topic list shows first")
+	assert_false(c["help_back"].is_visible_in_tree(), "no Back on the list")
+
+
+func test_tapping_a_help_topic_opens_its_page_and_back_returns() -> void:
+	var hud := _game_hud()
+	hud.open_help()
+	var c := hud.debug_controls()
+	var topic: Button = c["help_topic0"]
+	topic.pressed.emit()
+	assert_true(c["help_back"].is_visible_in_tree())
+	assert_false(topic.is_visible_in_tree(), "the page replaces the list")
+	assert_eq(hud.help_page_title(), topic.text)
+	assert_gt(hud.help_page_text().length(), 80)
+	c["help_back"].pressed.emit()
+	assert_true(topic.is_visible_in_tree())
+	c["help_close"].pressed.emit()
+	assert_false(hud.is_help_open())
+
+
+func test_help_can_open_straight_on_a_page() -> void:
+	var hud := _game_hud()
+	hud.open_help("health")
+	assert_eq(hud.help_page_title(), "Health")
+	assert_string_contains(hud.help_page_text(), "faint")
+
+
+func test_help_buttons_are_big_enough_to_tap() -> void:
+	var hud := _game_hud()
+	hud.open_help()
+	await wait_frames(2)
+	var c := hud.debug_controls()
+	assert_gte(c["help_topic0"].size.y, 100.0)
+	assert_gte(c["help_close"].size.y, 100.0)
+	hud.open_help("health")
+	await wait_frames(2)
+	assert_gte(c["help_back"].size.y, 100.0)

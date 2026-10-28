@@ -693,6 +693,8 @@ func debug_state() -> Dictionary:
 		"goal_line": hud.place_label.text if hud.place_label.is_visible_in_tree() else "",
 		"goal_view": goal_view,
 		"sheet_open": hud.is_sheet_open(),
+		"help_open": hud.is_help_open(),
+		"help_title": hud.help_page_title() if hud.is_help_open() else "",
 		"city_facts": city_facts.size(),
 		"total_m": walker.total_m if walker else 0.0,
 		"confirm_visible": hud.is_confirm_open(),

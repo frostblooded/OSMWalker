@@ -887,3 +887,15 @@ func test_nothing_overlaps_with_the_debug_button_and_back_to_him() -> void:
 	await wait_frames(3)
 	assert_true(m.hud.debug_controls()["debug"].is_visible_in_tree())
 	assert_eq(m.hud.overlapping_texts(), [])
+
+
+func test_nothing_overlaps_in_help() -> void:
+	var m := _new_main()
+	await _start_in_testville(m)
+	m.hud.open_help()
+	await wait_frames(3)
+	assert_eq(m.hud.overlapping_texts(), [], "topic list")
+	for id in ["walking", "health", "items"]:
+		m.hud.open_help(id)
+		await wait_frames(3)
+		assert_eq(m.hud.overlapping_texts(), [], id)

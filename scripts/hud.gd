@@ -1,6 +1,6 @@
 ## All on-screen UI, sized for small touchscreens: city search, status bar,
 ## his mini stats and latest action (tap for the full sheet), zoom buttons,
-## the ☰ menu, the history panel, and the reset button guarded by typing RESET.
+## the ☰ menu, the history panel, Help, and the reset button guarded by typing RESET.
 extends CanvasLayer
 
 signal search_requested(text: String)
@@ -20,6 +20,7 @@ enum Bar { NONE, PROGRESS, BUSY }
 
 const History := preload("res://scripts/history.gd")
 const Trips := preload("res://scripts/trips.gd")
+const HelpView := preload("res://scripts/help_view.gd")
 
 const RESET_WORD := "RESET"
 const BIG := Vector2(132, 132)
@@ -69,6 +70,8 @@ var _history_close: Button
 var _history_sig := ""  # what the rows show, to rebuild only on change
 var debug_label: Label
 var _debug: Control
+var _help: HelpView
+var _help_button: Button
 var _debug_button: Button
 var _debug_close: Button
 var _debug_goal: Button
@@ -84,6 +87,8 @@ func _ready() -> void:
 	_build_sheet()
 	_build_history()
 	_build_debug()
+	_help = HelpView.new()
+	add_child(_help)
 
 
 ## Status message with a loading bar under it, over the top of the map.
@@ -224,6 +229,7 @@ func _build_game_ui() -> void:
 	_menu_items.visible = false
 	_game_ui.add_child(_menu_items)
 	_history_button = add_menu_item("History", open_history)
+	_help_button = add_menu_item("Help", open_help)
 	_reset_button = add_menu_item("New city", _open_confirm)
 	_debug_button = add_menu_item("Debug", open_debug)
 
@@ -524,6 +530,24 @@ func is_debug_open() -> bool:
 func set_debug(text: String) -> void:
 	if debug_label.text != text:
 		debug_label.text = text
+
+
+## Opens Help on its topic list, or straight on the page `id` (see data/help.txt).
+func open_help(id := "") -> void:
+	close_menu()
+	_help.open(id)
+
+
+func is_help_open() -> bool:
+	return _help.is_open()
+
+
+func help_page_title() -> String:
+	return _help.page_title()
+
+
+func help_page_text() -> String:
+	return _help.page_text()
 
 
 func open_history() -> void:
@@ -869,7 +893,7 @@ static func _first_live(box: Node) -> Control:
 func overlapping_texts() -> Array:
 	var items := []
 	var top: Node = self
-	for modal in [_confirm, _sheet]:
+	for modal in [_confirm, _sheet, _help]:
 		if modal.visible:
 			top = modal
 	_collect_drawn(top, items, Rect2(-1e9, -1e9, 2e9, 2e9))
@@ -915,4 +939,6 @@ func debug_controls() -> Dictionary:
 		"debug": _debug_button, "debug_panel": _debug, "debug_close": _debug_close,
 		"debug_goal": _debug_goal, "debug_city": _debug_city, "debug_country": _debug_country,
 		"confirm_box": _confirm_box, "confirm_yes": _confirm_yes,
+		"help": _help_button, "help_panel": _help, "help_topic0": _help.first_topic,
+		"help_back": _help.back_button, "help_close": _help.close_button,
 	}
