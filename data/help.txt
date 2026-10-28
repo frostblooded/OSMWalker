@@ -6,7 +6,9 @@ You don't control him. Everything he does is decided by the rules on these pages
 
 Each page in this Help explains one part of the game in detail, with the real numbers the game uses.
 ## Choosing a city {city_search}
-On the first launch you pick where he starts. Type a city, town or address in the search box and tap Search, then tap one of the results.
+On the first launch you pick where he starts. Start typing the name of a town or city. After 3 letters and a short pause, suggestions appear by themselves; you can also tap Search or press Enter to search right away. Only towns, cities, villages and suburbs are suggested, and missing accents or small typos are fine ("compiegne" finds Compiegne). Tap a suggestion to start there.
+
+If the search servers can't be reached, it says "Couldn't reach the search server": check your connection and try again. "Nothing found" means there really is no such place. Answers are remembered until you close the game, so searching the same name again is instant.
 
 The game then downloads the streets around that spot. He starts on the street corner nearest to the result and stays inside that city until he travels somewhere else (see Trips to other cities).
 
