@@ -15,14 +15,14 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripCityBounds, isPlan, NO_PLACES_BOOST, roll, Trips, type City, type Kind, type LatLon, type Plan } from "../core/trips";
-import { cityBounds, pathLengthM, SPEED_MPS, tripLimitM, Walker, type PickInfo, type WalkerSave } from "../core/walker";
+import { cityBounds, pathLengthM, SPEED_MPS, tripLimitM, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
+import { DEFAULT_ZOOM, SaveFile, type KV } from "./saveFile";
 
-export const SAVE_KEY = "osmwalker.save";
-/** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
-export const SETTINGS_KEY = "osmwalker.settings";
+export { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY } from "./saveFile";
+
 /** Street cells loaded with no places of note before the city counts as having none. */
 export const NO_PLACES_CELLS = 3;
 export const SAVE_EVERY_S = 5;
@@ -30,22 +30,10 @@ export const SAVE_EVERY_S = 5;
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
 export const STREET_RING = 1;
-export const DEFAULT_ZOOM = 17;
 
 export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
-type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
-type Save = {
-  city: string;
-  country: string;
-  skip_roll: boolean;
-  origin: LatLon;
-  zoom: number;
-  walker: WalkerSave;
-  stats: ReturnType<Stats["toJSON"]>;
-  debug_log: Entry[];
-};
 
 export type GameDeps = {
   api: Api;
@@ -99,11 +87,11 @@ export class Game {
   private severeOf = "";
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
-  private readonly storage: KV | null;
+  private readonly file: SaveFile;
 
   constructor(private readonly deps: GameDeps) {
     this.rng = deps.rng ?? new Rng();
-    this.storage = deps.storage === undefined ? safeStorage() : deps.storage;
+    this.file = deps.storage === undefined ? new SaveFile() : new SaveFile(deps.storage);
     this.trips = new Trips(deps.data.cities, deps.data.airports);
     this.activities = new Activities(deps.data.actions, deps.data.flavour);
     this.loader = new StreetLoader(new StreetGraph(), deps.load);
@@ -416,7 +404,7 @@ export class Game {
     this.stats = new Stats();
     this.debugLog = new DebugLog();
     this.city = "";
-    this.storage?.removeItem(SAVE_KEY);
+    this.file.clear();
     this.changed();
   }
 
@@ -440,76 +428,46 @@ export class Game {
   save(): void {
     this.saveSettings();
     const w = this.walker;
-    if (!w || !this.storage) return;
-    const d: Save = {
-      city: this.city,
-      country: this.country,
-      skip_roll: this.skipRoll,
-      origin: this.origin,
-      zoom: this.zoom,
-      walker: w.toJSON(),
-      stats: this.stats.toJSON(),
-      debug_log: this.debugLog.toJSON(),
-    };
-    try {
-      this.storage.setItem(SAVE_KEY, JSON.stringify(d));
-    } catch (e) {
-      this.problems.error(`Couldn't save the game (${(e as Error).message})`);
-    }
+    if (!w) return;
+    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog });
+    if (err) this.problems.error(err);
   }
 
   /** Picks up the saved game, if any. */
   load(): boolean {
-    const raw = this.storage?.getItem(SAVE_KEY);
-    if (!raw) return false;
-    let d: Save;
-    try {
-      d = JSON.parse(raw) as Save;
-      if (!d.walker) throw new Error("no walker");
-    } catch {
-      this.problems.error("The saved game was unreadable; starting over");
+    const d = this.file.read();
+    if (d === null) return false;
+    if (typeof d === "string") {
+      this.problems.error(d);
       return false;
     }
-    const w = Walker.fromJSON(d.walker);
-    if (w.fromNode === null || !w.graph.hasNode(w.fromNode)) {
-      this.problems.error("The saved game had no spot for him; starting over");
-      return false;
-    }
+    const w = d.walker;
     this.attach(w);
-    this.stats = Stats.fromJSON(d.stats);
-    this.debugLog = DebugLog.fromJSON(d.debug_log);
+    this.stats = d.stats;
+    this.debugLog = d.debugLog;
     this.loader.setGraph(w.graph);
     this.city = d.city;
-    this.zoom = d.zoom || DEFAULT_ZOOM;
+    this.zoom = d.zoom;
     this.origin = d.origin;
-    w.bounds ??= cityBounds(d.origin[0], d.origin[1]);
     this.country = d.country || this.trips.countryAt(d.origin[0], d.origin[1]);
-    this.skipRoll = d.skip_roll;
+    this.skipRoll = d.skipRoll;
     void this.learnCity(d.origin[0], d.origin[1]);
     this.changed();
     return true;
   }
 
   private loadSettings(): void {
-    const raw = this.storage?.getItem(SETTINGS_KEY);
-    if (!raw) return;
-    try {
-      const d = JSON.parse(raw) as { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
-      this.showCityArea = !!d.show_city_area;
-      this.showRoute = !!d.show_route;
-      this.cameraFollows = d.camera_follows ?? true;
-      Object.assign(this.problems, Problems.fromJSON(d.problems), { quiet: this.problems.quiet });
-    } catch {
-      this.problems.warn("Settings were unreadable; using defaults");
-    }
+    const s = this.file.readSettings();
+    if (s === null) return;
+    if (typeof s === "string") return this.problems.warn(s);
+    this.showCityArea = s.showCityArea;
+    this.showRoute = s.showRoute;
+    this.cameraFollows = s.cameraFollows;
+    Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    try {
-      this.storage?.setItem(SETTINGS_KEY, JSON.stringify({ show_city_area: this.showCityArea, show_route: this.showRoute, camera_follows: this.cameraFollows, problems: this.problems }));
-    } catch {
-      // Out of space: settings are only a convenience.
-    }
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, problems: this.problems });
   }
 
   setShowCityArea(on: boolean): void {
@@ -617,13 +575,5 @@ export class Game {
     if (!target) return "no goal yet";
     const here = w.position();
     return `heading for ${w.place?.name ?? "a random spot"} ${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (walked ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
-  }
-}
-
-function safeStorage(): KV | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null;
   }
 }

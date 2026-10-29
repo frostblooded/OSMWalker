@@ -1,7 +1,8 @@
 // Which screen shows: the picker for a new player, the game for a saved one.
 import { useEffect, useState } from "preact/hooks";
 import { loadData, whenIdle, yieldNow } from "../app/data";
-import { Game, SAVE_KEY } from "../game/game";
+import { Game } from "../game/game";
+import { SaveFile } from "../game/saveFile";
 import { Api, type SearchPlace } from "../net/api";
 import { StreetClient } from "../streets/client";
 import { GameScreen } from "./GameScreen";
@@ -22,13 +23,7 @@ function getGame(): Promise<Game> {
   return game;
 }
 
-const hasSave = () => {
-  try {
-    return !!localStorage.getItem(SAVE_KEY);
-  } catch {
-    return false;
-  }
-};
+const hasSave = () => new SaveFile().has();
 
 type Msg = { text: string; busy?: boolean; error?: boolean } | undefined;
 
