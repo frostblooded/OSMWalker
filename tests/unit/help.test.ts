@@ -75,6 +75,9 @@ describe("the real help", () => {
     expect(page("map").body).toContain("more than 20% of the view away from the middle");
     expect(page("menu").body).toContain("Camera follows him");
     expect(page("map").body).toContain("ⓘ");
+    expect(page("away").body).toContain("at most 24 hours");
+    expect(page("away").body).toContain("at least 1 minute");
+    expect(page("offline").body).toContain("While you were away");
   });
 
   it("has a page for every screen button", () => {

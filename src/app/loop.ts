@@ -1,6 +1,7 @@
 // Runs the game while the page is visible. Ticks come a few times a second;
 // between them his figure glides (a CSS transition), so steps can be a few
-// pixels without looking jumpy, and an idle main thread saves battery.
+// pixels without looking jumpy, and an idle main thread saves battery. When
+// the page shows again, the time it was hidden passes for him in one go.
 import type { Game } from "../game/game";
 import type { MapScene } from "../map/scene";
 
@@ -30,6 +31,7 @@ export class Loop {
 
   start(): void {
     if (this.timer !== null || document.hidden) return;
+    void this.game.wake();
     this.last = performance.now();
     this.schedule(0);
   }

@@ -13,6 +13,17 @@ export function walkTime(meters: number, mps: number): string {
   return mins < 60 ? `~${mins} min` : `~${Math.floor(mins / 60)} h ${mins % 60} min`;
 }
 
+/** A stretch of time: "<1 min", "25 min", "2 h 5 min", "24 h", "3 days 1 h". */
+export function duration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  if (mins < 1) return "<1 min";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  if (h < 48) return mins % 60 ? `${h} h ${mins % 60} min` : `${h} h`;
+  const d = Math.floor(h / 24);
+  return h % 24 ? `${d} days ${h % 24} h` : `${d} days`;
+}
+
 /** Seconds left as m:ss, rounded up so it reads 1:00 at the start and never 0:00 while he still waits. */
 export function countdown(seconds: number): string {
   const s = Math.ceil(Math.max(seconds - 0.001, 0));

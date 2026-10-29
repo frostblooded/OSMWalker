@@ -192,6 +192,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
+.away-log > li { display: flex; align-items: baseline; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
 .burger .dot { position: absolute; top: -2px; right: -2px; margin: 0; }

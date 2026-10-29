@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { Tile } from "../../src/core/geo";
+import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { Rng } from "../../src/core/rng";
@@ -286,5 +286,94 @@ describe("game", () => {
     for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
     expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "bus", to: "Plovdiv" }, goal: null });
     expect(doing(g)).toMatch(/^travelling to Plovdiv by bus, \d+ km left$/);
+  });
+
+  describe("catch-up", () => {
+    const HOUR = 3600_000;
+    /** A game saved `agoMs` before a reopen, and the reopened game. */
+    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}) {
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g, storage } = game({ ...o, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      before(g);
+      g.save();
+      now += agoMs;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      await again.wake();
+      return { g, again, setNow: (t: number) => (now = t), now: () => now };
+    }
+
+    it("lets the time away pass on reopen, without walking the map", async () => {
+      const { again } = await reopen(2 * HOUR);
+      const s = again.away!;
+      expect(s.coveredS).toBe(7200);
+      expect(s.stops).toBeGreaterThan(3);
+      expect(again.stats.history.entries.some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
+      expect(again.city).toBe("Sofia, Bulgaria");
+      // He stands where the catch-up left him, on the nearest loaded corner.
+      const [lat, lon] = again.walker!.position();
+      expect(distanceM(lat, lon, s.end.at[0], s.end.at[1])).toBeLessThan(100);
+      expect(again.walker!.goal).toBeNull();
+      run(again, 30);
+      expect(again.walker!.totalM).toBeGreaterThan(0);
+    });
+
+    it("has nothing to catch up after a short break or from an old save", async () => {
+      expect((await reopen(30_000)).again.away).toBeNull();
+      const { g, storage } = game();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      const d = JSON.parse(storage.getItem(SAVE_KEY)!);
+      delete d.saved_at;
+      storage.setItem(SAVE_KEY, JSON.stringify(d));
+      const old = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      old.load();
+      await old.wake();
+      expect(old.away).toBeNull();
+    });
+
+    it("catches up after the tab was hidden, and the card can be closed", async () => {
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(g.away!.coveredS).toBe(3600);
+      g.dismissAway();
+      expect(g.away).toBeNull();
+      // Caught up: waking again right away has nothing more to do.
+      await g.wake();
+      expect(g.away).toBeNull();
+    });
+
+    it("finishes the ride he was on first, then lives in the new city", async () => {
+      const { again } = await reopen(10 * HOUR, { roll: 0.1 }, (g) => {
+        g.stats.cents = 50_000;
+        g.skipRoll = false;
+        g.debugNewGoal();
+        for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      });
+      const s = again.away!;
+      expect(s.cities[0]).toBe("Plovdiv, Bulgaria");
+      expect(s.coveredS).toBe(10 * 3600);
+      expect(again.walker!.isTraveling()).toBe(false);
+      expect(again.loader.graph).toBe(again.walker!.graph);
+      expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("goes on trips while away and lands him in the new city", async () => {
+      const { again } = await reopen(24 * HOUR, { roll: 0.1 }, (g) => {
+        g.stats.cents = 500_000;
+      });
+      const s = again.away!;
+      expect(s.cities.length).toBeGreaterThan(0);
+      expect(again.city).toBe(s.end.city.name);
+      expect(again.city).not.toBe("Sofia, Bulgaria");
+      expect(again.walker!.position()).toEqual(s.end.at);
+      expect(again.loader.graph).toBe(again.walker!.graph);
+    });
   });
 });

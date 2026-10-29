@@ -1,10 +1,12 @@
 // The game: picks a city, keeps the walker moving in real time while the app
-// is open (he waits where he is while it is closed), loads streets as he
+// is open (the time it was closed passes in one go when it opens again, see
+// core/catchup.ts), loads streets as he
 // nears new ground, and now and then sends him on a trip to another city by
 // bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. No DOM here: the
 // app calls step() and the screens read the state.
 import { Activities, choose, needWeight, restMinutes, type ActionTable } from "../core/activities";
+import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
@@ -30,6 +32,10 @@ export const SAVE_EVERY_S = 5;
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
 export const STREET_RING = 1;
+/** Longest wait on reopen for the streets around him (from the device's cache), so the catch-up uses real places. */
+export const CATCHUP_WAIT_MS = 3000;
+/** The catch-up gives the page a break after this many ms of work, so no task gets long. */
+export const CATCHUP_SLICE_MS = 8;
 
 export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"] };
 export type Alert = { level: "error" | "warning"; text: string };
@@ -45,6 +51,8 @@ export type GameDeps = {
   rollSource?: () => number;
   /** The hour of day; tests pin it. */
   hour?: () => number;
+  /** Unix ms now; tests move it on. */
+  clock?: () => number;
 };
 
 export class Game {
@@ -72,8 +80,13 @@ export class Game {
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
+  /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
+  away: Summary | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
+  /** Unix ms of the last save: the catch-up starts from there. */
+  private savedAt = 0;
+  private waking = false;
   private listeners = new Set<() => void>();
   private forced = "";
   private saveTimer = 0;
@@ -116,8 +129,12 @@ export class Game {
     for (const fn of this.listeners) fn();
   }
 
-  private hour(): number {
-    return this.deps.hour?.() ?? new Date().getHours();
+  private hour(ms = this.now()): number {
+    return this.deps.hour?.() ?? new Date(ms).getHours();
+  }
+
+  private now(): number {
+    return this.deps.clock?.() ?? Date.now();
   }
 
   search(text: string): Promise<SearchPlace[] | null> {
@@ -180,7 +197,7 @@ export class Game {
   /** Lets `dt` seconds pass. */
   step(dt: number): void {
     const w = this.walker;
-    if (!w) return;
+    if (!w || this.waking) return;
     if (!w.isTraveling()) {
       const here = w.position();
       this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
@@ -366,7 +383,9 @@ export class Game {
     this.saveSettings();
     const w = this.walker;
     if (!w) return;
-    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog });
+    if (this.waking) return;
+    this.savedAt = this.now();
+    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt });
     if (err) this.problems.error(err);
   }
 
@@ -388,9 +407,101 @@ export class Game {
     this.origin = d.origin;
     this.country = d.country || this.trips.countryAt(d.origin[0], d.origin[1]);
     this.skipRoll = d.skipRoll;
+    this.savedAt = d.savedAt;
     void this.learnCity(d.origin[0], d.origin[1]);
     this.changed();
     return true;
+  }
+
+  /**
+   * On reopen and when the tab shows again: the time since the last save
+   * passes for him in one go (see core/catchup.ts). On reopen it first waits
+   * a moment for the streets around him to come out of the cache, so he
+   * visits the real places there.
+   */
+  async wake(): Promise<void> {
+    const w = this.walker;
+    if (!w || this.waking || !this.savedAt) return;
+    const from = this.savedAt;
+    const awayS = (this.now() - from) / 1000;
+    if (awayS < MIN_AWAY_S) return;
+    this.waking = true;
+    try {
+      const until = performance.now() + CATCHUP_WAIT_MS;
+      while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
+        const here = w.position();
+        this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
+    } finally {
+      this.waking = false;
+    }
+    this.save();
+    this.changed();
+  }
+
+  /** Lets `coverS` of the `awayS` seconds since `fromMs` pass: the rest of any ride first, then life by the catch-up rules. */
+  private async catchUp(coverS: number, awayS: number, fromMs: number): Promise<void> {
+    const w = this.walker!;
+    const ride: Line[] = [];
+    const startCity = this.city;
+    let rideS = 0;
+    if (w.travel) {
+      rideS = Math.min(w.travel.left_m / SPEED_MPS, coverS);
+      const clock = this.stats.now;
+      this.stats.now = () => Math.floor(fromMs / 1000 + rideS);
+      this.stats.onSay = (text, t) => ride.push({ text, t });
+      w.advance(rideS * SPEED_MPS);
+      this.stats.passTime(rideS / 60, 0);
+      this.stats.now = clock;
+      this.stats.onSay = null;
+      if (this.stats.fainted()) this.faint();
+    }
+    w.departing = null;
+    const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null };
+    const steps = catchUpSteps(this.stats, city, w.position(), coverS - rideS, fromMs + rideS * 1000, {
+      activities: this.activities,
+      trips: this.trips,
+      rng: this.rng,
+      hourAt: (ms) => this.hour(ms),
+      roll: this.deps.rollSource,
+      facts: this.cityFacts,
+      skipRoll: this.skipRoll,
+    });
+    let slice = performance.now();
+    let r = steps.next();
+    while (!r.done) {
+      if (performance.now() - slice > CATCHUP_SLICE_MS) {
+        await new Promise((ok) => setTimeout(ok, 0));
+        slice = performance.now();
+      }
+      r = steps.next();
+    }
+    const s = r.value;
+    s.awayS = awayS;
+    s.coveredS += rideS;
+    s.lines.unshift(...ride);
+    if (this.city !== startCity) s.cities.unshift(this.city);
+    const moved = s.end.city.name !== this.city;
+    if (moved) {
+      this.city = s.end.city.name;
+      this.country = s.end.city.code;
+      this.origin = s.end.city.center;
+      void this.learnCity(...this.origin);
+    }
+    w.relocate(s.end.at, s.end.city.bounds, moved);
+    this.loader.setGraph(w.graph);
+    this.skipRoll = s.end.skipRoll;
+    this.track();
+    this.away = s;
+  }
+
+  /** Closes the summary card. */
+  dismissAway(): void {
+    this.away = null;
+    this.changed();
   }
 
   private loadSettings(): void {

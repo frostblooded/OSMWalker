@@ -29,6 +29,8 @@ export const MAX_CITY_RADIUS_M = 25_000;
 export const MAX_SKIPS = 3;
 /** Where he stands on landing, until the new city's streets load. Never a tile or OSM id. */
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
+/** After a catch-up he stands on the nearest loaded corner when it is this close to where he ended up. */
+export const SNAP_M = 100;
 export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
 export type PickInfo = Record<string, unknown>;
 
@@ -213,6 +215,33 @@ export class Walker {
     this.restFor(1);
     this.place = place;
     return moved;
+  }
+
+  /**
+   * Puts him at `at` without walking there (after the catch-up), with nothing
+   * planned: on the nearest loaded corner when one is within SNAP_M, else on
+   * a lone point until the streets there load. A new city drops the graph.
+   */
+  relocate(at: LatLon, bounds: BBox, newCity: boolean): void {
+    this.travel = null;
+    this.departing = null;
+    this.place = null;
+    this.goal = null;
+    this.goalNode = null;
+    this.route = [];
+    this.routeArrives = false;
+    this.restM = 0;
+    this.restTotalM = 0;
+    this.legFrom = null;
+    this.tripM = 0;
+    this.tripStartM = 0;
+    this.bounds = bounds;
+    if (newCity) this.graph = new StreetGraph();
+    const near = this.graph.nearestNode(at[0], at[1]);
+    const p = near === null ? null : this.graph.nodes.get(near)!;
+    if (near !== null && p && distanceM(at[0], at[1], p[0], p[1]) <= SNAP_M) return this.startAt(near);
+    this.graph.nodes.set(ARRIVAL_NODE, [at[0], at[1]]);
+    this.startAt(ARRIVAL_NODE);
   }
 
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
