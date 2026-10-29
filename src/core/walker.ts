@@ -8,7 +8,7 @@
 // Instead of a new goal he may travel to another city (see trips.ts): he
 // walks to a bus station, airport or gas station, then rides there.
 // Pure logic: no DOM, no networking, so it is easy to test.
-import { bboxAround, distanceM, latToPx, lonToPx, moved, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
+import { bboxAround, distanceM, latToPx, lonToPx, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
 import { pickIndex, randomSpot, weigh, type Vec, type Weights } from "./goals";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";

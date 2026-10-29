@@ -157,7 +157,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
               ❓ Help
             </button>
             <button class="btn" onClick={() => setSheet("debug")}>
-              🐞 Debug {game.problems.unseen > 0 && <span class="dot" aria-label="new problems" />}
+              🐞 Debug {game.problems.unseen > 0 && <span class="dot" role="img" aria-label="new problems" />}
             </button>
             <button class="btn" role="switch" aria-checked={game.showRoute} onClick={() => game.setShowRoute(!game.showRoute)}>
               🧭 Route to goal <span class={`switch${game.showRoute ? " on" : ""}`} aria-hidden="true" />
