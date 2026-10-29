@@ -3,11 +3,11 @@
 // problems, goal picks) whose entries open into their detail.
 import { useEffect } from "preact/hooks";
 import * as DebugLog from "../core/debugLog";
-import { distanceM } from "../core/geo";
 import { timeText } from "../core/history";
 import { euro } from "../core/money";
 import { CITY_CHANCE, COUNTRY_CHANCE, NO_PLACES_BOOST } from "../core/trips";
 import type { Game } from "../game/game";
+import { facts } from "../game/hud";
 import { biasMin } from "./format";
 import { Card, Collapsible, Entry, KV } from "./kit";
 
@@ -18,11 +18,10 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
     g.problems.markSeen();
     g.changed();
   }, []);
-  const w = g.walker!;
+  const f = facts(g)!;
   const bias = biasMin();
   const alerts = g.cityAlerts();
   const ls = g.loader.stats();
-  const b = w.bounds;
   const sm = g.citySummary;
   const boost = g.noPlaces() ? NO_PLACES_BOOST : 1;
   const problems = g.problems.entries();
@@ -44,15 +43,15 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
       )}
       <Card icon="🏙" title="City" right={g.city.split(",")[0]}>
         <KV k="Country" v={g.country || "?"} />
-        <KV k="City box" v={b ? `${(distanceM(b[0], b[1], b[0], b[3]) / 1000).toFixed(1)} × ${(distanceM(b[0], b[1], b[2], b[1]) / 1000).toFixed(1)} km` : "none"} />
-        <KV k="Where" v={w.position().map((x) => x.toFixed(5)).join(", ")} />
-        <p class="small dim">Doing: {g.doingText()}</p>
+        <KV k="City box" v={f.boxKm ? `${f.boxKm[0].toFixed(1)} × ${f.boxKm[1].toFixed(1)} km` : "none"} />
+        <KV k="Where" v={f.where.map((x) => x.toFixed(5)).join(", ")} />
+        <p class="small dim">Doing: {f.doing}</p>
       </Card>
       <Card icon="🛣" title="Loaded">
         <KV k="Street squares" v={`${ls.loaded} (${ls.from_cache} cached, ${ls.downloaded} downloaded)`} />
         <KV k="Loading / queued" v={`${ls.loading} / ${ls.queued}`} />
         <KV k="Failed" v={ls.failed} tone={ls.failed ? "error" : undefined} />
-        <KV k="Places in city box" v={b ? w.graph.placesIn(b).length : 0} />
+        <KV k="Places in city box" v={f.placesInBox} />
         <KV k="Trivia" v={g.cityFacts.length} />
       </Card>
       <Card icon="🚪" title="Ways out and pay">

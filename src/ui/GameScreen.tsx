@@ -3,9 +3,10 @@
 // buttons in a bar at the bottom, in reach of the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { distanceM, type BBox } from "../core/geo";
+import type { BBox } from "../core/geo";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
+import { hud, type Goal, type Hud } from "../game/hud";
 import { euro } from "../core/money";
 import { MapView, type Padding } from "../map/mapView";
 import { DebugSheet } from "./DebugSheet";
@@ -147,8 +148,8 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
     game.zoom = v.zoomBy(step);
   };
 
-  const w = game.walker;
-  if (!w) return null;
+  const h = hud(game);
+  if (!h) return null;
   const s = game.stats;
   return (
     <div class="game">
@@ -157,25 +158,25 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {w.travel ? rideIcon(w.travel.mode) : w.isResting() ? "⏸" : "🚶"}
+              {h.ride ? rideIcon(h.ride.mode) : h.doing === "resting" ? "⏸" : "🚶"}
             </span>
             <div class="grow">
-              <div class="city">{game.city.split(",")[0]} · {w.travel ? "riding" : w.isResting() ? "resting" : "walking"}</div>
-              <div class="street">{w.travel ? `Riding to ${w.travel.to.name} by ${w.travel.mode}` : streetLine(w.streetName(), w.isResting())}</div>
+              <div class="city">{h.city} · {h.doing}</div>
+              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${h.ride.mode}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
             </div>
           </div>
-          <GoalChip game={game} onTap={showGoal} />
+          <GoalChip goal={h.goal} onTap={showGoal} />
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
           {mapError && <div class="notice error">✖ {mapError}</div>}
-          <Waiting game={game} />
+          <Waiting hud={h} />
           {game.severeNow.length > 0 && (
             <button class="notice error link" onClick={() => setSheet("debug")}>
               ⛔ {game.severeNow[0]!.title}
@@ -274,51 +275,47 @@ function pathBox(path: [number, number][]): BBox {
 
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
 
-function GoalChip({ game, onTap }: { game: Game; onTap: () => void }) {
-  const w = game.walker!;
-  const target = game.goalTarget();
-  if (!target) return null;
-  const name = w.place?.name ?? "";
-  if (w.isResting()) {
+function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
+  if (!goal) return null;
+  if (goal.kind === "resting") {
     return (
       <div class="chip" role="timer">
-        <span class="grow">⏳ Resting at {name || "a spot"}</span>
-        <span class="eta">Moving again in {countdown(w.restLeftS())}</span>
+        <span class="grow">⏳ Resting at {goal.name || "a spot"}</span>
+        <span class="eta">Moving again in {countdown(goal.leftS)}</span>
       </div>
     );
   }
-  const here = w.position();
-  const left = w.walkLeftM();
   return (
     <button class="chip" onClick={onTap} aria-label="Show him and his goal">
       <span class="grow">
-        🎯 {w.isDeparting() ? "Heading to" : "Going to"} {name || "a random spot"}
+        🎯 {goal.departing ? "Heading to" : "Going to"} {goal.name || "a random spot"}
       </span>
       <span class="eta">
-        {dist(distanceM(here[0], here[1], target[0], target[1]))}
-        {left !== null && ` · ${walkTime(left, w.speedMps)}`}
+        {dist(goal.distM)}
+        {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
       </span>
     </button>
   );
 }
 
 /** Why he is standing still, when it is not a rest: streets still loading. */
-function Waiting({ game }: { game: Game }) {
-  const w = game.walker!;
-  if (w.isResting() && !w.isTraveling()) {
+function Waiting({ hud: h }: { hud: Hud }) {
+  if (h.restShare !== null) {
     return (
       <div class="bar" aria-hidden="true">
-        <div style={{ width: `${w.restFraction() * 100}%` }} />
+        <div style={{ width: `${h.restShare * 100}%` }} />
       </div>
     );
   }
-  if (!w.needsData()) return null;
-  if (game.loader.isFailing()) return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
-  return (
-    <div class="notice">
-      <span class="spin" /> 🛣 Loading streets…
-    </div>
-  );
+  if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
+  if (h.waiting === "streets") {
+    return (
+      <div class="notice">
+        <span class="spin" /> 🛣 Loading streets…
+      </div>
+    );
+  }
+  return null;
 }
 
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {

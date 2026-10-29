@@ -9,6 +9,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { doing, facts, hud } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -245,5 +246,45 @@ describe("game", () => {
     g.subscribe(() => n++);
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(n).toBeGreaterThan(0);
+  });
+
+  it("sums up what he is doing for the top card and Debug", async () => {
+    const { g } = game({ places: [CAFE] });
+    expect(hud(g)).toBeNull();
+    expect(doing(g)).toBe("not started");
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2);
+    const h = hud(g)!;
+    expect(h).toMatchObject({ doing: "walking", city: "Sofia", ride: null, restShare: null, waiting: "" });
+    expect(h.goal).toMatchObject({ kind: "going", name: "Cafe Near", departing: false });
+    if (h.goal?.kind !== "going") throw new Error("not going");
+    expect(h.goal.distM).toBeGreaterThan(0);
+    expect(h.goal.walkLeftM).toBeGreaterThanOrEqual(h.goal.distM - 1);
+    expect(doing(g)).toMatch(/^heading for Cafe Near \d+ m away/);
+    const f = facts(g)!;
+    expect(f.placesInBox).toBe(1);
+    expect(f.boxKm![0]).toBeGreaterThan(2);
+  });
+
+  it("shows the rest left while he stays at a place", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 600 && !g.walker!.isResting(); i++) g.step(1);
+    g.step(1);
+    const h = hud(g)!;
+    expect(h.doing).toBe("resting");
+    expect(h.goal).toMatchObject({ kind: "resting", name: "Cafe Near" });
+    expect(h.restShare).toBeGreaterThan(0);
+  });
+
+  it("shows the ride while he travels", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "bus", to: "Plovdiv" }, goal: null });
+    expect(doing(g)).toMatch(/^travelling to Plovdiv by bus, \d+ km left$/);
   });
 });

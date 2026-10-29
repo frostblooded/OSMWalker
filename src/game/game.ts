@@ -14,7 +14,7 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
 import { NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
-import { cityBounds, pathLengthM, SPEED_MPS, tripLimitM, Walker, type PickInfo } from "../core/walker";
+import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -497,20 +497,5 @@ export class Game {
     const w = this.walker!;
     const here = w.position();
     return cellsByPriority(here[0], here[1], STREET_RING).every((c) => w.graph.cells.has(cellKey(c)));
-  }
-
-  /** What he is up to, in plain words, for the debug panel. */
-  doingText(): string {
-    const w = this.walker;
-    if (!w) return "not started";
-    if (w.travel) {
-      const t = w.travel;
-      return `travelling to ${t.to.name} by ${t.mode}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
-    }
-    if (w.isResting()) return `staying ${w.restLeftS().toFixed(0)} s more at ${w.place?.name ?? "a spot"}`;
-    const target = this.goalTarget();
-    if (!target) return "no goal yet";
-    const here = w.position();
-    return `heading for ${w.place?.name ?? "a random spot"} ${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (walked ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
   }
 }
