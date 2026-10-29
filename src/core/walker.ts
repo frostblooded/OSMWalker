@@ -9,7 +9,9 @@
 // walks to a bus station, airport or gas station, then rides there.
 // Pure logic: no DOM, no networking, so it is easy to test.
 import { bboxAround, distanceM, latToPx, lonToPx, moved, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
+import { pickIndex, randomSpot, weigh, type Vec, type Weights } from "./goals";
 import { StreetGraph } from "./graph";
+import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
 import { rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
@@ -25,21 +27,9 @@ export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
 /** Goals given up on in a row before he just walks down a street, so a city where no goal can be reached never hangs. */
 export const MAX_SKIPS = 3;
-/** Route searches stop after this many street corners, to keep frames short. */
-export const MAX_SEARCH_NODES = 40_000;
 /** Where he stands on landing, until the new city's streets load. Never a tile or OSM id. */
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
-/** Goals this far away weigh most; the weight falls off smoothly on a log scale both ways. */
-export const GOAL_PEAK_M = 500;
-export const GOAL_SPREAD = 0.6;
-/** A goal straight ahead (along his last leg) weighs this many times one straight behind. */
-export const HEADING_RATIO = 3;
-/** Tries at a random spot near and ahead of him before taking any spot in the box. */
-export const SPOT_TRIES = 30;
-
-export type Vec = [number, number];
 export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
-export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number };
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
@@ -70,32 +60,6 @@ export function cityBounds(lat: number, lon: number, box?: BBox | null): BBox {
     clamp(Math.max(box[2], lo[2]), lo[2], hi[2]),
     clamp(Math.max(box[3], lo[3]), lo[3], hi[3]),
   ];
-}
-
-export const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
-
-/** 1 at GOAL_PEAK_M, falling off smoothly (log-normal) nearer and further. */
-export function distanceWeight(dM: number): number {
-  const x = Math.log(Math.max(dM, 1) / GOAL_PEAK_M) / GOAL_SPREAD;
-  return Math.exp(-0.5 * x * x);
-}
-
-/** 1 sideways, more ahead along `heading` (a unit vector), less behind, ahead / behind = HEADING_RATIO. */
-export function headingWeight(heading: Vec, to: Vec): number {
-  const len = Math.hypot(to[0], to[1]);
-  if ((heading[0] === 0 && heading[1] === 0) || len === 0) return 1;
-  const a = (HEADING_RATIO - 1) / (HEADING_RATIO + 1);
-  return 1 + (a * (heading[0] * to[0] + heading[1] * to[1])) / len;
-}
-
-/** Index into `weights` picked with those odds; `r` is uniform in [0, 1). -1 when empty. */
-export function pickIndex(weights: number[], r: number): number {
-  r *= weights.reduce((a, w) => a + w, 0);
-  for (let i = 0; i < weights.length; i++) {
-    r -= weights[i]!;
-    if (r < 0) return i;
-  }
-  return weights.length - 1;
 }
 
 export function pathLengthM(path: LatLon[]): number {
@@ -235,6 +199,28 @@ export class Walker {
     this.pickGoal();
   }
 
+  /** Debug: rides to `city` and lands there at once, ending any rest. */
+  rideNow(city: City): void {
+    this.restM = 0;
+    this.startTravel(city);
+    this.land();
+  }
+
+  /** After fainting: stands at `node` (null: where he is) and rests a minute at `place`. Says whether he moved. */
+  wakeAt(node: number | null, place: Place | null): boolean {
+    const moved = node !== null && !this.travel;
+    if (moved) this.startAt(node);
+    this.restFor(1);
+    this.place = place;
+    return moved;
+  }
+
+  /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
+  aim(): LatLon | null {
+    if (this.goal) return this.goal;
+    return this.toNode !== null ? (this.graph.nodes.get(this.toNode) ?? null) : null;
+  }
+
   /** Ends the trip now, in its destination. */
   landNow(): void {
     if (this.travel) this.land();
@@ -249,35 +235,14 @@ export class Walker {
     return len > ARRIVE_M ? [v[0] / len, v[1] / len] : [0, 0];
   }
 
-  /** How much a place weighs as his next goal, and why. */
+  /** How much a place weighs as his next goal, and why (see goals.ts). */
   weigh(p: Place): Weights {
-    const rank_w = rankWeight(p);
-    const need_w = this.needWeight?.(p) ?? 1;
-    if (!this.here()) return { rank_w, dist_m: 0, dist_w: 1, heading_w: 1, need_w, weight: rank_w * need_w };
-    const here = this.position();
-    const d = distanceM(here[0], here[1], p.lat, p.lon);
-    const dist_w = distanceWeight(d);
-    const heading_w = headingWeight(this.heading(), offsetM(here[0], here[1], p.lat, p.lon));
-    return { rank_w, dist_m: d, dist_w, heading_w, need_w, weight: rank_w * dist_w * heading_w * need_w };
+    return weigh(p, this.here() ? this.position() : null, this.heading(), this.needWeight?.(p) ?? 1);
   }
 
-  /** A spot in the city box, drawn with the same distance and heading odds as places; anywhere in the box when he has no position yet or no luck. */
+  /** A spot in the city box, drawn with the same distance and heading odds as places. */
   randomSpot(): LatLon {
-    const b = this.bounds ?? cityBounds(0, 0);
-    if (this.here()) {
-      const here = this.position();
-      const h = this.heading();
-      const top = headingWeight(h, h);
-      for (let i = 0; i < SPOT_TRIES; i++) {
-        const a = this.rng.randf() * 2 * Math.PI;
-        const dir: Vec = [Math.cos(a), Math.sin(a)];
-        if (this.rng.randf() * top > headingWeight(h, dir)) continue;
-        const d = GOAL_PEAK_M * Math.exp(GOAL_SPREAD * this.rng.randfn());
-        const p = moved(here[0], here[1], [dir[0] * d, dir[1] * d]);
-        if (p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3]) return p;
-      }
-    }
-    return [this.rng.randfRange(b[0], b[2]), this.rng.randfRange(b[1], b[3])];
+    return randomSpot(this.rng, this.bounds ?? cityBounds(0, 0), this.here() ? this.position() : null, this.heading());
   }
 
   /**
@@ -517,11 +482,7 @@ export class Walker {
     return this.restTotalM > 0 ? 1 - this.restM / this.restTotalM : 0;
   }
 
-  /**
-   * A* from here towards the goal over the loaded streets. Corners whose
-   * surroundings are not loaded yet count as reachable in a straight line, so
-   * the route may end at the edge of the loaded map; he re-plans there.
-   */
+  /** Snaps the goal to a street corner once streets there load, then plans the way there (see route.ts). */
   private plan(): void {
     const g = this.graph;
     const goal = this.goal!;
@@ -533,60 +494,9 @@ export class Walker {
         this.goal = [p[0], p[1]];
       }
     }
-    const target = this.goal!;
-    const h = (id: number) => {
-      const p = g.nodes.get(id)!;
-      return distanceM(p[0], p[1], target[0], target[1]);
-    };
-    this.route = [];
-    this.routeArrives = false;
-    const heap = new Heap();
-    heap.push(h(from), from);
-    const cost = new Map<number, number>([[from, 0]]);
-    const came = new Map<number, number>();
-    const done = new Set<number>();
-    let best = from;
-    let bestH = h(from);
-    let end: number | null = null;
-    while (heap.size > 0 && done.size < MAX_SEARCH_NODES) {
-      const id = heap.pop();
-      if (done.has(id)) continue;
-      done.add(id);
-      const hid = h(id);
-      if (hid < bestH) {
-        best = id;
-        bestH = hid;
-      }
-      if (id === this.goalNode || hid <= ARRIVE_M) {
-        end = id;
-        this.routeArrives = true;
-        break;
-      }
-      if (id !== from && !g.isComplete(id)) {
-        end = id;
-        break;
-      }
-      const base = cost.get(id)!;
-      for (const n of g.neighbors(id)) {
-        const c = base + g.edgeLength(id, n);
-        if (c < (cost.get(n) ?? Infinity)) {
-          cost.set(n, c);
-          came.set(n, id);
-          heap.push(c + h(n), n);
-        }
-      }
-    }
-    if (end === null) {
-      // Nothing better is reachable: the closest corner is as far as he can get.
-      end = best;
-      this.routeArrives = heap.size === 0;
-    }
-    const route: number[] = [];
-    while (end !== from) {
-      route.push(end);
-      end = came.get(end)!;
-    }
-    this.route = route.reverse();
+    const r = planRoute(g, from, this.goal!, this.goalNode, ARRIVE_M);
+    this.route = r.route;
+    this.routeArrives = r.arrives;
   }
 
   /** Current [lat, lon]. */
@@ -707,49 +617,3 @@ export type WalkerSave = {
   departing: Plan | null;
   travel: Travel | null;
 };
-
-/** Min-heap of node ids by priority, on parallel arrays. */
-class Heap {
-  private keys: number[] = [];
-  private ids: number[] = [];
-
-  get size(): number {
-    return this.ids.length;
-  }
-
-  push(key: number, id: number): void {
-    let i = this.ids.length;
-    this.keys.push(key);
-    this.ids.push(id);
-    while (i > 0) {
-      const up = (i - 1) >> 1;
-      if (this.keys[up]! <= key) break;
-      this.keys[i] = this.keys[up]!;
-      this.ids[i] = this.ids[up]!;
-      i = up;
-    }
-    this.keys[i] = key;
-    this.ids[i] = id;
-  }
-
-  pop(): number {
-    const top = this.ids[0]!;
-    const key = this.keys.pop()!;
-    const id = this.ids.pop()!;
-    const n = this.ids.length;
-    if (n === 0) return top;
-    let i = 0;
-    for (;;) {
-      let c = i * 2 + 1;
-      if (c >= n) break;
-      if (c + 1 < n && this.keys[c + 1]! < this.keys[c]!) c++;
-      if (this.keys[c]! >= key) break;
-      this.keys[i] = this.keys[c]!;
-      this.ids[i] = this.ids[c]!;
-      i = c;
-    }
-    this.keys[i] = key;
-    this.ids[i] = id;
-    return top;
-  }
-}

@@ -243,16 +243,10 @@ export class Game {
     if (!hospital) this.problems.warn("Fainted with no hospital loaded nearby; he wakes where he is");
     this.stats.wakeInHospital(hospital?.name ?? "");
     if (w.isTraveling()) return;
-    if (hospital) {
-      const node = w.graph.nearestNode(hospital.lat, hospital.lon);
-      if (node !== null) {
-        w.startAt(node);
-        this.stats.history.breakTrail();
-        this.track();
-      }
+    if (w.wakeAt(hospital ? w.graph.nearestNode(hospital.lat, hospital.lon) : null, hospital)) {
+      this.stats.history.breakTrail();
+      this.track();
     }
-    w.restFor(1);
-    w.place = hospital;
     this.changed();
   }
 
@@ -338,9 +332,7 @@ export class Game {
     this.debugLog.add(e);
     this.changed();
     if (!dest) return;
-    w.restM = 0;
-    w.startTravel(dest);
-    w.landNow();
+    w.rideNow(dest);
   }
 
   /** New city: wipes the save but keeps the settings. */
@@ -365,7 +357,7 @@ export class Game {
   private goalHeading(): [number, number] {
     const w = this.walker!;
     const here = w.position();
-    const to = w.goal ?? (w.toNode !== null ? w.graph.nodes.get(w.toNode)! : null);
+    const to = w.aim();
     if (!to) return [0, 0];
     return [to[1] - here[1], here[0] - to[0]];
   }

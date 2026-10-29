@@ -4,6 +4,7 @@ import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { rideS, type City, type Plan } from "../../src/core/trips";
+import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { plus, PLUS_BBOX } from "../support/osm";
 
@@ -252,7 +253,7 @@ describe("goals", () => {
     expect(info.in_box).toBe(2);
     expect(info.too_close).toBe(1);
     expect(info.total_weight).toBeCloseTo(info.weight as number, 6);
-    expect(info.dist_w).toBeCloseTo(W.distanceWeight(info.dist_m as number), 6);
+    expect(info.dist_w).toBeCloseTo(G.distanceWeight(info.dist_m as number), 6);
     expect(info.heading_w).toBe(1);
     expect(info).toHaveProperty("r");
   });
@@ -460,42 +461,6 @@ describe("goal weights", () => {
     expect(back[1]).toBeCloseTo(23.00135, 6);
   });
 
-  it("weigh medium distances most", () => {
-    expect(W.distanceWeight(W.GOAL_PEAK_M)).toBeCloseTo(1, 6);
-    expect(W.distanceWeight(100)).toBeLessThan(0.2);
-    expect(W.distanceWeight(2000)).toBeLessThan(0.12);
-    expect(W.distanceWeight(2000)).toBeGreaterThan(0.03);
-    expect(W.distanceWeight(5000)).toBeLessThan(0.01);
-    expect(W.distanceWeight(300)).toBeGreaterThan(0.6);
-    expect(W.distanceWeight(900)).toBeGreaterThan(0.6);
-    expect(W.distanceWeight(0)).toBe(W.distanceWeight(1));
-  });
-
-  it("weigh straight ahead three times straight back", () => {
-    expect(W.HEADING_RATIO).toBe(3);
-    const north: W.Vec = [0, 1];
-    const ahead = W.headingWeight(north, [0, 500]);
-    const back = W.headingWeight(north, [0, -500]);
-    const side = W.headingWeight(north, [500, 0]);
-    expect(ahead / back).toBeCloseTo(W.HEADING_RATIO, 6);
-    expect(side).toBeCloseTo(1, 6);
-    const diag = W.headingWeight(north, [300, 300]);
-    expect(diag).toBeGreaterThan(side);
-    expect(diag).toBeLessThan(ahead);
-  });
-
-  it("have no pull without a heading", () => {
-    expect(W.headingWeight([0, 0], [0, 500])).toBe(1);
-    expect(W.headingWeight([0, 1], [0, 0])).toBe(1);
-  });
-
-  it("pick with their odds", () => {
-    expect(W.pickIndex([1, 0.25], 0)).toBe(0);
-    expect(W.pickIndex([1, 0.25], 0.79)).toBe(0);
-    expect(W.pickIndex([1, 0.25], 0.81)).toBe(1);
-    expect(W.pickIndex([], 0.5)).toBe(-1);
-  });
-
   function atCross(): W.Walker {
     const w = new Walker(fixture());
     w.rng = new Rng(1);
@@ -512,8 +477,8 @@ describe("goal weights", () => {
     const parts = w.weigh(p);
     expect(parts.rank_w).toBeCloseTo(0.5, 6);
     expect(Math.abs(parts.dist_m - 500)).toBeLessThan(2);
-    expect(parts.dist_w).toBeCloseTo(W.distanceWeight(parts.dist_m), 6);
-    expect(parts.heading_w).toBeCloseTo(W.headingWeight([0, 1], [0, 500]), 3);
+    expect(parts.dist_w).toBeCloseTo(G.distanceWeight(parts.dist_m), 6);
+    expect(parts.heading_w).toBeCloseTo(G.headingWeight([0, 1], [0, 500]), 3);
     expect(parts.need_w).toBe(1);
     expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
     w.needWeight = (q) => (q.name === "Ahead" ? 4 : 1);
@@ -775,5 +740,42 @@ describe("trips", () => {
     walker.startTravel(far);
     walker.landNow();
     expect(walker.legFrom).toBeNull();
+  });
+});
+
+describe("commands", () => {
+  it("wakes at a corner after fainting and rests there", () => {
+    walker.startAt(n(2));
+    expect(walker.wakeAt(n(3), CAFE_EAST)).toBe(true);
+    expect(walker.fromNode).toBe(n(3));
+    expect(walker.place).toEqual(CAFE_EAST);
+    expect(walker.isResting()).toBe(true);
+  });
+
+  it("wakes where he is with no corner to go to", () => {
+    walker.startAt(n(2));
+    expect(walker.wakeAt(null, null)).toBe(false);
+    expect(walker.fromNode).toBe(n(2));
+    expect(walker.isResting()).toBe(true);
+  });
+
+  it("lands in a city at once for Debug", () => {
+    walker.startAt(n(2));
+    walker.restFor(1);
+    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
+    let landed = "";
+    walker.events.landed = (c) => (landed = c.name);
+    walker.rideNow(paris);
+    expect(landed).toBe("Paris");
+    expect(walker.isTraveling()).toBe(false);
+    expect(walker.isResting()).toBe(false);
+    expect(walker.position()).toEqual([48.85, 2.35]);
+  });
+
+  it("aims at the goal, else the next corner", () => {
+    walker.startAt(n(2));
+    expect(walker.aim()).toBeNull();
+    walker.setGoal(42.0, 23.00135);
+    expect(walker.aim()).toEqual([42.0, 23.00135]);
   });
 });
