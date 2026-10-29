@@ -1,0 +1,136 @@
+// Layout guardrail: on every screen, at small and large phone widths, no two
+// pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
+// saved as a screenshot in screens/ so a PR can be eyeballed.
+import { expect, test, type Page } from "@playwright/test";
+import { mockServices } from "./mock";
+
+test.beforeEach(async ({ context }) => {
+  await mockServices(context);
+});
+
+/** Pairs of visible text runs and controls whose boxes overlap, as "a | b" strings. */
+const overlaps = (page: Page) =>
+  page.evaluate(() => {
+    type Run = { el: Element; text: string; r: DOMRect };
+    const clipped = (el: Element, r: DOMRect): DOMRect | null => {
+      let { left, top, right, bottom } = r;
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const s = getComputedStyle(a);
+        if (s.overflowX === "visible" && s.overflowY === "visible") continue;
+        const c = a.getBoundingClientRect();
+        left = Math.max(left, c.left);
+        top = Math.max(top, c.top);
+        right = Math.min(right, c.right);
+        bottom = Math.min(bottom, c.bottom);
+      }
+      left = Math.max(left, 0);
+      top = Math.max(top, 0);
+      right = Math.min(right, innerWidth);
+      bottom = Math.min(bottom, innerHeight);
+      return right - left > 1 && bottom - top > 1 ? new DOMRect(left, top, right - left, bottom - top) : null;
+    };
+    const runs: Run[] = [];
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const text = n.textContent?.trim();
+      const el = n.parentElement;
+      if (!text || !el || el.closest("script, style, [aria-hidden='true']")) continue;
+      const s = getComputedStyle(el);
+      if (s.visibility !== "visible" || Number(s.opacity) === 0 || el.getClientRects().length === 0) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) {
+        const c = clipped(el, r);
+        if (c) runs.push({ el, text, r: c });
+      }
+    }
+    // Icon buttons and fields carry no text but must not be covered either.
+    for (const el of document.querySelectorAll("button, summary, input, select, textarea, a[href], [role='button'], [role='switch']")) {
+      if (getComputedStyle(el).visibility !== "visible") continue;
+      const c = el.getClientRects().length ? clipped(el, el.getBoundingClientRect()) : null;
+      if (c) runs.push({ el, text: el.getAttribute("aria-label") ?? el.textContent?.trim() ?? el.tagName, r: c });
+    }
+    // An open sheet covers the game on purpose: text under it is out of sight.
+    const sheets = [...document.querySelectorAll("[role='dialog']")].filter((d) => d.getClientRects().length > 0);
+    const under = (run: Run) => sheets.some((d) => !d.contains(run.el) && hit(d.getBoundingClientRect(), run.r));
+    const seen = runs.filter((run) => !under(run));
+    // One pixel of slack: line boxes of neighbouring lines may touch.
+    function hit(a: DOMRect, b: DOMRect) {
+      return Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+    }
+    const found = new Set<string>();
+    for (let i = 0; i < seen.length; i++)
+      for (let j = i + 1; j < seen.length; j++) {
+        const a = seen[i];
+        const b = seen[j];
+        if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        if (hit(a.r, b.r)) found.add(`${a.text.slice(0, 30)} | ${b.text.slice(0, 30)}`);
+      }
+    return [...found];
+  });
+
+/** How far the page scrolls sideways, in CSS px (0 is right). */
+const sideways = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+
+async function check(page: Page, name: string) {
+  // Let sheets finish sliding in before measuring.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+  const width = page.viewportSize()!.width;
+  await page.screenshot({ path: `screens/${width}-${name}.png` });
+  expect.soft(await overlaps(page), `${name} at ${width} px: overlapping text or controls`).toEqual([]);
+  expect.soft(await sideways(page), `${name} at ${width} px: sideways scroll`).toBeLessThanOrEqual(0);
+}
+
+async function openMenuItem(page: Page, name: RegExp) {
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name }).click();
+}
+
+for (const width of [360, 412]) {
+  test.describe(`at ${width} px`, () => {
+    test.use({ viewport: { width, height: 740 } });
+
+    test("no screen has overlapping text or sideways scroll", async ({ page }) => {
+      await page.goto("./");
+      await expect(page.getByLabel("City name")).toBeVisible();
+      await check(page, "picker");
+      await page.getByLabel("City name").fill("Sofia");
+      await expect(page.getByRole("button", { name: /Sofia/ })).toBeVisible();
+      await check(page, "picker-results");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
+      await check(page, "game");
+
+      await page.getByRole("button", { name: "Menu" }).click();
+      await check(page, "menu");
+      await page.getByRole("button", { name: "Close" }).click();
+
+      await openMenuItem(page, /Help/);
+      const help = page.getByRole("dialog", { name: /Help/ });
+      await check(page, "help");
+      await help.getByRole("button", { name: "How he walks" }).click();
+      await check(page, "help-page");
+      await help.getByRole("button", { name: "Back" }).click();
+      await help.getByRole("searchbox", { name: "Search Help" }).fill("hospital");
+      await expect(help.getByRole("region", { name: /Results/ })).toBeVisible();
+      await check(page, "help-search");
+      await help.getByRole("button", { name: /Close/ }).click();
+
+      await openMenuItem(page, /Stats/);
+      await check(page, "stats");
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      await openMenuItem(page, /Debug/);
+      const debug = page.getByRole("dialog", { name: /Debug/ });
+      await check(page, "debug");
+      await debug.getByRole("button", { name: /Goal picks/ }).click();
+      await check(page, "debug-goal-picks");
+      await debug.getByRole("button", { name: /New city/ }).click();
+
+      await openMenuItem(page, /History/);
+      await expect(page.getByRole("dialog", { name: /History/ }).locator("li").first()).toBeVisible({ timeout: 10000 });
+      await check(page, "history");
+    });
+  });
+}
