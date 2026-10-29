@@ -71,7 +71,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip, for paid work. Only his strongest need counts.
+Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -100,7 +100,7 @@ An action can:
 - raise or lower his meters (health, energy, fullness, thirst, mood, hygiene),
 - raise his attributes (strength, charm, wits, luck), usually by a small step such as 0.1,
 - give XP,
-- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent),
+- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent, and more as he grows: see Wages),
 - give him a buff or debuff for a while (see Buffs and debuffs),
 - offer him an item to buy, or sell something from his bag.
 
@@ -116,7 +116,8 @@ At each place he first throws out every action he can't do right now (see Requir
 - Paid work: +3 while he has less than {SKINT}, otherwise +0.5.
 - Anything that would leave him under {SKINT} weighs half as much.
 - A country's own actions get +{FLAVOUR_WEIGHT} (see Country flavour).
-- While he saves up for a trip, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares).
+- While he saves up for a trip or his next vehicle, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
+- Browsing the shop of the vehicle he has saved up for: +{GOAL_SHOP}.
 
 An action with weight 4 is four times as likely as one with weight 1.
 ## Requirements {needs}
@@ -131,11 +132,26 @@ An action can only be picked when he meets all of its requirements:
 ## Money {coins}
 His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
 
-Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a used bike about {CHEAP_BIKE} and a used car about {CHEAP_CAR}.
+Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he levels up (see Wages).
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Waking up in hospital costs {HOSPITAL_FEE}, about what a tourist pays at an emergency room.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+## Wages {wages}
+Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that. As he grows he earns more, well above real wages, so that vehicles come within reach:
+- {WAGE_LEVEL_PCT} more for every level above 1,
+- {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
+
+For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
+## Saving for a vehicle {saving}
+He always saves up for the cheapest vehicle one step above what he rides:
+- on foot, a {GOAL_BIKE} for {CHEAP_BIKE},
+- on a bike, a {GOAL_SCOOTER} for {CHEAP_SCOOTER},
+- on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR}.
+
+With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see How he chooses), and places that pay pull his goals like a need.
+
+Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
@@ -223,14 +239,14 @@ A higher level unlocks better materials for the gear he finds (see Materials) an
 ## Fainting and hospital {fainting}
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
-Waking up costs {HOSPITAL_FEE} (less if he has less). His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
+Waking up costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles).
 
 Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
 
-Every browse shows him one random item. He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
+Every browse shows him one random item (a bike shop or vehicle dealer shows several: see Saving for a vehicle). He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
 
 An item's name tells you what it is made of: modifiers before, then the material, then the base item, then a suffix, for example "Mighty Bronze Sword of the Fox".
 ## Materials {materials}
@@ -294,7 +310,7 @@ Fares are in euros and never free:
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}.
 
-He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. If he spends too much on the way to the station, he turns back and saves up the same way.
+He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -319,6 +335,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear adds in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.

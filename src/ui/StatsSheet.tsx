@@ -1,8 +1,9 @@
-// His character sheet: level and XP, six meters as bars, four attributes
-// with what his gear adds, every gear slot, the bag and his buffs.
+// His character sheet: level and XP, what he saves up for, six meters as
+// bars, four attributes with what his gear adds, every gear slot, the bag
+// and his buffs.
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
-import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
 
@@ -37,9 +38,19 @@ function ItemName({ item }: { item: Item }) {
   );
 }
 
+function Goal({ name, has, needs }: { name: string; has: number; needs: number }) {
+  return (
+    <>
+      <KV k={name} v={`${has >= needs ? "✔ " : ""}${euro(Math.min(has, needs))} / ${euro(needs)}`} tone={has >= needs ? "ok" : undefined} />
+      <Bar share={has / needs} color="var(--coin)" />
+    </>
+  );
+}
+
 export function StatsSheet({ stats: s }: { stats: Stats }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
+  const goal = s.vehicleGoal();
   return (
     <>
       <Card icon="⭐" title={`Level ${s.level}`} right={euro(s.cents)}>
@@ -48,6 +59,12 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <KV k="Speed" v={speed(s.speedMps())} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
+      {(goal || s.savingFor > 0) && (
+        <Card icon="💰" title="Saving for">
+          {goal && <Goal name={`🚲 ${goal.name}`} has={s.cents} needs={goal.cents + KEEP_CENTS} />}
+          {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
+        </Card>
+      )}
       <Card icon="❤" title="Vitals">
         <div class="meters">
           {METERS.map((m) => {

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { Activities, choose, NEED_AT, NEED_BOOST, needWeight, restMinutes, weight, type ActionTable } from "../../src/core/activities";
+import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needWeight, restMinutes, SAVING_EARN_WEIGHT, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
 import * as S from "../../src/core/stats";
+import { euro } from "../../src/core/money";
 import { dataFile } from "../support/data";
 
 const cafe = () => ({ name: "Old Cafe", class: "cafe", subclass: "cafe", rank: 1, lat: 42, lon: 23 });
@@ -132,6 +133,27 @@ describe("stats", () => {
     expect(stats.xp).toBe(20);
   });
 
+  it("pay grows 3% a level and 2% per point of the attribute a job needs", () => {
+    const job: Action = { name: "Tend the bar", min: 60, earn: 100, needs: { cha: 3 } };
+    stats.attrs.cha = 3;
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.02 * 3), 9);
+    stats.level = 11;
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 3), 9);
+    stats.gear.trinket = { name: "Ring", slot: "trinket", stats: { cha: 2 }, rarity: "Common", price: 1 };
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 5), 9);
+    expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1.3, 9);
+    const before = stats.cents;
+    const line = stats.do(job, "Bar", rng);
+    expect(stats.cents - before).toBe(Math.round(10000 * stats.wageMult(job)));
+    expect(line).toContain(euro(Math.round(10000 * stats.wageMult(job))));
+  });
+
+  it("only pay grows, not prices", () => {
+    stats.level = 20;
+    stats.do({ name: "Dinner", min: 10, cost: 30 }, "", rng);
+    expect(stats.cents).toBe(S.START_CENTS - 3000);
+  });
+
   it("risky actions can go wrong", () => {
     const line = stats.do({ name: "Dine and dash", min: 1, fx: { fullness: 10 }, risk: { p: 1, text: "caught", fx: { mood: -20 }, cost: 20 } }, "Bistro", rng);
     expect(stats.cents).toBe(S.START_CENTS - 2000);
@@ -151,16 +173,20 @@ describe("stats", () => {
     const line = stats.wakeInHospital("City Hospital");
     expect(stats.meters.health).toBe(WAKE_HEALTH);
     expect(stats.cents).toBe(S.START_CENTS - HOSPITAL_FEE);
-    expect(HOSPITAL_FEE).toBe(15000);
+    expect(HOSPITAL_FEE).toBe(6000);
     expect(line).toContain("City Hospital");
-    expect(line).toContain("(-€150)");
+    expect(line).toContain("(-€60)");
   });
 
-  it("the hospital fee never goes below zero", () => {
-    stats.cents = 5;
+  it("the hospital takes at most half his money", () => {
+    stats.cents = 5001;
     stats.meters.health = 0;
+    const line = stats.wakeInHospital("");
+    expect(stats.cents).toBe(2501);
+    expect(line).toContain("(-€25)");
+    stats.cents = 1;
     stats.wakeInHospital("");
-    expect(stats.cents).toBe(0);
+    expect(stats.cents).toBe(1);
   });
 
   it("survives save and load", () => {
@@ -242,6 +268,22 @@ describe("gear", () => {
     expect(line).toContain("Arms & Co");
   });
 
+  it("a vehicle dealer shows several and he buys the best he can afford", () => {
+    stats.level = 30;
+    stats.cents = Items.cheapest("cars").price + KEEP_CENTS;
+    let bought = 0;
+    for (let seed = 0; seed < 50; seed++) {
+      const s = new Stats();
+      s.level = 30;
+      s.cents = stats.cents;
+      s.do({ name: "Browse the cars", min: 15, item: "cars" }, "Lot", new Rng(seed));
+      if (s.vehicle() === "car") bought++;
+      expect(s.cents).toBeGreaterThanOrEqual(KEEP_CENTS);
+    }
+    // Few single rolls at level 30 are a car he can afford; DEALER_OFFERS rolls make one far likelier.
+    expect(bought).toBeGreaterThan(5);
+  });
+
   it("gear and bag survive save and load", () => {
     stats.equip(sword(2));
     stats.bag.push(sword(1));
@@ -259,6 +301,31 @@ describe("gear", () => {
     expect(stats.canDo({ name: "Sell", min: 10, sell: true }, 12)).toBe(false);
     stats.bag.push(sword(1));
     expect(stats.canDo({ name: "Sell", min: 10, sell: true }, 12)).toBe(true);
+  });
+
+  it("saves up for the cheapest vehicle a step above what he rides", () => {
+    expect(stats.vehicleGoal()).toEqual({ name: "Bike", kind: "bicycles", cents: Items.cheapest("bicycles").price });
+    stats.gear.vehicle = vehicle("bike");
+    expect(stats.vehicleGoal()).toMatchObject({ name: "Scooter", kind: "motorcycles" });
+    stats.gear.vehicle = vehicle("motorcycle");
+    expect(stats.vehicleGoal()).toMatchObject({ name: "Hatchback", kind: "cars", cents: 750000 });
+    stats.gear.vehicle = vehicle("car");
+    expect(stats.vehicleGoal()).toBeNull();
+  });
+
+  it("saving counts the vehicle plus his reserve, or a trip fare, whichever is more", () => {
+    stats.gear.vehicle = vehicle("bike");
+    const goal = stats.vehicleGoal()!.cents + KEEP_CENTS;
+    expect(stats.savingTarget()).toBe(goal);
+    stats.cents = goal - 1;
+    expect(stats.saving()).toBe(true);
+    stats.cents = goal;
+    expect(stats.saving()).toBe(false);
+    stats.savingFor = goal + 5;
+    expect(stats.saving()).toBe(true);
+    stats.gear.vehicle = vehicle("car");
+    stats.savingFor = 0;
+    expect(stats.saving()).toBe(false);
   });
 
   it("a car beats any bike", () => {
@@ -422,6 +489,7 @@ describe("need-driven goals", () => {
     expect(needWeight([work], stats)).toBe(1);
   });
   it("send him to paid work when he is broke or saving up", () => {
+    stats.gear.vehicle = vehicle("car");
     stats.cents = 0;
     expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
     stats.cents = 500;
@@ -469,6 +537,7 @@ describe("activities", () => {
   });
 
   it("saving for a trip favours paid work and cuts spending", () => {
+    stats.gear.vehicle = vehicle("car");
     stats.cents = 100;
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };
@@ -479,6 +548,28 @@ describe("activities", () => {
     expect(weight(dinner, stats)).toBeLessThan(dinnerW);
     stats.cents = 150;
     expect(weight(job, stats)).toBeCloseTo(jobW);
+  });
+
+  it("saving for a vehicle favours paid work too", () => {
+    stats.gear.vehicle = vehicle("car");
+    const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
+    const jobW = weight(job, stats);
+    stats.gear.vehicle = vehicle("bike");
+    expect(weight(job, stats)).toBeCloseTo(jobW + SAVING_EARN_WEIGHT, 6);
+  });
+
+  it("once he can afford his next vehicle, its shop pulls him and he browses", () => {
+    const browse: Action = { name: "Browse the scooters", min: 15, item: "motorcycles" };
+    const bikes: Action = { name: "Browse the bikes", min: 15, item: "bicycles" };
+    stats.gear.vehicle = vehicle("bike");
+    stats.cents = stats.savingTarget() - 1;
+    expect(needWeight([browse], stats)).toBeCloseTo(1, 6);
+    const saving = weight(browse, stats);
+    stats.cents = stats.savingTarget();
+    expect(needWeight([browse], stats)).toBe(GOAL_SHOP_PULL);
+    expect(needWeight([bikes], stats)).toBeCloseTo(1, 6);
+    expect(weight(browse, stats)).toBeGreaterThan(saving + GOAL_SHOP_WEIGHT - 1);
+    expect(weight(browse, stats) - weight(bikes, stats)).toBeCloseTo(GOAL_SHOP_WEIGHT, 6);
   });
 
   it("choose skips what he can't do", () => {
