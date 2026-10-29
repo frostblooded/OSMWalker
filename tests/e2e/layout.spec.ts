@@ -73,8 +73,9 @@ const overlaps = (page: Page) =>
 const sideways = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
 
 async function check(page: Page, name: string) {
-  // Let transitions (a sheet sliding in) end before measuring. Keyframe
-  // animations are left alone: a spinner never ends and a toast fades for 6 s.
+  // Let CSS transitions (switches, pressed buttons) end before measuring.
+  // Keyframe animations are not waited for: a spinner never ends and a toast
+  // fades for 6 s. A screen that slides in must use a transition to be waited for.
   await page.evaluate(() =>
     Promise.all(
       document
