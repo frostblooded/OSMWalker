@@ -151,7 +151,7 @@ He always saves up for the cheapest vehicle one step above what he rides:
 
 With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see How he chooses), and places that pay pull his goals like a need.
 
-Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
+Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
@@ -246,7 +246,7 @@ He finds items by browsing shops: weapon and hunting shops sell weapons and armo
 
 Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
 
-Every browse shows him one random item (a vehicle dealer shows several: see Saving for a vehicle). He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
+Every browse shows him one random item (a bike shop or vehicle dealer shows several: see Saving for a vehicle). He buys it only if it beats what he wears in that slot, meaning its bonuses add up to more, and only if it leaves him at least {KEEP_CENTS}. If he buys it, he puts it on at once and the old item goes into his bag.
 
 An item's name tells you what it is made of: modifiers before, then the material, then the base item, then a suffix, for example "Mighty Bronze Sword of the Fox".
 ## Materials {materials}
