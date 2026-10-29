@@ -27,7 +27,7 @@ test("picks a city and walks its streets", async ({ page }) => {
 
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
-  await page.waitForTimeout(1500);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
   await page.reload();
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
 });

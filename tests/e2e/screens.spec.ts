@@ -172,7 +172,8 @@ test("Back to him shows after a drag only while the camera follows him", async (
   await expect(sw).toHaveAttribute("aria-checked", "false");
   await page.getByRole("button", { name: "Close" }).click();
   await dragAway(page);
-  await page.waitForTimeout(500);
+  // The drag has ended once he glides again; the pill would have shown by then.
+  await expect(page.locator(".marker.him")).toHaveClass(/glide/);
   await expect(back).toBeHidden();
 
   await page.reload();
