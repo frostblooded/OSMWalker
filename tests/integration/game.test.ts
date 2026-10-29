@@ -203,6 +203,20 @@ describe("game", () => {
     expect(g.stats.cents).toBeLessThan(coins);
   });
 
+  it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
+    const shop: Place = { name: "Velo", class: "bicycle", subclass: "bicycle", rank: 1, lat: 42.6875, lon: 23.3135 };
+    const near = Array.from({ length: 10 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: 42.687 + i * 0.0003, lon: 23.3195 }));
+    const { g } = game({ places: [...near, shop] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 100_000;
+    for (let i = 0; i < 30 * 60 && !g.stats.vehicle(); i += 10) {
+      run(g, 10);
+      await tick();
+    }
+    expect(g.stats.vehicle()).toBe("bike");
+    expect(g.stats.vehicleGoal()!.name).toBe("Scooter");
+  });
+
   it("flags a city with no way out once the area is loaded", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);

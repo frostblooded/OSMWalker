@@ -119,8 +119,7 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
-/** The lowest price of a level-1 item of `kind`: the first base in the cheapest material. */
-const cheapest = (kind: Items.Kind) => Math.min(...Items.KINDS[kind].map((b) => Items.build(b, Items.MATERIALS[0]!, []).price));
+const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
 
@@ -202,6 +201,19 @@ export function values(data: GameData): Record<string, string> {
     EXAMPLE_PRICE: euro(120),
     CHEAP_BIKE: euro(cheapest("bicycles")),
     CHEAP_CAR: euro(cheapest("cars")),
+    CHEAP_SCOOTER: euro(cheapest("motorcycles")),
+    GOAL_BIKE: Items.nextVehicle("")!.name,
+    GOAL_SCOOTER: Items.nextVehicle("bike")!.name,
+    GOAL_CAR: Items.nextVehicle("motorcycle")!.name,
+    GOAL_SHOP: num(Activities.GOAL_SHOP_WEIGHT),
+    GOAL_SHOP_PULL: num(Activities.GOAL_SHOP_PULL),
+    DEALER_OFFERS: String(S.DEALER_OFFERS),
+    HOSPITAL_MAX_PCT: pct(S.HOSPITAL_MAX_SHARE),
+    WAGE_LEVEL_PCT: pct(S.WAGE_PER_LEVEL),
+    WAGE_ATTR_PCT: pct(S.WAGE_PER_ATTR),
+    WAGE_ATTR_X10: pct(10 * S.WAGE_PER_ATTR),
+    WAGE_LV11: `${num(1 + 10 * S.WAGE_PER_LEVEL)} times`,
+    WAGE_LV30: `${num(1 + 29 * S.WAGE_PER_LEVEL)} times`,
     BRONZE_SWORD: euro(Items.build(Items.KINDS.weapons[0]!, Items.MATERIALS[2]!, []).price),
     XP_LV1: String(S.xpToNext(1)),
     XP_LV2: String(S.xpToNext(2)),

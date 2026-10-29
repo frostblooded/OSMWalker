@@ -13,9 +13,12 @@ export type ActionTable = Record<string, Action[]>;
 export const MAX_MINUTES = 1;
 /** Below this many cents (€20) he looks for work and avoids spending. */
 export const SKINT = 2000;
-/** Extra weight for paid work, and the cut to spending, while he saves for a trip. */
+/** Extra weight for paid work, and the cut to spending, while he saves for a trip or his next vehicle. */
 export const SAVING_EARN_WEIGHT = 4;
 export const SAVING_SPEND_MULT = 0.5;
+/** Extra weight for browsing the shop of his next vehicle once he can afford it, and how much more that shop pulls his goal. */
+export const GOAL_SHOP_WEIGHT = 4;
+export const GOAL_SHOP_PULL = 200;
 /** Extra weight for a country's own actions, so they come up often. */
 export const FLAVOUR_WEIGHT = 2;
 /** Below this a meter is a need: places that refill it pull his next goal towards them. */
@@ -78,20 +81,24 @@ export function weight(action: Action, stats: Stats): number {
   if (action.sell) w += 2;
   if (action.earn !== undefined) w += stats.cents < SKINT ? 3 : 0.5;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
-  if (stats.cents < stats.savingFor) {
+  if (stats.saving()) {
     if (action.earn !== undefined) w += SAVING_EARN_WEIGHT;
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
-  }
+  } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
   return w;
 }
 
 /**
  * How much a place with `actions` pulls his next goal: 1, up to 1 + NEED_BOOST
  * when one of them refills a meter that is empty, or pays while he is broke
- * or saving up. The strongest need counts.
+ * or saving up; the strongest need counts. A shop that sells the vehicle he
+ * has saved up for pulls GOAL_SHOP_PULL.
  */
 export function needWeight(actions: Action[], stats: Stats): number {
-  const broke = stats.cents < SKINT || stats.cents < stats.savingFor;
+  const saving = stats.saving();
+  const broke = stats.cents < SKINT || saving;
+  const shop = saving ? undefined : stats.vehicleGoal()?.kind;
+  if (shop && actions.some((a) => a.item === shop)) return GOAL_SHOP_PULL;
   let need = 0;
   for (const a of actions) {
     if (broke && a.earn !== undefined) need = 1;

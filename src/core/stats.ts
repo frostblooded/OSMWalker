@@ -56,14 +56,20 @@ export const TIRED_ENERGY = 30;
 /** Health lost per hour for each of hunger and thirst at zero. */
 export const STARVING_PER_H = 5;
 export const FIRST_VISIT_XP = 50;
-/** Cents a tourist pays a hospital ER to be patched up. */
-export const HOSPITAL_FEE = 15000;
+/** Cents the hospital charges after he faints, but never more than HOSPITAL_MAX_SHARE of his money. */
+export const HOSPITAL_FEE = 6000;
+export const HOSPITAL_MAX_SHARE = 0.5;
+/** Job pay rises this share per level above 1, and per point of the attribute the job needs. */
+export const WAGE_PER_LEVEL = 0.03;
+export const WAGE_PER_ATTR = 0.02;
 /** Cents he starts with. */
 export const START_CENTS = 20000;
 export const WAKE_HEALTH = 50;
 export const BAG_SIZE = 20;
 /** He won't buy gear that leaves him with fewer cents than this. */
 export const KEEP_CENTS = 2000;
+/** A vehicle dealer shows him this many vehicles, and he takes the best he can afford. */
+export const DEALER_OFFERS = 5;
 /** Share of an item's price he gets selling it, before his charm. */
 export const SELL_SHARE = 0.4;
 
@@ -135,6 +141,29 @@ export class Stats {
     const base = v ? Speeds.FOR_VEHICLE[v] : Speeds.WALK;
     const tired = 0.5 + 0.5 * Math.min(this.meters.energy / TIRED_ENERGY, 1);
     return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus() / 100) * tired;
+  }
+
+  /** The next vehicle he saves up for, or null once he has a car. */
+  vehicleGoal(): Items.VehicleGoal | null {
+    return Items.nextVehicle(this.vehicle());
+  }
+
+  /** Cents he saves up to: a trip fare, or his next vehicle plus his reserve, whichever is more. */
+  savingTarget(): number {
+    const goal = this.vehicleGoal();
+    return Math.max(this.savingFor, goal ? goal.cents + KEEP_CENTS : 0);
+  }
+
+  /** True while he has less than he saves up to. */
+  saving(): boolean {
+    return this.cents < this.savingTarget();
+  }
+
+  /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_LEVEL a level and WAGE_PER_ATTR per point of the attributes it needs. */
+  wageMult(action: Action): number {
+    let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
+    for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
+    return m;
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -281,11 +310,23 @@ export class Stats {
     return true;
   }
 
+  /** What a shop of `kind` shows him: a random item, or at a vehicle dealer the best of DEALER_OFFERS he can afford (else the first). */
+  offer(kind: Items.Kind, rng: Rng): Item {
+    const first = Items.make(kind, this.level, rng, this.attr("luck"));
+    if (!first.vehicle) return first;
+    let best: Item | null = null;
+    for (let i = 0; i < DEALER_OFFERS; i++) {
+      const item = i ? Items.make(kind, this.level, rng, this.attr("luck")) : first;
+      if (this.cents - item.price >= KEEP_CENTS && (!best || Items.power(item) > Items.power(best))) best = item;
+    }
+    return best ?? first;
+  }
+
   /** Does `action` at `where` and returns the feed line it adds. */
   do(action: Action, where: string, rng: Rng): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
-      return this.buy(Items.make(action.item, this.level, rng, this.attr("luck")), where);
+      return this.buy(this.offer(action.item, rng), where);
     }
     if (action.sell) {
       this.applyFx(action.fx ?? {});
@@ -301,7 +342,8 @@ export class Stats {
       text += `, ${risk.text ?? "it went wrong"}`;
     }
     const earn = action.earn ?? 0;
-    const earned = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
+    const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
+    const earned = listed ? Math.round(listed * this.wageMult(action)) : 0;
     this.cents = Math.max(this.cents - spent + earned, 0);
     if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
@@ -330,13 +372,13 @@ export class Stats {
 
   /** After fainting: patched up at a hospital for a fee. */
   wakeInHospital(hospital: string): string {
-    const paid = this.cents;
-    this.cents = Math.max(this.cents - HOSPITAL_FEE, 0);
+    const fee = Math.min(HOSPITAL_FEE, Math.floor(this.cents * HOSPITAL_MAX_SHARE));
+    this.cents -= fee;
     this.meters.health = WAKE_HEALTH;
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
     this.meters.thirst = Math.max(this.meters.thirst, 30);
-    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-Math.min(HOSPITAL_FEE, paid))})`);
+    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
   }
 
   say(line: string): string {

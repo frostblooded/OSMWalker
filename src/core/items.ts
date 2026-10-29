@@ -125,6 +125,26 @@ export function build(base: Base, mat: Material, mods: Modifier[]): Item {
   return item;
 }
 
+/** The cheapest item a shop of `kind` sells: its cheapest base in the cheapest material, with no modifiers. */
+export function cheapest(kind: Kind): Item {
+  const all = KINDS[kind].map((b) => build(b, MATERIALS[0]!, []));
+  return all.reduce((a, b) => (b.price < a.price ? b : a));
+}
+
+/** Vehicle shops, slowest vehicle first. */
+export const VEHICLE_SHOPS = [["bike", "bicycles"], ["motorcycle", "motorcycles"], ["car", "cars"]] as const;
+export type VehicleGoal = { name: string; kind: Kind; cents: number };
+
+/** The cheapest vehicle a step above `has` (a bike on foot, a scooter on a bike...), or null in a car. */
+export function nextVehicle(has: Vehicle): VehicleGoal | null {
+  const at = VEHICLE_SHOPS.findIndex(([v]) => v === has);
+  const next = VEHICLE_SHOPS[at + 1];
+  if (!next) return null;
+  const kind = next[1];
+  const item = cheapest(kind);
+  return { name: KINDS[kind].find((b) => item.name.endsWith(b.base))!.base, kind, cents: item.price };
+}
+
 /** Total of an item's stat bonuses, to compare gear. */
 export function power(item: Item | undefined): number {
   if (!item) return 0;

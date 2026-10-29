@@ -70,7 +70,11 @@ describe("the real help", () => {
     expect(page("trips").body).toMatch(/^- 5%: he travels to a city in another country/m);
     expect(page("fares").body).toContain("300 km by bus costs about €31.20");
     expect(page("coins").body).toContain("He starts with €200.");
-    expect(page("health").body + page("coins").body).toContain("€150");
+    expect(page("fainting").body).toContain("Waking up costs €60, but never more than 50% of his money.");
+    expect(page("wages").body).toContain("3% more for every level above 1");
+    expect(page("wages").body).toContain("with charm 10 it pays 20% more");
+    expect(page("saving").body).toContain("on foot, a Bike for €150");
+    expect(page("saving").body).toContain("on a scooter or motorbike, a Hatchback for €7,500");
     expect(page("modifiers").body).toContain("Common, no modifiers: 60% of items");
     expect(page("map").body).toContain("more than 20% of the view away from the middle");
     expect(page("menu").body).toContain("Camera follows him");
