@@ -3,11 +3,12 @@
 // buttons in a bar at the bottom, in reach of the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { distanceM, type BBox } from "../core/geo";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
+import { hud, type Goal, type Hud } from "../game/hud";
 import { euro } from "../core/money";
-import { MapView, type Padding } from "../map/mapView";
+import { MapView } from "../map/mapView";
+import { MapScene, type Padding } from "../map/scene";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
@@ -18,43 +19,34 @@ import { StatsSheet } from "./StatsSheet";
 const UI_HZ = 4;
 
 type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
-/** Zoom for looking at one History event. */
-const EVENT_ZOOM = 17;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
-  const view = useRef<MapView | null>(null);
+  const scene = useRef<MapScene | null>(null);
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
-  const eventsKey = useRef("");
-  // The tick callbacks outlive renders, so they read the open sheet from here.
-  const sheetNow = useRef<Sheet>(null);
-  sheetNow.current = sheet;
   const [mapError, setMapError] = useState("");
-  const goalView = useRef<string>("");
-  const tripView = useRef<string>("");
 
   useEffect(() => {
     let loop: Loop | null = null;
+    let view: MapView | null = null;
     let last = 0;
     let gone = false;
-    const w = game.walker!;
-    MapView.create(mapEl.current!, w.position(), game.zoom)
+    MapView.create(mapEl.current!, game.walker!.position(), game.zoom)
       .then((v) => {
         if (gone) return v.destroy();
-        view.current = v;
-        v.onUserMove = () => setFollowing(false);
-        v.setPadding(padding());
-        loop = new Loop(game, () => view.current);
+        view = v;
+        const sc = new MapScene(game, v, padding);
+        sc.onFollowing = setFollowing;
+        scene.current = sc;
+        loop = new Loop(game, sc);
         loop.onTick = () => {
           const now = performance.now();
           if (now - last < 1000 / UI_HZ) return;
           last = now;
-          keepView();
-          drawEvents();
           redraw((n) => n + 1);
         };
         loop.start();
@@ -69,8 +61,8 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       gone = true;
       unsub();
       loop?.pause();
-      view.current?.destroy();
-      view.current = null;
+      view?.destroy();
+      scene.current = null;
     };
   }, [game]);
 
@@ -79,76 +71,17 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
 
   // History shows his trail and numbered markers, fitted above the sheet; closing it follows him again.
   useEffect(() => {
-    const v = view.current;
-    if (!v) return;
     const on = sheet === "history";
-    v.showTrail(on);
-    eventsKey.current = "";
-    if (!on) {
-      v.setPadding(padding());
-      if (!goalView.current) backToHim();
-      return;
-    }
-    const h = game.stats.history;
-    const sheetH = (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) + 0;
-    v.setPadding({ ...padding(), bottom: sheetH + 12 });
-    drawEvents();
-    const box = h.bounds();
-    if (box) v.fit(box, { ...padding(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
-    setFollowing(false);
+    scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   }, [sheet]);
 
-  const drawEvents = () => {
-    const v = view.current;
-    const h = game.stats.history;
-    if (!v || sheetNow.current !== "history") return;
-    const key = `${h.id}:${h.entries.length}:${h.entries.at(-1)?.t ?? 0}`;
-    if (key === eventsKey.current) return;
-    eventsKey.current = key;
-    v.setEvents(h.markers());
-  };
-
   const close = () => setSheet(null);
+  const backToHim = () => scene.current?.backToHim();
 
-  /** A goal view ends by itself when he picks a new goal or sets off on a trip. */
-  const keepView = () => {
-    if (sheetNow.current === "history") return;
-    if (goalView.current && goalView.current !== goalKey()) backToHim();
-    // A trip zooms out to show the whole ride; landing follows him again.
-    const t = game.walker?.travel;
-    const key = t ? `${t.to.name}:${t.path.length}` : "";
-    if (key === tripView.current) return;
-    tripView.current = key;
-    if (t) view.current?.fit(pathBox(t.path), { ...padding(), bottom: 120, left: 40, right: 40 });
-    else backToHim();
-  };
-  const goalKey = () => String(game.goalTarget() ?? "");
+  const zoom = (step: number) => scene.current?.zoomBy(step);
 
-  const backToHim = () => {
-    goalView.current = "";
-    view.current?.follow(game.zoom);
-    setFollowing(true);
-  };
-
-  const showGoal = () => {
-    const v = view.current;
-    const target = game.goalTarget();
-    if (!v || !target || goalView.current) return backToHim();
-    const here = game.walker!.position();
-    const box: BBox = [Math.min(here[0], target[0]), Math.min(here[1], target[1]), Math.max(here[0], target[0]), Math.max(here[1], target[1])];
-    v.fit(box, { ...padding(), top: padding().top + 40, bottom: 140, left: 40, right: 40 }, game.zoom);
-    goalView.current = goalKey();
-    setFollowing(false);
-  };
-
-  const zoom = (step: number) => {
-    const v = view.current;
-    if (!v) return;
-    game.zoom = v.zoomBy(step);
-  };
-
-  const w = game.walker;
-  if (!w) return null;
+  const h = hud(game);
+  if (!h) return null;
   const s = game.stats;
   return (
     <div class="game">
@@ -157,25 +90,25 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {w.travel ? rideIcon(w.travel.mode) : w.isResting() ? "⏸" : "🚶"}
+              {h.ride ? rideIcon(h.ride.mode) : h.doing === "resting" ? "⏸" : "🚶"}
             </span>
             <div class="grow">
-              <div class="city">{game.city.split(",")[0]} · {w.travel ? "riding" : w.isResting() ? "resting" : "walking"}</div>
-              <div class="street">{w.travel ? `Riding to ${w.travel.to.name} by ${w.travel.mode}` : streetLine(w.streetName(), w.isResting())}</div>
+              <div class="city">{h.city} · {h.doing}</div>
+              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${h.ride.mode}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
             </div>
           </div>
-          <GoalChip game={game} onTap={showGoal} />
+          <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
           {mapError && <div class="notice error">✖ {mapError}</div>}
-          <Waiting game={game} />
+          <Waiting hud={h} />
           {game.severeNow.length > 0 && (
             <button class="notice error link" onClick={() => setSheet("debug")}>
               ⛔ {game.severeNow[0]!.title}
@@ -243,7 +176,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close}>
-          <HistorySheet history={game.stats.history} onFocus={(at) => view.current?.focus(at, EVENT_ZOOM)} />
+          <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
         </SheetBox>
       )}
       {sheet === "stats" && (
@@ -266,59 +199,49 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   );
 }
 
-function pathBox(path: [number, number][]): BBox {
-  const lats = path.map((p) => p[0]);
-  const lons = path.map((p) => p[1]);
-  return [Math.min(...lats), Math.min(...lons), Math.max(...lats), Math.max(...lons)];
-}
-
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
 
-function GoalChip({ game, onTap }: { game: Game; onTap: () => void }) {
-  const w = game.walker!;
-  const target = game.goalTarget();
-  if (!target) return null;
-  const name = w.place?.name ?? "";
-  if (w.isResting()) {
+function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
+  if (!goal) return null;
+  if (goal.kind === "resting") {
     return (
       <div class="chip" role="timer">
-        <span class="grow">⏳ Resting at {name || "a spot"}</span>
-        <span class="eta">Moving again in {countdown(w.restLeftS())}</span>
+        <span class="grow">⏳ Resting at {goal.name || "a spot"}</span>
+        <span class="eta">Moving again in {countdown(goal.leftS)}</span>
       </div>
     );
   }
-  const here = w.position();
-  const left = w.walkLeftM();
   return (
     <button class="chip" onClick={onTap} aria-label="Show him and his goal">
       <span class="grow">
-        🎯 {w.isDeparting() ? "Heading to" : "Going to"} {name || "a random spot"}
+        🎯 {goal.departing ? "Heading to" : "Going to"} {goal.name || "a random spot"}
       </span>
       <span class="eta">
-        {dist(distanceM(here[0], here[1], target[0], target[1]))}
-        {left !== null && ` · ${walkTime(left, w.speedMps)}`}
+        {dist(goal.distM)}
+        {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
       </span>
     </button>
   );
 }
 
 /** Why he is standing still, when it is not a rest: streets still loading. */
-function Waiting({ game }: { game: Game }) {
-  const w = game.walker!;
-  if (w.isResting() && !w.isTraveling()) {
+function Waiting({ hud: h }: { hud: Hud }) {
+  if (h.restShare !== null) {
     return (
       <div class="bar" aria-hidden="true">
-        <div style={{ width: `${w.restFraction() * 100}%` }} />
+        <div style={{ width: `${h.restShare * 100}%` }} />
       </div>
     );
   }
-  if (!w.needsData()) return null;
-  if (game.loader.isFailing()) return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
-  return (
-    <div class="notice">
-      <span class="spin" /> 🛣 Loading streets…
-    </div>
-  );
+  if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
+  if (h.waiting === "streets") {
+    return (
+      <div class="notice">
+        <span class="spin" /> 🛣 Loading streets…
+      </div>
+    );
+  }
+  return null;
 }
 
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {

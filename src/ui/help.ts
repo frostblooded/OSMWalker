@@ -5,6 +5,7 @@
 import * as Activities from "../core/activities";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
+import * as Goals from "../core/goals";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import { euro, toCents } from "../core/money";
@@ -143,12 +144,12 @@ export function values(data: GameData): Record<string, string> {
     MIN_CITY_KM: km(W.MIN_CITY_RADIUS_M),
     MAX_CITY_KM: km(W.MAX_CITY_RADIUS_M),
     MAX_SKIPS: String(W.MAX_SKIPS),
-    GOAL_PEAK_M: num(W.GOAL_PEAK_M),
+    GOAL_PEAK_M: num(Goals.GOAL_PEAK_M),
     NEAR_M: "150",
-    NEAR_PCT: pct(W.distanceWeight(150)),
+    NEAR_PCT: pct(Goals.distanceWeight(150)),
     FAR_KM: "2",
-    FAR_PCT: pct(W.distanceWeight(2000)),
-    HEADING_RATIO: num(W.HEADING_RATIO),
+    FAR_PCT: pct(Goals.distanceWeight(2000)),
+    HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
