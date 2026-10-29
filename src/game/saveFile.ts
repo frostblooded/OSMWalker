@@ -26,6 +26,8 @@ export type Saved = {
   walker: Walker;
   stats: Stats;
   debugLog: DebugLog;
+  /** Unix ms when it was saved, for the catch-up; 0 when an old save didn't record it. */
+  savedAt: number;
 };
 
 export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; problems: Problems };
@@ -40,6 +42,7 @@ type Stored = {
   walker: WalkerSave;
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
+  saved_at?: number;
 };
 type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
 
@@ -74,6 +77,7 @@ export class SaveFile {
       walker: g.walker.toJSON(),
       stats: g.stats.toJSON(),
       debug_log: g.debugLog.toJSON(),
+      saved_at: g.savedAt,
     };
     try {
       this.kv.setItem(SAVE_KEY, JSON.stringify(d));
@@ -106,6 +110,7 @@ export class SaveFile {
       walker,
       stats: Stats.fromJSON(d.stats),
       debugLog: DebugLog.fromJSON(d.debug_log),
+      savedAt: d.saved_at ?? 0,
     };
   }
 

@@ -1,6 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
-import { mockServices } from "./mock";
+import { mockServices, reopenAfter } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -30,6 +30,22 @@ test("picks up where he was after a reload", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
   await page.reload();
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
+});
+
+test("sums up what he did while the game was closed", async ({ page }) => {
+  await startInSofia(page);
+  await reopenAfter(page, 3);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toBeVisible({ timeout: 20000 });
+  await expect(away).toContainText("Lived through");
+  await expect(away).toContainText("3 h");
+  await away.getByRole("button", { name: /events, newest first/ }).click();
+  await expect(away.locator(".away-log li").first()).toBeVisible();
+  await away.getByRole("button", { name: "Carry on" }).click();
+  await expect(away).toBeHidden();
+  // He may have taken a trip while away, so only check that he is somewhere and walking on.
+  await expect(page.locator(".hud .city")).toContainText(/\S/);
+  await expect(page.locator(".marker.him")).toBeVisible();
 });
 
 test("New city asks for RESET first", async ({ page }) => {

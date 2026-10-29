@@ -3,6 +3,7 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Goals from "../core/goals";
@@ -130,6 +131,10 @@ export function values(data: GameData): Record<string, string> {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
     MAX_STEP_S: num(G.MAX_STEP_S),
     SAVE_EVERY_S: num(G.SAVE_EVERY_S),
+    MIN_AWAY_MIN: num(CatchUp.MIN_AWAY_S / 60),
+    MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
+    CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
+    SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
     BIKE_KMH: kmh(Speeds.BIKE),

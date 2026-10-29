@@ -3,6 +3,14 @@ import * as F from "../../src/ui/format";
 import { WALK, BIKE } from "../../src/core/speeds";
 
 describe("texts", () => {
+  it("say how long he was away", () => {
+    expect(F.duration(45)).toBe("<1 min");
+    expect(F.duration(25 * 60)).toBe("25 min");
+    expect(F.duration(2 * 3600 + 5 * 60 + 20)).toBe("2 h 5 min");
+    expect(F.duration(24 * 3600)).toBe("24 h");
+    expect(F.duration(3 * 86400 + 3600)).toBe("3 days 1 h");
+  });
+
   it("show distances", () => {
     expect(F.dist(850.4)).toBe("850 m");
     expect(F.dist(1234)).toBe("1.2 km");

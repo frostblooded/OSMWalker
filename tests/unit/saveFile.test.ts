@@ -35,7 +35,7 @@ function saved(): Saved {
   stats.cents = 4321;
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog };
+  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000 };
 }
 
 describe("save file", () => {
@@ -50,7 +50,7 @@ describe("save file", () => {
     expect(f.write(saved())).toBe("");
     expect(f.has()).toBe(true);
     const back = f.read() as Saved;
-    expect(back).toMatchObject({ city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15 });
+    expect(back).toMatchObject({ city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, savedAt: 1_800_000_000_000 });
     expect(back.walker.totalM).toBe(123);
     expect(back.walker.position()).toEqual([42.7, 23.3]);
     expect(back.stats.cents).toBe(4321);
@@ -61,7 +61,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "skip_roll", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
   it("fills in what old saves lack: zoom and the city box", () => {
@@ -75,6 +75,16 @@ describe("save file", () => {
     const back = f.read() as Saved;
     expect(back.zoom).toBe(DEFAULT_ZOOM);
     expect(back.walker.bounds).not.toBeNull();
+  });
+
+  it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.saved_at;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).savedAt).toBe(0);
   });
 
   it("says why a save is unreadable", () => {

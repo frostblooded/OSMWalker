@@ -103,8 +103,10 @@ export class Stats {
   bag: Item[] = [];
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
-  /** Unix seconds, for history entries; tests replace it. */
+  /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
   now = () => Math.floor(Date.now() / 1000);
+  /** Hears every feed line as it is said; the catch-up collects them for its summary. */
+  onSay: ((line: string, t: number) => void) | null = null;
 
   /** An attribute with his gear's and buffs' bonuses; Charm counts less while he is dirty. */
   attr(name: Attr): number {
@@ -338,7 +340,9 @@ export class Stats {
   }
 
   say(line: string): string {
-    this.history.add(line, this.now());
+    const t = this.now();
+    this.history.add(line, t);
+    this.onSay?.(line, t);
     return line;
   }
 

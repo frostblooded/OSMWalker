@@ -9,6 +9,7 @@ import { hud, type Goal, type Hud } from "../game/hud";
 import { euro } from "../core/money";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
+import { AwaySheet } from "./AwaySheet";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
@@ -195,6 +196,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
+      {game.away && sheet === null && (
+        <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
+          <AwaySheet summary={game.away} onDone={() => game.dismissAway()} />
+        </SheetBox>
+      )}
     </div>
   );
 }

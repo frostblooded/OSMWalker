@@ -1,6 +1,7 @@
 // Fake map services for the browser tests: city search, a tiny OpenFreeMap
-// style, the Sofia street tiles from the fixtures, and empty answers for the rest.
-import type { BrowserContext } from "@playwright/test";
+// style, the Sofia street tiles from the fixtures, and empty answers for the rest;
+// and a way to reopen the game as if it had been closed for a while.
+import { expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -44,4 +45,17 @@ export async function mockServices(context: BrowserContext, opts: { failSearch?:
     return route.fulfill({ status: 404 });
   });
   return { asked };
+}
+
+/** Reloads as if the game had been closed `hours` ago: the save's time is moved back before the game reads it. */
+export async function reopenAfter(page: Page, hours: number) {
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
+  await page.addInitScript((ms) => {
+    if (sessionStorage.getItem("moved-back")) return;
+    sessionStorage.setItem("moved-back", "1");
+    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
+    d.saved_at -= ms;
+    localStorage.setItem("osmwalker.save", JSON.stringify(d));
+  }, hours * 3600_000);
+  await page.reload();
 }

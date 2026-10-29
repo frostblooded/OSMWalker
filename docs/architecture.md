@@ -13,10 +13,10 @@ Imports only point down this list (`src/sw/` imports nothing).
 | Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core`. |
 | App | `src/app/` | `loop.ts` ticks the game while the page is visible. `data.ts` fetches `public/data/` once. |
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
-| Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves. `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
+| Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
 | Streets | `src/streets/` | The Web Worker that fetches, decodes and caches street tiles (`source.ts`), and `loader.ts`, which picks which tiles to load next. |
 | Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
-| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG. |
+| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, and `catchup.ts`, which lives through the time the game was closed without walking the map. |
 | Offline | `src/sw/` | The service worker and its cache rules, built on its own. |
 
 ## Hidden links
@@ -24,6 +24,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 - **Help text.** `public/data/help.txt` holds `{PLACEHOLDERS}`, and `src/ui/help.ts` fills them from core constants. `tests/unit/help.test.ts` fails on a missing or unused value, or on a meter, attribute, slot or screen button with no page.
 - **Game data.** `public/data/actions.json`, `flavour.json`, `cities.tsv` and `airports.tsv` are read through `src/app/data.ts`. `tools/` rebuilds `cities.tsv` and runs the POI sweep (`.github/workflows/poi-sweep.yml`).
 - **Saves.** Changing a saved field means a repair step in `src/game/saveFile.ts`, because players keep old saves.
+- **Catch-up.** The save's `saved_at` is where the catch-up starts. `catchup.ts` copies the walker's goal odds (`goals.ts`) and the trip rules (`trips.ts`, `game/journey.ts`) instead of calling the walker, so a change to either belongs in both. Its made-up place kinds (`MADE_UP_KINDS`) must keep their own entries in `actions.json` (`tests/unit/catchup.test.ts` checks).
 - **Perf budgets.** `tests/perf/budgets.json` sets the CI limits (transfer, JS size, first paint, long tasks). A new dependency or eager import usually shows up there first.
 - **Layout.** `tests/e2e/layout.spec.ts` opens every screen at 360 and 412 px and fails on overlap or sideways scroll. A new screen or sheet needs a step there. CI keeps the shots as the `screens` artifact.
 

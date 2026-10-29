@@ -2,7 +2,7 @@
 ## What OSM Walker is {about}
 OSM Walker is a little life you watch, not steer. A small character walks the real streets of a real city, taken from OpenStreetMap. He picks places to visit, walks there, does something at each one, and slowly gets stronger, richer and more experienced.
 
-You don't control him. Everything he does is decided by the rules on these pages: where he goes, what he does there, what he buys, and when he travels to another city or country. Your part is to check in, see where he has got to, and read what he has been up to.
+You don't control him. Everything he does is decided by the rules on these pages: where he goes, what he does there, what he buys, and when he travels to another city or country. Your part is to check in, see where he has got to, and read what he has been up to. He lives on while the game is closed too (see While you were away).
 
 Each page in this Help explains one part of the game in detail, with the real numbers the game uses.
 ## Choosing a city {city_search}
@@ -13,12 +13,28 @@ If the search servers can't be reached, it says "Couldn't reach the search serve
 The game then downloads the streets around that spot. He starts on the street corner nearest to the result and stays inside that city until he travels somewhere else (see Trips to other cities).
 
 The area of the result decides the city box he picks goals in. It is grown or shrunk so that it reaches at least {MIN_CITY_KM} km and at most {MAX_CITY_KM} km from the centre, so a tiny village still has room to walk and a whole country never counts as one city.
-## Only while the game is open {offline}
-He walks and lives only while the game is open on screen. While it is closed, or the browser tab is hidden, he waits exactly where he is: he doesn't walk, his meters don't drop and buffs don't run down. When you come back he carries on from the same spot.
+## Real time, and time away {offline}
+While the game is open on screen he lives in real time: one minute on your clock is one minute for him. A single step never counts for more than {MAX_STEP_S} second, so a stall can't make him jump ahead.
 
-Time in the game is real time while the game is open: one minute on your clock is one minute for him. A single step never counts for more than {MAX_STEP_S} second, so a stall or a hidden tab can't make him jump ahead.
+When you close the game or hide the tab, the time doesn't stop for him. When you come back, the time you were away passes for him in one go, and a "While you were away" card tells you what he did (see While you were away).
 
 The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
+## While you were away {away}
+When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), that time passes for him at once, at full speed, the same as if you had watched. Only the last {MAX_AWAY_H} hours count, so he lives through at most {MAX_AWAY_H} hours of a longer absence; the card says how much was too long ago to count.
+
+He doesn't walk the map while you are away, so no streets have to load. Instead he hops from place to place by the usual rules:
+- he picks each place like any goal (see Picking the next goal), from the places already loaded in his city, and walks the straight line to it times {ROAD_FACTOR}, at his usual speed,
+- he does one action there and stays {STAY_MIN} minute (see What he does at places),
+- his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
+
+In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
+
+If he was on a bus or plane when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
+
+At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
+
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and what he bought. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
@@ -309,7 +325,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.
 - Effects: his buffs with the minutes they have left.
 ## History {history}
-📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints.
+📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
 ## Debug {debug}
