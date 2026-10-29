@@ -45,7 +45,6 @@ const line = (coords: LatLon[][]): GeoJSON.Feature => ({
 
 export class MapView implements MapPort {
   map!: MlMap;
-  private ml!: Ml;
   private him!: Marker;
   private pin!: Marker;
   private following = true;
@@ -75,7 +74,6 @@ export class MapView implements MapPort {
       fetch(STYLE_URL).then((r) => r.json() as Promise<StyleSpecification>),
       import("maplibre-gl/dist/maplibre-gl.css"),
     ]);
-    this.ml = ml;
     ml.setWorkerUrl(workerUrl);
     this.map = new ml.Map({
       container,

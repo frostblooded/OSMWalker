@@ -96,7 +96,7 @@ export function osrmUrl(a: LatLon, b: LatLon): string {
 /** OSRM's answer as [[lat, lon]...], thinned to MAX_ROUTE_POINTS; [] when it has no route. */
 export function osrmPath(data: unknown): LatLon[] {
   const d = data as { code?: string; routes?: { geometry?: { coordinates?: number[][] } }[] } | null;
-  if (!d || d.code !== "Ok" || !d.routes?.length) return [];
+  if (d?.code !== "Ok" || !d.routes?.length) return [];
   const coords = d.routes[0]!.geometry?.coordinates ?? [];
   const step = Math.max(Math.ceil(coords.length / MAX_ROUTE_POINTS), 1);
   const out: LatLon[] = [];

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "perf": "node tests/perf/perf.mjs"
+    "perf": "node tests/perf/perf.mjs",
+    "lint": "biome lint --error-on-warnings ."
   },
   "dependencies": {
     "@fontsource/fredoka": "5.3.0",
@@ -20,6 +21,7 @@
     "preact": "10.29.8"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@playwright/test": "1.63.0",
     "@preact/preset-vite": "2.10.6",
     "happy-dom": "21.0.4",
