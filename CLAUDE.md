@@ -1,6 +1,6 @@
 # OSM Walker
 
-A tamagotchi-like game played in mobile browsers: a little character walks real OpenStreetMap streets while the app is open and waits where he is while it is closed. Live at https://frostblooded.github.io/OSMWalker/. TypeScript, Preact, MapLibre GL with OpenFreeMap tiles, on GitHub Pages.
+A tamagotchi-like game played in mobile browsers: a little character walks real OpenStreetMap streets while the app is open; the time it was closed (up to 24 h) passes for him in one go on reopen, without walking the map. Live at https://frostblooded.github.io/OSMWalker/. TypeScript, Preact, MapLibre GL with OpenFreeMap tiles, on GitHub Pages.
 
 ## The user's rules
 
