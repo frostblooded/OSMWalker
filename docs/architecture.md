@@ -15,7 +15,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves. `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
 | Streets | `src/streets/` | The Web Worker that fetches, decodes and caches street tiles (`source.ts`), and `loader.ts`, which picks which tiles to load next. |
-| Network | `src/net/api.ts` | Every outside service: OpenFreeMap, Overpass, Photon, Nominatim, OSRM, Wikidata. |
+| Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
 | Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG. |
 | Offline | `src/sw/` | The service worker and its cache rules, built on its own. |
 
@@ -29,6 +29,6 @@ Imports only point down this list (`src/sw/` imports nothing).
 
 ## Tests
 
-- `tests/unit/`: one file per core or ui module.
+- `tests/unit/`: a file per module with logic worth testing alone (`walker.test.ts`, `help.test.ts`...); small or UI-only modules are covered through integration and e2e.
 - `tests/integration/`: `game.test.ts` (game + walker + streets on fixture tiles) and `scene.test.ts` (scene + a fake map).
 - `tests/e2e/`: Playwright on a Pixel 7 profile with mocked services (`mock.ts`). `live.spec.ts` plays the deployed site after each deploy.

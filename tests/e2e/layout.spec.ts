@@ -73,8 +73,16 @@ const overlaps = (page: Page) =>
 const sideways = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
 
 async function check(page: Page, name: string) {
-  // Let sheets finish sliding in before measuring.
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+  // Let transitions (a sheet sliding in) end before measuring. Keyframe
+  // animations are left alone: a spinner never ends and a toast fades for 6 s.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a instanceof CSSTransition)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
   const width = page.viewportSize()!.width;
   await page.screenshot({ path: `screens/${width}-${name}.png` });
   expect.soft(await overlaps(page), `${name} at ${width} px: overlapping text or controls`).toEqual([]);
@@ -91,6 +99,8 @@ for (const width of [360, 412]) {
     test.use({ viewport: { width, height: 740 } });
 
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
+      // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
+      test.setTimeout(90_000);
       await page.goto("./");
       await expect(page.getByLabel("City name")).toBeVisible();
       await check(page, "picker");
