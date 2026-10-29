@@ -1,0 +1,154 @@
+// The map scene with a real game and walker on the "+" streets, and a fake map
+// that records what it was told.
+import { beforeEach, describe, expect, it } from "vitest";
+import type { BBox } from "../../src/core/geo";
+import { StreetGraph } from "../../src/core/graph";
+import { Walker } from "../../src/core/walker";
+import type { City } from "../../src/core/trips";
+import { Game } from "../../src/game/game";
+import { EVENT_ZOOM, MapScene, type MapPort, type Padding } from "../../src/map/scene";
+import { Api } from "../../src/net/api";
+import { plus, PLUS_BBOX } from "../support/osm";
+
+const n = (osm: number) => -osm;
+const PANELS: Padding = { top: 100, bottom: 80, left: 0, right: 0 };
+
+class FakeMap implements MapPort {
+  autoFollow = true;
+  onUserMove = () => {};
+  calls: string[] = [];
+  fits: { box: BBox; padding: Padding; maxZoom?: number }[] = [];
+  him: [number, number] = [0, 0];
+  zoom = 15;
+  setHim(at: [number, number]) {
+    this.him = at;
+  }
+  setGoal() {}
+  setTrip() {}
+  showTrail(on: boolean) {
+    this.calls.push(`trail:${on}`);
+  }
+  setTrail() {}
+  setRoute() {}
+  setArea() {}
+  setEvents() {
+    this.calls.push("events");
+  }
+  follow(zoom?: number) {
+    this.calls.push(`follow:${zoom}`);
+  }
+  focus(_at: [number, number], minZoom: number) {
+    this.calls.push(`focus:${minZoom}`);
+  }
+  fit(box: BBox, padding: Padding, maxZoom?: number) {
+    this.fits.push({ box, padding, maxZoom });
+    this.calls.push("fit");
+  }
+  setPadding(p: Padding) {
+    this.calls.push(`padding:${p.bottom}`);
+  }
+  zoomBy(step: number) {
+    return (this.zoom += step);
+  }
+  /** 1 px per 0.00001 degrees. */
+  screenPoint(at: [number, number]) {
+    return { x: at[1] * 1e5, y: -at[0] * 1e5 };
+  }
+}
+
+let game: Game;
+let map: FakeMap;
+let scene: MapScene;
+let following: boolean[];
+
+beforeEach(() => {
+  game = new Game({ api: new Api(async () => new Response("", { status: 503 })), load: async () => ({ error: "offline" }), data: { actions: {}, flavour: {}, cities: [], airports: [] }, storage: null });
+  game.problems.quiet = true;
+  const g = new StreetGraph();
+  g.addOverpass(plus(), PLUS_BBOX);
+  const w = new Walker(g);
+  w.startAt(n(2));
+  game.walker = w;
+  game.zoom = 17;
+  map = new FakeMap();
+  scene = new MapScene(game, map, () => PANELS);
+  following = [];
+  scene.onFollowing = (on) => following.push(on);
+});
+
+describe("map scene", () => {
+  it("leaves room for the panels from the start", () => {
+    expect(map.calls).toEqual(["padding:80"]);
+  });
+
+  it("puts him on the map and passes the camera switch on", () => {
+    game.cameraFollows = false;
+    scene.draw(0.25, 250);
+    expect(map.him).toEqual([42.001, 23.0]);
+    expect(map.autoFollow).toBe(false);
+  });
+
+  it("measures how fast he moves on screen", () => {
+    scene.draw(1, 100);
+    game.walker!.advance(50);
+    scene.draw(1, 100);
+    expect(scene.pxPerSec).toBeGreaterThan(10);
+  });
+
+  it("shows him and his goal on a tap, then follows him again on the next", () => {
+    game.walker!.setGoal(42.0, 23.00135);
+    scene.toggleGoal();
+    expect(map.fits.at(-1)).toMatchObject({ box: [42.0, 23.0, 42.001, 23.00135], maxZoom: 17 });
+    expect(following).toEqual([false]);
+    scene.toggleGoal();
+    expect(map.calls.at(-1)).toBe("follow:17");
+    expect(following).toEqual([false, true]);
+  });
+
+  it("ends the goal view when he picks a new goal", () => {
+    game.walker!.setGoal(42.0, 23.00135);
+    scene.toggleGoal();
+    scene.draw(0.25, 250);
+    expect(map.calls.at(-1)).toBe("fit");
+    game.walker!.setGoal(41.999, 23.0);
+    scene.draw(0.25, 250);
+    expect(map.calls).toContain("follow:17");
+  });
+
+  it("zooms out to the whole ride and follows him again on landing", () => {
+    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
+    game.walker!.startTravel(paris, "plane");
+    scene.draw(0.25, 250);
+    expect(map.fits.at(-1)!.box).toEqual([42.001, 2.35, 48.85, 23.0]);
+    expect(map.fits.at(-1)!.padding.bottom).toBe(120);
+    game.walker!.landNow();
+    scene.draw(0.25, 250);
+    expect(map.calls.at(-1)).toBe("follow:17");
+  });
+
+  it("fits his trail above the History sheet and follows him again when it closes", () => {
+    game.stats.history.moveTo(42.001, 23.0);
+    game.stats.history.moveTo(42.0, 23.00135);
+    scene.showHistory(true, 300);
+    expect(map.calls).toContain("trail:true");
+    expect(map.calls).toContain("padding:312");
+    expect(map.calls).toContain("events");
+    expect(map.fits.at(-1)).toMatchObject({ maxZoom: EVENT_ZOOM, padding: { bottom: 324, left: 32 } });
+    scene.showHistory(false);
+    expect(map.calls.slice(-3)).toEqual(["trail:false", "padding:80", "follow:17"]);
+  });
+
+  it("keeps the camera still while History is open", () => {
+    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
+    scene.showHistory(true, 300);
+    const fits = map.fits.length;
+    game.walker!.startTravel(paris, "plane");
+    scene.draw(0.25, 250);
+    expect(map.fits.length).toBe(fits);
+  });
+
+  it("keeps the zoom the player picks", () => {
+    scene.zoomBy(1);
+    expect(game.zoom).toBe(16);
+  });
+});

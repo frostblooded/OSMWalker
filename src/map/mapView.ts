@@ -6,6 +6,7 @@ import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "ma
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { LatLon } from "../core/trips";
+import type { MapPort, Padding } from "./scene";
 
 export const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const MIN_ZOOM = 3;
@@ -24,7 +25,7 @@ type Ml = typeof import("maplibre-gl");
 export const MIDDLE = 0.2;
 /** How long the camera takes to glide over to him. */
 export const RECENTRE_MS = 800;
-export type Padding = { top: number; bottom: number; left: number; right: number };
+export type { Padding } from "./scene";
 
 /**
  * Liberty without what costs most on phones: 3D buildings (fill-extrusion)
@@ -42,7 +43,7 @@ const line = (coords: LatLon[][]): GeoJSON.Feature => ({
   geometry: { type: "MultiLineString", coordinates: coords.map((seg) => seg.map(([lat, lon]) => [lon, lat])) },
 });
 
-export class MapView {
+export class MapView implements MapPort {
   map!: MlMap;
   private ml!: Ml;
   private him!: Marker;
@@ -297,6 +298,11 @@ export class MapView {
 
   zoom(): number {
     return this.map.getZoom();
+  }
+
+  screenPoint(at: LatLon): { x: number; y: number } {
+    const p = this.map.project([at[1], at[0]]);
+    return { x: p.x, y: p.y };
   }
 
   /** On-screen pixels per meter at the current zoom, near `lat`. */
