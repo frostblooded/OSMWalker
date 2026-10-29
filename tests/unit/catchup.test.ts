@@ -1,3 +1,4 @@
+// The catch-up on its own: a small fake city, the real actions and fixed dice.
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
 import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";

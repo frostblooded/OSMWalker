@@ -20,7 +20,7 @@ When you close the game or hide the tab, the time doesn't stop for him. When you
 
 The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
 ## While you were away {away}
-When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), that time passes for him at once, at full speed, the same as if you had watched. Only the last {MAX_AWAY_H} hours count, so he lives through at most {MAX_AWAY_H} hours of a longer absence; the card says how much was too long ago to count.
+When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), that time passes for him at once, at full speed, the same as if you had watched. Only the first {MAX_AWAY_H} hours after you left count, so he lives through at most {MAX_AWAY_H} hours of a longer absence; the card says how much was left over.
 
 He doesn't walk the map while you are away, so no streets have to load. Instead he hops from place to place by the usual rules:
 - he picks each place like any goal (see Picking the next goal), from the places already loaded in his city, and walks the straight line to it times {ROAD_FACTOR}, at his usual speed,
@@ -30,11 +30,11 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
 
-If he was on a bus or plane when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
+If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
-The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and what he bought. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).

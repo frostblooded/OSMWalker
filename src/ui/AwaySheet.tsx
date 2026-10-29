@@ -15,7 +15,7 @@ export function AwaySheet({ summary: s, onDone }: { summary: Summary; onDone: ()
     <>
       <Card icon="🌙" title="Time away" right={duration(s.awayS)}>
         <KV k="Lived through" v={duration(s.coveredS)} />
-        {lost >= 60 && <KV k="Too long ago to count" v={duration(lost)} tone="warning" />}
+        {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
       </Card>
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
