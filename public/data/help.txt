@@ -71,7 +71,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
+Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -136,13 +136,13 @@ Prices are real-world euro prices, the same in every country: a coffee is a few 
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. He always saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
 ## Wages {wages}
-Every job lists a real-world wage for a shift, such as a café paying for washing cups. That is what he earns at level 1. As he grows he earns more, well above real wages, so that vehicles come within reach:
+Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that. As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 
-For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Bets and gigs count as jobs; selling items and money found on the street don't.
+For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Saving for a vehicle {saving}
 He always saves up for the cheapest vehicle one step above what he rides:
 - on foot, a {GOAL_BIKE} for {CHEAP_BIKE},
@@ -151,7 +151,7 @@ He always saves up for the cheapest vehicle one step above what he rides:
 
 With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see How he chooses), and places that pay pull his goals like a need.
 
-Once he has the money, a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
+Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 

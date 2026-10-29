@@ -62,7 +62,9 @@ test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "Vitals", "Health", "Attributes", "Strength", "Gear", "Vehicle", "Bag", "Effects"]) await expect(sheet).toContainText(t);
+  for (const t of ["Level 1", "Saving for", "Bike", "Vitals", "Health", "Attributes", "Strength", "Gear", "Vehicle", "Bag", "Effects"]) await expect(sheet).toContainText(t);
+  // He starts with €200, more than a €150 bike plus his €20 reserve.
+  await expect(sheet).toContainText("✔ €170 / €170");
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
