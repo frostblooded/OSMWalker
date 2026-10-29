@@ -10,15 +10,15 @@ import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
-import { euro, signed } from "../core/money";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
-import { cityBounds as tripCityBounds, isPlan, NO_PLACES_BOOST, roll, Trips, type City, type Kind, type LatLon, type Plan } from "../core/trips";
+import { NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, pathLengthM, SPEED_MPS, tripLimitM, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
+import { Journey, type Where } from "./journey";
 import { DEFAULT_ZOOM, SaveFile, type KV } from "./saveFile";
 
 export { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY } from "./saveFile";
@@ -53,13 +53,12 @@ export class Game {
   debugLog = new DebugLog();
   readonly problems = new Problems();
   readonly trips: Trips;
+  readonly journey: Journey;
   readonly activities: Activities;
   readonly loader: StreetLoader;
   city = "";
   /** Country code of where he is. */
   country = "";
-  /** True until the first destination after choosing a city. */
-  skipRoll = false;
   origin: LatLon = [0, 0];
   /** The zoom the player picked. */
   zoom = DEFAULT_ZOOM;
@@ -76,7 +75,6 @@ export class Game {
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   private listeners = new Set<() => void>();
-  private rollInfo: PickInfo = {};
   private forced = "";
   private saveTimer = 0;
   private checkTimer = 0;
@@ -93,6 +91,7 @@ export class Game {
     this.rng = deps.rng ?? new Rng();
     this.file = deps.storage === undefined ? new SaveFile() : new SaveFile(deps.storage);
     this.trips = new Trips(deps.data.cities, deps.data.airports);
+    this.journey = new Journey({ trips: this.trips, rng: this.rng, roll: deps.rollSource, route: (a, b) => deps.api.route(a, b), problem: (t) => this.problems.warn(t) });
     this.activities = new Activities(deps.data.actions, deps.data.flavour);
     this.loader = new StreetLoader(new StreetGraph(), deps.load);
     const warn = (t: string) => this.problems.warn(t);
@@ -167,7 +166,7 @@ export class Game {
   private attach(w: Walker): void {
     this.walker = w;
     w.rng = this.rng;
-    w.tripPlanner = () => this.planTrip();
+    w.tripPlanner = () => this.journey.consider(this.where(), this.stats);
     w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
@@ -274,85 +273,37 @@ export class Game {
     return !!w?.bounds && w.graph.placesIn(w.bounds).length === 0;
   }
 
-  /** Asked on each new destination: maybe a trip to another city instead. */
-  private planTrip(): Plan | null {
-    if (this.skipRoll) {
-      this.skipRoll = false;
-      this.rollInfo = { skipped: "first pick in a new city" };
-      return null;
-    }
+  /** True until the first destination after choosing a city: no trip dice then. */
+  get skipRoll(): boolean {
+    return this.journey.skipRoll;
+  }
+
+  set skipRoll(on: boolean) {
+    this.journey.skipRoll = on;
+  }
+
+  /** Where he is, for the trip dice. */
+  private where(): Where {
     const w = this.walker!;
-    const r = this.deps.rollSource?.() ?? this.rng.randf();
-    const boost = this.noPlaces() ? NO_PLACES_BOOST : 1;
-    const kind = roll(r, boost);
-    this.rollInfo = { roll: r, boost, outcome: kind };
-    if (kind === "stay") return null;
-    const here = w.position();
-    const found = this.tripTo(kind, here);
-    if (!found) return null;
-    const dest = { ...found, bounds: tripCityBounds(found) };
-    const plan = this.trips.planTrip(dest, here, w.bounds ? w.graph.placesIn(w.bounds) : [], this.stats.cents, this.stats.vehicle() === "car", this.rng.randf());
-    if (!isPlan(plan)) {
-      this.rollInfo.no_trip = plan.error;
-      if (plan.short_of !== undefined) {
-        this.stats.savingFor = plan.short_of;
-        this.stats.say(`Wants to go to ${dest.name} but can't afford it yet, so he's saving up`);
-      }
-      return null;
+    return { here: w.position(), city: this.city, country: this.country, places: w.bounds ? w.graph.placesIn(w.bounds) : [], noPlaces: this.noPlaces() };
+  }
+
+  /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */
+  private onBoarding(plan: Plan): boolean {
+    const why = this.journey.board(plan, this.stats);
+    if (why) {
+      this.debugLog.add({ no_trip: why });
+      return false;
     }
-    this.stats.savingFor = 0;
-    this.stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
-    if (plan.mode !== "plane") void this.fetchRoute(plan);
-    return plan;
-  }
-
-  /** Asks for the road the bus or car takes; a ride that starts before the answer goes in a straight line. */
-  private async fetchRoute(plan: Plan): Promise<void> {
-    const path = await this.deps.api.route([plan.station.lat, plan.station.lon], plan.arrive);
-    if (path.length > 0 && this.walker?.departing === plan) plan.path = path;
-  }
-
-  /** At the station: pays the fare, or stays and saves up when he has spent too much on the way. */
-  private onBoarding(plan: Plan): void {
-    const dest = plan.city;
-    if (this.stats.cents < plan.fare) {
-      plan.cancel = `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(this.stats.cents)}`;
-      this.stats.savingFor = plan.fare;
-      this.stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
-      this.debugLog.add({ no_trip: plan.cancel });
-      return;
-    }
-    this.stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    this.setOff(dest, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
-  }
-
-  /** A city for a trip of `kind`, with how many there were and its odds noted for the debug log. */
-  private tripTo(kind: Kind, here: LatLon): City | null {
-    const opts = this.trips.options(kind, this.country, here[0], here[1]);
-    const dest = this.trips.pick(kind, this.country, here[0], here[1], this.rng);
-    if (!dest) {
-      this.rollInfo.no_trip = "no other city to go to";
-      this.problems.warn(`A trip was rolled but there is no city to go to from ${this.city}`);
-      return null;
-    }
-    const total = opts.reduce((a, c) => a + c.pop, 0);
-    Object.assign(this.rollInfo, { options: opts.length, chance: dest.pop / Math.max(total, 1) });
-    return dest;
-  }
-
-  private setOff(dest: City, line = ""): void {
-    this.stats.say(line || `Set off for ${dest.name}, ${dest.country}`);
-    this.stats.history.breakTrail();
     this.changed();
+    return true;
   }
 
   /** Each pick goes in the debug log with the trip roll that came before it. */
   private onPicked(info: PickInfo): void {
-    const e: Entry = { ...this.rollInfo, ...info };
+    const e: Entry = { ...this.journey.takeLog(), ...info };
     if (this.forced) e.forced = this.forced;
     this.debugLog.add(e);
-    this.rollInfo = {};
     this.changed();
   }
 
@@ -381,20 +332,14 @@ export class Game {
   debugTrip(kind: "city" | "country"): void {
     const w = this.walker;
     if (!w) return;
-    this.rollInfo = {};
-    const dest = this.tripTo(kind, w.position());
-    const e: Entry = { ...this.rollInfo, forced: kind };
-    this.rollInfo = {};
-    if (!dest) {
-      this.debugLog.add(e);
-      this.changed();
-      return;
-    }
-    e.trip = `${dest.name}, ${dest.country}`;
+    const dest = this.journey.pickNow(kind, this.where(), this.stats);
+    const e: Entry = { ...this.journey.takeLog(), forced: kind };
+    if (dest) e.trip = `${dest.name}, ${dest.country}`;
     this.debugLog.add(e);
-    this.setOff(dest);
+    this.changed();
+    if (!dest) return;
     w.restM = 0;
-    w.startTravel({ ...dest, bounds: tripCityBounds(dest) });
+    w.startTravel(dest);
     w.landNow();
   }
 

@@ -640,7 +640,7 @@ describe("trips", () => {
 
   it("board and ride at the station", () => {
     const boarded: Plan[] = [];
-    walker.events.boarding = (p) => boarded.push(p);
+    walker.events.boarding = (p) => (boarded.push(p), true);
     walkToStation();
     expect(boarded).toHaveLength(1);
     expect(walker.isTraveling()).toBe(true);
@@ -652,7 +652,7 @@ describe("trips", () => {
   });
 
   it("stay in town when boarding is cancelled", () => {
-    walker.events.boarding = (p) => (p.cancel = "can't afford it now");
+    walker.events.boarding = () => false;
     walkToStation();
     expect(walker.isTraveling()).toBe(false);
     expect(walker.isDeparting()).toBe(false);

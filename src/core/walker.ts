@@ -49,8 +49,8 @@ export interface WalkerEvents {
   arrived?(place: Place): void;
   /** Picked a new goal or trip, and how. */
   picked?(info: PickInfo): void;
-  /** Reached a trip's station. Listeners pay for it, or set plan.cancel to stay. */
-  boarding?(plan: Plan): void;
+  /** Reached a trip's station. Listeners pay for it and return true to ride, or false to stay. */
+  boarding?(plan: Plan): boolean;
   /** Something odd that the debug panel should show. */
   problem?(text: string): void;
 }
@@ -315,8 +315,7 @@ export class Walker {
   private board(): void {
     const plan = this.departing!;
     this.departing = null;
-    this.events.boarding?.(plan);
-    if (plan.cancel) {
+    if (this.events.boarding?.(plan) === false) {
       this.moveOn();
       return;
     }

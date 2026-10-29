@@ -48,8 +48,6 @@ export type Plan = {
   distance_m: number;
   /** The road a bus or car takes, once known; a straight line until then. */
   path?: LatLon[];
-  /** Set by a boarding listener to stay instead, with the reason. */
-  cancel?: string;
 };
 export type NoPlan = { error: string; short_of?: number };
 
