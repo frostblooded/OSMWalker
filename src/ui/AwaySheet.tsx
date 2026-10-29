@@ -34,7 +34,7 @@ export function AwaySheet({ summary: s, onDone }: { summary: Summary; onDone: ()
       )}
       <Card icon="⭐" title="Progress">
         <KV k="💰 Money" v={`${euro(s.startCents)} → ${euro(s.endCents)}`} />
-        <KV k="Change" v={signed(money)} tone={money > 0 ? "ok" : money < 0 ? "error" : undefined} />
+        <KV k="Change" v={signed(money)} tone={money > 0 ? "ok" : undefined} />
         <KV k="⭐ Level" v={s.endLevel > s.startLevel ? `${s.startLevel} → ${s.endLevel}` : s.endLevel} tone={s.endLevel > s.startLevel ? "ok" : undefined} />
         <KV k="🛍 Bought" v={s.bought.length} />
       </Card>
