@@ -1,68 +1,49 @@
 name: Web (TypeScript)
 
+# Docs-only changes (CLAUDE.md, docs/) never reach the game, so they run nothing.
 on:
   pull_request:
+    paths-ignore: ["**.md", "docs/**"]
   push:
     branches: [master]
+    paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
 
 concurrency:
   group: web-${{ github.ref }}
   cancel-in-progress: true
 
-# check and build run in parallel; e2e and perf play the same build in parallel.
-# master pushes deploy that build to GitHub Pages once everything passes,
-# then live-check plays the deployed site to prove it loads.
+# check, e2e and perf run in parallel. The build takes ~2 s, so e2e and perf
+# each build for themselves instead of waiting on a Build job and an artifact
+# hop (~15 s). master pushes deploy the build e2e played to GitHub Pages once
+# everything passes, then live-check plays the deployed site to prove it loads.
 jobs:
   check:
     name: Typecheck + unit/integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npm run typecheck
       - run: npm test
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: dist
-          retention-days: 7
-
   e2e:
     name: Browser e2e
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist
+      - uses: ./.github/actions/setup
+      - run: npm run build
       - name: Play the game (runner's Chrome, no browser download)
         env:
           CI: "true"
         run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        with:
+          name: web-dist
+          path: dist
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -74,19 +55,11 @@ jobs:
 
   perf:
     name: Perf budgets
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist
+      - uses: ./.github/actions/setup
+      - run: npm run build
       - name: Check budgets on a mid-range phone profile
         env:
           CI: "true"
@@ -129,11 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Play the deployed game with the real map services
         env:
           CI: "true"
