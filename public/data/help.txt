@@ -30,7 +30,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle, on his bike to a near town, or hitchhiking when broke (see Other ways to travel).
 
-If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
+If he was on any ride to another city when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
@@ -411,10 +411,10 @@ Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about
 He pays at the station. If the dice send him on a trip he can't pay for, he hitchhikes when he has less than {HITCH_BELOW}; otherwise he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Other ways to travel {modes}
 Besides the bus, the plane and his own car, he picks other ways on his own when the places around him allow it:
-- 🚲 Bike: on a bike, he cycles to a town under {CYCLE_MAX_KM} km away instead of taking a station, for free, at {BIKE_ROAD_KMH} km/h. He arrives tired: {BIKE_EFFORT_KM} energy per km.
-- ⛴ Ferry: with a ferry terminal loaded, a trip by road to a city up to {FERRY_MAX_KM} km away in a straight line goes by ferry {FERRY_PCT} of the time. It sails straight over the water at {FERRY_KMH} km/h and lands in the new city's centre.
-- 🚆 Train: with a railway station loaded, a road trip of at least {TRAIN_FROM_KM} km goes by train instead of the bus, at {TRAIN_KMH} km/h. From {SLEEPER_FROM_KM} km it is a night train: he sleeps in a berth and arrives with full energy.
-- 👍 Hitchhiking: with less than {HITCH_BELOW} and no fare he can pay (or no station to leave from), he doesn't wait to save up, as long as a road reaches (up to {MAX_ROAD_KM} km). He sticks his thumb out right where he stands and gets a free lift at {HITCH_KMH} km/h, counting the wait. {HITCH_BAD_PCT} of lifts go badly ({HITCH_BAD_FX}), {HITCH_GOOD_PCT} are a great story ({HITCH_GOOD_FX}), and the rest are just a quiet ride.
+- {BIKE_ICON} Bike: on a bike, he cycles to a town under {CYCLE_MAX_KM} km away instead of taking a station, for free, at {BIKE_ROAD_KMH} km/h. He arrives tired: {BIKE_EFFORT_KM} energy per km.
+- {FERRY_ICON} Ferry: with a ferry terminal loaded, a trip by road to a city up to {FERRY_MAX_KM} km away in a straight line goes by ferry {FERRY_PCT} of the time. It sails straight over the water at {FERRY_KMH} km/h and lands in the new city's centre.
+- {TRAIN_ICON} Train: with a railway station loaded, a road trip of at least {TRAIN_FROM_KM} km goes by train instead of the bus, at {TRAIN_KMH} km/h. From {SLEEPER_FROM_KM} km it is a night train: he sleeps in a berth and arrives with full energy.
+- {HITCH_ICON} Hitchhiking: with less than {HITCH_BELOW} and no fare he can pay (or no station to leave from), he doesn't wait to save up, as long as a road reaches (up to {MAX_ROAD_KM} km). He sticks his thumb out right where he stands and gets a free lift at {HITCH_KMH} km/h, counting the wait. {HITCH_BAD_PCT} of lifts go badly ({HITCH_BAD_FX}), {HITCH_GOOD_PCT} are a great story ({HITCH_GOOD_FX}), and the rest are just a quiet ride.
 
 A car owner drives rather than taking the train or a ferry, unless he can't pay the fuel and hitchhikes (see Stations and getting there). Rides of every kind go {RIDE_SPEEDUP} times faster than real and are capped the same way.
 ## Packing for a trip {packing}
@@ -423,7 +423,7 @@ As he boards for another city he packs a travel kit on his own, by need, and pay
 
 He only packs what still leaves him his reserve of {KEEP_CENTS} after the fare. Each one starts a buff (see Buffs and debuffs), so it keeps working after he lands. He packs while you are away too.
 ## Jet lag {jetlag}
-After a flight he counts the time zones he crossed: one for every {DEG_PER_ZONE} degrees of longitude between the two airports, the short way round the globe. For each one he is Jet-lagged for {JET_LAG_H_PER_ZONE} hour, at most {JET_LAG_MAX_H} hours. While it lasts he loses {JET_LAG_ENERGY_PER_H} energy an hour and gets {JET_LAG_XP_PCT} less XP from actions (see Buffs and debuffs). A flight within one time zone, and every bus or car ride, leaves him fresh.
+After a flight he counts the time zones he crossed: one for every {DEG_PER_ZONE} degrees of longitude between the two airports, the short way round the globe. For each one he is Jet-lagged for {JET_LAG_H_PER_ZONE} hour, at most {JET_LAG_MAX_H} hours. While it lasts he loses {JET_LAG_ENERGY_PER_H} energy an hour and gets {JET_LAG_XP_PCT} less XP from actions (see Buffs and debuffs). A flight within one time zone, and every ride on the ground, gives no jet lag (though cycling, a night train or a hitched lift change his meters in their own ways: see Other ways to travel).
 ## Crossing a border {borders}
 Each time he arrives in a different country than the one he left, by any kind of trip, the feed and History get a few border lines:
 - a passport stamp, with how many countries he has been to (the Collection's countries list shows them all),
