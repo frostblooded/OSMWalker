@@ -11,12 +11,12 @@ Imports only point down this list (`src/sw/` imports nothing).
 | Layer | Folder | What it holds |
 | --- | --- | --- |
 | Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core`. |
-| App | `src/app/` | `loop.ts` ticks the game while the page is visible. `data.ts` fetches `public/data/` once. |
+| App | `src/app/` | `loop.ts` ticks the game while the page is visible. `data.ts` fetches `public/data/` once. `sound.ts` is the optional city sound, made with Web Audio and loaded only when it is turned on. |
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
 | Streets | `src/streets/` | The Web Worker that fetches, decodes and caches street tiles (`source.ts`), and `loader.ts`, which picks which tiles to load next. |
 | Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
-| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, clovers and care packages (`gifts.ts`), guessing his next trip (`guess.ts`), postcards packed into a link (`postcard.ts`), his look on the map (`look.ts`: face, bubble, pose and place icons), his day's stops (`day.ts`) and week's tally for the recap (`week.ts`), and `catchup.ts`, which lives through the time the game was closed without walking the map. |
+| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, clovers and care packages (`gifts.ts`), guessing his next trip (`guess.ts`), postcards packed into a link (`postcard.ts`), his look on the map (`look.ts`: face, bubble, pose and place icons), his day's stops (`day.ts`) and week's tally for the recap (`week.ts`), which soundscape plays (`soundscape.ts`), and `catchup.ts`, which lives through the time the game was closed without walking the map. |
 | Offline | `src/sw/` | The service worker and its cache rules, built on its own. |
 
 ## Hidden links

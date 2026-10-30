@@ -1,11 +1,12 @@
 // What the screens show about him, worked out once from the game: his look
-// on the map, the day ribbon, the top card (what he is doing, where he goes,
-// how long until he moves again, why he waits) and the facts Debug lists.
-// Plain data, so the screens only lay it out and the numbers are tested
-// without a browser.
+// on the map, the day ribbon, the soundscape, the top card (what he is
+// doing, where he goes, how long until he moves again, why he waits) and the
+// facts Debug lists. Plain data, so the screens only lay it out and the
+// numbers are tested without a browser.
 import { distanceM, type BBox } from "../core/geo";
 import * as Day from "../core/day";
 import * as Looks from "../core/look";
+import { soundscape, type Soundscape } from "../core/soundscape";
 import type { LatLon, Mode } from "../core/trips";
 import { pathLengthM, tripLimitM } from "../core/walker";
 import type { Game } from "./game";
@@ -106,4 +107,10 @@ export function ribbon(g: Game, biasMin: number): { icons: string[]; more: numbe
     }),
     more: r.more,
   };
+}
+
+/** What the city sound plays now. */
+export function sound(g: Game): Soundscape {
+  const w = g.walker!;
+  return soundscape(w.place?.class ?? null, w.isResting(), !!w.travel);
 }

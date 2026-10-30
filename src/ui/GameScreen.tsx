@@ -6,7 +6,8 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
-import { hud, ribbon, type Goal, type Hud } from "../game/hud";
+import type { Sound } from "../app/sound";
+import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import type { Postcard } from "../core/postcard";
@@ -30,6 +31,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
   const scene = useRef<MapScene | null>(null);
+  const audio = useRef<Sound | null>(null);
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -71,6 +73,21 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       scene.current = null;
     };
   }, [game]);
+
+  // The city sound: its code loads only once the switch is on; the scene follows him at the screen's redraw rate.
+  useEffect(() => {
+    if (!game.sound) return;
+    let gone = false;
+    void import("../app/sound").then(({ Sound }) => {
+      if (!gone) audio.current = new Sound();
+    });
+    return () => {
+      gone = true;
+      audio.current?.stop();
+      audio.current = null;
+    };
+  }, [game, game.sound]);
+  if (game.walker) audio.current?.set(sound(game));
 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
@@ -181,6 +198,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </button>
             <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
               🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />
+            </button>
+            <button class="btn" role="switch" aria-checked={game.sound} onClick={() => game.setSound(!game.sound)}>
+              🔊 City sound <span class={`switch${game.sound ? " on" : ""}`} aria-hidden="true" />
             </button>
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city
