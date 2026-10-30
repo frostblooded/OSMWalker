@@ -117,7 +117,8 @@ describe("catch-up", () => {
     expect(s.cities[0]).toBe("Nexttown, A-land");
     // Nexttown's streets never loaded, so he visits made-up places there.
     expect(s.lines.some((l) => / at an? [a-z ]+ in Nexttown/.test(l.text))).toBe(true);
-    if (s.end.city.name !== HOME.name) expect(s.end.city.places).toBeNull();
+    // Wherever the dice leave him, a city he reached away has no loaded places.
+    expect(s.end.city.name === HOME.name || s.end.city.places === null).toBe(true);
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
     expect(stats.cents).toBeLessThan(500_000);

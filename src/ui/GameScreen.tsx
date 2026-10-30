@@ -8,7 +8,7 @@ import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
 import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
-import type { Forecast as ForecastT } from "../core/forecast";
+import { words, type Forecast as ForecastT } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import type { Postcard } from "../core/postcard";
@@ -353,7 +353,7 @@ function Waiting({ hud: h }: { hud: Hud }) {
 function Forecast({ f }: { f: ForecastT }) {
   return (
     <div class="dim small forecast" title="Today's forecast">
-      {f.icon} {f.text}
+      {f.icon} {words(f)}
     </div>
   );
 }

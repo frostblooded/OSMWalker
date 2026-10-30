@@ -1,41 +1,42 @@
-// The daily forecast: one small rule of the day, picked from FORECASTS by a
-// hash of the local date, so every player on the same date gets the same one
-// with no server (Godville's newspaper). It changes a little of what he does
-// that day; he never has to do anything about it.
+// The daily forecast: one small rule of the day, picked from data/forecasts.json
+// with an Rng seeded from the local date, so every player on the same date
+// gets the same one with no server (Godville's newspaper). It changes a
+// little of how things go that day; he never has to do anything about it.
 import { dayOf } from "./gifts";
+import { Rng } from "./rng";
 
 /** What a forecast changes: mood from places of one class, fares, money on the street, sale prices, walking effort, first-visit XP or wages. */
 export type Effect = "mood" | "fare" | "find" | "sell" | "effort" | "visit" | "wage";
+/** `text` says `{n}` where the amount goes (see amount), so the words follow `mult`. */
 export type Forecast = { id: string; icon: string; text: string; effect: Effect; mult: number; kind?: string };
 
-export const FORECASTS: readonly Forecast[] = [
-  { id: "bakery", icon: "🥐", text: "Bakeries feel twice as good today", effect: "mood", kind: "bakery", mult: 2 },
-  { id: "cafe", icon: "☕", text: "Cafés feel twice as good today", effect: "mood", kind: "cafe", mult: 2 },
-  { id: "park", icon: "🌳", text: "Parks feel twice as good today", effect: "mood", kind: "park", mult: 2 },
-  { id: "museum", icon: "🏛", text: "Museums feel twice as good today", effect: "mood", kind: "museum", mult: 2 },
-  { id: "ice_cream", icon: "🍦", text: "Ice cream tastes twice as good today", effect: "mood", kind: "ice_cream", mult: 2 },
-  { id: "fares", icon: "🎫", text: "Fares are 20% off today", effect: "fare", mult: 0.8 },
-  { id: "find", icon: "🪙", text: "Pockets are leaky today: twice the money on the street", effect: "find", mult: 2 },
-  { id: "sell", icon: "💶", text: "Dealers are generous today: things sell for 25% more", effect: "sell", mult: 1.25 },
-  { id: "effort", icon: "🍃", text: "A tailwind everywhere: walking tires him 25% less", effect: "effort", mult: 0.75 },
-  { id: "visit", icon: "🧭", text: "New places give 50% more XP today", effect: "visit", mult: 1.5 },
-  { id: "wage", icon: "💼", text: "Bosses are in a good mood: work pays 10% more", effect: "wage", mult: 1.1 },
-  { id: "dragon", icon: "🐉", text: "A dragon was seen over the river; parks feel twice as good", effect: "mood", kind: "park", mult: 2 },
-];
+/** Until the data has loaded (and in tests that don't load it), a day that changes nothing. */
+export const QUIET: Forecast = { id: "quiet", icon: "📰", text: "A quiet day", effect: "mood", mult: 1 };
 
-/** The forecast for local date `day` ("2026-10-30"). */
-export function forecastOn(day: string): Forecast {
-  let h = 2166136261;
-  for (let i = 0; i < day.length; i++) h = Math.imul(h ^ day.charCodeAt(i), 16777619);
-  return FORECASTS[(h >>> 0) % FORECASTS.length]!;
+/** How much `f` changes things, in words: "twice" for a multiple of 2, else the percent up or down. */
+export function amount(f: Forecast): string {
+  if (f.mult === 2) return "twice";
+  if (f.mult > 2) return `${f.mult} times`;
+  return `${Math.round(Math.abs(f.mult - 1) * 100)}%`;
 }
 
-let cached = { min: NaN, f: FORECASTS[0]! };
+/** What `f` says, with its amount filled in. */
+export const words = (f: Forecast) => f.text.replace("{n}", amount(f));
 
-/** The forecast at unix seconds `t`; worked out once a minute, since it is asked every frame. */
-export function forecastAt(t: number): Forecast {
+/** The forecast out of `list` for local date `day` ("2026-10-30"). */
+export function forecastOn(list: readonly Forecast[], day: string): Forecast {
+  if (!list.length) return QUIET;
+  let seed = 2166136261;
+  for (let i = 0; i < day.length; i++) seed = Math.imul(seed ^ day.charCodeAt(i), 16777619);
+  return new Rng(seed).pick(list);
+}
+
+let cached = { list: [] as readonly Forecast[], min: NaN, f: QUIET };
+
+/** The forecast out of `list` at unix seconds `t`; worked out once a minute, since it is asked every frame. */
+export function forecastAt(list: readonly Forecast[], t: number): Forecast {
   const min = Math.floor(t / 60);
-  if (min !== cached.min) cached = { min, f: forecastOn(dayOf(t * 1000)) };
+  if (min !== cached.min || list !== cached.list) cached = { list, min, f: forecastOn(list, dayOf(t * 1000)) };
   return cached.f;
 }
 

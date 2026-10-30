@@ -172,7 +172,11 @@ export function values(data: GameData): Record<string, string> {
     CHESS_BASE_PCT: pct(Dilemmas.CHESS_BASE),
     CHESS_PER_WIT_PCT: pct(Dilemmas.CHESS_PER_WIT),
     CHESS_MAX_PCT: pct(Dilemmas.CHESS_MAX),
-    FORECAST_LIST: Forecast.FORECASTS.map((f) => `- ${f.icon} ${f.text}`).join("\n"),
+    FORECAST_LIST: (data.forecasts ?? []).map((f) => `- ${f.icon} ${Forecast.words(f)}`).join("\n"),
+    RESALE_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.resale))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),

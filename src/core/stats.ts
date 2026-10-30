@@ -132,6 +132,8 @@ export class Stats {
   cityPool: CC.Pool | null = null;
   /** Deadpan jokes from data/jokes.json; not saved, the game sets it. */
   jokes: Jokes = {};
+  /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
+  forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
   care = new Care();
   /** The places he stopped at lately, for the day ribbon. */
@@ -157,7 +159,7 @@ export class Stats {
 
   /** Today's forecast, by his clock. */
   forecast(): F.Forecast {
-    return F.forecastAt(this.now());
+    return F.forecastAt(this.forecasts, this.now());
   }
 
   /** The kind of vehicle he rides, or "" on foot. */
