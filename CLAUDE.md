@@ -7,7 +7,7 @@ A tamagotchi-like game played in mobile browsers: a little character walks real 
 These mirror the Claude project instructions. Keep both in sync.
 
 - **CLAUDE.md** goes straight to `master`, no PR. **Everything else**: run the checks locally, open a PR into `master`, run the review step in `CODING_STANDARDS.md`, and merge by hand once CI is green. No auto-merge.
-- **Live site**: after each merge, check that `.github/workflows/web.yml` deployed to Pages and "Play the live site" passed. The live site is how the game is played.
+- **Deploy**: after each push to `master`, check that the `.github/workflows/web.yml` deploy passed. No need to check the live site by hand.
 - **Clarify first**: before acting, grill the user with decision cards (`request_decision`, one per question). Plain-text option lists and HTML widgets can't send answers back.
 - **Tests first** (unit, integration, e2e), and keep CI fast.
 - **Performance first**: loading, startup, frames, memory and network on phones. Measure every change and put the numbers in the PR.

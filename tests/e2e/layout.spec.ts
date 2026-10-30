@@ -2,6 +2,7 @@
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Page } from "@playwright/test";
+import { encode } from "../../src/core/postcard";
 import { KEEPSAKES, mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
@@ -102,7 +103,10 @@ for (const width of [360, 412]) {
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
       // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
       test.setTimeout(90_000);
-      await page.goto("./");
+      await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)", t: 0 })}`);
+      await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
+      await check(page, "postcard-received");
+      await page.getByRole("button", { name: "Start my own walk" }).click();
       await expect(page.getByLabel("City name")).toBeVisible();
       await check(page, "picker");
       await page.getByLabel("City name").fill("Sofia");
@@ -149,6 +153,7 @@ for (const width of [360, 412]) {
       await check(page, "debug");
       await debug.getByRole("button", { name: /Goal picks/ }).click();
       await check(page, "debug-goal-picks");
+      await debug.getByRole("switch", { name: /One on every long reopen/ }).click();
       await debug.getByRole("button", { name: /New city/ }).click();
 
       await openMenuItem(page, /History/);
@@ -156,13 +161,19 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
-      await reopenAfter(page, 3);
+      await reopenAfter(page, 5);
       const away = page.getByRole("dialog", { name: /While you were away/ });
-      await expect(away).toBeVisible({ timeout: 20000 });
+      await expect(away).toContainText("One choice", { timeout: 20000 });
       await check(page, "away");
+      await away.locator(".choices button").last().click();
+      await check(page, "away-dilemma");
       await away.getByRole("button", { name: /events, newest first/ }).click();
       await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();
+
+      await openMenuItem(page, /Send a postcard/);
+      await check(page, "postcard");
+      await page.getByRole("dialog", { name: /Send a postcard/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Care package/);
       const care = page.getByRole("dialog", { name: /Care package/ });
@@ -174,6 +185,11 @@ for (const width of [360, 412]) {
       await reopenDeparting(page);
       await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
       await check(page, "guess");
+
+      await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)", t: 0 })}`);
+      await page.reload(); // only the fragment changed, so the page has to load again to read it
+      await expect(page.getByRole("dialog", { name: "📮 Postcard" })).toBeVisible({ timeout: 20000 });
+      await check(page, "postcard-in-game");
     });
   });
 }
