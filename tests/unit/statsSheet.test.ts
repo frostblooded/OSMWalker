@@ -9,7 +9,7 @@ import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import type { Spell } from "../../src/core/magic";
-import { readFileSync } from "node:fs";
+import SPELLS from "../../public/data/spells.json";
 
 const shown = (stats: Stats, afoot = false) => {
   const root = document.createElement("div");
@@ -50,7 +50,8 @@ describe("Stats sheet", () => {
   });
 
   it("shows his Magic in Vitals and the spells he knows, with their cost and casts", () => {
-    const spells = JSON.parse(readFileSync("public/data/spells.json", "utf8")) as Spell[];
+    // Imported, as dataFile can't find files under happy-dom.
+    const spells = SPELLS as Spell[];
     const stats = Object.assign(new Stats(), { spellKinds: spells });
     stats.magic = 42;
     let text = shown(stats);
