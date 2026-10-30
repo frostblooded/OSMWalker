@@ -48,15 +48,18 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [sheets, setSheets] = useState<Sheets | null>(null);
+  const [sheetsFailed, setSheetsFailed] = useState(false);
   const loading = useRef(false);
-  /** Loads the sheets once; a failure (offline, or a deploy replaced the files) is logged and the next open tries again. */
+  /** Loads the sheets once. The browser keeps a failed import failed, so a failure (offline, or a deploy replaced the files) asks for a reload. */
   const fetchSheets = () => {
     if (loading.current) return;
     loading.current = true;
     loadSheets()
       .then(setSheets)
-      .catch((e: Error) => game.problems.warn(`Couldn't load the menu's screens: ${e.message}`))
-      .finally(() => (loading.current = false));
+      .catch((e: Error) => {
+        game.problems.warn(`Couldn't load the menu's screens: ${e.message}`);
+        setSheetsFailed(true);
+      });
   };
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
@@ -121,7 +124,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   useEffect(() => {
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  }, [sheet, sheets]); // again once the sheet's real content is in, so the trail fits above it
+  }, [sheet]);
+  // History opened before its code arrived measured the "Loading…" box: fit the trail again above the real list.
+  useEffect(() => {
+    if (sheet === "history" && sheets) scene.current?.showHistory(true, document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0);
+  }, [sheets]);
 
   useEffect(() => {
     if (sheet && !sheets) fetchSheets();
@@ -246,32 +253,32 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close}>
-          {sheets ? <sheets.HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} /> : <Loading />}
+          {sheets ? <sheets.HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          {sheets ? <sheets.StatsSheet stats={game.stats} /> : <Loading />}
+          {sheets ? <sheets.StatsSheet stats={game.stats} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          {sheets ? <sheets.CollectionSheet stats={game.stats} /> : <Loading />}
+          {sheets ? <sheets.CollectionSheet stats={game.stats} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading />}
+          {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
-          {sheets ? <sheets.HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} /> : <Loading />}
+          {sheets ? <sheets.HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "debug" && (
         <SheetBox title="🐞 Debug" onClose={close} full>
-          {sheets ? <sheets.DebugSheet game={game} onDone={close} /> : <Loading />}
+          {sheets ? <sheets.DebugSheet game={game} onDone={close} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
@@ -416,4 +423,5 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
   );
 }
 
-const Loading = () => <p class="dim small">Loading…</p>;
+const Loading = ({ failed }: { failed: boolean }) =>
+  failed ? <div class="notice error">✖ Couldn't load this screen. Check your connection and reload the page.</div> : <p class="dim small">Loading…</p>;

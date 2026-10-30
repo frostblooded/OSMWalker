@@ -42,6 +42,16 @@ test("shades the map after dark and not by day", async ({ page }) => {
   await expect(page.locator(".night")).toHaveCount(0, { timeout: 5000 });
 });
 
+test("a menu screen that fails to load says so and asks for a reload", async ({ context, page }) => {
+  await context.route(/\/assets\/StatsSheet-[^/]*\.js$/, (route) => route.abort());
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Couldn't load this screen", { timeout: 10000 });
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.locator(".burger .dot")).toBeVisible();
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
