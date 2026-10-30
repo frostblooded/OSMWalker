@@ -9,7 +9,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud } from "../../src/game/hud";
+import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -112,6 +112,15 @@ describe("game", () => {
     expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
   });
 
+  it("strikes a pose for what he does at a place", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 400 && !g.walker!.isResting(); i++) run(g, 1);
+    expect(g.walker!.isResting()).toBe(true);
+    expect(g.doing).not.toBeNull();
+    expect(look(g).pose).not.toBeNull();
+  });
+
   it("keeps the walk across a save", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -209,11 +218,15 @@ describe("game", () => {
     const { g } = game({ places: [hospital, CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.meters.health = 0;
+    g.doing = { name: "Nap on a bench", min: 1, fx: { energy: 20 } };
     const coins = g.stats.cents;
     g.step(1);
     expect(g.walker!.place).toEqual(hospital);
     expect(g.walker!.isResting()).toBe(true);
     expect(g.stats.cents).toBeLessThan(coins);
+    // He rests at the hospital, but did nothing there to strike a pose for.
+    expect(g.doing).toBeNull();
+    expect(look(g).pose).toBeNull();
   });
 
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {

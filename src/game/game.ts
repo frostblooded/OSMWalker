@@ -73,6 +73,8 @@ export class Game {
   zoom = DEFAULT_ZOOM;
   /** Trivia actions for random spots, from Wikidata. */
   cityFacts: Action[] = [];
+  /** The action he does at the place he stays at, for his pose; not saved. */
+  doing: Action | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -240,6 +242,7 @@ export class Game {
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     this.stats.care.open(this.stats);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
+    this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
@@ -264,6 +267,7 @@ export class Game {
     }
     if (!hospital) this.problems.warn("Fainted with no hospital loaded nearby; he wakes where he is");
     this.stats.wakeInHospital(hospital?.name ?? "");
+    this.doing = null;
     if (w.isTraveling()) return;
     if (w.wakeAt(hospital ? w.graph.nearestNode(hospital.lat, hospital.lon) : null, hospital)) {
       this.stats.history.breakTrail();
