@@ -68,7 +68,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     return () => {
       gone = true;
       unsub();
-      loop?.pause();
+      loop?.stop();
       view?.destroy();
       scene.current = null;
     };
