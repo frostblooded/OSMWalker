@@ -75,6 +75,19 @@ describe("save file", () => {
     expect(back.stats.cents).toBe(4321);
   });
 
+  it("loads saves from before the day ribbon and weekly recap with no stops and a fresh week", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.stops;
+    delete d.stats.week;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.stops).toEqual([]);
+    expect(back.stats.week.tally.start).toBe(0);
+    expect(back.stats.week.pending()).toBeNull();
+  });
+
   it("fills in what old saves lack: zoom and the city box", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
