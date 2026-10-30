@@ -1,6 +1,5 @@
 // Perf budget check: loads the production build under a mid-range phone profile
-// and fails if any number in budgets.json is exceeded. Numbers without a budget
-// (app JS size) are only reported: keep them small, but they never fail CI.
+// and fails if any number in budgets.json is exceeded.
 // Usage: node tests/perf/perf.mjs   (after npm run build)
 // PW_CHROMIUM=/path/to/chrome uses a local Chromium; CI uses the runner's Chrome.
 import { chromium } from "@playwright/test";
@@ -44,7 +43,6 @@ const load = await page.evaluate(() => {
   const local = res.filter((r) => r.name.startsWith(location.origin));
   return {
     transfer: nav.encodedBodySize + local.reduce((s, r) => s + r.encodedBodySize, 0),
-    appJs: local.filter((r) => r.name.endsWith(".js") && !/maplibre/.test(r.name)).reduce((s, r) => s + r.encodedBodySize, 0),
     firstPaint: performance.getEntriesByName("first-contentful-paint")[0]?.startTime ?? Infinity,
     ready: performance.getEntriesByName("osmwalker:ready")[0].startTime,
   };
@@ -61,7 +59,6 @@ if (late.tasks.length || process.env.PERF_DEBUG) console.log("Long tasks after r
 
 const results = {
   transfer_kb: Math.round(load.transfer / 1024),
-  app_js_kb: Math.round(load.appJs / 1024),
   first_paint_ms: Math.round(load.firstPaint),
   ready_ms: Math.round(load.ready),
   main_thread_busy_pct: Math.round(((m1.TaskDuration - m0.TaskDuration) / (m1.Timestamp - m0.Timestamp)) * 100),
@@ -70,9 +67,9 @@ const results = {
 await browser.close();
 server.close();
 
-// Both key sets, so a budget with no measured number still fails.
-const rows = [...new Set([...Object.keys(results), ...Object.keys(budgets)])].map((k) => ({ metric: k, value: results[k], budget: budgets[k] ?? "—", ok: !(k in budgets) || results[k] <= budgets[k] }));
-const md = [`### Perf budgets (${profile})`, "", "| Metric | Value | Budget | |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.metric} | ${r.value} | ${r.budget} | ${r.metric in budgets ? (r.ok ? "✅" : "❌") : ""} |`)].join("\n");
+// Both key sets, so a budget without a number or a number without a budget fails.
+const rows = [...new Set([...Object.keys(results), ...Object.keys(budgets)])].map((k) => ({ metric: k, value: results[k], budget: budgets[k], ok: results[k] <= budgets[k] }));
+const md = [`### Perf budgets (${profile})`, "", "| Metric | Value | Budget | |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.metric} | ${r.value} | ${r.budget} | ${r.ok ? "✅" : "❌"} |`)].join("\n");
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, "perf.json"), JSON.stringify(results, null, 2));
 fs.writeFileSync(path.join(out, "perf.md"), md + "\n");

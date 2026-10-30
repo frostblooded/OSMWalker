@@ -23,7 +23,7 @@ Every PR gets a review before it is merged:
    placeholders, never typed by hand.
 2. **Perf numbers.** A change to anything that ships to players puts
    before and after numbers from `npm run perf` in the PR body (transfer,
-   app JS, first paint, ready, main thread busy). A new dependency names
+   first paint, ready, main thread busy). A new dependency names
    its gzip size and why a smaller one won't do.
 3. **UI.** A changed screen follows `docs/ui-guidelines.md`: cards with an
    icon and heading, key/value rows, `:root` colour tokens with their fixed
