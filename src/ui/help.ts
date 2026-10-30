@@ -15,6 +15,7 @@ import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Jokes from "../core/jokes";
 import * as Day from "../core/day";
+import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
@@ -309,6 +310,21 @@ export function values(data: GameData): Record<string, string> {
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
     ACTION_COUNT: String(sum(data.actions)),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
+    CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
+    UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
+    PACK_SIZE: String(CC.PACK_SIZE),
+    CARD_SHOPS: CC.CARD_SHOP_NAMES,
+    PACK_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.pack)?.cost ?? 0)),
+    PULL_RARE_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Rare")![1]),
+    PULL_UNCOMMON_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Uncommon")![1]),
+    PULL_COMMON_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Common")![1]),
+    SPARE_COMMON: euro(CC.SPARE_CENTS.Common ?? 0),
+    SPARE_UNCOMMON: euro(CC.SPARE_CENTS.Uncommon ?? 0),
+    SPARE_RARE: euro(CC.SPARE_CENTS.Rare ?? 0),
+    FOIL_MULT: String(CC.FOIL_MULT),
+    GOLD_MULT: String(CC.GOLD_MULT),
+    SET_CHARM: String(CC.SET_CHARM),
     LANDMARK_KINDS: K.LANDMARK_CLASSES.map((c) => K.kindLabel(c).toLowerCase()).join(", "),
     GOLD_PCT: pct(K.GOLD_CHANCE),
     FOIL_PCT: pct(K.FOIL_CHANCE),

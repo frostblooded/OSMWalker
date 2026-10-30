@@ -3,6 +3,9 @@
 // open when their heading is tapped.
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
+import type { Rarity } from "../core/items";
+
+export const RARITY_COLOR: Record<Rarity, string> = { Common: "#6b7280", Uncommon: "#2e9e44", Rare: "#1a5fb4", Legendary: "#e8730c" };
 
 export function Card({ icon, title, right, tone, children }: { icon: string; title: string; right?: ComponentChildren; tone?: "error" | "warning" | "ok"; children?: ComponentChildren }) {
   return (

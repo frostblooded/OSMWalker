@@ -192,7 +192,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
-      if (action) stats.do(action, place.name, rng, place.class);
+      if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
@@ -249,7 +249,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
-    stats.enterCity(city.name);
+    stats.week.city(city.name);
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);

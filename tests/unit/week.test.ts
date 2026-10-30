@@ -62,7 +62,7 @@ describe("Stats", () => {
     s.passTime(10, 800);
     s.stop({ class: "cafe", subclass: "cafe" });
     s.visit({ name: "Cafe", lat: 1, lon: 2 });
-    s.enterCity("Lyon, France");
+    s.week.city("Lyon, France");
     const back = Stats.fromJSON(JSON.parse(JSON.stringify(s)));
     expect(back.week.tally).toMatchObject({ walkedM: 800, stops: 1, newPlaces: 1, kinds: { cafe: 1 }, cities: ["Lyon, France"] });
   });
