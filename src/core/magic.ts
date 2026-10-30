@@ -22,7 +22,7 @@ export const LEY_CHARM: NonNullable<Action["buff"]> = { name: "Ley-charmed", min
 export const MAGIC_MAX = 100;
 /** The odds an old book at a library or bookshop teaches him a spell he doesn't know yet. */
 export const LEARN_CHANCE = 0.3;
-/** Place classes with old books. */
+/** Place classes with old books: libraries, and bookshops, which OFM puts in class library (subclass books). */
 export const BOOK_CLASSES: readonly string[] = ["library"];
 /** A meter spell is cast once its meter is below this. */
 export const SPELL_AT = 30;
@@ -101,7 +101,7 @@ export function toCast(spells: readonly Spell[], known: readonly string[], magic
 }
 
 /** What he knows of magic: the spells he learned in order, how often he cast each, and the places on lines he drew a burst from today. */
-export class Magic {
+export class Lore {
   known: string[] = [];
   casts: Record<string, number> = {};
   day = "";
@@ -128,8 +128,8 @@ export class Magic {
     return { known: this.known, casts: this.casts, day: this.day, tapped: this.tapped };
   }
 
-  static fromJSON(d?: Partial<ReturnType<Magic["toJSON"]>>): Magic {
-    const m = new Magic();
+  static fromJSON(d?: Partial<ReturnType<Lore["toJSON"]>>): Lore {
+    const m = new Lore();
     m.known = [...(d?.known ?? [])];
     m.casts = { ...(d?.casts ?? {}) };
     m.day = d?.day ?? "";

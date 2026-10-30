@@ -114,8 +114,14 @@ describe("spells", () => {
     expect(new Set(SPELLS.map((s) => s.id)).size).toBe(SPELLS.length);
   });
 
+  it("come from libraries and bookshops, which the map files in one class", () => {
+    const dex = JSON.parse(dataFile("placedex.json")) as Record<string, string>;
+    for (const kind of ["library/library", "library/books"]) expect(dex[kind], kind).toBeDefined();
+    expect(M.BOOK_CLASSES).toEqual(["library"]);
+  });
+
   it("are learned from old books at libraries and bookshops, with LEARN_CHANCE, each once", () => {
-    const m = new M.Magic();
+    const m = new M.Lore();
     expect(m.learn(SPELLS, M.LEARN_CHANCE)).toBeNull();
     expect(m.learn(SPELLS, 0)?.id).toBe(SPELLS[0]!.id);
     expect(m.learn(SPELLS, 0)?.id).toBe(SPELLS[1]!.id);

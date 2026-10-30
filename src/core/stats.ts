@@ -180,7 +180,7 @@ export class Stats {
   /** His Magic meter, 0 to Mg.MAGIC_MAX: ley lines fill it, spells spend it (magic.ts). */
   magic = 0;
   /** The spells he knows and the ley places he drew from today. */
-  lore = new Mg.Magic();
+  lore = new Mg.Lore();
   /** What the spells are, from data/spells.json; not saved, the game sets it. */
   spellKinds: readonly Mg.Spell[] = [];
   /** This week in numbers, and last week's recap. */
@@ -968,7 +968,7 @@ export class Stats {
     s.creatures = Cr.Creatures.fromJSON(d.creatures);
     // A save from before magic: no Magic and no spells yet.
     s.magic = d.magic ?? 0;
-    s.lore = Mg.Magic.fromJSON(d.lore);
+    s.lore = Mg.Lore.fromJSON(d.lore);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
