@@ -715,7 +715,7 @@ export class Stats {
     s.bond = B.Bond.fromJSON(d.bond);
     s.bricks = Br.Bricks.fromJSON(d.bricks);
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
-    s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint"] });
+    s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
     return s;
   }

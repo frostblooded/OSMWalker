@@ -221,6 +221,13 @@ describe("catch-up", () => {
     expect(stats.bricks.count).toBeLessThanOrEqual(2 * BRICKS_PER_DAY);
   });
 
+  it("builds no monument at made-up places, which are no real parks", () => {
+    const stats = new Stats();
+    stats.bricks.count = 10_000;
+    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(stats.bricks.built).toEqual([]);
+  });
+
   it("saves up when he can't afford a trip", () => {
     const stats = new Stats();
     stats.cents = 0;

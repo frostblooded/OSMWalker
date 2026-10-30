@@ -98,6 +98,10 @@ describe("life chronicle", () => {
       `Reached level ${LEVEL_MARKS[0]}`,
       "Fainted for the first time and woke up at St. Anna",
     ]);
+    s.letters = { tiers: [["Hi."]], thanks: {} };
+    s.wrote(0);
+    s.wrote(0);
+    expect(s.chronicle.lines.filter((l) => l.text === "Wrote his first letter to you")).toHaveLength(1);
   });
 
   it("comes back from a save, and a save from before it skips the firsts already past", () => {
@@ -110,6 +114,8 @@ describe("life chronicle", () => {
     delete d.bricks;
     const old = Stats.fromJSON(d);
     old.arrive("Paris, France", "FRA", "France");
+    old.letters = { tiers: [["Hi."]], thanks: {} };
+    old.wrote(0);
     expect(old.chronicle.lines).toEqual([]);
     expect(old.bricks.count).toBe(0);
   });
