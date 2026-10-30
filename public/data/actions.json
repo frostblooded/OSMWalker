@@ -905,6 +905,16 @@
    }
   },
   {
+   "name": "Buy a souvenir",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "souvenir": true
+  },
+  {
    "name": "Wait out the rain in the galleries",
    "min": 45,
    "fx": {
@@ -1063,6 +1073,16 @@
    "needs": {
     "cha": 4
    }
+  },
+  {
+   "name": "Buy a souvenir",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "souvenir": true
   }
  ],
  "castle": [
@@ -2720,6 +2740,16 @@
     "wit": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Buy a souvenir",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "souvenir": true
   }
  ],
  "shop/convenience": [
@@ -3235,6 +3265,16 @@
    "needs": {
     "cha": 3
    }
+  },
+  {
+   "name": "Buy a souvenir",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "souvenir": true
   }
  ],
  "shop/second_hand": [
@@ -4662,6 +4702,16 @@
     "luck": 0.1,
     "xp": 2
    }
+  },
+  {
+   "name": "Buy a souvenir",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "souvenir": true
   }
  ],
  "shop/mobile_phone": [

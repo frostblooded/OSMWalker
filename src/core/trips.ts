@@ -138,9 +138,10 @@ export class Trips {
 
   /**
    * How he gets from `here` to `city`, or why he can't. `places` are the
-   * places loaded around him, `r` in [0, 1) decides plane or road.
+   * places loaded around him, `r` in [0, 1) decides plane or road, and
+   * `fareMult` scales the fare (his souvenirs make it cheaper).
    */
-  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number): Plan | NoPlan {
+  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number, fareMult = 1): Plan | NoPlan {
     const straight = distanceM(here[0], here[1], city.lat, city.lon);
     const road: Mode = hasCar ? "car" : "bus";
     const order: Mode[] = r < planeChance(straight) ? ["plane", road] : [road, "plane"];
@@ -159,7 +160,7 @@ export class Trips {
         station = nearest(places, here[0], here[1], Infinity, mode === "car" ? isGasStation : isBusStation);
         if (!station) continue;
       }
-      const cost = fare(mode, dist);
+      const cost = Math.max(Math.ceil(fare(mode, dist) * fareMult), 1);
       if (cost > cents) return { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
       return { city, mode, station, fare: cost, arrive, distance_m: dist };
     }

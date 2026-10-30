@@ -56,6 +56,8 @@ export type CatchUpDeps = {
   activities: Activities;
   trips: Trips;
   rng: Rng;
+  /** Rolls for keepsakes (cards and their finish), apart from `rng` so a card roll never uses up his other dice. */
+  cardRng?: Rng;
   /** The sky over `city` at unix ms: the time of day, season and weather. */
   skyAt: (ms: number, city: AwayCity) => Sky;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
@@ -208,8 +210,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         const bonus = stats.visit(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
-      } else stats.say(`Reached ${place.name}`);
-      stats.care.open(stats);
+        stats.care.open(stats);
+        stats.collect(place, deps.cardRng ?? rng);
+      } else {
+        stats.say(`Reached ${place.name}`);
+        stats.care.open(stats);
+      }
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, rng);
@@ -240,7 +246,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf());
+    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult());
     if (!isPlan(plan)) {
       if (plan.short_of !== undefined) {
         stats.savingFor = plan.short_of;
@@ -270,6 +276,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.arrive(city.name, dest.code, dest.country);
     stats.enterCity(city.name);
     moveTo(null, plan.arrive);
     heading = [0, 0];

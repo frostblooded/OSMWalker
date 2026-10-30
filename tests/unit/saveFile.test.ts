@@ -121,6 +121,21 @@ describe("save file", () => {
     expect((f.read() as Saved).savedAt).toBe(0);
   });
 
+  it("loads saves from before keepsakes, with none collected yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.keepsakes;
+    delete d.stats.where;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.keepsakes.cards.size).toBe(0);
+    expect(back.keepsakes.souvenirs.size).toBe(0);
+    expect(back.where).toEqual({ city: "", code: "", country: "" });
+    expect(back.cents).toBe(4321);
+  });
+
   it("says why a save is unreadable", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

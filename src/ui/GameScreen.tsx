@@ -14,6 +14,7 @@ import { NIGHT_SHADE } from "../core/sky";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
+import { CollectionSheet } from "./CollectionSheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
@@ -26,7 +27,7 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "stats" | "care" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -180,6 +181,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
+            <button class="btn" onClick={() => setSheet("collection")}>
+              🗂 Collection
+            </button>
             <button class="btn" onClick={() => setSheet("care")}>
               🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
             </button>
@@ -221,6 +225,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
           <StatsSheet stats={game.stats} />
+        </SheetBox>
+      )}
+      {sheet === "collection" && (
+        <SheetBox title="🗂 Collection" onClose={close} full>
+          <CollectionSheet stats={game.stats} />
         </SheetBox>
       )}
       {sheet === "care" && (

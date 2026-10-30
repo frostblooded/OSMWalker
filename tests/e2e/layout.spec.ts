@@ -2,7 +2,7 @@
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Page } from "@playwright/test";
-import { mockServices, reopenAfter, reopenDeparting } from "./mock";
+import { KEEPSAKES, mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -130,6 +130,18 @@ for (const width of [360, 412]) {
 
       await openMenuItem(page, /Stats/);
       await check(page, "stats");
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      await reopenWith(page, KEEPSAKES);
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Collection/);
+      const collection = page.getByRole("dialog", { name: /Collection/ });
+      for (const fold of [/His cards/, /Countries/, /Today/]) await collection.getByRole("button", { name: fold }).click();
+      await check(page, "collection");
+      await collection.getByRole("button", { name: /Close/ }).click();
+      await openMenuItem(page, /Stats/);
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
+      await check(page, "stats-story");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
