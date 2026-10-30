@@ -14,7 +14,6 @@ import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
-import { CollectionSheet } from "./CollectionSheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
@@ -70,7 +69,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     return () => {
       gone = true;
       unsub();
-      loop?.pause();
+      loop?.stop();
       view?.destroy();
       scene.current = null;
     };
@@ -225,7 +224,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          <CollectionSheet stats={game.stats} />
+          <LazyCollection stats={game.stats} />
         </SheetBox>
       )}
       {sheet === "care" && (
@@ -268,6 +267,21 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
     </div>
   );
+}
+
+type CollectionModule = typeof import("./CollectionSheet");
+/** The Collection sheet, loaded the first time it opens to keep it out of startup JS. */
+function LazyCollection({ stats }: { stats: Game["stats"] }) {
+  const [mod, setMod] = useState<CollectionModule | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    void import("./CollectionSheet").then(
+      (m) => setMod(() => m),
+      () => setFailed(true),
+    );
+  }, []);
+  if (failed) return <p class="tone-error">Couldn't load the Collection. Check your connection and try again.</p>;
+  return mod ? <mod.CollectionSheet stats={stats} /> : <p class="dim">Loading…</p>;
 }
 
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");

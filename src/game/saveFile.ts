@@ -8,7 +8,6 @@ import { Problems } from "../core/problems";
 import { Stats } from "../core/stats";
 import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
-import { Week } from "../core/week";
 
 export const SAVE_KEY = "osmwalker.save";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
@@ -110,9 +109,9 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      // Saves from before the day ribbon and weekly recap have no stops and no week yet. Stats.fromJSON repairs the rest
-      // old saves lack: care packages (Care.fromJSON), keepsakes, where he is and item stories.
-      stats: Stats.fromJSON({ ...d.stats, stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
+      // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes, where he is, item stories,
+      // the day's stops and the week.
+      stats: Stats.fromJSON(d.stats),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };

@@ -12,6 +12,7 @@ import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
 import { distanceM, type BBox } from "../core/geo";
+import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
@@ -275,7 +276,8 @@ export class Game {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
     }
-    this.stats.do(action, place.name, this.rng);
+    // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
+    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng);
     this.walker!.restFor(restMinutes(action));
     this.changed();
   }
@@ -377,7 +379,7 @@ export class Game {
     this.origin = [dest.lat, dest.lon];
     this.placeStats();
     this.track();
-    this.stats.enterCity(this.city);
+    this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
@@ -410,6 +412,7 @@ export class Game {
   /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
+    this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 

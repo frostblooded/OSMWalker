@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
+import * as CC from "../../src/core/cityCards";
 import { RARITY, SLOTS } from "../../src/core/items";
 import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
@@ -81,6 +82,14 @@ describe("the real help", () => {
     expect(page("saving").body).toContain("on foot, a Bike for €150");
     expect(page("cards").body).toContain("0.5% of cards are Gold and 5% are Foil");
     expect(page("placedex").body).toContain("Legendary: +200 XP");
+    expect(page("citycards").body).toContain("He also buys packs at kiosks, newsagents and gift shops: \"Buy a city card pack\" costs €5.");
+    // "the biggest: Rare" is written for RARE_UP_TO = 1.
+    expect(CC.RARE_UP_TO).toBe(1);
+    expect(page("citycards").body).toContain("- the biggest: Rare,");
+    expect(page("cha").body).toContain("A finished city card set adds 1 while he is in that country");
+    expect(page("xp").body).toContain("He also gets a free pack of city cards");
+    expect(page("citycards").body).toContain("Rare 5% of the time, Uncommon 25% and Common 70%");
+    expect(page("citycards").body).toContain("he gets Charm +1 while he is in that country");
     expect(page("placedex").body).toContain("The sweep knows 329 kinds.");
     expect(page("souvenirs").body).toContain("there is a 30% chance he finds it there");
     expect(page("souvenirs").body).toContain("every 5 souvenirs make his fares 2% cheaper, up to 10%");

@@ -6,6 +6,7 @@ import { addStop, type Stop } from "./day";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
+import * as CC from "./cityCards";
 import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
 import type { Rng } from "./rng";
@@ -94,6 +95,8 @@ export type Action = {
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
+  /** Buys a pack of city cards (see cityCards.ts). */
+  pack?: boolean;
   flavour?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
@@ -119,6 +122,8 @@ export class Stats {
   where = { city: "", code: "", country: "" };
   /** Placedex rarities from data/placedex.json; not saved, the game sets it. */
   dex: K.Dex = {};
+  /** The city card pool, from data/cities.tsv; not saved, the game sets it. */
+  cityPool: CC.Pool | null = null;
   /** Clovers and the care package on its way to him. */
   care = new Care();
   /** The places he stopped at lately, for the day ribbon. */
@@ -137,6 +142,7 @@ export class Stats {
     let v = this.attrs[name];
     for (const item of Object.values(this.gear)) v += item?.stats[name] ?? 0;
     for (const b of this.buffs) v += b.attrs?.[name] ?? 0;
+    if (name === "cha" && this.where.code && this.keepsakes.sets.includes(this.where.code)) v += CC.SET_CHARM;
     if (name === "cha" && this.meters.hygiene < DIRTY_AT) v *= 1 - (DIRTY_CHARM_CUT * (DIRTY_AT - this.meters.hygiene)) / DIRTY_AT;
     return v;
   }
@@ -322,6 +328,7 @@ export class Stats {
       for (const a of ATTRS) if (this.attrs[a] > this.attrs[best]) best = a;
       this.attrs[best] += 1;
       this.say(`Reached level ${this.level}! ${best[0]!.toUpperCase()}${best.slice(1)} +1`);
+      this.keepsakes.freePacks++;
     }
   }
 
@@ -329,8 +336,16 @@ export class Stats {
     return this.buffs.reduce((m, b) => m * b.xp_mult, 1);
   }
 
+  /** Sets the city card pool (none when it is empty) and works out his finished sets from it again, as the city list can change between versions. */
+  setCityPool(pool: CC.Pool): void {
+    this.cityPool = pool.cards.length ? pool : null;
+    const k = this.keepsakes;
+    k.sets = [...pool.byCountry.keys()].filter((code) => CC.hasSet(pool, k.cityCards, code));
+  }
+
   /** True when he has the coins, skills, level and timing for `action`. */
   canDo(action: Action, hour: number): boolean {
+    if (action.pack && !this.cityPool) return false;
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
@@ -368,6 +383,11 @@ export class Stats {
       this.applyFx(action.fx ?? {});
       return this.sellLoot(where);
     }
+    if (action.pack) {
+      this.cents -= toCents(action.cost ?? 0);
+      this.applyFx(action.fx ?? {});
+      return this.openPack(rng, `Bought a card pack${where ? ` at ${where}` : ""} (${signed(-toCents(action.cost ?? 0))})`);
+    }
     let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
     let text = action.name;
@@ -403,6 +423,12 @@ export class Stats {
   arrive(city: string, code: string, country: string): void {
     this.where = { city, code, country };
     if (!code) return;
+    const seen = this.keepsakes.seen;
+    for (const s of [code, `${code}:${city}`]) {
+      if (seen.includes(s)) continue;
+      seen.push(s);
+      this.keepsakes.freePacks++;
+    }
     for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
   }
 
@@ -432,6 +458,16 @@ export class Stats {
       this.addXp(K.DEX_XP[rarity]);
       this.say(`New in the Placedex: ${K.kindLabel(kind)} (${rarity}, +${K.DEX_XP[rarity]} XP)`);
     }
+    if (kind in CC.CARD_SHOPS && k.spares.length) {
+      const cents = k.spares.reduce((n, s) => n + CC.spareCents(s), 0);
+      this.say(`Sold ${k.spares.length} spare city card${k.spares.length > 1 ? "s" : ""} at ${place.name} (${signed(cents)})`);
+      this.cents += cents;
+      k.spares = [];
+    }
+    while (this.cityPool && k.freePacks > 0) {
+      k.freePacks--;
+      this.openPack(rng, "Opened a free card pack");
+    }
     k.roll(dayOf(this.now() * 1000), this.where.city);
     for (const c of K.CRAWLS) {
       if (!K.crawlMatches(c, place)) continue;
@@ -449,6 +485,41 @@ export class Stats {
     }
   }
 
+  /** Pulls PACK_SIZE city cards: new ones go in his binder (a better finish replaces a worse one), the rest are spares. Returns the feed line. */
+  private openPack(rng: Rng, opening: string): string {
+    const k = this.keepsakes;
+    const pool = this.cityPool;
+    if (!pool) return this.say(opening);
+    const got: string[] = [];
+    const touched = new Set<string>();
+    let spares = 0;
+    for (let i = 0; i < CC.PACK_SIZE; i++) {
+      const { card, finish } = CC.pull(pool, rng);
+      const had = k.cityCards.get(card.key);
+      const name = `${card.name} (${[card.rarity, K.FINISH_NAME[finish]].filter(Boolean).join(", ")})`;
+      if (!had) {
+        k.cityCards.set(card.key, { finish, t: this.now() });
+        got.push(name);
+        touched.add(card.code);
+        continue;
+      }
+      spares++;
+      if (K.FINISH_RANK[finish] > K.FINISH_RANK[had.finish]) {
+        k.spares.push({ rarity: card.rarity, finish: had.finish });
+        had.finish = finish;
+        got.push(name);
+      } else k.spares.push({ rarity: card.rarity, finish });
+    }
+    const line = this.say(`${opening}: ${got.length ? `new ${got.join(", ")}` : "nothing new"}${spares ? `; ${spares} spare${spares > 1 ? "s" : ""}` : ""}`);
+    for (const code of touched) {
+      if (k.sets.includes(code) || !CC.hasSet(pool, k.cityCards, code)) continue;
+      k.sets.push(code);
+      const { country } = pool.byCountry.get(code)![0]!;
+      this.say(`Completed the ${country} city card set! Charm +${CC.SET_CHARM} while in ${country}`);
+    }
+    return line;
+  }
+
   /** This country's souvenir, found at `where`; every SOUVENIRS_PER_CUT make fares cheaper. */
   private gotSouvenir(where: string): void {
     const { code, country, city } = this.where;
@@ -463,11 +534,6 @@ export class Stats {
   stop(place: { class: string; subclass: string }): void {
     addStop(this.stops, place, this.now());
     this.week.stop(place.class);
-  }
-
-  /** Notes that he arrived in a city, for the weekly recap. */
-  enterCity(name: string): void {
-    this.week.city(name);
   }
 
   fainted(): boolean {
