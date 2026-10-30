@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import { dataFile } from "../support/data";
-import { CLOSE_H, isOpen, OPEN_H } from "../../src/core/opening";
+import { ALL_NIGHT, CLOSE_H, DAY_ONLY, isOpen, OPEN_H } from "../../src/core/opening";
 import * as Sky from "../../src/core/sky";
 import { Stats, type Action } from "../../src/core/stats";
 import { skyIcon } from "../../src/game/hud";
@@ -209,5 +209,13 @@ describe("the sky's icon", () => {
     expect(skyIcon(Sky.skyAt(day, 48, 0, 0, { kind: "clear", tempC: 5 }))).toBe("☀");
     expect(skyIcon(Sky.skyAt(night, 48, 0, 0, { kind: "clear", tempC: 5 }))).toBe("🌙");
     expect(skyIcon(Sky.skyAt(day, 48, 0, 0, null))).toBe("❄");
+  });
+});
+
+describe("the kinds of place the sky names", () => {
+  it("are kinds the game has actions for", () => {
+    const keys = Object.keys(JSON.parse(dataFile("actions.json")) as ActionTable);
+    const known = (k: string) => keys.includes(k) || keys.includes(k.split("/")[0]!);
+    for (const set of [DAY_ONLY, ALL_NIGHT, Sky.OUTDOOR, Sky.SHELTER, Sky.COOLING]) for (const k of set) expect(known(k), k).toBe(true);
   });
 });
