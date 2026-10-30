@@ -129,6 +129,10 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .minibar { display: flex; align-items: center; gap: var(--s1); font-size: var(--small); }
 .minibar .track { flex: 1; height: 10px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper); overflow: hidden; }
 .minibar .track > div { height: 100%; }
+/* The day ribbon: today's stops in one line; the oldest are cut off on the left when it runs out of room. */
+.ribbon { display: flex; align-items: center; justify-content: flex-end; gap: var(--s1); overflow: hidden; white-space: nowrap; font-size: var(--body); }
+.ribbon .dim { font-size: var(--small); }
+.ribbon .dim:first-child { margin-right: auto; }
 .notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
 .notice.error { color: var(--error); }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }

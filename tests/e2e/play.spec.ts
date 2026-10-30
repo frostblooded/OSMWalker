@@ -63,6 +63,15 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
   await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
 });
 
+test("the day ribbon shows the places he stopped at today", async ({ page }) => {
+  // The hour he was away must fall on today.
+  test.skip(new Date().getHours() < 1, "too close to midnight");
+  await startInSofia(page);
+  await reopenAfter(page, 1);
+  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
+  await expect(page.locator(".hud .ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops$/);
+});
+
 test("New city asks for RESET first", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

@@ -239,6 +239,7 @@ export class Game {
   private onArrived(place: Place): void {
     this.track();
     const bonus = this.stats.visit(place);
+    this.stats.stop(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     this.stats.care.open(this.stats);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());

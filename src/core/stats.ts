@@ -2,6 +2,7 @@
 // XP and level, timed buffs, gear and a bag of items, speed, and his history.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Care } from "./gifts";
+import { addStop, type Stop } from "./day";
 import { History } from "./history";
 import * as Items from "./items";
 import type { Item, Slot } from "./items";
@@ -110,6 +111,8 @@ export class Stats {
   bag: Item[] = [];
   /** Clovers and the care package on its way to him. */
   care = new Care();
+  /** The places he stopped at lately, for the day ribbon. */
+  stops: Stop[] = [];
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -371,6 +374,11 @@ export class Stats {
     return FIRST_VISIT_XP;
   }
 
+  /** Notes a stop at a place, for the day ribbon. */
+  stop(place: { class: string; subclass: string }): void {
+    addStop(this.stops, place, this.now());
+  }
+
   fainted(): boolean {
     return this.meters.health <= 0;
   }
@@ -397,6 +405,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag, care: this.care.toJSON(),
+      stops: this.stops,
     };
   }
 
@@ -415,6 +424,7 @@ export class Stats {
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
     s.care = Care.fromJSON(d.care);
+    s.stops = d.stops ?? [];
     return s;
   }
 }
