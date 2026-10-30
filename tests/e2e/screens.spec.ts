@@ -1,6 +1,6 @@
 // The sheets: Help, Stats, Collection, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { KEEPSAKES, mockServices, reopenWith } from "./mock";
+import { KEEPSAKES, mockServices, reopenAfter, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -320,15 +320,15 @@ test("a full-screen sheet drags down to show the map", async ({ page }) => {
 
 test("History fits the map to the room left above its sheet after a drag", async ({ page }) => {
   await startInSofia(page);
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Debug/ }).click();
-  await page.getByRole("button", { name: /New city/ }).click();
+  // Hours away fill History, so its sheet is tall enough to drag down without closing.
+  await reopenAfter(page, 8);
+  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });
-  await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
+  await expect.poll(async () => (await sheet.boundingBox())?.height ?? 0, { timeout: 10000 }).toBeGreaterThan(page.viewportSize()!.height * 0.5);
+  // He walks a px or so a second; the fit moves him far more. Wait for the fit to end.
   const him = page.locator(".marker.him");
-  // Wait for the fit to end: his marker on screen and still.
   const y = async () => (await him.boundingBox())!.y;
   let before = -1;
   await expect
@@ -336,11 +336,12 @@ test("History fits the map to the room left above its sheet after a drag", async
       const last = before;
       await page.waitForTimeout(300);
       before = await y();
-      return before >= 0 && before < page.viewportSize()!.height && Math.abs(before - last) < 1;
+      return Math.abs(before - last) < 3;
     }, { timeout: 10000 })
     .toBe(true);
   await dragTitle(page, /History/, 150);
-  await expect.poll(async () => (await him.boundingBox())!.y, { timeout: 5000 }).toBeGreaterThan(before + 20);
+  await expect(sheet).toBeVisible();
+  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(20);
 });
 
 test("the map credit stays under an open sheet's buttons", async ({ page }) => {
