@@ -16,9 +16,13 @@ import type { Tone } from "./storyteller";
 
 /** Most of his money one incident may take. */
 export const LOSS_CAP_SHARE = 0.25;
-/** Each point of the leaning attribute moves his pick this much from even, up to LEAN_CAP. */
+/** Each point of the leaning attribute above 1 moves his own pick this much from even, up to LEAN_CAP (dilemmas.ts leans the same). */
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
+export const ATTR_NAMES: Record<Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
+
+/** How far `attr` tilts his own pick of a choice toward the bold option, from 0 to LEAN_CAP. */
+export const leanShare = (stats: Stats, attr: Attr) => Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(attr) - 1), LEAN_CAP));
 
 /** What a card (or one of its options) does. Money in euros, as in data/actions.json. */
 export type Outcome = {
@@ -66,8 +70,7 @@ export function pick(deck: readonly Incident[], tone: Tone, scene: Scene, inTime
 
 /** His own pick of `card`'s options: 0 (the bold one) the likelier the higher his leaning attribute, never less likely than even. */
 export function hisPick(card: Incident, stats: Stats, rng: Rng): number {
-  const lean = card.lean ? Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(card.lean) - 1), LEAN_CAP)) : 0;
-  return rng.randf() < 0.5 + lean ? 0 : 1;
+  return rng.randf() < 0.5 + (card.lean ? leanShare(stats, card.lean) : 0) ? 0 : 1;
 }
 
 /** Plays `card` out at `place` (option `picked`, or his own pick) and returns its feed line. */
@@ -96,6 +99,9 @@ export function play(card: Incident, stats: Stats, place: string, rng: Rng, pick
   return stats.say(`${opening} ${choice}${o.say}${parts.length ? ` (${parts.join(", ")})` : ""}`);
 }
 
+/** A card's opening with its place left out, for Help: "A pickpocket brushes past him near {PLACE}." becomes "A pickpocket brushes past him". */
+export const bare = (card: Incident) => card.text.replace(/ (near|by|at|outside|over|from) \{PLACE\}| \{PLACE\}/, "").replace(/\.$/, "");
+
 /** A bag item he may lose: anything but a treasured one. */
 function loseable(bag: Item[], rng: Rng): Item | null {
   const can = bag.filter((i) => !isTreasured(i));
@@ -113,6 +119,7 @@ export function check(deck: readonly Incident[], classes: Set<string>, attrs: re
     if (!["good", "bad", "odd"].includes(c.tone)) out.push(`${c.id}: tone ${c.tone}`);
     for (const k of c.at ?? []) if (!classes.has(k)) out.push(`${c.id}: no place class ${k}`);
     if (c.guard && !attrs.includes(c.guard.attr)) out.push(`${c.id}: guard attribute ${c.guard.attr}`);
+    if (c.guard && /\{PLACE\}| (in|on|near|by|at|outside|over|from)$/.test(bare(c))) out.push(`${c.id}: Help can't leave out its place`);
     if (c.options ? c.options.length !== 2 || !c.lean || !attrs.includes(c.lean) : !c.say) out.push(`${c.id}: needs a say, or two options and a lean`);
   }
   return out;

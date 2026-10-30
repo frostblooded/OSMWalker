@@ -101,8 +101,9 @@ describe("the incident deck", () => {
   });
 
   it("finds broken cards", () => {
-    const bad = [card({ id: "a", at: ["moon"] }), card({ id: "a", say: undefined }), card({ id: "b", guard: { attr: "x" as never, at: 1, say: "" } })];
-    expect(Inc.check(bad, new Set(["cafe"]), ATTRS)).toEqual(["a: no place class moon", "a: id used twice", "a: needs a say, or two options and a lean", "b: guard attribute x"]);
+    const bad = [card({ id: "a", at: ["moon"] }), card({ id: "a", say: undefined }), card({ id: "b", guard: { attr: "x" as never, at: 1, say: "" } }), card({ id: "c", text: "Rain falls in {PLACE}.", guard: { attr: "str", at: 1, say: "" } })];
+    expect(Inc.check(bad, new Set(["cafe"]), ATTRS)).toEqual(["a: no place class moon", "a: id used twice", "a: needs a say, or two options and a lean", "b: guard attribute x", "c: Help can't leave out its place"]);
+    expect(Inc.bare(card({ text: "A pickpocket brushes past him near {PLACE}." }))).toBe("A pickpocket brushes past him");
   });
 
   it("deals only cards that fit the tone, the place, the hour and how he gets about", () => {

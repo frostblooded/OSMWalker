@@ -159,9 +159,6 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   return [...names].join(", ");
 }
 
-/** Attribute names as the Help pages call them. */
-const ATTR_LABEL: Record<S.Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
-
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
   const incidents = data.incidents ?? [];
@@ -466,7 +463,7 @@ export function values(data: GameData): Record<string, string> {
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
       .filter(([, cs]) => cs.length)
-      .map(([a, cs]) => `- ${ATTR_LABEL[a]}: ${cs.map((c) => `${c.icon} ${c.text.replace(/ (near|by|at|outside|over) \{PLACE\}| \{PLACE\}/, "").replace(/\.$/, "")} (at ${num(c.guard!.at)})`).join("; ")}`)
+      .map(([a, cs]) => `- ${Inc.ATTR_NAMES[a]}: ${cs.map((c) => `${c.icon} ${Inc.bare(c)} (at ${num(c.guard!.at)})`).join("; ")}`)
       .join("\n"),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);
