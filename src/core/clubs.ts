@@ -6,9 +6,8 @@
 // the friend. One club per city, MAX_CLUBS in all. A rare few are not of
 // this world: a hedge mages' circle meets at a wizard's tower. Pure; Stats
 // owns one.
-import type { Friend } from "./friends";
+import type { Friends } from "./friends";
 import { effect } from "./gifts";
-import { HEARTS_MAX } from "./friends";
 import type { Rng } from "./rng";
 import type { Fx } from "./stats";
 
@@ -81,9 +80,10 @@ export class Clubs {
    * been yet (its fx go in `fx`, the host gets a heart), else maybe an
    * invitation from a friend in this city. Returns the feed line, or "".
    */
-  stop(w: When, friends: Friend[], fx: Fx, rng: Rng): string {
+  stop(w: When, people: Friends, fx: Fx, rng: Rng): string {
+    const friends = people.list;
     const night = this.list.find((c) => inNight(c, w) && c.last !== w.date);
-    if (night) return this.go(night, w, friends, fx);
+    if (night) return this.go(night, w, people, fx);
     if (this.list.length >= MAX_CLUBS || this.list.some((c) => c.city === w.city)) return "";
     // A friend who moved away (townies.ts) has no club where they met, so only those still in the city they met in invite.
     const hosts = friends.filter((f) => f.city === w.city && f.id.startsWith(`${f.city}|`) && f.hearts >= JOIN_AT && kindAt(f.kind));
@@ -95,18 +95,14 @@ export class Clubs {
     return `${k.icon} ${f.name} invited him to the ${clubText(c)}. He joined`;
   }
 
-  private go(c: Club, w: When, friends: Friend[], fx: Fx): string {
+  private go(c: Club, w: When, people: Friends, fx: Fx): string {
     const k = kindOf(c);
     c.last = w.date;
     c.nights++;
     for (const [m, v] of Object.entries(k.fx) as [keyof Fx, number][]) if (v) fx[m] = (fx[m] ?? 0) + v;
-    const host = friends.find((f) => f.id === c.host);
-    if (host) {
-      host.hearts = Math.min(host.hearts + 1, HEARTS_MAX);
-      host.seen = w.t;
-    }
-    const n = c.nights;
-    return `${k.icon} Went to the ${k.name} at ${c.place.name}${host ? ` with ${host.name}` : ""} (night ${n})`;
+    const host = people.list.find((f) => f.id === c.host);
+    const couple = host ? people.heart(host, w.t) : "";
+    return `${k.icon} Went to the ${k.name} at ${c.place.name}${host ? ` with ${host.name}` : ""} (night ${c.nights})${couple}`;
   }
 
   toJSON() {

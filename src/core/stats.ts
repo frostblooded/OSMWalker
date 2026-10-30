@@ -851,7 +851,7 @@ export class Stats {
     const t = this.now();
     const fx: Fx = {};
     const when = { city: this.where.city, day: new Date(t * 1000).getDay(), hour, date: dayOf(t * 1000), t };
-    const club = this.clubs.stop(when, this.friends.list, fx, new Rng(seedOf(`club${t}${place.name}`)));
+    const club = this.clubs.stop(when, this.friends, fx, new Rng(seedOf(`club${t}${place.name}`)));
     if (club) {
       this.applyFx(fx);
       return (this.incidentLine = this.say(club));

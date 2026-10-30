@@ -99,14 +99,17 @@ export class Friends {
   }
 
   private see(f: Friend, at: Spot, text: string): string {
+    const couple = this.heart(f, at.t);
+    return `${f.icon} ${text.replace("{NAME}", f.name)} (${hearts(f.hearts)})${couple}`;
+  }
+
+  /** A heart for `f`, seen at unix seconds `t`; at HEARTS_MAX with no partner yet, they become a couple. Returns what the feed line adds for that, or "". */
+  heart(f: Friend, t: number): string {
     f.hearts = Math.min(f.hearts + 1, HEARTS_MAX);
-    f.seen = at.t;
-    let line = `${f.icon} ${text.replace("{NAME}", f.name)} (${hearts(f.hearts)})`;
-    if (f.hearts >= HEARTS_MAX && !this.partner) {
-      this.partner = f.id;
-      line += `. ${f.name} and he are a couple now`;
-    }
-    return line;
+    f.seen = t;
+    if (f.hearts < HEARTS_MAX || this.partner) return "";
+    this.partner = f.id;
+    return `. ${f.name} and he are a couple now`;
   }
 
   private befriend(at: Spot, data: FriendData, rng: Rng): string {

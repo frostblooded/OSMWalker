@@ -58,8 +58,11 @@ export function whisperLine(word: Whisper, heeded: boolean): string {
   return `${WHISPER_HEARD}: "${w}". ${heeded ? "He nods and does just that for a while" : "He shrugs it off"}`;
 }
 
-/** True for a History line that is a letter to you or a whisper from you, not one of his deeds. */
-export const isNote = (text: string) => text.startsWith(LETTER_MARK) || text.startsWith(WHISPER_HEARD);
+/** How a friend's letter to him starts (townies.ts), also not one of his deeds. */
+export const FRIEND_LETTER_MARK = "💌";
+
+/** True for a History line that is a letter (his to you, or a friend's to him) or a whisper from you, not one of his deeds. */
+export const isNote = (text: string) => text.startsWith(LETTER_MARK) || text.startsWith(FRIEND_LETTER_MARK) || text.startsWith(WHISPER_HEARD);
 
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
 

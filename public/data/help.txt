@@ -514,7 +514,7 @@ Up to {WHISPERS_PER_DAY} times a day (by your device's date) you can whisper one
 
 Whispers are always optional, and they never use up clovers. His dice for whether he listens are separate from his walk's, so a whisper changes only what he would have done next.
 ## Kind or rascal {lean}
-He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed ({KIND_DEEDS}) moves him {DEED_STEP} towards kind, and each rascal deed ({RASCAL_DEEDS}) {DEED_STEP} towards rascal.
+He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed ({KIND_DEEDS}) moves him {DEED_STEP} towards kind, and each rascal deed ({RASCAL_DEEDS}) {DEED_STEP} towards rascal. At work, handing in the extra from the till is a kind deed and pocketing it a rascal one (see Chance cards at work).
 
 From {LEAN_AT} either way it shows:
 - Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.

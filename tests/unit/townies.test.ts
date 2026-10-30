@@ -1,6 +1,6 @@
 // Townies live on (src/core/townies.ts): a friend's news once a day, letters for big news, moves, and how Stats rolls it.
 import { describe, expect, it } from "vitest";
-import type { Friend, FriendData } from "../../src/core/friends";
+import { type Friend, type FriendData, PER_CITY } from "../../src/core/friends";
 import type { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 import * as T from "../../src/core/townies";
@@ -50,6 +50,13 @@ describe("townies", () => {
     expect(started().roll("2026-10-02", [ana], "", [move], ["Sofia, Bulgaria"], fixed(0))).toBe("");
     expect(started().roll("2026-10-02", [ana], "", [move], ["Sofia, Bulgaria", "Porto, Portugal"], fixed(0))).toBe(`${T.LETTER_MARK} A letter from Ana in Sofia: "I've moved to Porto!"`);
     expect(ana.city).toBe("Porto, Portugal");
+  });
+
+  it(`moves no one to a city that already has ${PER_CITY} friends`, () => {
+    const full = Array.from({ length: PER_CITY }, (_, i) => local({ id: `p${i}`, city: "Porto, Portugal", hearts: 1 }));
+    const ana = local();
+    expect(started().roll("2026-10-02", [ana, ...full], "", [move], ["Sofia, Bulgaria", "Porto, Portugal"], fixed(0))).toBe("");
+    expect(ana.city).toBe("Sofia, Bulgaria");
   });
 
   it("forgets news of friends he no longer knows, survives the save and repairs a broken one", () => {
