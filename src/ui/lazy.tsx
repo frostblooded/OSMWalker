@@ -4,7 +4,7 @@
 // screen asks for a reload.
 import { useRef, useState } from "preact/hooks";
 
-/** The module `load` brings, once `start` has been called and it has arrived; `failed` once it couldn't. `start` loads it only once. */
+/** What `load` brings (a module, or several merged), once `start` has been called and it has arrived; `failed` once it couldn't. `start` loads it only once. */
 export function useLazy<T>(load: () => Promise<T>, what: string, warn: (text: string) => void): { mod: T | null; failed: boolean; start: () => void } {
   const [mod, setMod] = useState<T | null>(null);
   const [failed, setFailed] = useState(false);

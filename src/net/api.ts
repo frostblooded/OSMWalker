@@ -280,7 +280,11 @@ export class Api {
 
   /** Hourly weather around `lat`, `lon` from a day ago to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
   async forecast(city: string, lat: number, lon: number, nowMs: number): Promise<Forecast | null> {
-    return parseForecast(await this.getJson(weatherUrl(lat, lon), 20), city, nowMs);
+    const url = weatherUrl(lat, lon);
+    const data = await this.getJson(url, 20);
+    const f = data === null ? null : parseForecast(data, city, nowMs);
+    if (data !== null && !f) this.fail(url, "answer was not a forecast");
+    return f;
   }
 
   /** The road route between two points, or [] on failure. */

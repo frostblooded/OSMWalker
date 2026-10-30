@@ -1,5 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
+import { encode } from "../../src/core/postcard";
 import { mockServices, reopenAfter, reopenDeparting } from "./mock";
 
 test.beforeEach(async ({ context }) => {
@@ -157,6 +158,16 @@ test("a postcard goes out as a link and opens in a friend's game", async ({ page
   expect(new URL(friend.url()).hash).toBe("");
   await card.getByRole("button", { name: "Send one back" }).click();
   await expect(friend.getByRole("dialog", { name: /Send a postcard/ })).toBeVisible();
+});
+
+test("a postcard link to the picker says so when its screen fails to load", async ({ context, page }) => {
+  await context.route(/\/assets\/PostcardSheet-[^/]*\.js$/, (route) => route.abort());
+  const card = { from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house", t: 1_800_000_000 };
+  await page.goto(`./#${encode(card)}`);
+  const dialog = page.getByRole("dialog", { name: "Postcard" });
+  await expect(dialog).toContainText("Couldn't load this screen", { timeout: 10000 });
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toBeHidden();
 });
 
 test("New city asks for RESET first", async ({ page }) => {

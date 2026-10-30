@@ -44,7 +44,7 @@ export function App() {
   const [resuming, setResuming] = useState(hasSave);
   const [msg, setMsg] = useState<Msg>();
   // The postcard screens load only when a link brings a postcard, so their code stays off the startup path.
-  const cards = useLazy(() => import("./PostcardSheet"), "the postcard", (t) => void getGame().then((game) => game.problems.warn(t)));
+  const cards = useLazy(() => import("./PostcardSheet"), "the postcard", (t) => void getGame().then((game) => game.problems.warn(t), () => undefined));
   useEffect(() => {
     if (received && !playing) cards.start();
   }, [received, playing]);
