@@ -20,13 +20,14 @@ import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
+import { Card, KV } from "./kit";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -37,6 +38,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
+  // The quest or event icon tapped last, for its card.
+  const [story, setStory] = useState("");
   const [mapError, setMapError] = useState("");
 
   useEffect(() => {
@@ -48,6 +51,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       .then((v) => {
         if (gone) return v.destroy();
         view = v;
+        v.onIconTap = (id) => {
+          if (!game.storyCard(id)) return;
+          setStory(id);
+          setSheet("story");
+        };
         const sc = new MapScene(game, v, padding);
         sc.onFollowing = setFollowing;
         scene.current = sc;
@@ -283,6 +291,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           <DebugSheet game={game} onDone={close} />
         </SheetBox>
       )}
+      {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
@@ -292,6 +301,31 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
     </div>
+  );
+}
+
+/** A tapped quest or event: its story so far, and Go help, which sends him there once he is free. */
+function StoryCard({ game, id, onClose }: { game: Game; id: string; onClose: () => void }) {
+  const c = game.storyCard(id);
+  if (!c) return null;
+  return (
+    <SheetBox title={`${c.icon} ${c.title}`} onClose={onClose}>
+      <Card icon={id.startsWith("event:") ? "🌟" : "❗"} title={id.startsWith("event:") ? "Event" : "Quest"}>
+        <p>{c.text}</p>
+        <div class="zebra">
+          {c.rows.map(([k, v]) => (
+            <KV key={k} k={k} v={v} />
+          ))}
+        </div>
+        {c.state === "open" ? (
+          <button class="btn primary" onClick={() => game.nudge(id)}>
+            🙋 Go help
+          </button>
+        ) : (
+          <p class="dim small">{c.state === "on" ? "He's on it." : "He'll head there next, once nothing urgent comes first."}</p>
+        )}
+      </Card>
+    </SheetBox>
   );
 }
 

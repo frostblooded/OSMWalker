@@ -26,7 +26,8 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - he picks each place like any goal (see Picking the next goal), from the places already loaded in his city, and walks the straight line to it times {ROAD_FACTOR}, at his usual speed,
 - he does one action there and stays {STAY_MIN} minute (see What he does at places),
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
-- he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
+- he takes on quests and joins world events as usual (see Quests),
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back waits until you are there to watch.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle, on his bike to a near town, hitchhiking when broke (see Other ways to travel), or on a long walk (see Long walks).
 
@@ -110,7 +111,7 @@ Wizard's towers rise at the grandest real landmarks (castles first, then viewpoi
 
 A city keeps its made-up places: they are rolled from the city's name and saved, so the tower is still at the same castle when he comes back. The save keeps them for the {MADE_CITIES} cities he was in most recently.
 ## Map icons {map_icons}
-The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places, indigo for magic, and gold plaques for the monuments he built (see Golden bricks). Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once (his monuments always show), and none while he rides to another city.
+The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places, quests and world events (see Quests and World events), indigo for magic, and gold plaques for the monuments he built (see Golden bricks). Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest places to him show at once (his monuments always show), with up to {QUEST_ICON_CAP} quests and {EVENT_ICON_CAP} events, and none while he rides to another city.
 ## Picking the next goal {goal_pick}
 He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
 
@@ -380,7 +381,7 @@ If his bag is full when another item comes in before he finds such a shop, he se
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
 ## Trips to other cities {trips}
-Every time he picks a new goal he rolls the trip dice, unless a need is urgent (see His needs):
+Every time he picks a new goal he rolls the trip dice, unless a need is urgent (see His needs) or he is on a quest (see Quests):
 - {COUNTRY_PCT}: he travels to a city in another country,
 - {CITY_PCT}: he travels to another city in the same country,
 - otherwise he stays and picks a place in this city.
@@ -582,6 +583,20 @@ A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one ite
 {GUARD_LIST}
 
 {CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. He picks by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. Nothing waits for you.
+## Quests {quests}
+Quests are the heart of his life. Every city has a board of them, rolled the first time {BOARD_PLACES} of its places (not counting bridges) are loaded, with at least one where a quest can start: {BOARD_MIN} in a town of {BOARD_TOWN_POP} people or fewer, {BOARD_MAX} in a city of {BOARD_BIG_POP} or more, and in between on a sliding scale (about {BOARD_MID} in a city of {BOARD_MID_POP}). There are {QUEST_KINDS} kinds of quest, {FANTASY_KINDS} of them with a touch of magic (at most {FANTASY_PCT} of a board), and each one is filled with a local's name, an item, sometimes a twist and the city's real places, so the same kind reads as a new quest: over {QUEST_VARIANTS} in all. A quest he has done never comes back, so when he returns to a city it has new ones.
+
+After every {QUEST_EVERY_MIN} to {QUEST_EVERY_MAX} stops he takes one on, likelier one near him, and does its steps back to back: first the quest giver, then {STEPS_MORE_MIN} to {STEPS_MORE_MAX} more places of the right kinds (a pharmacy, then the neighbour's café), each picked among the {STEP_CHOICES} nearest that fit. Each step takes {STEP_MIN} minutes instead of an action. An urgent need (see His needs) comes first: he eats or sleeps, then carries on. He doesn't set off on a trip while he is on a quest; if a free ride takes him away anyway, the quest stays behind, along with the city's board and events.
+
+At the end it goes well at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}), and pays its money, XP and effects, now and then with a thank-you item for his bag. One that ends worse pays {WORSE_PCT} of it. Nothing waits for you.
+
+On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between. It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last {CARD_RECENT}. The {LOG_MAX} newest quests and events are kept.
+
+While you are away he takes on quests, does their steps and joins events the same way, in a city whose places are loaded.
+## World events {world_events}
+World events happen at real places near him whether he is there or not, like Guild Wars 2's events: an oven breaks down at a bakery, a parrot escapes from a pet shop, a tour group loses its guide. At each stop that isn't a quest step or an event there is a {EVENT_CHANCE_PCT} chance of a new one within {EVENT_NEAR_KM} km, while fewer than {EVENT_MAX} run; each lasts the minutes it says, and some only happen in the morning, by day, in the evening or at night. There are {EVENT_KINDS}, {FOLLOW_KINDS} of them follow-ups.
+
+A purple star marks each one on the map. When he picks where to go next and isn't setting off on a trip, one within {EVENT_NEAR_KM} km comes before anything else unless a need is urgent (tap one and Go help to send him to that one first, however far). Helping takes {STEP_MIN} minutes and goes well at the same odds as a quest, with its own attribute. Win or lose, a follow-up may come next ({FOLLOW_PCT} of the time when there is one): a stalled museum move leaves boxes to sort, a lost child becomes a big search. An event he misses plays out without him, and word of it reaches his History.
 ## Night legends {legends}
 At night ({TIME_NIGHT}) at castles, graveyards, memorials, shrines, old wells, wizard towers and the like, the storyteller may tell a night legend instead: a pale lady on a castle wall, a lantern between the graves, a black cat that only greets the lucky. There are {LEGEND_COUNT}, each written for its kind of place. They come like any incident (see The storyteller), but where one fits it is {LEGEND_WEIGHT} times likelier than any other card.
 ## Viktor, his rival {rival}
@@ -636,6 +651,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
