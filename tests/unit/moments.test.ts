@@ -1,7 +1,7 @@
 // Timed moments: the default he takes and how a mini-game score picks an option (src/core/moments.ts).
 import { describe, expect, it } from "vitest";
 import { defaultPick, LEAN_CAP, LEAN_PER_POINT, optionFor, scorePick, type Moment } from "../../src/core/moments";
-import { Rng } from "../../src/core/rng";
+import type { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 
 const fixed = (...rolls: number[]) => ({ randf: () => rolls.shift() ?? 0 }) as unknown as Rng;
