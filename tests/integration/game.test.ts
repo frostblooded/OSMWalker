@@ -172,11 +172,13 @@ describe("game", () => {
     expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
   });
 
-  it("hands his stats the friends data, and gives a friend a chance at each stop with no incident or Viktor", async () => {
+  it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {
     const { g } = game({ places: [CAFE] });
     Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], friends: JSON.parse(dataFile("friends.json")) });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.friendData.names.length).toBeGreaterThan(0);
+    expect(g.stats.townNews).toEqual(g.stats.friendData.news);
+    expect(g.stats.townNews.length).toBeGreaterThan(0);
     const stop = vi.spyOn(g.stats.friends, "stop");
     run(g, 400);
     expect(stop).toHaveBeenCalledWith(expect.objectContaining({ city: g.stats.where.city, place: "Cafe Near", kind: "cafe" }), g.stats.friendData, expect.anything());

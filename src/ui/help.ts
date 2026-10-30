@@ -33,12 +33,16 @@ import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
+import * as Anniv from "../core/anniversaries";
+import * as Clubs from "../core/clubs";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
+import * as Townies from "../core/townies";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -548,6 +552,27 @@ export function values(data: GameData): Record<string, string> {
     SPLIT_PCT: pct(Friends.SPLIT),
     COMPANION_STOPS: num(Friends.COMPANION_STOPS),
     FRIENDS_SHOWN: num(Friends.SHOWN),
+    WORK_CARD_PCT: pct(Work.CARD_CHANCE),
+    SHIFT_MIN: num(Work.SHIFT_MIN),
+    WORK_WIN_BASE_PCT: pct(Work.WIN_BASE),
+    WORK_WIN_PER_PCT: pct(Work.WIN_PER_POINT),
+    WORK_WIN_MAX_PCT: pct(Work.WIN_MAX),
+    WORK_CARD_LIST: Work.helpList(),
+    CLUB_JOIN_AT: num(Clubs.JOIN_AT),
+    CLUB_INVITE_PCT: pct(Clubs.INVITE_CHANCE),
+    CLUB_MAX: num(Clubs.MAX_CLUBS),
+    CLUB_NIGHT_H: num(Clubs.NIGHT_H),
+    CLUB_LIST: Clubs.helpList(),
+    NEWS_PCT: pct(Townies.NEWS_CHANCE),
+    NEWS_AT: num(Townies.NEWS_AT),
+    PARTY_AT: num(Anniv.PARTY_AT),
+    PARTY_MAX: num(Anniv.PARTY_MAX),
+    PARTY_MOOD: num(Anniv.PARTY_MOOD),
+    GREAT_MIN_PCT: pct(Anniv.GREAT_MIN),
+    GLOW_H: num(Anniv.GLOW_MIN / 60),
+    GLOW_PER_H: num(Anniv.GLOW_PER_H),
+    ALONE_MOOD: num(Anniv.ALONE_MOOD),
+    MONTH_MOOD: num(Anniv.MONTH_MOOD),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
