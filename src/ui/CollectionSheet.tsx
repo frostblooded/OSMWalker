@@ -9,7 +9,7 @@ import * as C from "../core/collection";
 import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
 import type { Stats } from "../core/stats";
-import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
+import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 /** Sets with more entries than this, and no groups, start closed. */
 const OPEN_UP_TO = 30;
@@ -163,21 +163,18 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** The logs of his last ruin crawls (core/ruins.ts), newest first, each room opening under its place. */
+/** The logs of his last ruin crawls (core/ruins.ts), newest first, each opening into a line per room. */
 function Ruins({ stats: s }: { stats: Stats }) {
   const logs = [...s.ruins.logs].reverse();
   return (
     <Card icon="🏰" title="Ruin crawls" right={s.ruins.count}>
       {logs.length ? (
         logs.map((r, i) => (
-          <Collapsible key={i} title={r.name} right={`${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}>
-            <div class="zebra">
-              {r.rooms.map((m, j) => (
-                <KV key={j} k={`${m.won ? "✔" : "⚠"} ${m.text}`} v={m.how} tone={m.won ? undefined : "warning"} />
-              ))}
-              <KV k="🎁 Found" v={r.found ? <span style={{ color: RARITY_COLOR[r.found.rarity] }}>{r.found.name}</span> : <span class="dim">nothing</span>} />
-            </div>
-          </Collapsible>
+          <Entry
+            key={i}
+            title={`🏰 ${r.name} · ${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}
+            lines={[...r.rooms.map((m) => `${m.won ? "✔" : "⚠"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
+          />
         ))
       ) : (
         <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>

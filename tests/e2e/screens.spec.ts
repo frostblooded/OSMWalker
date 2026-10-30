@@ -167,7 +167,7 @@ test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({
   const sheet = page.getByRole("dialog", { name: /Collection/ });
   await sheet.getByRole("tab", { name: /Places/ }).click();
   await sheet.getByRole("button", { name: /Tsarevets/ }).click();
-  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "Bronze Ring"]) await expect(sheet).toContainText(t);
+  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "Rare Bronze Ring"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
 });
 
