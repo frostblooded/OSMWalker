@@ -1,8 +1,10 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
-// XP and level, timed buffs, gear and a bag of items, speed, and his history.
+// XP and level, timed buffs, gear and a bag of items, speed, his history and
+// his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
 import { History } from "./history";
 import * as Items from "./items";
+import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
 import type { Rng } from "./rng";
 import { euro, signed, toCents } from "./money";
@@ -72,6 +74,8 @@ export const KEEP_CENTS = 2000;
 export const DEALER_OFFERS = 5;
 /** Share of an item's price he gets selling it, before his charm. */
 export const SELL_SHARE = 0.4;
+/** Treasured items (see Items.isTreasured) he won't sell: his most travelled few. */
+export const TREASURED_KEEP = 3;
 
 export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
 /** A timed effect; `attrs` adds to his attributes while it lasts. */
@@ -87,6 +91,8 @@ export type Action = {
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
+  /** Buys this country's souvenir, if he has none from it yet. */
+  souvenir?: boolean;
   flavour?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
@@ -107,6 +113,11 @@ export class Stats {
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
+  keepsakes = new K.Keepsakes();
+  /** Where he is now, for keepsakes and item stories; the game and the catch-up set it (see arrive). */
+  where = { city: "", code: "", country: "" };
+  /** Placedex rarities from data/placedex.json; not saved, the game sets it. */
+  dex: K.Dex = {};
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -192,6 +203,7 @@ export class Stats {
     if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS)
       return this.say(`Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)})`);
     this.cents -= item.price;
+    item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
     this.equip(item);
     return this.say(`Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)})`);
   }
@@ -208,10 +220,18 @@ export class Stats {
     return Math.round(item.price * SELL_SHARE * (1 + 0.05 * this.attr("cha")));
   }
 
+  /** Sells the cheapest item in his bag that isn't one of his TREASURED_KEEP most travelled treasured ones. */
   private sellCheapest(): Item {
-    let i = 0;
+    const kept = new Set(
+      this.bag
+        .filter(Items.isTreasured)
+        .sort((a, b) => b.story!.countries.length - a.story!.countries.length)
+        .slice(0, TREASURED_KEEP),
+    );
+    const can = (it: Item) => !kept.has(it) || kept.size === this.bag.length;
+    let i = this.bag.findIndex(can);
     this.bag.forEach((it, j) => {
-      if (it.price < this.bag[i]!.price) i = j;
+      if (can(it) && it.price < this.bag[i]!.price) i = j;
     });
     const [item] = this.bag.splice(i, 1);
     this.cents += this.sellPrice(item!);
@@ -252,6 +272,7 @@ export class Stats {
     }
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.applyFx(fx);
+    if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -298,6 +319,7 @@ export class Stats {
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
+    if (action.souvenir && (!this.where.code || this.keepsakes.souvenirs.has(this.where.code))) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
         if (this.level < (need as number)) return false;
@@ -332,6 +354,7 @@ export class Stats {
       this.applyFx(action.fx ?? {});
       return this.sellLoot(where);
     }
+    if (action.souvenir) return this.buySouvenir(action, where);
     let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
     let text = action.name;
@@ -359,11 +382,80 @@ export class Stats {
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
   visit(place: Pick<Place, "name" | "lat" | "lon">): number {
-    const key = `${place.name}@${place.lat.toFixed(4)},${place.lon.toFixed(4)}`;
+    const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
     this.addXp(FIRST_VISIT_XP);
     return FIRST_VISIT_XP;
+  }
+
+  /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
+  arrive(city: string, code: string, country: string): void {
+    this.where = { city, code, country };
+    if (!code) return;
+    for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
+  }
+
+  /** Cents off a fare for his souvenirs: FARE_CUT for every SOUVENIRS_PER_CUT, up to FARE_CUT_MAX. */
+  fareMult(): number {
+    return 1 - K.fareCut(this.keepsakes.souvenirs.size);
+  }
+
+  /**
+   * Right after reaching a real place (after visit()): a landmark card or a
+   * roll to upgrade it, a new Placedex kind, and progress on crawls.
+   */
+  collect(place: Place, rng: Rng): void {
+    const k = this.keepsakes;
+    const key = visitKey(place);
+    const kind = K.kindOf(place);
+    if (K.isLandmark(place)) {
+      const had = k.cards.get(key);
+      if (!had) {
+        const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now() };
+        k.cards.set(key, card);
+        this.say(`New card: ${place.name} (${[card.rarity, K.FINISH_NAME[card.finish]].filter(Boolean).join(", ")})`);
+      } else if (rng.randf() < K.UPGRADE_CHANCE) {
+        const finish = K.rollFinish(rng.randf());
+        if (K.FINISH_ORDER[finish] > K.FINISH_ORDER[had.finish]) {
+          had.finish = finish;
+          had.t = this.now();
+          this.say(`Card upgraded: ${place.name} is now ${K.FINISH_NAME[finish]}`);
+        }
+      }
+    }
+    if (!k.dex.has(kind)) {
+      const rarity = K.dexRarity(this.dex, kind);
+      k.dex.set(kind, { t: this.now(), city: this.where.city });
+      this.addXp(K.DEX_XP[rarity]);
+      this.say(`New in the Placedex: ${K.kindLabel(kind)} (${rarity}, +${K.DEX_XP[rarity]} XP)`);
+    }
+    k.roll(K.dayOf(this.now()), this.where.city);
+    for (const c of K.CRAWLS) {
+      if (k.done.has(c.id) || !K.crawlMatches(c, place)) continue;
+      const seen = (k.progress[c.id] ??= []);
+      if (seen.includes(key)) continue;
+      seen.push(key);
+      if (seen.length < c.need) continue;
+      k.done.set(c.id, this.now());
+      delete k.progress[c.id];
+      this.cents += c.cents;
+      this.addXp(c.xp);
+      this.say(`Finished the ${c.name}! (+${c.xp} XP, ${signed(c.cents)})`);
+    }
+  }
+
+  private buySouvenir(action: Action, where: string): string {
+    const cost = toCents(action.cost ?? 0);
+    const { code, country, city } = this.where;
+    const name = K.souvenirName(code, country);
+    this.cents -= cost;
+    this.applyFx(action.fx ?? {});
+    this.keepsakes.souvenirs.set(code, { name, country, city, t: this.now() });
+    const line = this.say(`Bought a souvenir from ${country || city}: a ${name}${where ? ` at ${where}` : ""} (${signed(-cost)})`);
+    if (this.keepsakes.souvenirs.size % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(this.keepsakes.souvenirs.size) > K.fareCut(this.keepsakes.souvenirs.size - 1))
+      this.say(`Seasoned traveller: fares are now ${Math.round(K.fareCut(this.keepsakes.souvenirs.size) * 100)}% cheaper`);
+    return line;
   }
 
   fainted(): boolean {
@@ -392,6 +484,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      keepsakes: this.keepsakes.toJSON(), where: this.where,
     };
   }
 
@@ -409,9 +502,14 @@ export class Stats {
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
+    s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
+    s.where = d.where ?? s.where;
     return s;
   }
 }
+
+/** The key a place is remembered by: its name and where it is. */
+export const visitKey = (place: Pick<Place, "name" | "lat" | "lon">) => `${place.name}@${place.lat.toFixed(4)},${place.lon.toFixed(4)}`;
 
 export function inTime(time: TimeOfDay, hour: number): boolean {
   const [a, b] = TIMES[time];

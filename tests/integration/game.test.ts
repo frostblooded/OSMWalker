@@ -99,6 +99,16 @@ describe("game", () => {
     expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
   });
 
+  it("collects keepsakes where he is: a card and a Placedex entry at a landmark", async () => {
+    const MUSEUM: Place = { ...CAFE, name: "Museum Near", class: "museum", subclass: "museum", rank: 1 };
+    const { g } = game({ places: [MUSEUM] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.where).toEqual({ city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" });
+    run(g, 400);
+    expect([...g.stats.keepsakes.cards.values()]).toMatchObject([{ name: "Museum Near", rarity: "Rare", city: "Sofia, Bulgaria" }]);
+    expect(g.stats.keepsakes.dex.has("museum/museum")).toBe(true);
+  });
+
   it("keeps the walk across a save", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -385,8 +395,11 @@ describe("game", () => {
       const s = again.away!;
       expect(s.cities.length).toBeGreaterThan(0);
       expect(again.city).toBe(s.end.city.name);
-      expect(again.city).not.toBe("Sofia, Bulgaria");
-      expect(again.walker!.position()).toEqual(s.end.at);
+      // He may ride back and forth; he ends in the last city he reached.
+      expect(again.city).toBe(s.cities.at(-1));
+      // Back in Sofia, whose streets are loaded, he steps onto the nearest corner.
+      const [lat, lon] = again.walker!.position();
+      expect(distanceM(lat, lon, s.end.at[0], s.end.at[1])).toBeLessThan(100);
       expect(again.loader.graph).toBe(again.walker!.graph);
     });
   });

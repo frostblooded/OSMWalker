@@ -13,6 +13,9 @@
   --accent-dark: #b4531f;
   --coin: #ffd66b;
   --lilac: #e9dcff;
+  --foil-blue: #e8f4ff;
+  --foil-pink: #fdeaff;
+  --gold-light: #fff3c4;
   --hp: #e5484d;
   --en: #ffc53d;
   --fu: #46a758;
@@ -188,6 +191,12 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 .tile { background: var(--zebra); border: 2px solid var(--ink); border-radius: var(--r-small); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
 .tile b { font-size: var(--title); }
+/* Landmark cards: a frame in the rarity colour; foil and gold add a still sheen (no animation, so no redraws). */
+.lcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s2); }
+.lcard { border: 4px solid; border-radius: var(--r-small); background: var(--paper); box-shadow: var(--lip); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.lcard b { font-size: var(--body); }
+.lcard.foil { background: linear-gradient(135deg, var(--paper) 0%, var(--foil-blue) 35%, var(--foil-pink) 55%, var(--paper) 80%); }
+.lcard.gold { background: linear-gradient(135deg, var(--gold-light) 0%, var(--coin) 45%, var(--gold-light) 70%, var(--coin) 100%); }
 .alerts { display: flex; flex-direction: column; gap: var(--s2); }
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }

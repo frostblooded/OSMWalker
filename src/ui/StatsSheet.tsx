@@ -1,7 +1,7 @@
 // His character sheet: level and XP, what he saves up for, six meters as
 // bars, four attributes with what his gear adds, every gear slot, the bag
-// and his buffs.
-import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
+// and his buffs. Items with a story open to show it.
+import { isTreasured, SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
@@ -35,6 +35,36 @@ function ItemName({ item }: { item: Item }) {
     <span style={{ color: RARITY_COLOR[item.rarity] }} title={item.rarity}>
       {item.name}
     </span>
+  );
+}
+
+/** Where an item came from and what it has been through, as rows. */
+function Story({ item }: { item: Item }) {
+  const st = item.story!;
+  return (
+    <>
+      <KV k="🛒 Bought" v={`${st.from || "somewhere"}, ${new Date(st.t * 1000).toLocaleDateString()}`} />
+      <KV k="🌍 Countries" v={st.countries.length ? `${st.countries.length}: ${st.countries.join(", ")}` : "0"} />
+      <KV k="🚶 Worn for" v={`${n1(st.km)} km`} />
+      {isTreasured(item) && <KV k="💎 Treasured" v="he won't sell it" tone="ok" />}
+    </>
+  );
+}
+
+/** A gear or bag row; one with a story opens to show it. */
+function ItemRow({ label, item, right }: { label?: string; item: Item; right?: string }) {
+  const name = (
+    <>
+      {label && `${label} `}
+      <ItemName item={item} />
+      {isTreasured(item) && " 💎"}
+    </>
+  );
+  if (!item.story) return <KV k={name} v={right ?? ""} />;
+  return (
+    <Collapsible title={name} right={right}>
+      <Story item={item} />
+    </Collapsible>
   );
 }
 
@@ -104,7 +134,8 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <div class="zebra">
           {SLOTS.map((slot) => {
             const item = s.gear[slot];
-            return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={item ? <ItemName item={item} /> : <span class="dim">Empty</span>} />;
+            if (item) return <ItemRow key={slot} label={SLOT[slot][0]} item={item} right={SLOT[slot][1]} />;
+            return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={<span class="dim">Empty</span>} />;
           })}
         </div>
       </Card>
@@ -113,7 +144,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
               {bag.map((item, i) => (
-                <KV key={i} k={<ItemName item={item} />} v={euro(item.price)} />
+                <ItemRow key={i} item={item} right={euro(item.price)} />
               ))}
             </div>
           </Collapsible>

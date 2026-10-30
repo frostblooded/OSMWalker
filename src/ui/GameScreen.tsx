@@ -10,6 +10,7 @@ import { euro } from "../core/money";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
+import { CollectionSheet } from "./CollectionSheet";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
@@ -19,7 +20,7 @@ import { StatsSheet } from "./StatsSheet";
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -148,6 +149,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
+            <button class="btn" onClick={() => setSheet("collection")}>
+              🗂 Collection
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -183,6 +187,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
           <StatsSheet stats={game.stats} />
+        </SheetBox>
+      )}
+      {sheet === "collection" && (
+        <SheetBox title="🗂 Collection" onClose={close} full>
+          <CollectionSheet stats={game.stats} />
         </SheetBox>
       )}
       {sheet === "help" && (

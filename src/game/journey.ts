@@ -47,7 +47,7 @@ export class Journey {
     const found = this.destination(kind, at);
     if (!found) return null;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf());
+    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult());
     if (!isPlan(plan)) {
       this.log.no_trip = plan.error;
       if (plan.short_of !== undefined) {

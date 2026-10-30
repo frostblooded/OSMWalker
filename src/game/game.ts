@@ -14,6 +14,7 @@ import { distanceM, type BBox } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
+import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
 import { NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
@@ -37,7 +38,7 @@ export const CATCHUP_WAIT_MS = 3000;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -98,6 +99,8 @@ export class Game {
   private severeOf = "";
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
+  /** Keepsake rolls, apart from `rng` so collecting never changes where he goes or what he does. */
+  private readonly cardRng = new Rng();
   private readonly file: SaveFile;
 
   constructor(private readonly deps: GameDeps) {
@@ -172,6 +175,7 @@ export class Game {
     this.city = name;
     this.country = this.trips.countryAt(lat, lon);
     this.origin = [lat, lon];
+    this.placeStats();
     this.skipRoll = true;
     this.track();
     void this.learnCity(lat, lon);
@@ -234,6 +238,7 @@ export class Game {
     this.track();
     const bonus = this.stats.visit(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
+    this.stats.collect(place, this.cardRng);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -322,6 +327,7 @@ export class Game {
     this.city = `${dest.name}, ${dest.country}`;
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
+    this.placeStats();
     this.track();
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
@@ -350,6 +356,12 @@ export class Game {
     this.changed();
     if (!dest) return;
     w.rideNow(dest);
+  }
+
+  /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
+  private placeStats(): void {
+    this.stats.dex = this.deps.data.dex ?? {};
+    this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
   /** New city: wipes the save but keeps the settings. */
@@ -406,6 +418,7 @@ export class Game {
     this.zoom = d.zoom;
     this.origin = d.origin;
     this.country = d.country || this.trips.countryAt(d.origin[0], d.origin[1]);
+    this.placeStats();
     this.skipRoll = d.skipRoll;
     this.savedAt = d.savedAt;
     void this.learnCity(d.origin[0], d.origin[1]);
@@ -467,6 +480,7 @@ export class Game {
       activities: this.activities,
       trips: this.trips,
       rng: this.rng,
+      cardRng: this.cardRng,
       hourAt: (ms) => this.hour(ms),
       roll: this.deps.rollSource,
       facts: this.cityFacts,
@@ -491,6 +505,7 @@ export class Game {
       this.city = s.end.city.name;
       this.country = s.end.city.code;
       this.origin = s.end.city.center;
+      this.placeStats();
       void this.learnCity(...this.origin);
     }
     w.relocate(s.end.at, s.end.city.bounds, moved);
