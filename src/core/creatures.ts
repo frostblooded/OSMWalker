@@ -103,7 +103,7 @@ export const CREATURES: readonly Creature[] = [
     icon: "🌳",
     name: "Dryad",
     at: ["park", "garden"],
-    hint: "Lives in an old tree in a park",
+    hint: "Lives in an old tree in a park or garden",
     where: "in the old trees of parks and gardens",
     moment: {
       id: "dryad",
