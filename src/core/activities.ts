@@ -19,6 +19,8 @@ export const SAVING_SPEND_MULT = 0.5;
 /** Extra weight for browsing the shop of his next vehicle once he can afford it, and how much more that shop pulls his goal. */
 export const GOAL_SHOP_WEIGHT = 4;
 export const GOAL_SHOP_PULL = 200;
+/** Extra weight for buying a souvenir from a country he has none from. */
+export const SOUVENIR_WEIGHT = 2;
 /** Extra weight for a country's own actions, so they come up often. */
 export const FLAVOUR_WEIGHT = 2;
 /** Below this a meter is a need: places that refill it pull his next goal towards them. */
@@ -79,6 +81,7 @@ export function weight(action: Action, stats: Stats): number {
   }
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
+  if (action.souvenir) w += SOUVENIR_WEIGHT;
   if (action.earn !== undefined) w += stats.cents < SKINT ? 3 : 0.5;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {

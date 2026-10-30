@@ -18,7 +18,7 @@ export const LAYERS = ["transportation", "transportation_name", "poi"];
 const WALKABLE = new Set(["primary", "secondary", "tertiary", "minor", "service", "track", "path"]);
 const NOT_WALKABLE_SUBCLASS = new Set(["platform", "corridor"]);
 /** Stops and entrances are everywhere and not worth a walk. */
-const NOT_A_PLACE_SUBCLASS = new Set(["bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"]);
+export const NOT_A_PLACE_SUBCLASS = new Set(["bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"]);
 /** Edge cuts are rounded to this many units (about 2 m), so both tiles' clipped copies of a street meet. */
 const SNAP = 4;
 /** How close (in units, about 0.6 m) a dead end or other node must be to a segment to be joined onto it. */

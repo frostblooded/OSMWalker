@@ -12,6 +12,7 @@ import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Day from "../core/day";
+import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
 import * as Problems from "../core/problems";
@@ -123,9 +124,25 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
+/** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
+const band = (r: Items.Rarity) => (K.DEX_BANDS.find(([, b]) => b === r)?.[0] ?? 0).toLocaleString("en-GB");
 const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
+
+/** "cafes or coffee shops" for a crawl's kinds. */
+export const CRAWL_KINDS: Record<string, string> = {
+  coffee: "cafes or coffee shops",
+  pub: "bars, pubs, clubs or beer gardens",
+  sweet: "ice cream parlours, bakeries or sweet shops",
+  parks: "parks or gardens",
+  shops: "shops or clothing stores",
+  museums: "museums",
+  pilgrim: "places of worship",
+  culture: "museums, galleries or theatres",
+  sights: "landmarks (see Landmark cards)",
+};
+const crawlKinds = (c: K.Crawl) => CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
 
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
@@ -276,6 +293,32 @@ export function values(data: GameData): Record<string, string> {
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
     ACTION_COUNT: String(sum(data.actions)),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    LANDMARK_KINDS: K.LANDMARK_CLASSES.map((c) => K.kindLabel(c).toLowerCase()).join(", "),
+    GOLD_PCT: pct(K.GOLD_CHANCE),
+    FOIL_PCT: pct(K.FOIL_CHANCE),
+    UPGRADE_PCT: pct(K.UPGRADE_CHANCE),
+    DEX_XP_COMMON: String(K.DEX_XP.Common),
+    DEX_XP_UNCOMMON: String(K.DEX_XP.Uncommon),
+    DEX_XP_RARE: String(K.DEX_XP.Rare),
+    DEX_XP_LEGENDARY: String(K.DEX_XP.Legendary),
+    DEX_COMMON_MIN: band("Common"),
+    DEX_UNCOMMON_MIN: band("Uncommon"),
+    DEX_RARE_MIN: band("Rare"),
+    CARD_RARE_RANK: String(K.RARE_RANK),
+    CARD_UNCOMMON_RANK: String(K.UNCOMMON_RANK),
+    DEX_KINDS: String(Object.keys(data.dex ?? {}).length),
+    SOUVENIR_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.souvenir)?.cost ?? 0)),
+    SOUVENIR_WEIGHT: num(Activities.SOUVENIR_WEIGHT),
+    SOUVENIR_COUNTRIES: String(Object.keys(K.SOUVENIRS).length),
+    SOUVENIRS_PER_CUT: String(K.SOUVENIRS_PER_CUT),
+    FARE_CUT_PCT: pct(K.FARE_CUT),
+    FARE_CUT_MAX_PCT: pct(K.FARE_CUT_MAX),
+    CRAWL_LIST: K.CRAWLS.map((c) => `- ${c.icon} ${c.name}: ${c.need} different ${crawlKinds(c)} ${c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all"}, +${c.xp} XP and ${euro(c.cents)},`)
+      .join("\n")
+      .replace(/,$/, "."),
+    TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),
+    TREASURED_KEEP: String(S.TREASURED_KEEP),
+    CARDS_SHOWN: String(K.CARDS_SHOWN),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);
