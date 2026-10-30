@@ -6,6 +6,7 @@ import * as Activities from "../core/activities";
 import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
+import * as Dilemmas from "../core/dilemmas";
 import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
@@ -163,6 +164,14 @@ export function values(data: GameData): Record<string, string> {
     GUESS_CHOICES: num(Guess.GUESS_CHOICES),
     POSTCARD_NAME_MAX: num(Postcard.NAME_MAX),
     GUESS_CLOVERS: num(Guess.GUESS_CLOVERS),
+    DILEMMA_AWAY_H: num(Dilemmas.DILEMMA_AWAY_S / 3600),
+    DILEMMA_PCT: pct(Dilemmas.DILEMMA_CHANCE),
+    LEAN_PCT: pct(Dilemmas.LEAN_PER_POINT),
+    LEAN_CAP_PCT: pct(Dilemmas.LEAN_CAP),
+    DILEMMA_LIST: Dilemmas.helpList(),
+    CHESS_BASE_PCT: pct(Dilemmas.CHESS_BASE),
+    CHESS_PER_WIT_PCT: pct(Dilemmas.CHESS_PER_WIT),
+    CHESS_MAX_PCT: pct(Dilemmas.CHESS_MAX),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),

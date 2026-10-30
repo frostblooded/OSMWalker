@@ -159,7 +159,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
     f.write(saved());
-    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems(), postcardName: "" });
+    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems(), postcardName: "", alwaysDilemma: false });
     f.clear();
     expect(f.has()).toBe(false);
     expect(kv.getItem(SETTINGS_KEY)).not.toBeNull();
@@ -172,12 +172,12 @@ describe("save file", () => {
     const problems = new Problems();
     problems.quiet = true;
     problems.warn("kept");
-    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems, postcardName: "Ivan" });
+    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems, postcardName: "Ivan", alwaysDilemma: true });
     const s = f.readSettings() as Exclude<ReturnType<SaveFile["readSettings"]>, string | null>;
-    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, postcardName: "Ivan" });
+    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, postcardName: "Ivan", alwaysDilemma: true });
     expect(s.problems.warnings.map((w) => w.text)).toContain("kept");
     kv.setItem(SETTINGS_KEY, "{}");
-    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false, postcardName: "" });
+    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false, postcardName: "", alwaysDilemma: false });
     kv.setItem(SETTINGS_KEY, "nope");
     expect(f.readSettings()).toBe("Settings were unreadable; using defaults");
   });

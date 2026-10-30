@@ -7,9 +7,8 @@ import { Game } from "../game/game";
 import { SaveFile } from "../game/saveFile";
 import { Api, type SearchPlace } from "../net/api";
 import { StreetClient } from "../streets/client";
-import { GameScreen } from "./GameScreen";
+import { GameScreen, Loading } from "./GameScreen";
 import { Picker } from "./Picker";
-import { ReceivedSheet } from "./PostcardSheet";
 
 const api = new Api();
 let game: Promise<Game> | null = null;
@@ -43,6 +42,12 @@ export function App() {
   const [playing, setPlaying] = useState(false);
   const [resuming, setResuming] = useState(hasSave);
   const [msg, setMsg] = useState<Msg>();
+  // The postcard screens load only when a link brings a postcard, so their code stays off the startup path.
+  const [cards, setCards] = useState<typeof import("./PostcardSheet") | null>(null);
+  const [cardsFailed, setCardsFailed] = useState(false);
+  useEffect(() => {
+    if (received && !playing && !cards) import("./PostcardSheet").then(setCards, () => setCardsFailed(true));
+  }, [received, playing]);
 
   useEffect(() => {
     if (resuming) {
@@ -97,7 +102,16 @@ export function App() {
       {received && (
         <div class="dialog-bg">
           <div class="dialog" role="dialog" aria-label="Postcard">
-            <ReceivedSheet card={received} onDone={() => setReceived(null)} />
+            {cards ? (
+              <cards.ReceivedSheet card={received} onDone={() => setReceived(null)} />
+            ) : (
+              <>
+                <Loading failed={cardsFailed} />
+                <button class="btn" onClick={() => setReceived(null)}>
+                  Close
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

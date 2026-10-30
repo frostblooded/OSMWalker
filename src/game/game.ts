@@ -11,6 +11,7 @@ import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Su
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
+import type { Dilemma } from "../core/dilemmas";
 import { distanceM, type BBox } from "../core/geo";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
@@ -22,7 +23,7 @@ import { Rng } from "../core/rng";
 import type { Dex } from "../core/keepsakes";
 import { offsetFromLon, placeWeight, skyAt, type Sky } from "../core/sky";
 import { Stats, type Action, type Place } from "../core/stats";
-import { NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type Forecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
@@ -42,6 +43,8 @@ export const MAX_STEP_S = 1;
 export const STREET_RING = 1;
 /** Longest wait on reopen for the streets around him (from the device's cache), so the catch-up uses real places. */
 export const CATCHUP_WAIT_MS = 3000;
+/** Longest a reopen waits, after the streets, for the dilemma code; past it there is no dilemma this time. */
+export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
@@ -91,6 +94,8 @@ export class Game {
   cameraFollows = true;
   /** The optional city sound (the menu switch); off until the player turns it on. */
   sound = false;
+  /** Debug switch: every reopen after a long absence brings a dilemma. */
+  alwaysDilemma = false;
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
@@ -102,6 +107,10 @@ export class Game {
   forecast: Forecast | null = null;
   /** True when this reopen earned a clover, for the summary card. */
   awayClover = false;
+  /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
+  dilemma: Dilemma | null = null;
+  /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
+  private dilemmas: typeof import("../core/dilemmas") | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -521,7 +530,11 @@ export class Game {
     const from = this.savedAt;
     const awayS = (this.now() - from) / 1000;
     if (awayS < MIN_AWAY_S) return;
+    this.leaveDilemma();
     this.waking = true;
+    // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
+    // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
+    const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       const weather = this.refreshWeather();
@@ -530,9 +543,19 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      await Promise.race([weather, new Promise((r) => setTimeout(r, Math.max(until - performance.now(), 0)))]);
+      const [D] = await Promise.all([
+        Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]),
+        Promise.race([weather, new Promise((r) => setTimeout(r, Math.max(until - performance.now(), 0)))]),
+      ]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
+      this.dilemma =
+        D?.rollDilemma(awayS, this.rng, (kind) => {
+          // No free ride while he is on a paid one.
+          if (w.isTraveling()) return null;
+          const here = w.position();
+          return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
+        }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
     }
@@ -603,10 +626,49 @@ export class Game {
 
   /** Closes the summary card. */
   dismissAway(): void {
+    if (this.leaveDilemma()) this.save();
+    this.dilemma = null;
     this.away = null;
     this.awayClover = false;
     this.stats.week.seen();
     this.changed();
+  }
+
+  /** Your pick on the summary card's dilemma. */
+  chooseDilemma(pick: number): void {
+    const d = this.dilemma;
+    if (!d || d.picked !== null) return;
+    this.settleDilemma(d, pick, "you");
+    this.save();
+    this.changed();
+  }
+
+  /** The page is hidden or closed: nothing waits for you, so he settles an open dilemma, then the game saves. */
+  leave(): void {
+    this.leaveDilemma();
+    this.save();
+  }
+
+  /** He decides an open dilemma by himself: the card is closing, the page is being left, or a new reopen replaces it. True when he did. */
+  leaveDilemma(): boolean {
+    const d = this.dilemma;
+    if (!d || d.picked !== null || !this.dilemmas) return false;
+    this.settleDilemma(d, this.dilemmas.hisPick(d, this.stats, this.rng), "him");
+    this.changed();
+    return true;
+  }
+
+  /** Applies a dilemma's outcome; a trip offer sends him to its city at once, free. */
+  private settleDilemma(d: Dilemma, pick: number, by: "you" | "him"): void {
+    const w = this.walker;
+    // He boarded a paid ride while the card was open: that goes first, so he turns the free one down himself.
+    if (d.city && w?.isTraveling()) [pick, by] = [1, "him"];
+    const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
+    if (!o.trip || !d.city || !w) return;
+    // A free ride replaces a trip he is still walking to the station for, and its guess.
+    this.stats.care.guess = null;
+    this.stats.history.breakTrail();
+    w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
   }
 
   /** Sends him a care package; he opens it at his next stop. */
@@ -625,11 +687,12 @@ export class Game {
     this.cameraFollows = s.cameraFollows;
     this.sound = s.sound;
     this.postcardName = s.postcardName;
+    this.alwaysDilemma = s.alwaysDilemma;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName, alwaysDilemma: this.alwaysDilemma });
   }
 
   setShowCityArea(on: boolean): void {
@@ -660,6 +723,12 @@ export class Game {
 
   setPostcardName(name: string): void {
     this.postcardName = name.slice(0, NAME_MAX);
+    this.saveSettings();
+    this.changed();
+  }
+
+  setAlwaysDilemma(on: boolean): void {
+    this.alwaysDilemma = on;
     this.saveSettings();
     this.changed();
   }

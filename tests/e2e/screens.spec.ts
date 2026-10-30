@@ -35,6 +35,19 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
 });
 
+test("Help that couldn't load offers Try again", async ({ page }) => {
+  let fail = true;
+  await page.route("**/data/help.txt", (route) => (fail ? route.abort() : route.fallback()));
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Help/ }).click();
+  const help = page.getByRole("dialog", { name: /Help/ });
+  await expect(help).toContainText("Couldn't load Help");
+  fail = false;
+  await help.getByRole("button", { name: /Try again/ }).click();
+  await expect(help.getByRole("button", { name: "How he walks" })).toBeVisible();
+});
+
 test("Help search finds pages by their text and keeps the results after Back", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

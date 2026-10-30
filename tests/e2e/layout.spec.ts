@@ -154,6 +154,7 @@ for (const width of [360, 412]) {
       await check(page, "debug");
       await debug.getByRole("button", { name: /Goal picks/ }).click();
       await check(page, "debug-goal-picks");
+      await debug.getByRole("switch", { name: /One on every long reopen/ }).click();
       await debug.getByRole("button", { name: /New city/ }).click();
 
       await openMenuItem(page, /History/);
@@ -161,10 +162,12 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
-      await reopenAfter(page, 3);
+      await reopenAfter(page, 5);
       const away = page.getByRole("dialog", { name: /While you were away/ });
-      await expect(away).toBeVisible({ timeout: 20000 });
+      await expect(away).toContainText("One choice", { timeout: 20000 });
       await check(page, "away");
+      await away.locator(".choices button").last().click();
+      await check(page, "away-dilemma");
       await away.getByRole("button", { name: /events, newest first/ }).click();
       await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();

@@ -14,9 +14,7 @@ import { NIGHT_SHADE } from "../core/sky";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
-import { AwaySheet } from "./AwaySheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
-import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -25,17 +23,19 @@ const DARK_STEP = 0.05;
 
 /** Wait after the map is up before loading the menu's sheets. */
 const SHEETS_AFTER_MS = 3000;
-/** The menu's sheets, loaded after startup (or when the menu opens first), so their code stays off the startup path. */
+/** The sheets (the menu's, postcards and While you were away), loaded after startup or as soon as one is needed, so their code stays off the startup path. */
 const loadSheets = async () => {
-  const [help, debug, history, stats, collection, care] = await Promise.all([
+  const [help, debug, history, stats, collection, care, postcard, away] = await Promise.all([
     import("./HelpSheet"),
     import("./DebugSheet"),
     import("./HistorySheet"),
     import("./StatsSheet"),
     import("./CollectionSheet"),
     import("./CareSheet"),
+    import("./PostcardSheet"),
+    import("./AwaySheet"),
   ]);
-  return { ...help, ...debug, ...history, ...stats, ...collection, ...care };
+  return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard, ...away };
 };
 type Sheets = Awaited<ReturnType<typeof loadSheets>>;
 
@@ -133,8 +133,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   }, [sheets]);
 
   useEffect(() => {
-    if (sheet && !sheets) fetchSheets();
-  }, [sheet, sheets]);
+    if ((sheet || received || game.away) && !sheets) fetchSheets();
+  }, [sheet, sheets, received, game.away]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -278,19 +278,23 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "postcard" && (
         <SheetBox title="📮 Send a postcard" onClose={close} full>
-          <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
+          {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={sheetsFailed} />}
         </SheetBox>
       )}
       {received && sheet === null && !game.away && (
         <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
-          <ReceivedSheet
-            card={received}
-            onReply={() => {
-              onReceivedDone?.();
-              setSheet("postcard");
-            }}
-            onDone={() => onReceivedDone?.()}
-          />
+          {sheets ? (
+            <sheets.ReceivedSheet
+              card={received}
+              onReply={() => {
+                onReceivedDone?.();
+                setSheet("postcard");
+              }}
+              onDone={() => onReceivedDone?.()}
+            />
+          ) : (
+            <Loading failed={sheetsFailed} />
+          )}
         </SheetBox>
       )}
       {sheet === "help" && (
@@ -306,7 +310,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} onDone={() => game.dismissAway()} />
+          {sheets ? (
+            <sheets.AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
+          ) : (
+            <Loading failed={sheetsFailed} />
+          )}
         </SheetBox>
       )}
     </div>
@@ -346,7 +354,7 @@ function GuessRow({ guess: g, onPick }: { guess: Guess; onPick: (choice: string)
       <div class="small dim">
         🎲 Where to? {g.abroad ? "Which country" : "Which city"}, for +{GUESS_CLOVERS} ☘
       </div>
-      <div class="guess-choices">
+      <div class="choices">
         {g.choices.map((c) => (
           <button key={c} class="btn" onClick={() => onPick(c)}>
             {c}
@@ -445,5 +453,6 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
   );
 }
 
-const Loading = ({ failed }: { failed: boolean }) =>
+/** Stands in for a screen while its code loads, or says that it couldn't. */
+export const Loading = ({ failed }: { failed: boolean }) =>
   failed ? <div class="notice error">✖ Couldn't load this screen. Check your connection and reload the page.</div> : <p class="dim small">Loading…</p>;

@@ -138,8 +138,9 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1); font-size: var(--body); }
 .ribbon .dim { font-size: var(--small); }
 .guess { display: flex; flex-direction: column; gap: var(--s1); }
-.guess-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.guess-choices .btn { flex: 1 1 auto; }
+.choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.choices .btn { flex: 1 1 auto; }
+.choices.dilemma { margin-bottom: var(--s2); }
 .notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
 .notice.error { color: var(--error); }
 .notice.ok { color: var(--ok); }
