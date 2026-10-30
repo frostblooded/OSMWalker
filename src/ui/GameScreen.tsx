@@ -62,6 +62,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         performance.mark("osmwalker:map");
       })
       .catch((e: Error) => {
+        game.woken();
         game.problems.error(`The map couldn't start: ${e.message}`);
         setMapError("The map couldn't load. Check your connection and reload.");
       });

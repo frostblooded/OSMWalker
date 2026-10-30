@@ -511,13 +511,13 @@ export class Game {
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
+      this.woken();
     }
     this.save();
-    this.woken();
   }
 
-  /** The first wake has decided whether there is an away card, so a postcard from a link may show. */
-  private woken(): void {
+  /** The first wake has decided whether there is an away card (or never will: no map, so no loop), so a postcard from a link may show. */
+  woken(): void {
     this.woke = true;
     this.changed();
   }

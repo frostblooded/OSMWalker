@@ -19,6 +19,8 @@ describe("clovers", () => {
     expect(c.clovers).toBe(CLOVERS_PER_DAY);
     expect(c.earnedOn("2026-10-30")).toBe(CLOVERS_PER_DAY);
     expect(c.earnedOn("2026-11-02")).toBe(0);
+    expect(c.full("2026-10-30")).toBe(true);
+    expect(c.full("2026-11-02")).toBe(false);
     expect(c.checkIn(CLOVER_AWAY_S, "2026-11-02")).toBe(true);
     expect(c.clovers).toBe(CLOVERS_PER_DAY + 1);
   });
