@@ -4,7 +4,8 @@ import { Activities } from "../../src/core/activities";
 import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
-import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, type Place } from "../../src/core/stats";
+import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
+import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 
@@ -113,6 +114,36 @@ describe("catch-up", () => {
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
     expect(stats.cents).toBeLessThan(500_000);
+  });
+
+  it("collects landmark cards and Placedex kinds at real places, none at made-up ones", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown", "AAA", "A-land");
+    const museum = place("Town Museum", "museum", "museum", -0.002, -0.002);
+    catchUp(stats, { ...HOME, places: [...PLACES, museum] }, [0, 0], 6 * 3600, START_MS, deps({ cardRng: new Rng(1) }));
+    expect(stats.keepsakes.cards.get(visitKey(museum))).toMatchObject({ name: "Town Museum", rarity: "Rare", city: "Bigtown" });
+    expect(stats.keepsakes.dex.has("cafe/cafe")).toBe(true);
+    const away = new Stats();
+    catchUp(away, { ...HOME, places: null }, [0, 0], 2 * 3600, START_MS, deps());
+    expect(away.keepsakes.cards.size + away.keepsakes.dex.size).toBe(0);
+  });
+
+  it("tells his stats and worn gear where he lands, and cuts fares for souvenirs", () => {
+    const run = (souvenirs: number) => {
+      const stats = new Stats();
+      stats.cents = 3000; // enough for the bus, not for new gear
+      stats.gear.head = { name: "Cap", slot: "head", stats: {}, rarity: "Common", price: 100, story: { from: "Old", t: 0, countries: ["ZZZ"], km: 0 } };
+      for (let i = 0; i < souvenirs; i++) stats.keepsakes.souvenirs.set(`C${i}`, { name: "magnet", country: "", city: "", t: 0 });
+      const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1 }));
+      return { stats, bus: s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text };
+    };
+    const { stats, bus } = run(0);
+    expect(stats.where.code).toBe("AAA");
+    expect(stats.where.city).toBe("Nexttown, A-land");
+    expect(stats.gear.head!.story!.countries).toEqual(["ZZZ", "AAA"]);
+    const cheaper = run(SOUVENIRS_PER_CUT * 5).bus;
+    const fare = (line: string) => Math.round(Number(line.match(/-€([\d.]+)/)![1]) * 100);
+    expect(fare(cheaper)).toBe(Math.ceil(fare(bus) * (1 - FARE_CUT_MAX)));
   });
 
   it("saves up when he can't afford a trip", () => {

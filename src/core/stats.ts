@@ -220,14 +220,19 @@ export class Stats {
     return Math.round(item.price * SELL_SHARE * (1 + 0.05 * this.attr("cha")));
   }
 
-  /** Sells the cheapest item in his bag that isn't one of his TREASURED_KEEP most travelled treasured ones. */
-  private sellCheapest(): Item {
-    const kept = new Set(
+  /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
+  keptTreasures(): Set<Item> {
+    return new Set(
       this.bag
         .filter(Items.isTreasured)
         .sort((a, b) => b.story!.countries.length - a.story!.countries.length)
         .slice(0, TREASURED_KEEP),
     );
+  }
+
+  /** Sells the cheapest item in his bag that isn't one of his kept treasures. */
+  private sellCheapest(): Item {
+    const kept = this.keptTreasures();
     const can = (it: Item) => !kept.has(it) || kept.size === this.bag.length;
     let i = this.bag.findIndex(can);
     this.bag.forEach((it, j) => {
@@ -238,16 +243,10 @@ export class Stats {
     return item!;
   }
 
+  /** Puts an item in the bag; when that overfills it, sells the cheapest he may sell, which can be the new item. */
   private bagAdd(item: Item): void {
-    if (this.bag.length >= BAG_SIZE) {
-      const sold = this.sellCheapest();
-      if (sold.price > item.price) {
-        this.bag.push(sold); // keep the better one
-        this.cents += this.sellPrice(item) - this.sellPrice(sold);
-        return;
-      }
-    }
     this.bag.push(item);
+    while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
   buffNames(): string[] {

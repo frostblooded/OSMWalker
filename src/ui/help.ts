@@ -20,7 +20,6 @@ import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
-import { CARDS_SHOWN } from "./CollectionSheet";
 import { MIN_CHARS } from "./Picker";
 
 export type Page = { id: string; title: string; body: string };
@@ -130,10 +129,10 @@ const km = (m: number) => num(m / 1000);
 /** "cafes or coffee shops" for a crawl's kinds. */
 const CRAWL_KINDS: Record<string, string> = {
   coffee: "cafes or coffee shops",
-  pub: "bars or pubs",
+  pub: "bars, pubs, clubs or beer gardens",
   sweet: "ice cream parlours, bakeries or sweet shops",
   parks: "parks or gardens",
-  shops: "shops",
+  shops: "shops or clothing stores",
   museums: "museums",
   pilgrim: "places of worship",
   culture: "museums, galleries or theatres",
@@ -304,7 +303,7 @@ export function values(data: GameData): Record<string, string> {
       .replace(/,$/, "."),
     TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),
     TREASURED_KEEP: String(S.TREASURED_KEEP),
-    CARDS_SHOWN: String(CARDS_SHOWN),
+    CARDS_SHOWN: String(K.CARDS_SHOWN),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);

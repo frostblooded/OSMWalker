@@ -39,20 +39,20 @@ function ItemName({ item }: { item: Item }) {
 }
 
 /** Where an item came from and what it has been through, as rows. */
-function Story({ item }: { item: Item }) {
+function Story({ item, kept }: { item: Item; kept: boolean }) {
   const st = item.story!;
   return (
     <>
       <KV k="🛒 Bought" v={`${st.from || "somewhere"}, ${new Date(st.t * 1000).toLocaleDateString()}`} />
       <KV k="🌍 Countries" v={st.countries.length ? `${st.countries.length}: ${st.countries.join(", ")}` : "0"} />
       <KV k="🚶 Worn for" v={`${n1(st.km)} km`} />
-      {isTreasured(item) && <KV k="💎 Treasured" v="he won't sell it" tone="ok" />}
+      {isTreasured(item) && <KV k="💎 Treasured" v={kept ? "he won't sell it" : "yes"} tone={kept ? "ok" : undefined} />}
     </>
   );
 }
 
-/** A gear or bag row; one with a story opens to show it. */
-function ItemRow({ label, item, right }: { label?: string; item: Item; right?: string }) {
+/** A gear or bag row; one with a story opens to show it. `kept`: he won't sell it (worn, or a kept treasure in the bag). */
+function ItemRow({ label, item, right, kept }: { label?: string; item: Item; right?: string; kept: boolean }) {
   const name = (
     <>
       {label && `${label} `}
@@ -63,7 +63,7 @@ function ItemRow({ label, item, right }: { label?: string; item: Item; right?: s
   if (!item.story) return <KV k={name} v={right ?? ""} />;
   return (
     <Collapsible title={name} right={right}>
-      <Story item={item} />
+      <Story item={item} kept={kept} />
     </Collapsible>
   );
 }
@@ -80,6 +80,7 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
 export function StatsSheet({ stats: s }: { stats: Stats }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
+  const kept = s.keptTreasures();
   const goal = s.vehicleGoal();
   return (
     <>
@@ -134,7 +135,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <div class="zebra">
           {SLOTS.map((slot) => {
             const item = s.gear[slot];
-            if (item) return <ItemRow key={slot} label={SLOT[slot][0]} item={item} right={SLOT[slot][1]} />;
+            if (item) return <ItemRow key={slot} label={SLOT[slot][0]} item={item} right={SLOT[slot][1]} kept />;
             return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={<span class="dim">Empty</span>} />;
           })}
         </div>
@@ -144,7 +145,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
               {bag.map((item, i) => (
-                <ItemRow key={i} item={item} right={euro(item.price)} />
+                <ItemRow key={i} item={item} right={euro(item.price)} kept={kept.has(item)} />
               ))}
             </div>
           </Collapsible>

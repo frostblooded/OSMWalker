@@ -77,9 +77,26 @@ test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Collection/ }).click();
   const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Landmark cards", "Placedex", "Souvenirs", "bottle of rose oil", "Crawls", "Coffee crawl", "✔ Done"]) await expect(sheet).toContainText(t);
+  for (const t of ["Landmark cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
+  await sheet.getByRole("button", { name: /Countries/ }).click();
+  await expect(sheet).toContainText("bottle of rose oil");
+  await sheet.getByRole("button", { name: /Today/ }).click();
+  await expect(sheet).toContainText("Coffee crawl");
+  await expect(sheet).toContainText("✔ Done");
   await sheet.getByRole("button", { name: /His cards/ }).click();
   await expect(sheet.locator(".lcard.gold")).toContainText("Alexander Nevsky Cathedral");
+  expect(await smallButtons(page)).toEqual([]);
+});
+
+test("Stats tells a bought item's story", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, KEEPSAKES);
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await sheet.getByRole("button", { name: /Lucky Cap/ }).click();
+  for (const t of ["🛒 Bought", "Sofia", "🌍 Countries", "3: BGR, FRA, ITA", "42 km", "💎 Treasured", "he won't sell it"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
 });
 

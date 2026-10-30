@@ -53,7 +53,7 @@ export type CatchUpDeps = {
   activities: Activities;
   trips: Trips;
   rng: Rng;
-  /** Rolls for keepsakes (cards and their finish), apart from `rng` so collecting never changes his other dice. */
+  /** Rolls for keepsakes (cards and their finish), apart from `rng` so a card roll never uses up his other dice. */
   cardRng?: Rng;
   /** The hour of day at unix ms, for actions that need a time of day. */
   hourAt: (ms: number) => number;

@@ -135,9 +135,14 @@ for (const width of [360, 412]) {
       await reopenWith(page, KEEPSAKES);
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
       await openMenuItem(page, /Collection/);
-      await page.getByRole("dialog", { name: /Collection/ }).getByRole("button", { name: /His cards/ }).click();
+      const collection = page.getByRole("dialog", { name: /Collection/ });
+      for (const fold of [/His cards/, /Countries/, /Today/]) await collection.getByRole("button", { name: fold }).click();
       await check(page, "collection");
-      await page.getByRole("dialog", { name: /Collection/ }).getByRole("button", { name: /Close/ }).click();
+      await collection.getByRole("button", { name: /Close/ }).click();
+      await openMenuItem(page, /Stats/);
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
+      await check(page, "stats-story");
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });

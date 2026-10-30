@@ -6,7 +6,7 @@ import type { Item } from "../../src/core/items";
 import * as K from "../../src/core/keepsakes";
 import { NOT_A_PLACE_SUBCLASS } from "../../src/core/ofm";
 import { Rng } from "../../src/core/rng";
-import { Stats, type Action, type Place } from "../../src/core/stats";
+import { BAG_SIZE, Stats, type Action, type Place } from "../../src/core/stats";
 import { Trips, type City } from "../../src/core/trips";
 import { readFileSync } from "node:fs";
 import { dataFile } from "../support/data";
@@ -197,6 +197,17 @@ describe("item stories", () => {
     expect(stats.bag.map((i) => i.name)).toEqual(["Old Cap"]);
     stats.sellLoot("");
     expect(stats.bag).toEqual([]); // nothing else left to sell
+  });
+
+  it("keeps a treasured item that goes into a full bag, selling the cheapest other one", () => {
+    stats.gear.head = { ...hat(), name: "Old Cap", price: 10, story: { from: "Sofia", t: 0, countries: ["A", "B", "C"], km: 9 } };
+    stats.bag = Array.from({ length: BAG_SIZE }, (_, i) => ({ ...hat(), name: `Loot ${i}`, price: 500 + i }));
+    stats.buy({ ...hat(), name: "Top Hat", stats: { cha: 5 }, price: 1000 }, "");
+    expect(stats.gear.head!.name).toBe("Top Hat");
+    expect(stats.bag.map((i) => i.name)).toContain("Old Cap");
+    expect(stats.bag.map((i) => i.name)).not.toContain("Loot 0");
+    expect(stats.bag).toHaveLength(BAG_SIZE);
+    expect(stats.keptTreasures().has(stats.bag.find((i) => i.name === "Old Cap")!)).toBe(true);
   });
 
   it("saves and loads everything, and loads old saves without keepsakes", () => {

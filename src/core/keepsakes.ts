@@ -28,6 +28,8 @@ export const cardRarity = (rank: number): Rarity => (rank <= RARE_RANK ? "Rare" 
 /** A finish for a roll r in [0, 1). */
 export const rollFinish = (r: number): Finish => (r < GOLD_CHANCE ? "gold" : r < GOLD_CHANCE + FOIL_CHANCE ? "foil" : "");
 
+/** Newest cards the Collection sheet draws when the list opens; its counts cover them all. */
+export const CARDS_SHOWN = 60;
 export type Card = { name: string; kind: string; city: string; rarity: Rarity; finish: Finish; t: number };
 
 /** Bonus XP the first time he sees a place kind, by its Placedex rarity. */

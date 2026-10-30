@@ -276,7 +276,7 @@ Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats she
 
 At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
 
-If his bag is full when another item comes in, he keeps the more valuable of the new item and the cheapest one in the bag, and sells the other on the spot.
+If his bag is full when another item comes in, he sells the cheapest item he may sell on the spot, which can be the new one.
 
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
@@ -371,15 +371,15 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear adds in green.
-- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one.
+- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
-- Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}).
+- Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
 - Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
-- Souvenirs: how much cheaper his fares are, and a row per country.
-- Crawls: done, or how far he is ("2 / 4 today", "3 / 5 here" for this city).
+- Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
+- Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 

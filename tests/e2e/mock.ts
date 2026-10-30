@@ -47,13 +47,15 @@ export async function mockServices(context: BrowserContext, opts: { failSearch?:
   return { asked };
 }
 
-/** A save change that gives him a gold card, a Placedex kind, a souvenir and a finished crawl. */
+/** A save change that gives him a gold card, a Placedex kind, a souvenir, a finished crawl and a treasured hat with its story. */
 export const KEEPSAKES = `d.stats.keepsakes = {
   cards: [["Nevsky@42.6960,23.3328", { name: "Alexander Nevsky Cathedral", kind: "place_of_worship/christian", city: "Sofia", rarity: "Rare", finish: "gold", t: 1 }]],
   dex: [["place_of_worship/christian", { t: 1, city: "Sofia" }]],
   souvenirs: [["BGR", { name: "bottle of rose oil", country: "Bulgaria", city: "Sofia", t: 1 }]],
   done: [["coffee", 1]], progress: {}, day: "", city: "",
-};`;
+};
+d.stats.gear.head = { name: "Lucky Cap", slot: "head", stats: { luck: 1 }, rarity: "Uncommon", price: 2000,
+  story: { from: "Sofia", t: 1, countries: ["BGR", "FRA", "ITA"], km: 42 } };`;
 
 /** Reloads with `change` made to the stored save first (once), the way an older or longer game would have it. */
 export async function reopenWith(page: Page, change: string) {

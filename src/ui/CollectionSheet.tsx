@@ -6,10 +6,9 @@ import type { Stats } from "../core/stats";
 import { Card, Collapsible, KV } from "./kit";
 import { RARITY_COLOR } from "./StatsSheet";
 
-/** Newest cards drawn when the list opens; the counts above cover them all. */
-export const CARDS_SHOWN = 60;
 const CARD_RARITIES: Rarity[] = ["Rare", "Uncommon", "Common"];
 const DEX_RARITIES: Rarity[] = ["Legendary", "Rare", "Uncommon", "Common"];
+const CRAWL_GROUPS: [K.Crawl["per"], string][] = [["day", "Today"], ["city", "In this city"], ["ever", "All time"]];
 const DEX_CODE: Record<Rarity, string> = { Common: "C", Uncommon: "U", Rare: "R", Legendary: "L" };
 
 function LandmarkCard({ card }: { card: K.Card }) {
@@ -40,9 +39,9 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
         ))}
         <KV k="✨ Foil · 🥇 Gold" v={`${cards.filter((c) => c.finish === "foil").length} · ${cards.filter((c) => c.finish === "gold").length}`} />
         {cards.length ? (
-          <Collapsible title="His cards" right={cards.length > CARDS_SHOWN ? `newest ${CARDS_SHOWN}` : undefined}>
+          <Collapsible title="His cards" right={cards.length > K.CARDS_SHOWN ? `newest ${K.CARDS_SHOWN}` : undefined}>
             <div class="lcards">
-              {cards.slice(0, CARDS_SHOWN).map((c, i) => (
+              {cards.slice(0, K.CARDS_SHOWN).map((c, i) => (
                 <LandmarkCard key={i} card={c} />
               ))}
             </div>
@@ -70,26 +69,34 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
       <Card icon="🎁" title="Souvenirs" right={k.souvenirs.size}>
         <KV k="✈ Fares" v={cut ? `${Math.round(cut * 100)}% cheaper` : "full price"} tone={cut ? "ok" : undefined} />
         {k.souvenirs.size ? (
-          <div class="zebra">
-            {[...k.souvenirs.values()].map((v) => (
-              <KV key={v.country + v.name} k={v.country || v.city} v={v.name} />
-            ))}
-          </div>
+          <Collapsible title="Countries" right={k.souvenirs.size}>
+            <div class="zebra">
+              {[...k.souvenirs.values()].map((v) => (
+                <KV key={v.country + v.name} k={v.country || v.city} v={v.name} />
+              ))}
+            </div>
+          </Collapsible>
         ) : (
           <p class="dim small">None yet. He buys one at a gift shop, kiosk, sight or museum in each country.</p>
         )}
       </Card>
       <Card icon="🏁" title="Crawls" right={`${k.done.size} / ${K.CRAWLS.length}`}>
-        <div class="zebra">
-          {K.CRAWLS.map((c) => {
-            const done = k.done.has(c.id);
-            // A day's or a city's count from before is over, even before his next stop starts it again.
-            const stale = (c.per === "day" && k.day !== K.dayOf(s.now())) || (c.per === "city" && k.city !== s.where.city);
-            const got = stale ? 0 : (k.progress[c.id]?.length ?? 0);
-            const per = c.per === "day" ? " today" : c.per === "city" ? " here" : "";
-            return <KV key={c.id} k={`${c.icon} ${c.name}`} v={done ? "✔ Done" : `${got} / ${c.need}${per}`} tone={done ? "ok" : undefined} />;
-          })}
-        </div>
+        {CRAWL_GROUPS.map(([per, title]) => {
+          const crawls = K.CRAWLS.filter((c) => c.per === per);
+          return (
+            <Collapsible key={per} title={title} right={`${crawls.filter((c) => k.done.has(c.id)).length} / ${crawls.length} done`}>
+              <div class="zebra">
+                {crawls.map((c) => {
+                  const done = k.done.has(c.id);
+                  // A day's or a city's count from before is over, even before his next stop starts it again.
+                  const stale = (c.per === "day" && k.day !== K.dayOf(s.now())) || (c.per === "city" && k.city !== s.where.city);
+                  const got = stale ? 0 : (k.progress[c.id]?.length ?? 0);
+                  return <KV key={c.id} k={`${c.icon} ${c.name}`} v={done ? "✔ Done" : `${got} / ${c.need}`} tone={done ? "ok" : undefined} />;
+                })}
+              </div>
+            </Collapsible>
+          );
+        })}
       </Card>
     </>
   );

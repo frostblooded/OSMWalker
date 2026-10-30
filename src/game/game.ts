@@ -48,6 +48,8 @@ export type GameDeps = {
   data: GameData;
   storage?: KV | null;
   rng?: Rng;
+  /** Keepsake rolls (card finishes); tests pin them. */
+  cardRng?: Rng;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   rollSource?: () => number;
   /** The hour of day; tests pin it. */
@@ -99,12 +101,13 @@ export class Game {
   private severeOf = "";
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
-  /** Keepsake rolls, apart from `rng` so collecting never changes where he goes or what he does. */
-  private readonly cardRng = new Rng();
+  /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
+  private readonly cardRng: Rng;
   private readonly file: SaveFile;
 
   constructor(private readonly deps: GameDeps) {
     this.rng = deps.rng ?? new Rng();
+    this.cardRng = deps.cardRng ?? new Rng();
     this.file = deps.storage === undefined ? new SaveFile() : new SaveFile(deps.storage);
     this.trips = new Trips(deps.data.cities, deps.data.airports);
     this.journey = new Journey({ trips: this.trips, rng: this.rng, roll: deps.rollSource, route: (a, b) => deps.api.route(a, b), problem: (t) => this.problems.warn(t) });
