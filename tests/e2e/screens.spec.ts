@@ -320,8 +320,17 @@ test("History fits the map to the room left above its sheet after a drag", async
   const sheet = page.getByRole("dialog", { name: /History/ });
   await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
   const him = page.locator(".marker.him");
-  await page.waitForTimeout(1000);
-  const before = (await him.boundingBox())!.y;
+  // Wait for the fit to end: his marker on screen and still.
+  const y = async () => (await him.boundingBox())!.y;
+  let before = -1;
+  await expect
+    .poll(async () => {
+      const last = before;
+      await page.waitForTimeout(300);
+      before = await y();
+      return before >= 0 && before < page.viewportSize()!.height && Math.abs(before - last) < 1;
+    }, { timeout: 10000 })
+    .toBe(true);
   await dragTitle(page, /History/, 150);
   await expect.poll(async () => (await him.boundingBox())!.y, { timeout: 5000 }).toBeGreaterThan(before + 20);
 });
@@ -352,4 +361,18 @@ test("a sheet keeps its height when a second drag ends where it started", async 
   await page.mouse.move(b.x + 10, b.y + 10);
   await page.mouse.up();
   expect(Math.abs((await height()) - kept)).toBeLessThan(2);
+});
+
+test("a short sheet stays open after a tiny or upward drag", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
+  const sheet = page.getByRole("dialog", { name: /History/ });
+  expect((await sheet.boundingBox())!.height).toBeLessThan(page.viewportSize()!.height * 0.3);
+  await dragTitle(page, /History/, 3);
+  await expect(sheet).toBeVisible();
+  await dragTitle(page, /History/, -40);
+  await expect(sheet).toBeVisible();
+  await dragTitle(page, /History/, 40);
+  await expect(sheet).toBeHidden();
 });

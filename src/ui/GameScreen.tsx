@@ -16,7 +16,7 @@ import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
-import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
@@ -371,7 +371,7 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
   // Counts releases, so History refits even when a drag ends at the same height.
   const [drops, setDrops] = useState(0);
   const box = useRef<HTMLElement>(null);
-  const drag = useRef<{ y: number; h: number } | null>(null);
+  const drag = useRef<{ y: number; h: number; dy: number } | null>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
@@ -382,27 +382,36 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
   }, [drops]);
   const down = (e: PointerEvent) => {
     if (!box.current || (e.target as Element).closest("button")) return;
-    drag.current = { y: e.clientY, h: box.current.offsetHeight };
+    drag.current = { y: e.clientY, h: box.current.offsetHeight, dy: 0 };
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
   };
   // The height follows the finger without a re-render; it is kept once, on release.
   const move = (e: PointerEvent) => {
     const d = drag.current;
     if (!d || !box.current) return;
+    d.dy = e.clientY - d.y;
+    // A few px of jitter is a tap, not a drag.
+    if (Math.abs(d.dy) < 8 && !box.current.style.height) return;
     const st = box.current.style;
-    st.height = `${Math.max(d.h - (e.clientY - d.y), 0)}px`;
+    st.height = `${Math.max(d.h - d.dy, 0)}px`;
     st.maxHeight = "none";
     st.top = "auto";
   };
-  const up = () => {
+  // A cancelled gesture (the system took the touch) puts the sheet back as it was.
+  const up = (e: PointerEvent) => {
     const d = drag.current;
     const el = box.current;
     drag.current = null;
     if (!d || !el || !el.style.height) return;
-    const next = settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
-    if (next === "close") return onClose();
-    // Written here as well as in the style prop: Preact won't rewrite a value it thinks is unchanged.
+    const next = e.type === "pointercancel" ? (share ?? "keep") : settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
+    // Only a drag down closes it; a short sheet dragged up stays as it was.
+    if (next === "close" && d.dy > 0) return onClose();
     el.style.height = el.style.top = "";
+    if (next === "close" || next === "keep") {
+      el.style.maxHeight = share === null ? "" : `${share * 100}%`;
+      return;
+    }
+    // Written here as well as in the style prop: Preact won't rewrite a value it thinks is unchanged.
     el.style.maxHeight = full && next >= 1 ? "" : `${next * 100}%`;
     setShare(next);
     setDrops(drops + 1);
