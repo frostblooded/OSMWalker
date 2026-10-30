@@ -1,13 +1,14 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
-import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
-import { bboxAround } from "../../src/core/geo";
+import { catchUp, legM, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
+import { bboxAround, distanceM } from "../../src/core/geo";
 import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, Trips } from "../../src/core/trips";
+import { parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
 const CITIES = "Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNexttown\tAAA\tA-land\t1.0\t0.0\t500000\nFarcity\tBBB\tB-land\t10.0\t10.0\t3000\n";
@@ -42,6 +43,39 @@ describe("catch-up", () => {
     expect(long.awayS).toBe(30 * 3600);
     expect(long.coveredS).toBe(MAX_AWAY_S);
     expect(MAX_AWAY_S).toBe(24 * 3600);
+  });
+
+  it("on a flying mount he flies to a park near a far goal, like the watched walk; else the streets", () => {
+    const stats = new Stats();
+    const goal: [number, number] = [0, 0.02];
+    const park = place("Park", "park", "park", 0, 0.018);
+    const streets = { airM: 0, groundM: distanceM(0, 0, 0, 0.02) * ROAD_FACTOR, afoot: false };
+    const flown = { airM: distanceM(0, 0, 0, 0.018), groundM: distanceM(0, 0.018, 0, 0.02) * ROAD_FACTOR, afoot: true };
+    expect(legM(stats, [0, 0], goal, [park])).toEqual(streets);
+    stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+    expect(legM(stats, [0, 0], goal, [park])).toEqual(streets);
+    stats.feedDragon(new Rng(1));
+    const leg = legM(stats, [0, 0], goal, [park]);
+    expect(leg.airM).toBeCloseTo(flown.airM, 6);
+    expect(leg.groundM).toBeCloseTo(flown.groundM, 6);
+    expect(leg.afoot).toBe(true);
+    expect(legM(stats, [0, 0], goal, [])).toEqual(streets);
+    expect(legM(stats, [0, 0], goal, null)).toEqual(streets);
+    expect(legM(stats, [0, 0], [0, 0.002], [place("Park", "park", "park", 0, 0.0019)]).airM).toBe(0);
+  });
+
+  it("while he is away his dragon eats each day, or sulks when he is broke", () => {
+    const dragon = () => {
+      const s = new Stats();
+      s.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+      return s;
+    };
+    const fed = catchUp(dragon(), HOME, [0, 0], 3600, START_MS, deps());
+    expect(fed.lines.filter((l) => l.text.startsWith("Fed his dragon"))).toHaveLength(1);
+    const broke = dragon();
+    broke.cents = 0;
+    const s = catchUp(broke, HOME, [0, 0], 3600, START_MS, deps());
+    expect(s.lines.some((l) => l.text.startsWith("His dragon sulks"))).toBe(true);
   });
 
   it("lets the time pass for his body", () => {

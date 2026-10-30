@@ -56,13 +56,26 @@ His speed depends on how he gets about:
 - on foot: {WALK_KMH} km/h,
 - bike: {BIKE_KMH} km/h,
 - scooter or motorbike: {MOTORCYCLE_KMH} km/h,
-- car: {CITY_CAR_KMH} km/h (city traffic).
+- car: {CITY_CAR_KMH} km/h (city traffic),
+- a fantasy mount: see Fantasy mounts.
 
 He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
 
 Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy.
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
+## Fantasy mounts {mounts}
+Now and then the real map has a little magic in it. These mounts can be had, each from a real place of the right kind:
+- a giant tortoise from a pet shop: {TORTOISE_KMH} km/h, and he never tires on it,
+- a broomstick from a hardware or DIY shop: {BROOM_KMH} km/h,
+- a flying carpet from a carpet shop: {CARPET_KMH} km/h,
+- a dragon from the stable at a real castle: {DRAGON_KMH} km/h.
+
+The tortoise, broomstick and carpet sit beside the bike, scooter and car: each ranks with that vehicle, so he swaps one for the other only when the new one is stronger (a better material). A pet, hardware or carpet shop only has one in {MOUNT_STOCK_PCT} of the time he asks. The dragon is the top tier, above any car: from {CHEAP_DRAGON}, it is what he saves up for once he has a car (see Saving for a vehicle).
+
+Flyers (the broomstick, the carpet and the dragon) don't follow the streets. When his goal is at least {FLY_MIN_M} m away and a park or garden is loaded near it (at most {LAND_MAX_M} m from the goal, and at most {LAND_SHARE_PCT} as far from it as he is), he flies there in a straight line, lands, and walks the rest on foot, at walking speed. Otherwise he goes by the streets like anyone else. While you're away the same rules decide when he flies, except that any such park will do, even one far from a street. On the map his mount shows at his side, except a sulking dragon, which stays behind.
+
+A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly (if it starts to sulk in the air, he comes down at the nearest corner), and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
@@ -200,7 +213,7 @@ Prices are real-world euro prices, the same in every country: a coffee is a few 
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
@@ -211,11 +224,12 @@ For example a job with no attribute need pays {WAGE_LV11} its listed wage at lev
 He always saves up for the cheapest vehicle one step above what he rides:
 - on foot, a {GOAL_BIKE} for {CHEAP_BIKE},
 - on a bike, a {GOAL_SCOOTER} for {CHEAP_SCOOTER},
-- on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR}.
+- on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR},
+- in a car, a {GOAL_DRAGON} for {CHEAP_DRAGON} (see Fantasy mounts).
 
-With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, money is a need of at least {SAVING_URGE} urge and spending weighs {SAVING_SPEND_PCT} as much (see His needs), so paid work and places that pay pull him.
+A fantasy mount counts as the vehicle it sits beside: on a tortoise he saves for a scooter, on a broomstick for a car, on a carpet for a dragon. With a dragon there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}, and for the dragon its first day of gold ({DRAGON_UPKEEP}) too. With a dragon, on a day it hasn't eaten yet he saves up to its gold plus his reserve, so it doesn't sulk for long. Until he has it, money is a need of at least {SAVING_URGE} urge and spending weighs {SAVING_SPEND_PCT} as much (see His needs), so paid work and places that pay pull him.
 
-Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
+Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for, and with a dragon, its gold on a day it hasn't eaten yet.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
@@ -306,7 +320,7 @@ When his health reaches 0 he faints. He wakes up at the nearest hospital the gam
 Waking up costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
 # 🎒 Items and gear
 ## Gear and items {items}
-He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles).
+He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).
 
 Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
 

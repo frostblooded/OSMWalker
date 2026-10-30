@@ -1058,6 +1058,15 @@
     "wit": 0.2,
     "xp": 20
    }
+  },
+  {
+   "name": "Visit the dragon stable",
+   "min": 20,
+   "item": "dragons",
+   "fx": {
+    "xp": 20,
+    "mood": 10
+   }
   }
  ],
  "monument": [
@@ -2755,6 +2764,14 @@
     "wit": 0.2,
     "xp": 15
    }
+  },
+  {
+   "name": "Ask after a broomstick",
+   "min": 10,
+   "item": "brooms",
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/doityourself": [
@@ -2794,6 +2811,14 @@
    "fx": {
     "wit": 0.2,
     "xp": 15
+   }
+  },
+  {
+   "name": "Ask after a broomstick",
+   "min": 10,
+   "item": "brooms",
+   "fx": {
+    "xp": 5
    }
   }
  ],
@@ -4396,6 +4421,15 @@
     "hygiene": -10,
     "xp": 15
    }
+  },
+  {
+   "name": "Ask about the giant tortoise",
+   "min": 10,
+   "item": "tortoises",
+   "fx": {
+    "xp": 5,
+    "mood": 5
+   }
   }
  ],
  "shop/confectionery": [
@@ -4796,6 +4830,33 @@
    },
    "needs": {
     "time": "evening"
+   }
+  }
+ ],
+ "shop/carpet": [
+  {
+   "name": "Browse the rugs",
+   "min": 15,
+   "fx": {
+    "mood": 5,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Ask for the carpet that flies",
+   "min": 10,
+   "item": "carpets",
+   "fx": {
+    "xp": 5,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Haggle over a runner",
+   "min": 10,
+   "fx": {
+    "cha": 0.1,
+    "xp": 5
    }
   }
  ]

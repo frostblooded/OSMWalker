@@ -68,11 +68,12 @@ describe("items he has owned", () => {
       for (let i = 0; i < 200; i++) {
         const item = Items.make(kind, 30, rng, 50);
         const { base, mat } = C.partsOf(item);
-        expect(item.name, item.name).toContain(`${mat} ${base}`);
+        expect(item.name, item.name).toContain(Items.KINDS[kind][0]!.plain ? `${base}` : `${mat} ${base}`);
         expect(Items.KINDS[kind].some((b) => b.base === base), item.name).toBe(true);
       }
     expect(C.partsOf({ name: "Lucky Copper Lucky Charm of Fortune", slot: "trinket" })).toEqual({ base: "Lucky Charm", mat: "Copper" });
     expect(C.partsOf({ name: "Wooden Racing Bike", slot: "vehicle" })).toEqual({ base: "Racing Bike", mat: "Wooden" });
+    expect(C.partsOf({ name: "Swift Dragon of the Hare", slot: "vehicle" })).toEqual({ base: "Dragon" });
   });
 
   it("counts what he has, and keeps what he had once a save notes it", () => {

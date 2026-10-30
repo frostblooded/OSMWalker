@@ -58,7 +58,13 @@ export const riskMult = (luck: number) => 1 - Math.min(LUCK_RISK_CUT * luck, LUC
 export const findChance = (luck: number) => Math.min(FIND_PER_LUCK * luck, FIND_CAP);
 export const ENERGY_PER_KM = 2;
 /** Share of the walking effort each way of getting about takes, per km. */
-export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05 };
+export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05, tortoise: 0, broom: 0.2, carpet: 0.05, dragon: 0.05 };
+/** Cents of gold his dragon eats each day. Unfed, it sulks and won't fly, so he walks until he can pay. */
+export const DRAGON_UPKEEP = 10000;
+/** On a day it is fed, his dragon brings back treasure this often, worth DRAGON_TREASURE_MIN-DRAGON_TREASURE_MAX cents. */
+export const DRAGON_TREASURE_CHANCE = 0.1;
+export const DRAGON_TREASURE_MIN = 5000;
+export const DRAGON_TREASURE_MAX = 50000;
 /** Speed added per level above 1, as a share. */
 export const SPEED_PER_LEVEL = 0.01;
 /** Below this much energy he slows down, to half speed at zero. */
@@ -122,6 +128,9 @@ export class Stats {
   cents = START_CENTS;
   /** Cents a trip he couldn't afford needs; he favours paid work until he has them. */
   savingFor = 0;
+  /** The day (see gifts.ts dayOf) his dragon last ate, and the day he last said it sulks. */
+  dragonFed = "";
+  dragonSulked = "";
   xp = 0;
   level = 1;
   buffs: Buff[] = [];
@@ -179,30 +188,67 @@ export class Stats {
     return this.gear.vehicle?.vehicle ?? "";
   }
 
-  /** Speed percent from his gear. */
-  speedBonus(): number {
+  /** True while his dragon has not eaten today, so it won't fly. */
+  sulking(): boolean {
+    return this.vehicle() === "dragon" && this.dragonFed !== dayOf(this.now() * 1000);
+  }
+
+  /** How he gets about right now: his vehicle, or on foot while his dragon sulks. */
+  getsAbout(): Vehicle {
+    return this.sulking() ? "" : this.vehicle();
+  }
+
+  /** Feeds his dragon its gold once a day, if he can, and now and then it brings back treasure. Returns the feed line, or "". */
+  feedDragon(rng: Rng): string {
+    if (!this.sulking()) return "";
+    const today = dayOf(this.now() * 1000);
+    if (this.cents < DRAGON_UPKEEP) {
+      if (this.dragonSulked === today) return "";
+      this.dragonSulked = today;
+      return this.say(`His dragon sulks: no gold for it today (${euro(DRAGON_UPKEEP)}), so he walks`);
+    }
+    this.cents -= DRAGON_UPKEEP;
+    this.dragonFed = today;
+    let line = this.say(`Fed his dragon its daily gold (${signed(-DRAGON_UPKEEP)})`);
+    if (rng.randf() < DRAGON_TREASURE_CHANCE) {
+      const n = rng.randiRange(DRAGON_TREASURE_MIN, DRAGON_TREASURE_MAX);
+      this.cents += n;
+      line = this.say(`His dragon flew off and came back with treasure (${signed(n)})`);
+    }
+    return line;
+  }
+
+  /** Speed percent from his gear; his vehicle's doesn't count while he is `afoot` or his dragon sulks. */
+  speedBonus(afoot = false): number {
     let v = 0;
-    for (const item of Object.values(this.gear)) v += item?.stats.speed ?? 0;
+    const noRide = afoot || this.sulking();
+    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle")) v += item?.stats.speed ?? 0;
     return v;
   }
 
-  /** Meters per second: walking or his vehicle, +1% a level above 1 and gear's speed percent, slower when tired. */
-  speedMps(): number {
-    const v = this.vehicle();
+  /** Meters per second: walking (`afoot`, as after a flyer lands) or his vehicle (see getsAbout), +1% a level above 1 and gear's speed percent, slower when tired. */
+  speedMps(afoot = false): number {
+    const v = afoot ? "" : this.getsAbout();
     const base = v ? Speeds.FOR_VEHICLE[v] : Speeds.WALK;
     const tired = 0.5 + 0.5 * Math.min(this.meters.energy / TIRED_ENERGY, 1);
-    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus() / 100) * tired;
+    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus(afoot) / 100) * tired;
   }
 
-  /** The next vehicle he saves up for, or null once he has a car. */
+  /** The next vehicle he saves up for, or null once he has a dragon. */
   vehicleGoal(): Items.VehicleGoal | null {
     return Items.nextVehicle(this.vehicle());
   }
 
   /** Cents he saves up to: a trip fare, or his next vehicle plus his reserve, whichever is more. */
   savingTarget(): number {
+    return Math.max(this.savingFor, this.vehicleSaving());
+  }
+
+  /** Cents he saves up for his vehicle: the next one plus his reserve (and a dragon's first day of gold), or while his dragon is unfed today, its gold plus his reserve. */
+  vehicleSaving(): number {
     const goal = this.vehicleGoal();
-    return Math.max(this.savingFor, goal ? goal.cents + KEEP_CENTS : 0);
+    if (goal) return goal.cents + KEEP_CENTS + (goal.kind === "dragons" ? DRAGON_UPKEEP : 0);
+    return this.sulking() ? DRAGON_UPKEEP + KEEP_CENTS : 0;
   }
 
   /** True while he has less than he saves up to. */
@@ -345,8 +391,8 @@ export class Stats {
     return this.buffs.map((b) => b.name);
   }
 
-  /** Lets `minutes` pass, `walkedM` of them on the move. */
-  passTime(minutes: number, walkedM: number): void {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
+  passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
     this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
     this.week.walked(walkedM);
@@ -356,7 +402,7 @@ export class Stats {
       thirst: -THIRST_PER_H * h,
       hygiene: -HYGIENE_PER_H * h,
       mood: -(MOOD_PER_H + (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
-      energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * F.mult(this.forecast(), "effort") * walkedM) / 1000,
+      energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
     for (const b of this.buffs) {
@@ -452,6 +498,10 @@ export class Stats {
   do(action: Action, where: string, rng: Rng, kind = ""): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
+      if (Items.RARE_STOCK.has(action.item) && rng.randf() >= Items.MOUNT_STOCK) {
+        const base = Items.KINDS[action.item][0]!.base;
+        return this.say(`Asked after a ${base}${where ? ` at ${where}` : ""}, but there were none in today`);
+      }
       return this.buy(this.offer(action.item, rng), where);
     }
     if (action.sell) {
@@ -689,7 +739,7 @@ export class Stats {
 
   toJSON() {
     return {
-      meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
+      meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
     };
@@ -701,6 +751,8 @@ export class Stats {
     Object.assign(s.attrs, d.attrs);
     s.cents = d.cents;
     s.savingFor = d.savingFor ?? 0;
+    s.dragonFed = d.dragonFed ?? "";
+    s.dragonSulked = d.dragonSulked ?? "";
     s.xp = d.xp;
     s.level = d.level;
     s.buffs = d.buffs ?? [];

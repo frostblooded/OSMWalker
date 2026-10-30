@@ -8,7 +8,7 @@ import { dayOf } from "./gifts";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
-import { placeIcon } from "./look";
+import { MOUNT_ICON, placeIcon } from "./look";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
 
@@ -37,11 +37,15 @@ export const BASES: (Items.Base & { kind: Items.Kind })[] = (Object.entries(Item
 /** Every material word: metals, then cloths. */
 export const MATERIAL_NAMES = [...Items.MATERIALS.map((m) => m.metal), ...Items.MATERIALS.map((m) => m.cloth)];
 
-/** The base and material an item is made of, read from its name (items don't store them). */
+/** The base and material an item is made of, read from its name (items don't store them). A living mount's name has no material. */
 export function partsOf(item: Pick<Items.Item, "name" | "slot">): { base?: string; mat?: string } {
   let best: { base?: string; mat?: string } = {};
   for (const b of BASES) {
     if (b.slot !== item.slot || (best.base && best.base.length >= b.base.length)) continue;
+    if (b.plain) {
+      if (item.name.includes(b.base)) best = { base: b.base };
+      continue;
+    }
     const mat = Items.MATERIALS.map((m) => (b.cloth ? m.cloth : m.metal)).find((w) => item.name.includes(`${w} ${b.base}`));
     if (mat) best = { base: b.base, mat };
   }
@@ -64,7 +68,7 @@ export const TIER_NAMES = ["", "Bronze", "Silver", "Gold"] as const;
 export const MEDALS = ["", "🥉", "🥈", "🥇"] as const;
 
 const SLOT_ICON: Record<Items.Slot, string> = { weapon: "⚔", offhand: "🛡", head: "🎩", body: "👕", feet: "👟", bag: "🎒", trinket: "💍", vehicle: "🚲" };
-const VEHICLE_ICON: Record<string, string> = { bike: "🚲", motorcycle: "🛵", car: "🚗" };
+const VEHICLE_ICON: Record<string, string> = { bike: "🚲", motorcycle: "🛵", car: "🚗", ...MOUNT_ICON };
 const words = (s: string) => s.replace(/_/g, " ");
 /** "biggest", "2nd-biggest"... for a size rank up to CARDS_PER_COUNTRY. */
 const ordinal = (n: number) => (n === 1 ? "biggest" : `${n}${n === 2 ? "nd" : n === 3 ? "rd" : "th"}-biggest`);
@@ -103,6 +107,10 @@ const SOLD_AT: Record<Items.Kind, string> = {
   bicycles: "bicycle shops",
   motorcycles: "motorcycle shops",
   cars: "car dealers",
+  tortoises: "pet shops, now and then",
+  brooms: "hardware and DIY shops, now and then",
+  carpets: "carpet shops, now and then",
+  dragons: "the stable at a castle",
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

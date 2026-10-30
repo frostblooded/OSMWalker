@@ -1,6 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
-import { mockServices, reopenAfter, reopenDeparting } from "./mock";
+import { mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -23,6 +23,13 @@ test("picks a city and walks its streets", async ({ page }) => {
   await expect(page.locator(".chip")).toContainText(/Going to|Heading to/, { timeout: 10000 });
   await page.screenshot({ path: "test-results/game.png" });
   expect(errors).toEqual([]);
+});
+
+test("on a dragon he can feed, it shows at his side", async ({ page }) => {
+  await startInSofia(page);
+  // He starts with enough money to feed it, so it eats as soon as he sets off.
+  await reopenWith(page, `d.stats.gear.vehicle = { name: "Dragon", slot: "vehicle", vehicle: "dragon", stats: { speed: 2 }, rarity: "Common", price: 4000000 };`);
+  await expect(page.locator(".marker.him .mount")).toHaveText("🐉", { timeout: 20000 });
 });
 
 test("picks up where he was after a reload", async ({ page }) => {

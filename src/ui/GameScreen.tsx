@@ -223,7 +223,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
           <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
-            {(m) => <m.StatsSheet stats={game.stats} />}
+            {(m) => <m.StatsSheet stats={game.stats} afoot={game.walker?.afoot} />}
           </Lazy>
         </SheetBox>
       )}
