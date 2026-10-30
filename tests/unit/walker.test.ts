@@ -3,7 +3,7 @@ import { distanceM, moved, offsetM } from "../../src/core/geo";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { rideS, type City, type Plan } from "../../src/core/trips";
+import { ROAD_FACTOR, rideS, type City, type Plan } from "../../src/core/trips";
 import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { plus, PLUS_BBOX } from "../support/osm";
@@ -411,6 +411,15 @@ describe("saves", () => {
     expect(back.restM).toBeCloseTo(REST_M - 50, 3);
   });
 
+  it("measure a ride from a save without road_m by the straight line", () => {
+    walker.startAt(n(3));
+    walker.startTravel({ name: "Fartown", code: "XXX", country: "X-land", lat: 43, lon: 24, pop: 50_000, bounds: [42.99, 23.99, 43.01, 24.01] }, "train");
+    const d = JSON.parse(JSON.stringify(walker));
+    delete d.travel.road_m;
+    const t = Walker.fromJSON(d).travel!;
+    expect(t.road_m).toBeCloseTo(distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, 3);
+  });
+
   it("cut an over-long rest to a minute", () => {
     walker.startAt(n(3));
     const d = JSON.parse(JSON.stringify(walker));
@@ -688,6 +697,7 @@ describe("trips", () => {
     expect(walker.isTraveling()).toBe(true);
     expect(walker.isDeparting()).toBe(false);
     expect(walker.travel!.mode).toBe("bus");
+    expect(walker.travel!.road_m).toBe(boarded[0]!.distance_m);
     const pathM = distanceM(42.0, 23.00135, 43, 24);
     expect(Math.abs(walker.travel!.total_m - rideS("bus", pathM) * SPEED_MPS)).toBeLessThan(1);
     expect(walker.isResting()).toBe(false);

@@ -14,7 +14,7 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
-import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, parseAirports, parseCities, type City } from "../../src/core/trips";
+import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
@@ -976,6 +976,25 @@ describe("game", () => {
       expect(again.city).toBe("Plovdiv, Bulgaria");
       expect(again.stats.cents).toBe(cents);
       expect(again.stats.history.entries.some((e) => e.text === "Hopped on a trucker's free ride to Plovdiv")).toBe(true);
+    });
+
+    it("a free ride is by road, so even a long one brings no jet lag", async () => {
+      const { again } = await reopenDilemma("trucker");
+      again.dilemma!.city = again.trips.cities.find((c) => c.name === "Paris")!;
+      again.chooseDilemma(0);
+      expect(again.city).toBe("Paris, France");
+      expect(again.stats.buffNames()).not.toContain("Jet-lagged");
+    });
+
+    it("lands by the trip plan's road distance: a night train counted from where he planned it", async () => {
+      const { g } = game();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.stats.meters.energy = 20;
+      const plovdiv = g.trips.cities.find((c) => c.name === "Plovdiv")!;
+      g.walker!.startTravel({ ...plovdiv, bounds: cityBounds(plovdiv) }, "train");
+      g.walker!.travel!.road_m = SLEEPER_FROM_M;
+      for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+      expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
     });
 
     it("turns a free ride down while he is on a paid one", async () => {

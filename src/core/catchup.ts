@@ -276,7 +276,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       return false;
     }
-    // A trip that can't finish in the time left waits until the game is open.
+    // A trip that can't finish in the time left doesn't start; the dice roll again at his next stop.
     const toStation = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
     if (legMin(toStation) + rideMin > leftMin()) return false;
@@ -289,9 +289,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
-    const kit = stats.packForTrip(dest.code);
-    if (kit) stats.say(kit);
+    for (const line of stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code)) stats.say(line);
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
@@ -301,12 +299,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
-    if (plan.mode === "plane") {
-      const lag = stats.landFlight(plan.station.lon, plan.arrive[1]);
-      if (lag) stats.say(lag);
-    }
-    const rode = stats.landRide(plan.mode, plan.distance_m, city.name);
-    if (rode) stats.say(rode);
+    for (const line of stats.land(plan.mode, plan.station.lon, plan.arrive[1], plan.distance_m, city.name)) stats.say(line);
     skipRoll = true;
     return true;
   }

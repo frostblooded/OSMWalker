@@ -27,7 +27,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - he does one action there and stays {STAY_MIN} minute (see What he does at places),
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he takes on quests and joins world events as usual (see Quests),
-- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back waits until you are there to watch.
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle, on his bike to a near town, hitchhiking when broke (see Other ways to travel), or on a long walk (see Long walks).
 
@@ -443,7 +443,7 @@ Now and then, when he has no vehicle, a trip to a town {LONG_WALK_MIN_KM} to {LO
 
 A walk is far slower than any ride: it lasts {LONG_WALK_MAX_H} hours, and time away counts towards it (if you leave mid-walk he keeps walking, and is still on his way if you come back before it ends). The map stays zoomed out with the red line, as on a ride, and no streets download on the way, so it costs the phone no more than a ride.
 
-He sleeps in a hostel every {HOSTEL_KM} km of road, at {HOSTEL_PRICE} a night, paid as he sets off. The hostels' meals and showers keep his food, drink and hygiene where they were while he walks (the On the trail buff). At the end he gets {LONG_WALK_XP_PER_KM} XP per km and +{LONG_WALK_MOOD} mood. While you are away he walks too, if the walk fits in the time you were gone; otherwise it waits until you are back to watch.
+He sleeps in a hostel every {HOSTEL_KM} km of road, at {HOSTEL_PRICE} a night, paid as he sets off. The hostels' meals and showers keep his food, drink and hygiene where they were while he walks (the On the trail buff). At the end he gets {LONG_WALK_XP_PER_KM} XP per km and +{LONG_WALK_MOOD} mood. While you are away he walks too, if the walk fits in the time you were gone; otherwise he doesn't set off this time. The hostel beds keep his energy up too, and a long walk, like any trip, doesn't count towards his walking records or the km in his week.
 ## Packing for a trip {packing}
 As he boards for another city he packs a travel kit on his own, by need, and pays for it on top of the fare:
 {KIT_LIST}

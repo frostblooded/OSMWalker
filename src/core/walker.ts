@@ -16,7 +16,10 @@ import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
-import { rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
+import { ROAD_FACTOR, rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
+
+/** A ride's road distance when no trip plan gives it: the straight line times ROAD_FACTOR. */
+const straightRoadM = (a: LatLon, b: LatLon) => distanceM(a[0], a[1], b[0], b[1]) * ROAD_FACTOR;
 
 /** The game clock: time is counted in these meters per second, so rests and trips last the same whatever his speed. */
 export const SPEED_MPS = 200 / 60;
@@ -40,7 +43,8 @@ export const LAND_SHARE = 0.5;
 export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
 export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
-export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
+/** A ride to another city; `road_m` is its road distance, from the trip plan when he boards one. */
+export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number; road_m: number };
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
@@ -244,10 +248,11 @@ export class Walker {
     this.pickGoal();
   }
 
-  /** Debug: rides to `city` and lands there at once, ending any rest. */
+  /** Rides to `city` by road and lands there at once, ending any rest (a trucker's free lift, or Debug). */
   rideNow(city: City): void {
     this.restM = 0;
-    this.startTravel(city);
+    // By road: a free lift (or a Debug trip) is no flight, so it brings no jet lag.
+    this.startTravel(city, "car");
     this.land();
   }
 
@@ -328,7 +333,7 @@ export class Walker {
     const at: LatLon = arrive ?? [city.lat, city.lon];
     const line = path.length >= 2 ? path : [p, at];
     const m = rideS(mode, pathLengthM(line)) * SPEED_MPS;
-    this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m };
+    this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m, road_m: straightRoadM(p, at) };
     this.flight = null;
     this.departing = null;
     this.place = null;
@@ -360,6 +365,7 @@ export class Walker {
       return;
     }
     this.startTravel(plan.city, plan.mode, plan.path ?? [], plan.arrive);
+    this.travel!.road_m = plan.distance_m;
   }
 
   /** Starts over in the destination with a fresh street graph; he stands on a lone point until its streets load. */
@@ -716,7 +722,8 @@ export class Walker {
     w.place = d.place;
     w.legFrom = d.leg_from;
     w.departing = d.departing;
-    w.travel = d.travel;
+    // Saves from before road_m measured the ride by the straight line.
+    w.travel = d.travel && { ...d.travel, road_m: d.travel.road_m ?? straightRoadM(d.travel.from, d.travel.arrive) };
     w.flight = d.flight ?? null;
     w.afoot = d.afoot ?? false;
     // The corner he lands on, so the walk goes on before the streets there reload.
@@ -750,7 +757,7 @@ export type WalkerSave = {
   place: Place | null;
   leg_from: LatLon | null;
   departing: Plan | null;
-  travel: Travel | null;
+  travel: (Omit<Travel, "road_m"> & { road_m?: number }) | null;
   /** Missing in saves from before flying mounts. */
   flight?: Flight | null;
   afoot?: boolean;

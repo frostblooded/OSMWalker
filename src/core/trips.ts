@@ -142,7 +142,7 @@ export const MODES: Record<Mode, { icon: string; how: string }> = {
   walk: { icon: "🥾", how: "on foot" },
 };
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
-export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
+const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
 
 /** Seconds a ride of `distanceM` takes; a long walk always takes LONG_WALK_MAX_S. */
 export function rideS(mode: Mode, distanceM: number): number {
@@ -150,7 +150,7 @@ export function rideS(mode: Mode, distanceM: number): number {
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
 }
 
-/** Cents for a ride of `distanceM`, rounded up to a cent and never free, but for cycling and hitchhiking. */
+/** Cents for a ride of `distanceM`, rounded up to a cent and never free, but for cycling, hitchhiking and a long walk with no hostel night. */
 export function fare(mode: Mode, distanceM: number): number {
   const km = distanceM / 1000;
   if (mode === "plane") return Math.ceil(toCents(PLANE_BASE) + 100 * PLANE_PER_KM * km);
@@ -312,7 +312,7 @@ export class Trips {
 }
 
 /** Where he sets off from on his bike or with his thumb out: right where he stands. */
-export const roadOut = (here: LatLon): Place => ({ name: "the road out of town", class: "road", subclass: "", rank: 0, lat: here[0], lon: here[1] });
+const roadOut = (here: LatLon): Place => ({ name: "the road out of town", class: "road", subclass: "", rank: 0, lat: here[0], lon: here[1] });
 
 /** "Heading to X for the bus to Y (€5)", or how he sets off on his bike or hitchhiking. */
 export function heading(plan: Plan, to: string): string {

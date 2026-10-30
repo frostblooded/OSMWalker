@@ -452,6 +452,16 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
+  /** Boards a ride (see ride) to `to`, in country `code`, and packs for it (see packForTrip): the feed lines, the same watched and in the catch-up. */
+  board(fare: number, mode: T.Mode, station: string, to: string, code: string): string[] {
+    return [this.ride(fare, mode, station, to), this.packForTrip(code)].filter(Boolean);
+  }
+
+  /** Lands in `to` after `distM` of road by `mode` from longitude `fromLon` to `toLon` (see landFlight, landRide): the feed lines, the same watched and in the catch-up. */
+  land(mode: T.Mode, fromLon: number, toLon: number, distM: number, to: string): string[] {
+    return [mode === "plane" ? this.landFlight(fromLon, toLon) : "", this.landRide(mode, distM, to)].filter(Boolean);
+  }
+
   /** As he boards for a city in country `code`: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
   packForTrip(code: string): string {
     const abroad = this.where.code !== "" && code !== this.where.code;

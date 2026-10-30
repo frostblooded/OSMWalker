@@ -78,9 +78,9 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    setOff(stats, stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
-    const kit = stats.packForTrip(dest.code);
-    if (kit) stats.say(kit);
+    const [rode, ...kit] = stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code);
+    setOff(stats, rode!);
+    for (const line of kit) stats.say(line);
     return "";
   }
 

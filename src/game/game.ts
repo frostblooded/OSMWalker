@@ -35,7 +35,7 @@ import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, ROAD_FACTOR, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -440,12 +440,7 @@ export class Game {
     this.track();
     this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
-    if (t.mode === "plane") {
-      const lag = this.stats.landFlight(t.from[1], t.arrive[1]);
-      if (lag) this.stats.say(lag);
-    }
-    const rode = this.stats.landRide(t.mode, distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, this.city);
-    if (rode) this.stats.say(rode);
+    for (const line of this.stats.land(t.mode, t.from[1], t.arrive[1], t.road_m, this.city)) this.stats.say(line);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();
