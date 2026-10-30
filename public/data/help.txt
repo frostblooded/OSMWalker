@@ -315,6 +315,16 @@ Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} 
 Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
+## Records {records}
+The Stats sheet ends with his records over his whole life. Each best only goes up:
+- Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
+- Most walked, and most places stopped at, in one day
+- Most money he has held at once
+- Longest he has gone without fainting
+
+It also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
+
+When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH_KM} km without a stop, {REC_DAY_KM} km in a day, {REC_STOPS} places in a day, {REC_CENTS} held, or {REC_NOFAINT} without fainting.
 ## Fainting and hospital {fainting}
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
