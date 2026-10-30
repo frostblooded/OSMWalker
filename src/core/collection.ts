@@ -7,6 +7,7 @@ import { dayOf } from "./gifts";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
+import { placeIcon } from "./look";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
 
@@ -14,7 +15,7 @@ export const TABS = [
   { id: "cards", icon: "🎴", name: "Cards" },
   { id: "places", icon: "📇", name: "Places" },
   { id: "world", icon: "🌍", name: "World" },
-  { id: "gear", icon: "🎒", name: "Gear" },
+  { id: "gear", icon: "⚔", name: "Gear" },
   { id: "feats", icon: "🏅", name: "Feats" },
 ] as const;
 export type Tab = (typeof TABS)[number]["id"];
@@ -162,12 +163,12 @@ export const SETS: CSet[] = [
   {
     id: "odd",
     tab: "places",
-    icon: "🔮",
+    icon: "🧙",
     title: "Odd places",
     entries: (s) =>
       ODD_KINDS.map((kind) => {
         const got = s.keepsakes.odd.includes(kind);
-        return { id: kind, icon: kind === TOWER_KIND ? "🔮" : "📜", name: K.kindLabel(kind), got, info: got ? "Made up by the game" : kind === TOWER_KIND ? "Rises at a grand landmark of a big city" : "Made up by the game in some cities" };
+        return { id: kind, icon: placeIcon({ class: kind, subclass: kind }), name: K.kindLabel(kind), got, info: got ? "Made up by the game" : kind === TOWER_KIND ? "Rises at a grand landmark of a big city" : "Made up by the game in some cities" };
       }),
   },
   {
@@ -223,7 +224,7 @@ export const SETS: CSet[] = [
   {
     id: "gear",
     tab: "gear",
-    icon: "🎒",
+    icon: "⚔",
     title: "Item bases",
     entries: (s) => {
       const ids = ownedIds(s);
@@ -266,9 +267,9 @@ export const FEATS: Feat[] = [
   { id: "shiny", tab: "cards", icon: "🌈", name: "Shiny", what: "{n} Foil or Gold cards", tiers: [1, 5, 20], title: "Shiny Hunter", count: shiny },
   { id: "placedex", tab: "places", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
-  { id: "odd", tab: "places", icon: "🔮", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
+  { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
-  { id: "gear", tab: "gear", icon: "🎒", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
+  { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
   { id: "materials", tab: "gear", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },
   { id: "vehicles", tab: "gear", icon: "🚗", name: "Garage", what: "{n} vehicles owned", tiers: [1, 3, VEHICLES.length], title: "Road King", count: (s) => ownedOf(s, VEHICLES) },
   { id: "treasured", tab: "gear", icon: "💎", name: "Keepsakes", what: "{n} treasured items he has", tiers: [1, 3, 6], title: "Storyteller", count: (s) => [...Object.values(s.gear), ...s.bag].filter((i) => i && Items.isTreasured(i)).length },
