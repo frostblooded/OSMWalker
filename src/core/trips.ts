@@ -1,5 +1,5 @@
 // Trips: each time he picks a new destination he may travel to another city
-// in the same country (20%) or in another country (5%) instead, twice as
+// in the same country (10%) or in another country (2.5%) instead, twice as
 // often while his city has no places of note. Cities come from a bundled list
 // and are picked weighted by population. He gets there by bus from a bus
 // station, by plane from an airport, or in his own car after filling up at a
@@ -10,8 +10,8 @@ import type { Rng } from "./rng";
 import { BUS, CAR_ROAD, PLANE } from "./speeds";
 import type { Place } from "./stats";
 
-export const COUNTRY_CHANCE = 0.05;
-export const CITY_CHANCE = 0.2;
+export const COUNTRY_CHANCE = 0.025;
+export const CITY_CHANCE = 0.1;
 /** Trip odds are multiplied by this while the city has no places of note. */
 export const NO_PLACES_BOOST = 2;
 /** Fares from real tickets (see the Help page on travel): buses 0.08 a km, flights 50 plus 0.03 a km, car fuel 0.12 a km. */
@@ -19,6 +19,9 @@ export const BUS_PER_KM = 0.08;
 export const PLANE_BASE = 50;
 export const PLANE_PER_KM = 0.03;
 export const FUEL_PER_KM = 0.12;
+/** Rides go this many times faster than the real speeds, and never take longer than RIDE_MAX_S. */
+export const RIDE_SPEEDUP = 10;
+export const RIDE_MAX_S = 15 * 60;
 /** Roads are about this much longer than the straight line. */
 export const ROAD_FACTOR = 1.3;
 /** Planes are never taken below the first distance and always above the second. */
@@ -77,8 +80,9 @@ export function roll(r: number, boost = 1): Kind {
 
 const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD };
 
+/** Seconds a ride of `distanceM` takes. */
 export function rideS(mode: Mode, distanceM: number): number {
-  return distanceM / MODE_MPS[mode];
+  return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
 }
 
 /** Cents for a ride of `distanceM`, rounded up to a cent and never free. */

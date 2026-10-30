@@ -301,7 +301,7 @@ By road he takes the bus from the nearest bus station among the places loaded ar
 
 To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 
-The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, so a 300 km bus trip takes almost 4 hours of the game being open. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
+The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open. So 100 km by bus takes about {BUS_100_MIN} minutes, and a 300 km bus ride or a long flight takes {RIDE_MAX_MIN}. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
 Fares are in euros and never free:
 - bus: {BUS_PER_KM} per km of road,

@@ -67,7 +67,10 @@ describe("the real help", () => {
   it("uses the game's real numbers", () => {
     expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
     expect(page("speed").body).toContain("bike: 15 km/h");
-    expect(page("trips").body).toMatch(/^- 5%: he travels to a city in another country/m);
+    expect(page("trips").body).toMatch(/^- 2.5%: he travels to a city in another country/m);
+    expect(page("trips").body).toMatch(/^- 10%: he travels to another city in the same country/m);
+    expect(page("stations").body).toContain("rides go 10 times faster and never take longer than 15 minutes");
+    expect(page("stations").body).toContain("100 km by bus takes about 8 minutes");
     expect(page("fares").body).toContain("300 km by bus costs about €31.20");
     expect(page("coins").body).toContain("He starts with €200.");
     expect(page("fainting").body).toContain("Waking up costs €60, but never more than 50% of his money.");

@@ -100,7 +100,7 @@ describe("debug log", () => {
   });
 
   it("doubles the shown odds when boosted", () => {
-    expect(D.lines({ t: 0, roll: 0.3, outcome: "city", boost: 2 }, 0).join("\n")).toContain("city below 0.50, else stay); odds doubled");
+    expect(D.lines({ t: 0, roll: 0.2, outcome: "city", boost: 2 }, 0).join("\n")).toContain("city below 0.25, else stay); odds doubled");
   });
 
   it("gives each pick a short title", () => {
