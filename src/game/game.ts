@@ -25,9 +25,9 @@ import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
+import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
-import { FLYERS } from "../core/speeds";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -253,6 +253,8 @@ export class Game {
     // He walks what is loaded and waits at the edge until more streets arrive.
     const s = Math.min(dt, MAX_STEP_S);
     const before = w.totalM;
+    // His dragon eats before he moves, so a fed one flies from the first step of the day.
+    if (this.stats.feedDragon(this.rng)) this.changed();
     w.speedMps = this.stats.speedMps();
     w.flies = FLYERS.has(this.stats.getsAbout());
     w.advance(s * SPEED_MPS);

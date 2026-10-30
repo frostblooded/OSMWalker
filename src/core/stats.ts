@@ -407,7 +407,7 @@ export class Stats {
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
   walkFor(minutes: number, rng: Rng): string {
     this.walkMin += minutes;
-    let line = this.feedDragon(rng);
+    let line = "";
     while (this.walkMin >= 1) {
       this.walkMin -= 1;
       if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find")) continue;

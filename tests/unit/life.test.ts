@@ -457,7 +457,7 @@ describe("speed", () => {
     stats.gear.vehicle!.stats.speed = 50;
     expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
     stats.cents = S.DRAGON_UPKEEP;
-    stats.walkFor(0.5, never);
+    stats.feedDragon(never);
     expect(stats.getsAbout()).toBe("dragon");
     expect(roundTrip(stats).dragonFed).toBe(stats.dragonFed);
   });

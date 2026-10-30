@@ -10,8 +10,8 @@ import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { euro } from "./money";
 import type { Rng } from "./rng";
-import type { Action, Place, Stats } from "./stats";
 import { FLYERS } from "./speeds";
+import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
 import { ARRIVE_M } from "./walker";
 
@@ -168,8 +168,6 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   };
   /** Walks `m` meters, or as far as the time left allows; false when time ran out first. */
   const walk = (m: number) => {
-    // His dragon eats before he sets off, so a fed one flies the whole leg, as it would after the first moment of a watched walk.
-    stats.feedDragon(rng);
     const min = m / stats.speedMps() / 60;
     if (min > leftMin()) return false;
     pass(min, m);
@@ -180,6 +178,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
+      stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       const place = pickPlace();
