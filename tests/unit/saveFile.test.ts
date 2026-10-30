@@ -293,6 +293,19 @@ describe("save file", () => {
     expect(back.creatures.day).toBe("");
   });
 
+  it("loads saves from before magic: no Magic and no spells yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.magic;
+    delete d.stats.lore;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.magic).toBe(0);
+    expect(back.lore.toJSON()).toEqual({ known: [], casts: {}, day: "", tapped: [] });
+  });
+
   it("says why a save is unreadable", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

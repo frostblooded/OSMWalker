@@ -498,6 +498,28 @@
       "good": ["He answers the riddle; the troll lets him pass and gives him a pebble of luck.", "The troll and he share the snack."],
       "worse": ["He pays the toll in coins.", "He takes the long way round."],
       "reward": { "eur": [-5, 10], "xp": 60, "fx": { "wit": 0.3, "luck": 0.2 } } },
+    { "id": "ley_hunter", "icon": "✨", "title": "The Ley Hunter", "lean": "wit", "fantasy": true,
+      "items": ["a dowsing rod", "a hand-drawn map of old lines", "a humming pebble", "a compass that won't point north"],
+      "steps": [
+        { "at": ["place_of_worship"], "say": ["{GIVER} at {PLACE} swears the old lines of power cross right under the bell tower, and hands him {ITEM}.", "At {PLACE}, {GIVER} lends him {ITEM}: the ley lines start here, she says."] },
+        { "at": ["monument", "memorial"], "say": ["{ITEM} twitches at {PLACE}. A line runs straight through it.", "At {PLACE} the air tingles; he marks the spot on the map."] },
+        { "at": ["castle", "attraction", "monument"], "say": ["The last line ends at {PLACE}, where three of them meet.", "At {PLACE} the lines meet, and his ears pop."] }
+      ],
+      "twists": ["Someone has painted the lines on the pavement, wrongly.", "The pigeons all face the same way along the line."],
+      "good": ["The meeting point fills him with Magic; {GIVER} is delighted with the map.", "He feels the lines hum for the rest of the day."],
+      "worse": ["The rod points at a sewer pipe. Still, it hummed a bit.", "The map was upside down the whole time."],
+      "reward": { "eur": [0, 10], "xp": 60, "fx": { "magic": 20, "luck": 0.2 } } },
+    { "id": "borrowed_spellbook", "icon": "📖", "title": "The Overdue Spellbook", "lean": "wit", "fantasy": true,
+      "items": ["a spellbook 40 years overdue", "a book that whispers", "a cookbook of charms", "a pocket grimoire"],
+      "steps": [
+        { "at": ["library"], "say": ["{GIVER} at {PLACE} has a problem: {ITEM} was never returned, and the shelves keep sighing.", "At {PLACE}, {GIVER} asks him to track down {ITEM}."] },
+        { "at": ["cafe", "bar", "park"], "say": ["He finds the borrower at {PLACE}, reading it upside down.", "At {PLACE} a pensioner admits she kept it 'for the soup spell'."] },
+        { "at": ["library"], "say": ["Back at {PLACE}, the shelves stop sighing the moment the book is home."] }
+      ],
+      "twists": ["The book has a fine of €0.05 a day, since 1986.", "The book tries to stay with the borrower."],
+      "good": ["{GIVER} waives the fine and lets him read a page; a little Magic sticks to his fingers.", "The book purrs on its shelf; {GIVER} gives him a library card for life."],
+      "worse": ["He pays the fine himself. It is a lot of five-cent days.", "The book bit him, gently."],
+      "reward": { "eur": [-5, 5], "xp": 50, "fx": { "magic": 15, "wit": 0.3 } } },
     { "id": "wizard_apprentice", "icon": "🧙", "title": "The Wizard's Errand", "lean": "wit", "fantasy": true,
       "items": ["a dragon's sneeze", "moonflower petals", "a cat's dream", "dust from a very old book"],
       "steps": [
@@ -635,6 +657,7 @@
       "reward": { "eur": [0, 10], "xp": 40, "fx": { "wit": 0.2, "mood": 10 } } }
   ],
   "events": [
+    { "id": "humming_stones", "icon": "✨", "title": "Humming stones", "at": ["monument", "memorial", "place_of_worship"], "time": "night", "min": [10, 20], "lean": "wit", "text": ["The old stones of {PLACE} are humming tonight.", "A faint glow runs along the ground at {PLACE}, where the ley lines meet."], "win": { "say": "He stands still and listens until the hum fills him up.", "xp": 20, "fx": { "magic": 15, "mood": 5 } }, "lose": { "say": "A bus goes past and the hum is gone.", "xp": 5 }, "missed": "People say the stones at {PLACE} hummed all night." },
     { "id": "bakery_oven", "icon": "🔥", "title": "Oven trouble", "at": ["bakery"], "time": "morning", "min": [20, 50], "lean": "str",
       "text": ["The oven at {PLACE} broke down before the morning rush.", "Smoke and shouting at {PLACE}: the oven is dead."],
       "win": { "say": "He carries flour and fetches a part; bread is out on time.", "eur": [3, 8], "xp": 20, "fx": { "fullness": 20 } },

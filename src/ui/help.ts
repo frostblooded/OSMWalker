@@ -10,6 +10,7 @@ import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
+import * as Magic from "../core/magic";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -212,6 +213,16 @@ export function values(data: GameData): Record<string, string> {
       const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
       return `- ${c.icon} ${c.name}, ${c.where}: ${opts.join("; ")}. On his own he picks ${c.moment.options.find((o) => o.id === c.moment.default)!.label.toLowerCase()}.`;
     }).join("\n"),
+    LEY_NEAR_M: num(Magic.LEY_NEAR_M),
+    LEY_PER_KM: num(Magic.LEY_PER_KM),
+    LEY_BURST: num(Magic.LEY_BURST),
+    LEY_CHARM_LUCK: `+${num(Magic.LEY_CHARM.attrs!.luck!)}`,
+    LEY_CHARM_MIN: num(Magic.LEY_CHARM.min),
+    MAGIC_MAX: num(Magic.MAGIC_MAX),
+    LEARN_PCT: pct(Magic.LEARN_CHANCE),
+    SPELL_AT: num(Magic.SPELL_AT),
+    SPARE_MAGIC: num(Magic.SPARE_MAGIC),
+    SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),

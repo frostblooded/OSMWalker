@@ -1,11 +1,13 @@
-// His character sheet: level and XP, his quests, what he saves up for, six
-// meters as bars, four attributes with what his gear adds, every gear slot, the bag
-// and his buffs. Items with a story open to show it. His records close it.
+// His character sheet: level and XP, his quests, what he saves up for,
+// six meters and Magic as bars, the spells he knows, four attributes with
+// what his gear adds, every gear slot, the bag and his buffs. Items with a
+// story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { MAGIC_MAX } from "../core/magic";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
@@ -81,6 +83,24 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
   );
 }
 
+/** The spells he knows, with what each costs and how often he cast it. */
+function Spells({ stats: s }: { stats: Stats }) {
+  const known = s.spellKinds.filter((k) => s.lore.known.includes(k.id));
+  return (
+    <Card icon="🪄" title="Spells" right={`${known.length} / ${s.spellKinds.length}`}>
+      {known.length ? (
+        <div class="zebra">
+          {known.map((k) => (
+            <KV key={k.id} k={`${k.icon} ${k.name}`} v={`${k.cost} Magic · cast ${s.lore.casts[k.id] ?? 0}×`} />
+          ))}
+        </div>
+      ) : (
+        <KV k="Known" v="none yet" />
+      )}
+    </Card>
+  );
+}
+
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
@@ -142,8 +162,13 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
               </div>
             );
           })}
+          <div class="meter">
+            <KV k="🔮 Magic" v={Math.round(s.magic)} />
+            <Bar share={s.magic / MAGIC_MAX} color="var(--magic)" />
+          </div>
         </div>
       </Card>
+      <Spells stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {

@@ -108,6 +108,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
+  useEffect(() => scene.current?.showLeys(sheet === "stats"), [sheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();

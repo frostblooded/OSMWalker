@@ -21,6 +21,7 @@ const data = {
   incidents: JSON.parse(dataFile("incidents.json")),
   quests: JSON.parse(dataFile("quests.json")),
   creatures: JSON.parse(dataFile("creatures.json")),
+  spells: JSON.parse(dataFile("spells.json")),
   borders: JSON.parse(dataFile("borders.json")),
 };
 const raw = dataFile("help.txt");
@@ -60,6 +61,12 @@ describe("the real help", () => {
     const body = page("creatures").body;
     expect(body).toContain("- 🧌 Bridge troll, under bridges: Answer its riddle (+20 XP, +1 Wits for 2 h; if it fails, pays €6, -5 mood); Pay the toll (pays €3, +1 Luck for 2 h)");
     expect(body).toContain("On his own he picks drink from her hands.");
+  });
+
+  it("lists each spell with its cost and what it does", () => {
+    const body = page("spells").body;
+    expect(body).toContain("- 🍲 Warm soup, 20 Magic: +30 fullness");
+    expect(body).toContain("- 💡 Bright mind, 25 Magic: ×1.2 XP for 1 h");
   });
 
   it("takes the nap threshold from the data", () => {
