@@ -262,7 +262,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} onDone={() => game.dismissAway()} />
+          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
         </SheetBox>
       )}
     </div>
@@ -302,7 +302,7 @@ function GuessRow({ guess: g, onPick }: { guess: Guess; onPick: (choice: string)
       <div class="small dim">
         🎲 Where to? {g.abroad ? "Which country" : "Which city"}, for +{GUESS_CLOVERS} ☘
       </div>
-      <div class="guess-choices">
+      <div class="choices">
         {g.choices.map((c) => (
           <button key={c} class="btn" onClick={() => onPick(c)}>
             {c}

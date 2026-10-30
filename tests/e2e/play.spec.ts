@@ -63,6 +63,24 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
   await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
 });
 
+test("a long reopen may hold one choice, which a tap settles", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Debug/ }).click();
+  const debug = page.getByRole("dialog", { name: /Debug/ });
+  await debug.getByRole("switch", { name: /One on every long reopen/ }).click();
+  await expect(debug.getByRole("switch", { name: /One on every long reopen/ })).toHaveAttribute("aria-checked", "true");
+  await reopenAfter(page, 5);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toContainText("One choice", { timeout: 20000 });
+  await expect(away).toContainText("he decides by himself");
+  await away.locator(".choices button").last().click();
+  await expect(away).toContainText("You chose");
+  await expect(away.locator(".choices")).toBeHidden();
+  await away.getByRole("button", { name: "Carry on" }).click();
+  await expect(away).toBeHidden();
+});
+
 test("the day ribbon shows the places he stopped at today", async ({ page }) => {
   // The hour he was away must fall on today.
   test.skip(new Date().getHours() < 1, "too close to midnight");
