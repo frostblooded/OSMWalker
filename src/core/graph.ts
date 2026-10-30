@@ -19,6 +19,8 @@ export type OverpassData = {
   places?: Place[];
 };
 
+const inBox = (p: Place, box: BBox) => p.lat >= box[0] && p.lat <= box[2] && p.lon >= box[1] && p.lon <= box[3];
+
 export const cellKey = (c: Tile) => c.x * 2 ** CELL_ZOOM + c.y;
 export const cellOf = (lat: number, lon: number): Tile => tileOf(lat, lon, CELL_ZOOM);
 
@@ -132,6 +134,8 @@ export class StreetGraph {
   readonly cells = new Set<number>();
   /** Places of note per loaded cell. */
   readonly places = new Map<number, Place[]>();
+  /** Made-up places (core/poiGen.ts); each counts once its cell is loaded. */
+  made: Place[] = [];
 
   /** Adds one cell's data and marks the cell loaded. */
   addCell(cell: Tile, data: Cell): void {
@@ -171,8 +175,9 @@ export class StreetGraph {
   placesIn(box: BBox): Place[] {
     const out: Place[] = [];
     for (const list of this.places.values()) {
-      for (const p of list) if (p.lat >= box[0] && p.lat <= box[2] && p.lon >= box[1] && p.lon <= box[3]) out.push(p);
+      for (const p of list) if (inBox(p, box)) out.push(p);
     }
+    for (const p of this.made) if (inBox(p, box) && this.cells.has(cellKey(cellOf(p.lat, p.lon)))) out.push(p);
     return out;
   }
 

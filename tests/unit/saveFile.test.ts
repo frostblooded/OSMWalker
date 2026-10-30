@@ -31,12 +31,14 @@ function walkerAt(lat: number, lon: number): Walker {
   return w;
 }
 
+const INN = { name: "Sofia inn", class: "lodging", subclass: "guest_house", rank: 1, lat: 42.7, lon: 23.3, id: "sofia:guest_house:0", made: true };
+
 function saved(): Saved {
   const stats = new Stats();
   stats.cents = 4321;
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000 };
+  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000, made: { "Sofia, Bulgaria": [INN] } };
 }
 
 describe("save file", () => {
@@ -56,13 +58,25 @@ describe("save file", () => {
     expect(back.walker.position()).toEqual([42.7, 23.3]);
     expect(back.stats.cents).toBe(4321);
     expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
+    expect(back.made).toEqual({ "Sofia, Bulgaria": [INN] });
+  });
+
+  it("loads saves from before made-up places, with none made yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.made_places;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).made).toEqual({});
   });
 
   it("keeps the stored format that older versions wrote", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log",
+      "made_places", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
   it("loads saves from before care packages with no clovers and nothing on its way", () => {

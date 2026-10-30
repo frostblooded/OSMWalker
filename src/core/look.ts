@@ -41,6 +41,7 @@ const PLACE_ICON: Record<string, string> = {
   "shop/gift": "🎁", "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺",
   "shop/hardware": "🔨", "shop/doityourself": "🔨", "shop/weapons": "🗡", "shop/hunting": "🏹", "shop/knives": "🔪",
   "shop/florist": "💐", "shop/pet": "🐾", "shop/tailor": "🧵", "shop/mobile_phone": "📱", shop: "🛍",
+  notice_board: "📜", guild_hall: "🛡", old_well: "🪣", lookout: "🔭", shrine: "⛩", storyteller: "📖", wizard_tower: "🧙",
 };
 
 /** His face: the worst of sick, tired, dirty and down, else how happy he is. */

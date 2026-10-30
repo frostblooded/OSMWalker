@@ -71,6 +71,28 @@ Each place has a rank from the map, where 1 is the most important in its area, s
 If no places have loaded yet, he heads for a random spot in the city box instead and walks on through it without stopping.
 
 He counts as arrived when he is within {ARRIVE_M} m of the place.
+## Made-up places {made_places}
+The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions. They give no cards, souvenirs, Placedex entries or crawl progress, since those are for real places.
+
+Must-haves fill gaps. If none of the loaded places is one of these, the city gets one near its centre, on a street:
+- a bus station ("Plovdiv coach station"), so he can leave,
+- a gas station, so a car can refuel,
+- somewhere to eat (an action that fills him by at least {MEAL_FULLNESS}),
+- somewhere to sleep (an action that gives at least {BED_ENERGY} energy),
+- a job centre, so he can always earn.
+
+A city of {AIRPORT_POP} people or more with no real airport within {AIRPORT_KM} km gets an airport of its own outside it, so planes can fly there too.
+
+Extras give stories a stage: notice boards, an adventurers' hall, old wells, lookouts, hidden shrines and storytellers' corners, each next to a fitting real spot (a well in a park, a lookout at a viewpoint), or near the centre when the city has no such spot. How many a city gets depends on its size:
+- a town (up to {TOWN_POP} people): {EXTRAS_TOWN},
+- a city (up to {CITY_POP} people): {EXTRAS_CITY} and {TOWERS_CITY} wizard's tower,
+- a big city: {EXTRAS_CAPITAL} and {TOWERS_CAPITAL} wizard's towers ({TOWERS_MEGA} above {MEGA_POP} people).
+
+Wizard's towers rise at the grandest real landmarks (castles first, then viewpoints, sights, monuments and museums), at least {TOWER_APART_KM} km apart. A city with no landmark gets none.
+
+A city keeps its made-up places: they are rolled from the city's name and saved, so the tower is still at the same castle when he comes back. The save keeps them for the {MADE_CITIES} cities he was in most recently.
+## Map icons {map_icons}
+The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places and indigo for magic. Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once, and none while he rides to another city.
 ## Picking the next goal {goal_pick}
 He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
 
@@ -347,7 +369,7 @@ How he goes depends on the distance in a straight line:
 
 By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
-To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
+To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide, plus the made-up ones of big cities, see Made-up places), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open. So 100 km by bus takes about {BUS_100_MIN} minutes, and 300 km by bus about {BUS_300_MIN}. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
@@ -503,7 +525,7 @@ While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km),
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 
-Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
+Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. Missing ones are normally made up (see Made-up places), so this only shows when that fails, for example when the game is offline before it has kept that part of its code. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
 
 At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
 

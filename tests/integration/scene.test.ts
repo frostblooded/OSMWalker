@@ -2,6 +2,7 @@
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { BBox } from "../../src/core/geo";
+import type { MapIcon } from "../../src/core/mapIcons";
 import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
@@ -40,6 +41,13 @@ class FakeMap implements MapPort {
   setArea() {}
   setEvents() {
     this.calls.push("events");
+  }
+  icons: MapIcon[] = [];
+  iconKey = "";
+  setMapIcons(key: string, icons: () => MapIcon[]) {
+    if (key === this.iconKey) return;
+    this.iconKey = key;
+    this.icons = icons();
   }
   follow(zoom?: number) {
     this.calls.push(`follow:${zoom}`);
@@ -84,6 +92,19 @@ beforeEach(() => {
 });
 
 describe("map scene", () => {
+  it("shows made-up places and travel hubs as game icons, none on a ride", () => {
+    const w = game.walker!;
+    w.bounds = PLUS_BBOX;
+    const [lat, lon] = w.position();
+    w.graph.made = [{ name: "Notice board", class: "notice_board", subclass: "notice_board", rank: 2, lat, lon, id: "x:notice_board:0", made: true }];
+    scene.draw(0.25, 250);
+    expect(map.icons.map((i) => i.icon)).toEqual(["board"]);
+    expect(map.icons[0]!.id).toBe("x:notice_board:0");
+    w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
+    scene.draw(0.25, 250);
+    expect(map.icons).toEqual([]);
+  });
+
   it("leaves room for the panels from the start", () => {
     expect(map.calls).toEqual(["padding:80"]);
   });

@@ -521,8 +521,10 @@ export class Stats {
    * Right after reaching a real place (after visit()): a landmark card the
    * first time (a revisit gives nothing) and maybe the country's souvenir,
    * a new Placedex kind, the perks of crawls he finished, and progress on the rest.
+   * Made-up places (core/poiGen.ts) give none of these.
    */
   collect(place: Place, rng: Rng): void {
+    if (place.made) return;
     const k = this.keepsakes;
     const key = visitKey(place);
     const kind = K.kindOf(place);

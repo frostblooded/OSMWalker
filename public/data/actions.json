@@ -4592,5 +4592,211 @@
     "xp": 5
    }
   }
+ ],
+ "notice_board": [
+  {
+   "name": "Read the notices",
+   "min": 5,
+   "fx": {
+    "wit": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Pin up a lost-cat poster",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "cha": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Take an odd job off the board",
+   "min": 60,
+   "earn": [
+    10,
+    20
+   ],
+   "fx": {
+    "energy": -10,
+    "xp": 15
+   }
+  }
+ ],
+ "guild_hall": [
+  {
+   "name": "Swap tales with adventurers",
+   "min": 30,
+   "fx": {
+    "mood": 15,
+    "cha": 0.2,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Train in the yard",
+   "min": 45,
+   "fx": {
+    "energy": -20,
+    "str": 0.3,
+    "xp": 20
+   }
+  },
+  {
+   "name": "Take a bounty off the wall",
+   "min": 90,
+   "earn": [
+    20,
+    35
+   ],
+   "fx": {
+    "energy": -25,
+    "xp": 30
+   },
+   "needs": {
+    "time": "day"
+   }
+  },
+  {
+   "name": "Bowl of hall stew",
+   "min": 20,
+   "cost": 6,
+   "fx": {
+    "fullness": 45,
+    "xp": 3
+   }
+  }
+ ],
+ "old_well": [
+  {
+   "name": "Toss a coin and make a wish",
+   "min": 2,
+   "cost": 1,
+   "fx": {
+    "luck": 0.2,
+    "mood": 5,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Draw cool water",
+   "min": 5,
+   "fx": {
+    "thirst": 40,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Peer into the dark",
+   "min": 5,
+   "fx": {
+    "wit": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "lookout": [
+  {
+   "name": "Take in the view",
+   "min": 10,
+   "fx": {
+    "mood": 15,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Map the streets below",
+   "min": 30,
+   "fx": {
+    "wit": 0.3,
+    "xp": 20
+   }
+  }
+ ],
+ "shrine": [
+  {
+   "name": "Light a candle",
+   "min": 10,
+   "cost": 1,
+   "fx": {
+    "mood": 15,
+    "luck": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Sit in silence",
+   "min": 20,
+   "fx": {
+    "mood": 20,
+    "energy": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "storyteller": [
+  {
+   "name": "Listen to a tall tale",
+   "min": 30,
+   "fx": {
+    "mood": 20,
+    "wit": 0.2,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Tell his own story",
+   "min": 20,
+   "fx": {
+    "cha": 0.3,
+    "mood": 10,
+    "xp": 10
+   }
+  }
+ ],
+ "wizard_tower": [
+  {
+   "name": "Gaze at the strange lights",
+   "min": 10,
+   "fx": {
+    "mood": 15,
+    "luck": 0.1,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Run an errand for the wizard",
+   "min": 60,
+   "earn": [
+    15,
+    30
+   ],
+   "fx": {
+    "energy": -15,
+    "wit": 0.2,
+    "xp": 30
+   }
+  },
+  {
+   "name": "Buy a lucky charm",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "luck": 0.3,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Leaf through a spellbook",
+   "min": 45,
+   "fx": {
+    "wit": 0.5,
+    "xp": 25
+   },
+   "needs": {
+    "time": "evening"
+   }
+  }
  ]
 }
