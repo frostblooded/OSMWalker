@@ -84,11 +84,6 @@ export const CRAWLS: Crawl[] = [
 ];
 export const crawlMatches = (c: Crawl, p: Pick<Place, "class" | "subclass">) => !isArtShop(p) && (c.kinds.includes(p.class) || c.kinds.includes(kindOf(p)));
 
-/** The local calendar day of unix seconds `t`, for crawls that last a day. */
-export const dayOf = (t: number) => {
-  const d = new Date(t * 1000);
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-};
 
 /** Everything he has collected, as saved. */
 export class Keepsakes {

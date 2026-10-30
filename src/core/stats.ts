@@ -2,7 +2,7 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
-import { Care } from "./gifts";
+import { Care, dayOf } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
 import * as K from "./keepsakes";
@@ -434,7 +434,7 @@ export class Stats {
       this.addXp(K.DEX_XP[rarity]);
       this.say(`New in the Placedex: ${K.kindLabel(kind)} (${rarity}, +${K.DEX_XP[rarity]} XP)`);
     }
-    k.roll(K.dayOf(this.now()), this.where.city);
+    k.roll(dayOf(this.now() * 1000), this.where.city);
     for (const c of K.CRAWLS) {
       if (k.done.has(c.id) || !K.crawlMatches(c, place)) continue;
       const seen = (k.progress[c.id] ??= []);

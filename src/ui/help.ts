@@ -301,7 +301,7 @@ export function values(data: GameData): Record<string, string> {
     CARD_RARE_RANK: String(K.RARE_RANK),
     CARD_UNCOMMON_RANK: String(K.UNCOMMON_RANK),
     DEX_KINDS: String(Object.keys(data.dex ?? {}).length),
-    SOUVENIR_PRICE: euro(toCents(data.actions["shop/gift"]?.find((a) => a.souvenir)?.cost ?? 0)),
+    SOUVENIR_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.souvenir)?.cost ?? 0)),
     SOUVENIR_WEIGHT: num(Activities.SOUVENIR_WEIGHT),
     SOUVENIR_COUNTRIES: String(Object.keys(K.SOUVENIRS).length),
     SOUVENIRS_PER_CUT: String(K.SOUVENIRS_PER_CUT),

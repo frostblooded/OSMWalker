@@ -1,6 +1,7 @@
 // His keepsakes: landmark cards (counts by rarity and finish, then the cards
 // themselves), the Placedex of place kinds, souvenirs by country and crawls.
 import type { Rarity } from "../core/items";
+import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
 import type { Stats } from "../core/stats";
 import { Card, Collapsible, KV } from "./kit";
@@ -50,7 +51,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           <p class="dim small">None yet. He gets one the first time he reaches a sight.</p>
         )}
       </Card>
-      <Card icon="📖" title="Placedex" right={`${kinds.length} kinds`}>
+      <Card icon="📇" title="Placedex" right={`${kinds.length} kinds`}>
         {DEX_RARITIES.map((r) => {
           const found = kinds.filter(([kind]) => K.dexRarity(s.dex, kind) === r).length;
           return <KV key={r} k={<span style={{ color: RARITY_COLOR[r] }}>{r}</span>} v={r === "Legendary" ? `${found} / ${known(r)}+` : `${found} / ${known(r)}`} />;
@@ -66,7 +67,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           </Collapsible>
         )}
       </Card>
-      <Card icon="🎁" title="Souvenirs" right={k.souvenirs.size}>
+      <Card icon="🧳" title="Souvenirs" right={k.souvenirs.size}>
         <KV k="✈ Fares" v={cut ? `${Math.round(cut * 100)}% cheaper` : "full price"} tone={cut ? "ok" : undefined} />
         {k.souvenirs.size ? (
           <Collapsible title="Countries" right={k.souvenirs.size}>
@@ -77,7 +78,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
             </div>
           </Collapsible>
         ) : (
-          <p class="dim small">None yet. He buys one at a gift shop, kiosk, newsagent, sight or museum in each country.</p>
+          <p class="dim small">None yet. He buys one in each country (see Souvenirs in Help).</p>
         )}
       </Card>
       <Card icon="🏁" title="Crawls" right={`${k.done.size} / ${K.CRAWLS.length}`}>
@@ -89,7 +90,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
                 {crawls.map((c) => {
                   const done = k.done.has(c.id);
                   // A day's or a city's count from before is over, even before his next stop starts it again.
-                  const stale = (c.per === "day" && k.day !== K.dayOf(s.now())) || (c.per === "city" && k.city !== s.where.city);
+                  const stale = (c.per === "day" && k.day !== dayOf(s.now() * 1000)) || (c.per === "city" && k.city !== s.where.city);
                   const got = stale ? 0 : (k.progress[c.id]?.length ?? 0);
                   return <KV key={c.id} k={`${c.icon} ${c.name}`} v={done ? "✔ Done" : `${got} / ${c.need}`} tone={done ? "ok" : undefined} />;
                 })}

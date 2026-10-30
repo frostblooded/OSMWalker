@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import { RARITY, SLOTS } from "../../src/core/items";
 import { CRAWLS } from "../../src/core/keepsakes";
+import { euro, toCents } from "../../src/core/money";
 import { ATTRS, METERS } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import * as Help from "../../src/ui/help";
@@ -103,10 +104,11 @@ describe("the real help", () => {
     const actions = JSON.parse(dataFile("actions.json")) as ActionTable;
     const prices = new Set(Object.values(actions).flatMap((list) => (Array.isArray(list) ? list.filter((a) => a.souvenir).map((a) => a.cost) : [])));
     expect([...prices]).toHaveLength(1);
+    expect(Help.values(data).SOUVENIR_PRICE).toBe(euro(toCents([...prices][0]!)));
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "care", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "collection", "care", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
   });
 });
 
