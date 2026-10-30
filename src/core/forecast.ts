@@ -6,7 +6,8 @@ import { dayOf } from "./gifts";
 import { Rng, seedOf } from "./rng";
 
 /** What a forecast changes: mood from places of one class, fares, money on the street, sale prices, walking effort, first-visit XP or wages. */
-export type Effect = "mood" | "fare" | "find" | "sell" | "effort" | "visit" | "wage";
+export const EFFECTS = ["mood", "fare", "find", "sell", "effort", "visit", "wage"] as const;
+export type Effect = (typeof EFFECTS)[number];
 /** `text` says `{n}` where the amount goes (see amount), so the words follow `mult`. */
 export type Forecast = { id: string; icon: string; text: string; effect: Effect; mult: number; kind?: string };
 

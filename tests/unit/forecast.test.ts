@@ -83,6 +83,8 @@ describe("daily forecast", () => {
     const classes = new Set(Object.keys(JSON.parse(dataFile("actions.json"))).map((k) => k.split("/")[0]));
     for (const f of LIST) {
       if (f.kind) expect(classes.has(f.kind), f.kind).toBe(true);
+      expect(F.EFFECTS, f.id).toContain(f.effect);
+      if (f.effect === "mood") expect(f.kind, f.id).toBeTruthy();
       expect(f.text).toContain("{n}");
       expect(F.words(f)).not.toContain("{n}");
     }
