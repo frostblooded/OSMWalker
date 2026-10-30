@@ -12,7 +12,8 @@ import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
-import { Rng } from "../../src/core/rng";
+import { PORTAL_CHANCE } from "../../src/core/portals";
+import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
@@ -286,6 +287,8 @@ describe("game", () => {
     const STONE: Place = { ...BUS, name: "Old Monument", class: "monument", subclass: "monument" };
     const { g } = game({ places: [CHURCH, STONE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
+    // The monument stays a monument: no portal so soon after one.
+    g.stats.portals.last = g.stats.now();
     const walked: number[] = [];
     const leyWalk = g.stats.leyWalk.bind(g.stats);
     g.stats.leyWalk = (m) => {
@@ -305,6 +308,25 @@ describe("game", () => {
     expect(g.stats.buffNames()).toContain("Ley-charmed");
     // Reaching them gives the burst too.
     expect(g.stats.lore.tapped.length).toBeGreaterThan(0);
+  });
+
+  it("a portal at a monument he reaches takes him at once to a city he has never been to, and the streets there load", async () => {
+    const STONE: Place = { ...CAFE, name: "Old Monument", class: "monument", subclass: "monument" };
+    const { g } = game({ places: [STONE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the monument's own dice open a portal.
+    let t = 1_800_000_000;
+    while (new Rng(seedOf(`portal${t}${STONE.name}`)).randf() >= PORTAL_CHANCE) t += 60;
+    g.stats.now = () => t;
+    run(g, 400);
+    expect(g.stats.portals.went).toHaveLength(1);
+    const to = g.stats.portals.went[0]!;
+    expect(to).not.toBe("Sofia, Bulgaria");
+    expect(g.city).toBe(to);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts).toContain("🌀 The old stones of Old Monument shimmered like a door, and he stepped through");
+    expect(texts).toContain(`🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`);
+    expect(g.walker!.isTraveling()).toBe(false);
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {

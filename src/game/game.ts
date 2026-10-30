@@ -315,6 +315,14 @@ export class Game {
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
+    const door = this.stats.portalAt(place, this.trips);
+    if (door) {
+      this.doing = null;
+      this.stats.care.guess = null;
+      this.stats.history.breakTrail();
+      this.walker!.rideNow(door, "portal");
+      return;
+    }
     // Incidents roll on the card dice, so they leave his walk the same.
     this.stats.happen(place, this.hour(), this.cardRng);
     // Quests roll on the card dice too; a quest step or event takes the place of an action.

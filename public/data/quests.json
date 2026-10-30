@@ -531,6 +531,17 @@
       "good": ["{GIVER} pays him in moonlight: a little Magic, and a discount next time.", "The owner turns up to thank him with a bottled star."],
       "worse": ["By morning the shop is a launderette again, and {ITEM} is gone.", "He falls asleep on the shop's sofa and wakes on a bench outside."],
       "reward": { "eur": [0, 15], "xp": 60, "fx": { "magic": 15, "cha": 0.3 } } },
+    { "id": "shimmering_arch", "icon": "🌀", "title": "The Shimmering Arch", "lean": "wit", "fantasy": true,
+      "items": ["a compass that points at nothing", "a map of a city that isn't there", "a key with no teeth", "a stone that is warm on one side"],
+      "steps": [
+        { "at": ["monument", "castle"], "say": ["The air under the arch at {PLACE} ripples like a hot road. {GIVER} has been watching it for days and hands him {ITEM}.", "At {PLACE} {GIVER} swears the old stones opened last night, and presses {ITEM} into his hand."] },
+        { "at": ["library", "museum"], "say": ["In an old atlas at {PLACE} he finds {ITEM} drawn in the margin, beside a city he has never heard of.", "A curator at {PLACE} turns {ITEM} over and goes pale: 'Where did you get this?'"] },
+        { "at": ["monument", "castle", "place_of_worship"], "say": ["He holds up {ITEM} at {PLACE}, and for a moment he sees another street through the stones.", "At {PLACE} {ITEM} hums, then goes quiet, as if a door just closed."] }
+      ],
+      "twists": ["{GIVER} knows the name of a city he has never been to.", "The shimmer only shows when nobody else is looking."],
+      "good": ["{GIVER} thanks him with a pinch of the shimmer: a little Magic that tingles.", "The arch hums once, like a thank you, and he feels lucky all day."],
+      "worse": ["A pigeon walks right through the shimmer and nothing happens. {GIVER} sighs.", "By the time they look again the arch is just an arch."],
+      "reward": { "eur": [0, 10], "xp": 60, "fx": { "magic": 15, "wit": 0.3 } } },
     { "id": "wizard_apprentice", "icon": "🧙", "title": "The Wizard's Errand", "lean": "wit", "fantasy": true,
       "items": ["a dragon's sneeze", "moonflower petals", "a cat's dream", "dust from a very old book"],
       "steps": [
@@ -669,6 +680,7 @@
   ],
   "events": [
     { "id": "lamp_in_the_window", "icon": "🌙", "title": "A lamp in the window", "at": ["shop/antiques", "shop/second_hand"], "time": "midnight", "min": [10, 20], "lean": "luck", "text": ["A lamp is lit in the window of {PLACE}, long after closing.", "The door of {PLACE} stands ajar after midnight, and something inside glitters."], "win": { "say": "The owner lets him try a ring that tingles; a little Magic stays on his finger.", "xp": 15, "fx": { "magic": 10, "luck": 0.2 } }, "lose": { "say": "By the time he gets there the lamp is out and the door locked.", "xp": 5 }, "missed": "Someone saw a lamp in the window of {PLACE} after midnight." },
+    { "id": "shimmer_in_the_stones", "icon": "🌀", "title": "A shimmer in the stones", "at": ["monument", "castle"], "time": "night", "min": [10, 20], "lean": "luck", "text": ["The air between the old stones of {PLACE} shimmers like a heat haze, at night.", "Through the arch at {PLACE} he glimpses a street that isn't here."], "win": { "say": "He reaches in, and his hand comes back cold, smelling of another city's rain; a little Magic clings to it.", "xp": 15, "fx": { "magic": 10, "mood": 5 } }, "lose": { "say": "A tram rattles by and the shimmer is gone.", "xp": 5 }, "missed": "People say the stones of {PLACE} shimmered last night." },
     { "id": "humming_stones", "icon": "✨", "title": "Humming stones", "at": ["monument", "memorial", "place_of_worship"], "time": "night", "min": [10, 20], "lean": "wit", "text": ["The old stones of {PLACE} are humming tonight.", "A faint glow runs along the ground at {PLACE}, where the ley lines meet."], "win": { "say": "He stands still and listens until the hum fills him up.", "xp": 20, "fx": { "magic": 15, "mood": 5 } }, "lose": { "say": "A bus goes past and the hum is gone.", "xp": 5 }, "missed": "People say the stones at {PLACE} hummed all night." },
     { "id": "bakery_oven", "icon": "🔥", "title": "Oven trouble", "at": ["bakery"], "time": "morning", "min": [20, 50], "lean": "str",
       "text": ["The oven at {PLACE} broke down before the morning rush.", "Smoke and shouting at {PLACE}: the oven is dead."],

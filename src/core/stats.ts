@@ -13,6 +13,7 @@ import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
 import * as Mn from "./midnight";
+import * as Po from "./portals";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -197,6 +198,7 @@ export class Stats {
   spellKinds: readonly Mg.Spell[] = [];
   /** The enchantments and trinkets he found at the shop after midnight. */
   finds = new Mn.Finds();
+  portals = new Po.Portals();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -492,7 +494,7 @@ export class Stats {
 
   /**
    * Landed in `to` after `distM` by `mode`: a night train leaves him rested,
-   * cycling tires him, a long walk ends his hostel buff with XP and mood, and a hitched lift may go badly or be a great story
+   * cycling tires him, a long walk ends his hostel buff with XP and mood, a portal puzzles him, and a hitched lift may go badly or be a great story
    * (its own dice from the town and time, so the walk's stay the same). The
    * feed line, or "".
    */
@@ -513,6 +515,7 @@ export class Stats {
       const n = T.hostelNights(distM);
       return `Walked ${km} km to ${to}${n ? `, sleeping in ${n} hostel${n === 1 ? "" : "s"} on the way` : ""}`;
     }
+    if (mode === "portal") return `🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`;
     if (mode !== "hitch") return "";
     const r = new Rng(seedOf(`hitch${to}${this.now()}`)).randf();
     if (r < T.HITCH_BAD) {
@@ -926,6 +929,22 @@ export class Stats {
     if (this.lore.known.length === 1) this.milestone("spell", `Learned his first spell, ${s.name}, at ${place.name}`);
   }
 
+  /** Right after reaching `place`: a portal place may open (see portals.ts) unless he is on a quest. Returns the city it takes him to, never one he has been to, or null. Its own dice, so his walk stays the same. */
+  portalAt(place: Place, trips: T.Trips): T.City | null {
+    const t = this.now();
+    if (!Po.isPortalPlace(place) || this.quests.active) return null;
+    const rng = new Rng(seedOf(`portal${t}${place.name}`));
+    if (!this.portals.opens(t, rng.randf())) return null;
+    const seen = this.keepsakes.seen;
+    const city = trips.pickNew(place.lat, place.lon, (c) => seen.includes(`${c.code}:${c.name}, ${c.country}`), rng);
+    if (!city) return null;
+    const to = `${city.name}, ${city.country}`;
+    this.portals.note(t, to);
+    this.say(`🌀 The old stones of ${place.name} shimmered like a door, and he stepped through`);
+    this.milestone("portal", `Stepped through a portal at ${place.name} and came out in ${to}`);
+    return { ...city, bounds: T.cityBounds(city) };
+  }
+
   /** Magic his enchanted gear gathers for each km he walks. */
   gearMagic(): number {
     let v = 0;
@@ -1049,7 +1068,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
@@ -1084,6 +1103,7 @@ export class Stats {
     s.lore = Mg.Lore.fromJSON(d.lore);
     // A save from before the shop after midnight: nothing found there yet.
     s.finds = Mn.Finds.fromJSON(d.finds);
+    s.portals = Po.Portals.fromJSON(d.portals);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
