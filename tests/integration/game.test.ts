@@ -1,5 +1,4 @@
 // The game loop with real Sofia streets, fake servers and fixed dice.
-import { getCrawler, setCrawler } from "../../src/core/ruins";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -9,6 +8,7 @@ import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
+import { getCrawler, setCrawler } from "../../src/core/ruins";
 import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";

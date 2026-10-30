@@ -154,6 +154,12 @@ test("Stats tells a bought item's story", async ({ page }) => {
   expect(await smallButtons(page)).toEqual([]);
 });
 
+test("The ruin crawl rooms load at idle once the game is up", async ({ page }) => {
+  const crawl = page.waitForRequest(/\/crawl-[\w-]+\.js$/);
+  await startInSofia(page);
+  await crawl;
+});
+
 test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({ page }) => {
   await startInSofia(page);
   await reopenWith(
