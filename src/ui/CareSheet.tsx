@@ -26,31 +26,6 @@ export function CareSheet({ care, bond, last, now, onSend, onWhisper, onJudge }:
   const judged = !last || last.t <= bond.judged;
   return (
     <>
-      <Card icon="🤝" title="His trust in you" right={Math.round(bond.trust)}>
-        <Bar share={bond.trust / TRUST_MAX} color="var(--accent)" />
-        <KV k="He leans" v={`${LEAN_NAME[bond.leaning()]} (${bond.lean > 0 ? "+" : ""}${bond.lean} of ±${LEAN_MAX})`} />
-        <KV k="Following a whisper" v={bond.nudge ? `${WHISPER_ICON[bond.nudge]} ${bond.nudge}, ${Math.ceil(bond.nudgeLeft)} min` : "No"} />
-      </Card>
-      <Card icon="🤫" title="Whisper to him" right={`${left} left today`}>
-        <div class="buttons">
-          {WHISPERS.map((w) => (
-            <button key={w} class="btn" disabled={left <= 0} aria-label={`Whisper ${w}`} onClick={() => onWhisper(w)}>
-              {WHISPER_ICON[w]} {w[0]!.toUpperCase() + w.slice(1)}
-            </button>
-          ))}
-        </div>
-      </Card>
-      <Card icon="⚖" title="His latest deed">
-        <div class="dim small">{last?.text ?? "Nothing yet"}</div>
-        <div class="buttons">
-          <button class="btn" disabled={judged} onClick={() => onJudge(1)}>
-            👍 Praise
-          </button>
-          <button class="btn" disabled={judged} onClick={() => onJudge(-1)}>
-            👎 Scold
-          </button>
-        </div>
-      </Card>
       <Card icon="☘" title="Clovers" right={care.clovers}>
         <KV k="Earned today" v={`${care.earnedOn(day)} / ${CLOVERS_PER_DAY}`} />
         <KV k="Next clover" v={care.full(day) ? "Tomorrow" : `On reopen after ${CLOVER_AWAY_S / 3600} h away`} />
@@ -82,6 +57,31 @@ export function CareSheet({ care, bond, last, now, onSend, onWhisper, onJudge }:
             );
           })}
         </ol>
+      </Card>
+      <Card icon="🤝" title="His trust in you" right={Math.round(bond.trust)}>
+        <Bar share={bond.trust / TRUST_MAX} color="var(--accent)" />
+        <KV k="He leans" v={`${LEAN_NAME[bond.leaning()]} (${bond.lean > 0 ? "+" : ""}${bond.lean} of ±${LEAN_MAX})`} />
+        <KV k="Following a whisper" v={bond.nudge ? `${WHISPER_ICON[bond.nudge]} ${bond.nudge}, ${Math.ceil(bond.nudgeLeft)} min` : "No"} />
+      </Card>
+      <Card icon="🤫" title="Whisper to him" right={`${left} left today`}>
+        <div class="buttons">
+          {WHISPERS.map((w) => (
+            <button key={w} class="btn" disabled={left <= 0} aria-label={`Whisper ${w}`} onClick={() => onWhisper(w)}>
+              {WHISPER_ICON[w]} {w[0]!.toUpperCase() + w.slice(1)}
+            </button>
+          ))}
+        </div>
+      </Card>
+      <Card icon="⚖" title="His latest deed">
+        <div class="dim small">{last?.text ?? "Nothing yet"}</div>
+        <div class="buttons">
+          <button class="btn" disabled={judged} onClick={() => onJudge(1)}>
+            👍 Praise
+          </button>
+          <button class="btn" disabled={judged} onClick={() => onJudge(-1)}>
+            👎 Scold
+          </button>
+        </div>
       </Card>
     </>
   );

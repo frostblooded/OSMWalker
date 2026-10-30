@@ -34,12 +34,11 @@ describe("trust", () => {
   it("fades a little for whole days away after the first, never sharply", () => {
     const b = new B.Bond();
     b.trust = 50;
-    b.checkIn(DAY, false);
-    b.checkIn(DAY + 1.5 * DAY, false);
+    b.checkIn(1.5 * DAY, false);
     expect(b.trust).toBe(50);
-    b.checkIn(DAY + 4.5 * DAY, false);
+    b.checkIn(3.5 * DAY, false);
     expect(b.trust).toBe(50 - 2 * B.TRUST_FADE_PER_DAY);
-    b.checkIn(DAY + 60 * DAY, false);
+    b.checkIn(60 * DAY, false);
     expect(b.trust).toBe(50 - 2 * B.TRUST_FADE_PER_DAY - B.TRUST_FADE_MAX);
   });
 

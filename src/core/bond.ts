@@ -72,8 +72,6 @@ export class Bond {
   /** The whisper he is following, and game minutes left. */
   nudge: Whisper | "" = "";
   nudgeLeft = 0;
-  /** Unix seconds of the last check-in, for fading. */
-  seen = 0;
   /** The time of the last line you praised or scolded, so each line counts once. */
   judged = 0;
 
@@ -92,13 +90,10 @@ export class Bond {
     return LETTER_AT.findLastIndex((at) => before < at && this.trust >= at);
   }
 
-  /** A reopen at unix seconds `t`: trust fades for whole days away after the first, then a clover check-in adds some. Returns the letter step crossed, or -1. */
-  checkIn(t: number, earned: boolean): number {
-    if (this.seen) {
-      const days = Math.floor((t - this.seen) / 86400);
-      if (days > 1) this.trust = Math.max(this.trust - Math.min(TRUST_FADE_PER_DAY * (days - 1), TRUST_FADE_MAX), 0);
-    }
-    this.seen = t;
+  /** A reopen after `awayS` seconds closed: trust fades for whole days away after the first, then a clover check-in adds some. Returns the letter step crossed, or -1. */
+  checkIn(awayS: number, earned: boolean): number {
+    const days = Math.floor(awayS / 86400);
+    if (days > 1) this.trust = Math.max(this.trust - Math.min(TRUST_FADE_PER_DAY * (days - 1), TRUST_FADE_MAX), 0);
     return earned ? this.addTrust(TRUST_PER_CHECKIN) : -1;
   }
 
@@ -134,7 +129,7 @@ export class Bond {
   }
 
   toJSON() {
-    return { trust: this.trust, lean: this.lean, day: this.day, whispered: this.whispered, nudge: this.nudge, nudgeLeft: this.nudgeLeft, seen: this.seen, judged: this.judged };
+    return { trust: this.trust, lean: this.lean, day: this.day, whispered: this.whispered, nudge: this.nudge, nudgeLeft: this.nudgeLeft, judged: this.judged };
   }
 
   /** Old saves have no bond: he starts at TRUST_START and leans neither way. */

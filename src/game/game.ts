@@ -511,7 +511,7 @@ export class Game {
       const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
-      this.stats.wrote(this.stats.bond.checkIn(this.stats.now(), this.awayClover));
+      this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
       this.dilemma =
         D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
