@@ -91,11 +91,15 @@ function Records({ stats: s }: { stats: Stats }) {
         <KV k="📍 Most places in a day" v={r.best.dayStops} />
         <KV k="💰 Most money held" v={euro(r.best.cents)} />
         <KV k="❤ Longest without fainting" v={span(r.best.noFaintS)} />
-        <KV k="🌍 Countries" v={r.countries.length} />
-        <KV k="🏙 Cities" v={r.cities.length} />
-        <KV k="💥 Mishaps" v={r.mishaps} />
-        <KV k="🏥 Faints" v={r.faints} />
       </div>
+      <Collapsible title="Totals" right={`${r.countries.length} countries`}>
+        <div class="zebra">
+          <KV k="🌍 Countries" v={r.countries.length} />
+          <KV k="🏙 Cities" v={r.cities.length} />
+          <KV k="💥 Mishaps" v={r.mishaps} />
+          <KV k="🏥 Faints" v={r.faints} />
+        </div>
+      </Collapsible>
     </Card>
   );
 }
