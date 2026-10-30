@@ -11,6 +11,7 @@ import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
+import { STYLE } from "../core/storyteller";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
@@ -143,7 +144,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           )}
         </section>
         {s.history.entries.length > 0 && (
-          <div class="toast" role="status" key={s.history.entries.length}>
+          <div class={`toast${s.incidentLatest() ? " story" : ""}`} role="status" key={s.history.entries.length}>
             {s.history.latest()}
           </div>
         )}
@@ -208,6 +209,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </button>
             <button class="btn" role="switch" aria-checked={game.sound} onClick={() => game.setSound(!game.sound)}>
               🔊 City sound <span class={`switch${game.sound ? " on" : ""}`} aria-hidden="true" />
+            </button>
+            <button class="btn" onClick={() => game.nextStoryteller()}>
+              {STYLE[s.story.style].icon} Storyteller <span class="pill">{STYLE[s.story.style].name}</span>
             </button>
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city

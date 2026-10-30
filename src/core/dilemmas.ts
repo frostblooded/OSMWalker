@@ -4,6 +4,7 @@
 // himself, leaning on one of his attributes. Nothing ever waits for
 // you. A few offers send him to another city, free.
 import { effect } from "./gifts";
+import { ATTR_NAMES, leanShare } from "./incidents";
 import { euro, signed } from "./money";
 import type { Rng } from "./rng";
 import type { Action, Attr, Fx, Stats } from "./stats";
@@ -13,9 +14,8 @@ import type { City, Kind } from "./trips";
 export const DILEMMA_AWAY_S = 4 * 3600;
 /** Chance of one on such a reopen. */
 export const DILEMMA_CHANCE = 0.25;
-/** How far his attribute tilts his own pick: each point moves the odds this much from even, up to LEAN_CAP. */
-export const LEAN_PER_POINT = 0.05;
-export const LEAN_CAP = 0.4;
+/** How far his attribute tilts his own pick: the same as an incident's choice. */
+export { LEAN_CAP, LEAN_PER_POINT } from "./incidents";
 
 /** What the chess hustler bets. */
 export const CHESS_STAKE = 1000;
@@ -90,7 +90,6 @@ export const CHESS_PER_WIT = 0.04;
 export const CHESS_MAX = 0.8;
 export const chessWin = (wit: number) => Math.min(CHESS_BASE + CHESS_PER_WIT * wit, CHESS_MAX);
 
-const ATTR_NAMES: Record<Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
 
 /** What an option does, in a few words: "free ride", "+€12, +15 mood". */
 export function optionText(k: DilemmaKind, o: Option): string {
@@ -135,8 +134,7 @@ export function rollDilemma(awayS: number, rng: Rng, cityFor: (kind: Exclude<Kin
 
 /** His own pick when you don't choose: 0 ("go for it") more likely the higher his leaning attribute, never less likely than even. */
 export function hisPick(d: Dilemma, stats: Stats, rng: Rng): number {
-  const lean = Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(kindOf(d).lean) - 1), LEAN_CAP));
-  return rng.randf() < 0.5 + lean ? 0 : 1;
+  return rng.randf() < 0.5 + leanShare(stats, kindOf(d).lean) ? 0 : 1;
 }
 
 /**
