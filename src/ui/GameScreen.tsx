@@ -27,17 +27,32 @@ import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 const sheets = { stats: () => import("./StatsSheet"), collection: () => import("./CollectionSheet"), debug: () => import("./DebugSheet") };
 type Sheets = { [K in keyof typeof sheets]: Awaited<ReturnType<(typeof sheets)[K]>> };
 const loaded: Partial<Sheets> = {};
-function useSheet<K extends keyof Sheets>(k: K): Sheets[K] | null | false {
+/** A sheet's chunk, or null while it loads, or false when it failed (the browser keeps a failed import, so only a reload tries again). */
+function useSheet<K extends keyof Sheets>(k: K) {
   const [m, setM] = useState<Sheets[K] | null | false>(loaded[k] ?? null);
   useEffect(() => {
-    if (!m) sheets[k]().then((x) => setM((loaded[k] = x as Sheets[K])), () => setM(false));
+    if (m === null) sheets[k]().then((x) => setM((loaded[k] = x as Sheets[K])), () => setM(false));
   }, [k, m]);
   return m;
 }
 function Lazy<K extends keyof Sheets>({ k, show }: { k: K; show: (m: Sheets[K]) => ComponentChildren }) {
   const m = useSheet(k);
-  if (m === false) return <p class="notice error">✖ Couldn't load this. Check your connection and try again.</p>;
-  return <>{m ? show(m) : <p class="dim">Loading…</p>}</>;
+  if (m === false)
+    return (
+      <>
+        <p class="notice error">✖ Couldn't load this. Check your connection, then reload.</p>
+        <button class="btn" onClick={() => location.reload()}>
+          ↻ Reload
+        </button>
+      </>
+    );
+  return m ? (
+    show(m)
+  ) : (
+    <p class="notice">
+      <span class="spin" /> Loading…
+    </p>
+  );
 }
 
 /** Fastest the screen texts redraw. */

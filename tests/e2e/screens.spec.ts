@@ -35,12 +35,19 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
 });
 
-test("A sheet whose code couldn't load says so", async ({ page }) => {
-  await page.route("**/StatsSheet-*.js", (route) => route.abort());
+test("A sheet whose code couldn't load says so and offers a reload", async ({ page }) => {
+  let fail = true;
+  await page.route("**/StatsSheet-*.js", (route) => (fail ? route.abort() : route.fallback()));
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
-  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Couldn't load this");
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await expect(sheet).toContainText("Couldn't load this");
+  fail = false;
+  await sheet.getByRole("button", { name: /Reload/ }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(sheet).toContainText("Vitals");
 });
 
 test("Help that couldn't load offers Try again", async ({ page }) => {
