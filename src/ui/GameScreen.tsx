@@ -19,7 +19,7 @@ import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
-import { Card } from "./kit";
+import { Card, KV } from "./kit";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { settle } from "./snap";
 
@@ -309,8 +309,13 @@ function StoryCard({ game, id, onClose }: { game: Game; id: string; onClose: () 
   if (!c) return null;
   return (
     <SheetBox title={`${c.icon} ${c.title}`} onClose={onClose}>
-      <Card icon={id.startsWith("event:") ? "🔶" : "📜"} title={id.startsWith("event:") ? "Event" : "Quest"}>
+      <Card icon={id.startsWith("event:") ? "🌟" : "❗"} title={id.startsWith("event:") ? "Event" : "Quest"}>
         <p>{c.text}</p>
+        <div class="zebra">
+          {c.rows.map(([k, v]) => (
+            <KV key={k} k={k} v={v} />
+          ))}
+        </div>
         {c.state === "open" ? (
           <button class="btn primary" onClick={() => game.nudge(id)}>
             🙋 Go help

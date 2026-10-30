@@ -78,6 +78,15 @@ describe("the board", () => {
     expect(s.quests.board.map((o) => o.key).sort()).toEqual(["a:Ana:0", "b:Ana:0"]);
   });
 
+  it("deals no fantasy quest on a board too small for its share", () => {
+    const { s } = fresh({ names: ["Ana", "Bo", "Cy"], quests: [one({ id: "magic", fantasy: true })], events: [] });
+    s.quests.roll("Testville", 5_000, TOWN, new Rng(8));
+    expect(s.quests.board).toEqual([]);
+    s.quests.city = "";
+    s.quests.roll("Testville", 3_000_000, TOWN, new Rng(8));
+    expect(s.quests.board.length).toBe(Math.floor(Q.boardSize(3_000_000) * Q.FANTASY_SHARE));
+  });
+
   it("never deals a quest he has done, and a new city gets a new board", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), one({ id: "b" })], events: [] });
     s.quests.done = ["a:Ana:0"];
@@ -112,7 +121,17 @@ describe("going on a quest", () => {
     expect(s.quests.active).toBeNull();
     expect(s.cents).toBeGreaterThan(cents);
     expect(s.quests.done).toEqual(["q:Ana:0"]);
+    expect(s.quests.finished).toBe(1);
     expect(s.quests.log.at(-1)).toMatchObject({ title: "Test quest", city: "Testville, France" });
+  });
+
+  it("sends him to the real place, keeping its rank and flags", () => {
+    const tower = { ...place("Old tower", "post", 2), rank: 9, made: true };
+    const town = [tower, ...TOWN.filter((p) => p.class !== "post")];
+    const f = fresh({ names: ["Ana"], quests: [one()], events: [] });
+    f.s.quests.roll("Testville", 300_000, town, new Rng(3));
+    f.s.quests.since = 9;
+    expect(Q.questGoal(f.s, town, HERE, new Rng(4))).toBe(tower);
   });
 
   it("drops everything for an urgent need, then carries on", () => {

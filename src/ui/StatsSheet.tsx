@@ -216,10 +216,10 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
   const events = q.events.filter((e) => e.ends > now).length;
   const recent = q.log.slice(-3).reverse();
   return (
-    <Card icon="📜" title="Quests" right={`${q.log.filter((e) => !e.event).length} done`}>
+    <Card icon="❗" title="Quests" right={`${q.finished} done`}>
       <KV k="🎯 Now" v={k ? `${k.icon} ${k.title} (${q.active!.step + 1} / ${k.steps.length})` : <span class="dim">None</span>} />
       <KV k="📋 On the board" v={q.board.length} />
-      <KV k="🔶 Events near him" v={events} />
+      <KV k="🌟 Events near him" v={events} />
       {recent.length > 0 && (
         <div class="zebra">
           {recent.map((e, i) => (

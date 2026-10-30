@@ -942,7 +942,7 @@ export class Game {
   }
 
   /** What a tapped quest or event icon tells you, or null for another icon. */
-  storyCard(id: string): { icon: string; title: string; text: string; state: "open" | "nudged" | "on" } | null {
+  storyCard(id: string): { icon: string; title: string; text: string; rows: [string, string][]; state: "open" | "nudged" | "on" } | null {
     const q = this.stats.quests;
     const town = this.city.split(",")[0]!;
     if (id.startsWith("event:")) {
@@ -950,18 +950,20 @@ export class Game {
       const k = e && q.eventKind(e.kind);
       if (!e || !k) return null;
       const left = Math.max(Math.round((e.ends - this.stats.now()) / 60), 0);
-      return { icon: k.icon, title: k.title, text: `${Q.fill(k.text[e.line] ?? k.text[0]!, { place: e.at.name, town })} ${left} min left.`, state: q.nudge === e.id ? "nudged" : "open" };
+      return { icon: k.icon, title: k.title, text: Q.fill(k.text[e.line] ?? k.text[0]!, { place: e.at.name, town }), rows: [["📍 Where", e.at.name], ["⏳ Time left", `${left} min`]], state: q.nudge === e.id ? "nudged" : "open" };
     }
     if (!id.startsWith("quest:")) return null;
     const key = id.slice("quest:".length);
     if (q.active?.key === key) {
       const card = q.describe(q.active, town);
       const k = q.kind(q.active.kind)!;
-      return card && { ...card, text: `${card.text} He is on it: step ${q.active.step + 1} of ${k.steps.length}${q.active.target ? `, at ${q.active.target.name}` : ""}.`, state: "on" };
+      const rows: [string, string][] = [["👣 Step", `${q.active.step + 1} / ${k.steps.length}`]];
+      if (q.active.target) rows.push(["🎯 Goal", q.active.target.name]);
+      return card && { ...card, rows, state: "on" };
     }
     const o = q.board.find((x) => x.key === key);
     const card = o && q.describe(o, town);
-    return card ? { ...card, state: q.nudge === key ? "nudged" : "open" } : null;
+    return card ? { ...card, rows: [["📍 Giver", o.at.name]], state: q.nudge === key ? "nudged" : "open" } : null;
   }
 
   /** Go help: he takes the tapped quest next, or joins the tapped event, once he is free. Optional; he does fine without it. */

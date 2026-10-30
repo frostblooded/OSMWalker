@@ -254,5 +254,5 @@ test("the city rolls a quest board, the Stats sheet shows it, and he goes on que
   const away = page.getByRole("dialog", { name: /While you were away/ });
   await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
   const lines = await away.locator(".away-log li").allTextContents();
-  expect(lines.some((l) => l.includes("📜 New quest:"))).toBe(true);
+  expect(lines.some((l) => l.includes("❗ New quest:"))).toBe(true);
 });

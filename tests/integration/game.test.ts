@@ -167,7 +167,7 @@ describe("game", () => {
     await g.startCity("Sofia, Bulgaria", ...START, null);
     run(g, 2 * 3600);
     const texts = g.stats.history.entries.map((e) => e.text);
-    expect(texts).toContain("📜 New quest: Test quest, for Ana at " + texts.find((t) => t.startsWith("📜 New quest"))!.split(" at ").at(-1));
+    expect(texts).toContain("❗ New quest: Test quest, for Ana at " + texts.find((t) => t.startsWith("❗ New quest"))!.split(" at ").at(-1));
     expect(texts.some((t) => t === "🧪 He takes a box to Central Bus.")).toBe(true);
     expect(g.stats.quests.log.at(-1)?.title).toBe("Test quest");
     expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.quests.done).toContain("q:Ana:0");
@@ -192,7 +192,9 @@ describe("game", () => {
     g.walker!.forceNewGoal();
     expect(`quest:${g.stats.quests.active?.key}`).toBe(icon.id);
     expect(g.questIcons().some((i) => i.pulse)).toBe(true);
-    expect(g.storyCard(icon.id)!.state).toBe("on");
+    const on = g.storyCard(icon.id)!;
+    expect(on.state).toBe("on");
+    expect(on.rows[0]).toEqual(["👣 Step", `1 / 2`]);
   });
 
   it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {

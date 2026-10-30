@@ -26,6 +26,8 @@ export const BOARD_MIN = 2;
 export const BOARD_MAX = 30;
 export const BOARD_TOWN_POP = 20_000;
 export const BOARD_BIG_POP = 2_000_000;
+/** A mid-sized city, for Help's example of the sliding scale. */
+export const BOARD_MID_POP = 300_000;
 /** A board is rolled once this many places of the city are loaded. */
 export const BOARD_PLACES = 20;
 /** Share of the board that may be light-fantasy quests. */
@@ -106,7 +108,8 @@ export const isKind = (p: Pick<Place, "class" | "subclass">, keys: readonly stri
 export const spotOf = (p: Place | Spot): Spot => ({ name: p.name, class: p.class, subclass: p.subclass, lat: p.lat, lon: p.lon });
 /** True when `p` is the place `s` (same name, a few meters apart). */
 export const isAt = (p: Pick<Place, "name" | "lat" | "lon">, s: Spot) => p.name === s.name && distanceM(p.lat, p.lon, s.lat, s.lon) < 50;
-const asPlace = (s: Spot): Place => ({ ...s, rank: 1 });
+/** The real place `s` names, with its rank and flags; a stale one (from an older load) counts as made up, so it gives no first-visit XP or cards. */
+const placeOf = (s: Spot, places: readonly Place[]): Place => places.find((p) => isAt(p, s)) ?? { ...s, rank: 1, made: true };
 
 /** How many quests a city of `pop` people has on its board. */
 export function boardSize(pop: number): number {
@@ -131,6 +134,8 @@ export class Quests {
   events: LiveEvent[] = [];
   /** Keys of quests done, oldest first, so a board never deals them again. */
   done: string[] = [];
+  /** Quests he has finished in all; `done` forgets the oldest. */
+  finished = 0;
   log: LogEntry[] = [];
   /** Stops since the last quest, and how many he waits for. */
   since = 0;
@@ -172,7 +177,7 @@ export class Quests {
     for (let tries = 0; this.board.length < n && tries < n * 6; tries++) {
       const k = rng.pick(this.bank.quests);
       if (used.has(k.id) && used.size < this.bank.quests.length) continue;
-      if (k.fantasy && fantasy >= Math.max(1, Math.round(n * FANTASY_SHARE))) continue;
+      if (k.fantasy && fantasy >= Math.floor(n * FANTASY_SHARE)) continue;
       const givers = k.steps[0]!.at.flatMap((key) => byKind.get(key) ?? []);
       if (!givers.length) continue;
       const giver = rng.pick(this.bank.names);
@@ -187,7 +192,7 @@ export class Quests {
   }
 
   toJSON() {
-    return { city: this.city, board: this.board, active: this.active, events: this.events, done: this.done, log: this.log, since: this.since, wait: this.wait, nudge: this.nudge };
+    return { city: this.city, board: this.board, active: this.active, events: this.events, done: this.done, finished: this.finished, log: this.log, since: this.since, wait: this.wait, nudge: this.nudge };
   }
 
   static fromJSON(d: unknown): Quests {
@@ -199,6 +204,7 @@ export class Quests {
     q.active = o.active && typeof o.active === "object" ? o.active : null;
     q.events = Array.isArray(o.events) ? o.events : [];
     q.done = Array.isArray(o.done) ? o.done.filter((k): k is string => typeof k === "string").slice(-DONE_MAX) : [];
+    q.finished = Math.max(Number(o.finished) || 0, q.done.length);
     q.log = Array.isArray(o.log) ? o.log.slice(-LOG_MAX) : [];
     q.since = Number(o.since) || 0;
     q.wait = Number(o.wait) || QUEST_EVERY_MAX;
@@ -221,10 +227,10 @@ export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, 
   const near = q.events
     .filter((e) => e.ends > now && distanceM(here[0], here[1], e.at.lat, e.at.lon) < EVENT_NEAR_M)
     .sort((a, b) => (a.id === q.nudge ? -1 : b.id === q.nudge ? 1 : a.ends - b.ends));
-  if (near.length) return asPlace(near[0]!.at);
+  if (near.length) return placeOf(near[0]!.at, places);
   if (q.active) {
     q.active.target ??= stepTarget(stats, q.active, places, here, rng);
-    return asPlace(q.active.target);
+    return placeOf(q.active.target, places);
   }
   if (!q.board.length || (q.since < q.wait && !q.board.some((o) => o.key === q.nudge))) return null;
   const offer = q.board.find((o) => o.key === q.nudge) ?? nearest(q.board, here, rng);
@@ -233,8 +239,8 @@ export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, 
   q.nudge = "";
   q.rev++;
   const k = q.kind(offer.kind);
-  if (k) stats.say(`📜 New quest: ${k.title}, for ${offer.giver} at ${offer.at.name}`);
-  return asPlace(offer.at);
+  if (k) stats.say(`❗ New quest: ${k.title}, for ${offer.giver} at ${offer.at.name}`);
+  return placeOf(offer.at, places);
 }
 
 /**
@@ -332,6 +338,7 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
   stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(good ? k.good : k.worse), words)}${money}${item}`);
   log(stats, { icon: k.icon, title: k.title, good });
   q.done = [...q.done, a.key].slice(-DONE_MAX);
+  q.finished++;
   q.active = null;
   q.since = 0;
   q.wait = rng.randiRange(QUEST_EVERY_MIN, QUEST_EVERY_MAX);
