@@ -89,8 +89,8 @@ export class MapScene {
     const routeOn = g.showRoute && !w.travel && !!w.goal;
     v.setRoute(routeOn ? `${w.goal}:${w.toNode}:${w.route.length}:${Math.floor(performance.now() / 1000)}` : "", () => w.routeLine());
     v.setArea(g.showCityArea && !w.travel ? w.bounds : null, g.cityOutline);
-    // Icons change with the city's places and as he moves about 500 m (the nearest ones show).
-    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
+    // Icons change with the city's places, his monuments, and as he moves about 500 m (the nearest ones show).
+    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);

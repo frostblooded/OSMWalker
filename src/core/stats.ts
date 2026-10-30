@@ -3,6 +3,8 @@
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
+import * as Br from "./bricks";
+import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -153,6 +155,10 @@ export class Stats {
   bond = new B.Bond();
   /** His letters to you from data/letters.json; not saved, the game sets it. */
   letters: B.Letters | null = null;
+  /** Golden bricks and the monuments they paid for. */
+  bricks = new Br.Bricks();
+  /** His life, one sentence per milestone. */
+  chronicle = new Chronicle();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** Minutes walked since the last roll for money on the street. */
@@ -442,6 +448,7 @@ export class Stats {
       for (const a of ATTRS) if (this.attrs[a] > this.attrs[best]) best = a;
       this.attrs[best] += 1;
       this.say(`Reached level ${this.level}! ${best[0]!.toUpperCase()}${best.slice(1)} +1`);
+      if (LEVEL_MARKS.includes(this.level)) this.milestone(`level${this.level}`, `Reached level ${this.level}`);
       this.keepsakes.freePacks++;
     }
   }
@@ -524,6 +531,7 @@ export class Stats {
     this.applyFx(fx);
     if (action.buff) this.addBuff(action.buff);
     if (action.deed) this.bond.deed(action.deed);
+    if (earned) this.milestone("job", `First wage: ${action.name}${where ? ` at ${where}` : ""}`);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     const jokes = jokesFor(this.jokes, kind);
@@ -545,13 +553,19 @@ export class Stats {
 
   /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
   arrive(city: string, code: string, country: string): void {
+    const was = this.where;
     this.where = { city, code, country };
+    if (city) this.milestone("start", `Set out from ${city}`);
+    if (was.city && was.city !== city) this.milestone("trip", `First trip away: to ${city}`);
+    if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
     for (const s of [code, `${code}:${city}`]) {
       if (seen.includes(s)) continue;
       seen.push(s);
       this.keepsakes.freePacks++;
+      const n = seen.filter((c) => !c.includes(":")).length;
+      if (s === code && COUNTRY_MARKS.includes(n)) this.milestone(`countries${n}`, `Had walked in ${n} countries`);
     }
     for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
   }
@@ -665,7 +679,9 @@ export class Stats {
   wrote(step: number): void {
     if (step < 0) return;
     const line = B.letter(this.letters, step, new Rng(seedOf(`letter${this.now()}`)).randf());
-    if (line) this.say(line);
+    if (!line) return;
+    this.say(line);
+    this.milestone("letter", "Wrote his first letter to you");
   }
 
   /** He opened your care package `id`: more trust, and maybe a thank-you letter. */
@@ -674,6 +690,23 @@ export class Stats {
     if (step >= 0) return this.wrote(step);
     const thanks = this.letters?.thanks[id];
     if (thanks && new Rng(seedOf(`thanks${this.now()}`)).randf() < B.THANKS_CHANCE) this.say(`${B.LETTER_MARK} ${thanks}`);
+  }
+
+  /** Right after reaching `place`: maybe a golden brick, and the next monument if he has the bricks and it is a real park (see bricks.ts). Its own dice, from the time and place. */
+  bricksAt(place: Place): void {
+    const b = this.bricks;
+    const t = this.now();
+    if (b.find(dayOf(t * 1000), new Rng(seedOf(`brick${t}${place.name}`)).randf())) this.say(`Found a golden brick (${b.count} / ${b.next().bricks})`);
+    const m = b.build(place, this.where.city, t);
+    if (!m) return;
+    const k = Br.MONUMENTS[m.kind]!;
+    this.say(`Paid ${k.bricks} golden bricks for a ${k.name} with his name in ${place.name} ${k.icon}`);
+    this.milestone(`built${b.built.length}`, `Built a ${k.name} with his name in ${place.name}, ${m.city}`);
+  }
+
+  /** Writes milestone `key` in his chronicle, once. */
+  milestone(key: string, text: string): void {
+    this.chronicle.note(key, text, this.now());
   }
 
   /** Notes a stop at a place, for the weekly recap. */
@@ -693,6 +726,7 @@ export class Stats {
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
     this.meters.thirst = Math.max(this.meters.thirst, 30);
+    this.milestone("faint", `Fainted for the first time and woke up at ${hospital || "the hospital"}`);
     return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
   }
 
@@ -707,7 +741,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
     };
   }
 
@@ -731,6 +765,9 @@ export class Stats {
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
     s.bond = B.Bond.fromJSON(d.bond);
+    s.bricks = Br.Bricks.fromJSON(d.bricks);
+    // A save from before the chronicle: his firsts are long past, so only what comes next is written.
+    s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
     return s;
   }

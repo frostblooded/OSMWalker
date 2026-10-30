@@ -105,7 +105,7 @@ Wizard's towers rise at the grandest real landmarks (castles first, then viewpoi
 
 A city keeps its made-up places: they are rolled from the city's name and saved, so the tower is still at the same castle when he comes back. The save keeps them for the {MADE_CITIES} cities he was in most recently.
 ## Map icons {map_icons}
-The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places and indigo for magic. Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once, and none while he rides to another city.
+The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places, indigo for magic, and gold plaques for the monuments he built (see Golden bricks). Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once (his monuments always show), and none while he rides to another city.
 ## Picking the next goal {goal_pick}
 He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
 
@@ -166,7 +166,7 @@ An action can:
 
 Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
-What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back."
+What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
@@ -441,6 +441,15 @@ A crawl is a little set he finishes by visiting different places of a kind. Each
 {CRAWL_LIST}
 
 "A day" is a day on your device's clock, so a crawl he hasn't finished by midnight starts over. "In one city" starts over when he travels to another city. Visiting the same place twice counts once.
+## Golden bricks {bricks}
+Now and then he finds a golden brick at a stop: {BRICK_PCT} of stops, but never more than {BRICKS_PER_DAY} on one day (by your device's date), so his first goal takes about a month. The feed says "Found a golden brick" with how many he has.
+
+He saves them for a monument with his name:
+{MONUMENT_LIST}
+
+With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
+## His life {chronicle}
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -486,6 +495,8 @@ The city he is in is never a choice. When the bundled city list has no other cit
 Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
 
 If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. So does leaving the game for {MIN_AWAY_MIN} minute or more before he boards: the catch-up starts him afresh at a place (see While you were away). Trips he takes while you are away have no guess.
+## Suggest a line {phrases}
+✍ Suggest a line in the menu opens a new GitHub issue (you need a free GitHub account) with three things to fill in: the kind of place, a dry line he might add after what he did there, and the name you want credited. If the line fits, it ships in a later update with "(line by your name)" at its end, and from then on it can show up in anyone's feed (see What he does at places). Nothing is sent until you press Submit on GitHub.
 ## Postcards to friends {postcards}
 ☰ Menu → 📮 Send a postcard writes a card of where he is right now: the city, the place or street he is at, his level and the last thing he did. Sign it with your name if you like (up to {POSTCARD_NAME_MAX} letters; the game remembers it, even through New city), then tap 📤 Share postcard. Your phone's share sheet opens; where there is none, the link is copied, or shown for you to copy.
 
@@ -507,7 +518,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -531,9 +542,9 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
-- 🌍 World: every country, how many cities he has been to, and the souvenirs.
+- 🌍 World: every country, how many cities he has been to, the souvenirs, and his monuments with his golden bricks (see Golden bricks).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
-- 🏅 Feats: his badges, a card for each tab they belong to.
+- 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 
 Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.
 ## Badges and titles {badges}

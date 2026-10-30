@@ -18,7 +18,7 @@ import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { placeIcons, type MapIcon } from "../core/mapIcons";
+import { monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
@@ -289,6 +289,7 @@ export class Game {
     this.stats.stop(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     this.stats.care.open(this.stats);
+    this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     this.doing = action ?? null;
@@ -861,13 +862,13 @@ export class Game {
     this.changed();
   }
 
-  /** The game icons around him (core/mapIcons.ts): made-up places and travel hubs, none on a ride. */
+  /** The game icons around him (core/mapIcons.ts): made-up places, travel hubs and his monuments, none on a ride. */
   placeIcons(): MapIcon[] {
     const w = this.walker;
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here);
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city)];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

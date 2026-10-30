@@ -155,6 +155,17 @@ describe("game", () => {
     expect(ratio()).toBeCloseTo(before * EXPLORE_PULL);
   });
 
+  it("builds his bench at the park he reaches with enough golden bricks, and marks it on the map", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.bricks.count = 100;
+    run(g, 400);
+    expect(g.stats.bricks.built).toMatchObject([{ kind: 0, park: "Park Near", city: "Sofia, Bulgaria" }]);
+    expect(g.stats.chronicle.lines.map((l) => l.text)).toContain("Built a bench with his name in Park Near, Sofia, Bulgaria");
+    expect(g.placeIcons().some((i) => i.icon === "plaque")).toBe(true);
+  });
+
   it("takes whispers and praise from you without touching his walk dice", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
