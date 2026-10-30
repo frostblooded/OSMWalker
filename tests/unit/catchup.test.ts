@@ -93,6 +93,19 @@ describe("catch-up", () => {
     expect(s.bought.every((l) => l.startsWith("Bought"))).toBe(true);
   });
 
+  it("at rock bottom he heads for the nearest fix, even past nearer, finer places", () => {
+    // A rank 1 museum 500 m ahead (his favourite odds) against a diner 900 m away.
+    const city: AwayCity = { ...HOME, places: [place("Grand Museum", "museum", "museum", 0.0045, 0), place("Big Diner", "restaurant", "restaurant", -0.008, 0)] };
+    const first = (fullness: number, seed: number) => {
+      const stats = new Stats();
+      stats.meters.fullness = fullness;
+      const s = catchUp(stats, city, [0, 0], 3600, START_MS, deps({ rng: new Rng(seed) }));
+      return s.lines.find((l) => l.text.startsWith("Reached"))!.text;
+    };
+    for (let seed = 0; seed < 20; seed++) expect(first(2, seed)).toMatch(/^Reached Big Diner/);
+    expect(Array.from({ length: 20 }, (_, i) => first(80, i)).some((t) => t.startsWith("Reached Grand Museum"))).toBe(true);
+  });
+
   it("is the same every time for the same dice", () => {
     const a = catchUp(new Stats(), HOME, [0, 0], 4 * 3600, START_MS, deps());
     const b = catchUp(new Stats(), HOME, [0, 0], 4 * 3600, START_MS, deps());

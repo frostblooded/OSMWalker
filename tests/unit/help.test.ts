@@ -48,6 +48,10 @@ describe("the real help", () => {
     expect(left).toEqual([]);
   });
 
+  it("takes the nap threshold from the data", () => {
+    expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
+  });
+
   it("has no unused values", () => {
     const unused = Object.keys(Help.values(data)).filter((k) => !raw.includes(`{${k}}`));
     expect(unused).toEqual([]);

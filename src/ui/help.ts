@@ -314,6 +314,7 @@ export function values(data: GameData): Record<string, string> {
     POWER_TO_STAT: num(Items.POWER_TO_STAT),
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
     ACTION_COUNT: String(sum(data.actions)),
+    NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
