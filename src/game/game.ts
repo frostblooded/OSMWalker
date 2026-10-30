@@ -150,7 +150,7 @@ export class Game {
     this.loader.onProblem = warn;
     deps.api.onProblem = warn;
     this.loadSettings();
-    this.weather = this.file.readForecast();
+    this.weather = this.file.readWeather();
   }
 
   /** The bundled game data (actions, cities, airports). */
@@ -184,7 +184,7 @@ export class Game {
     if (!this.city || fresh || now < this.weatherRetryAt) return Promise.resolve();
     this.weatherBusy ??= (async () => {
       const city = this.city;
-      const f = await this.deps.api.forecast(city, this.origin[0], this.origin[1], now);
+      const f = await this.deps.api.weather(city, this.origin[0], this.origin[1], now);
       this.weatherBusy = null;
       if (!f) {
         // The Api has logged why (a repeat right after the same line counts up), so he just goes on by the kept forecast.
@@ -193,7 +193,7 @@ export class Game {
       }
       if (city !== this.city) return;
       this.weather = f;
-      this.file.writeForecast(f);
+      this.file.writeWeather(f);
       this.stats.sky = this.sky();
       this.changed();
     })();

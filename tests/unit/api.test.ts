@@ -118,7 +118,7 @@ describe("failures", () => {
     const { api } = fake(() => json({}));
     const seen: string[] = [];
     api.onProblem = (t) => seen.push(t);
-    expect(await api.forecast("Sofia", 42.7, 23.3, 0)).toBeNull();
+    expect(await api.weather("Sofia", 42.7, 23.3, 0)).toBeNull();
     expect(seen).toEqual(["Request to api.open-meteo.com failed: answer was not a forecast"]);
   });
 

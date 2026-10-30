@@ -31,7 +31,7 @@ export function kindOf(code: number): WeatherKind {
 }
 
 /** The forecast in an Open-Meteo answer, or null if it isn't one. */
-export function parseForecast(data: unknown, city: string, fetchedMs: number): WeatherForecast | null {
+export function parseWeather(data: unknown, city: string, fetchedMs: number): WeatherForecast | null {
   const d = data as { utc_offset_seconds?: unknown; hourly?: { time?: unknown; temperature_2m?: unknown; weather_code?: unknown } } | null;
   const h = d?.hourly;
   if (typeof d?.utc_offset_seconds !== "number" || !Array.isArray(h?.time) || !Array.isArray(h.temperature_2m) || !Array.isArray(h.weather_code)) return null;

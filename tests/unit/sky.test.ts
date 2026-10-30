@@ -7,7 +7,7 @@ import { ALL_NIGHT, CLOSE_H, DAY_ONLY, isOpen, OPEN_H } from "../../src/core/ope
 import * as Sky from "../../src/core/sky";
 import { Stats, type Action } from "../../src/core/stats";
 import { skyIcon } from "../../src/game/hud";
-import { kindOf, parseForecast, weatherAt, weatherUrl, type Weather } from "../../src/core/weather";
+import { kindOf, parseWeather, weatherAt, weatherUrl, type Weather } from "../../src/core/weather";
 
 const at = (lat: number, lon: number, offsetH: number, weather: Weather | null = null, ms = Date.UTC(2026, 5, 21, 12)) =>
   Sky.skyAt(ms, lat, lon, offsetH * 3600, weather);
@@ -139,13 +139,13 @@ describe("Open-Meteo weather", () => {
   });
 
   it("reads the answer, skipping hours with gaps", () => {
-    const f = parseForecast(answer, "Sofia", 5)!;
+    const f = parseWeather(answer, "Sofia", 5)!;
     expect(f).toEqual({ city: "Sofia", offsetS: 7200, fetchedMs: 5, t: [1000 * 3600, 1001 * 3600], code: [0, 61], temp: [10, 11] });
-    expect(parseForecast({ error: true }, "x", 0)).toBeNull();
+    expect(parseWeather({ error: true }, "x", 0)).toBeNull();
   });
 
   it("gives the nearest hour, or null outside the forecast", () => {
-    const f = parseForecast(answer, "Sofia", 0);
+    const f = parseWeather(answer, "Sofia", 0);
     expect(weatherAt(f, 1001 * 3600_000 - 600_000)).toEqual({ kind: "rain", tempC: 11 });
     expect(weatherAt(f, 1010 * 3600_000)).toBeNull();
     expect(weatherAt(null, 0)).toBeNull();

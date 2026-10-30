@@ -138,7 +138,7 @@ export class SaveFile {
   }
 
   /** The last forecast, or null when there is none or it can't be read. */
-  readForecast(): WeatherForecast | null {
+  readWeather(): WeatherForecast | null {
     try {
       const f = JSON.parse(this.kv?.getItem(WEATHER_KEY) ?? "null") as WeatherForecast | null;
       return f && Array.isArray(f.t) && Array.isArray(f.code) && Array.isArray(f.temp) ? f : null;
@@ -147,7 +147,7 @@ export class SaveFile {
     }
   }
 
-  writeForecast(f: WeatherForecast): void {
+  writeWeather(f: WeatherForecast): void {
     try {
       this.kv?.setItem(WEATHER_KEY, JSON.stringify(f));
     } catch {

@@ -11,7 +11,6 @@ import { HELP_URL } from "./helpUrl";
 
 type Help = typeof import("./help");
 
-
 let text: Promise<string> | null = null;
 const fetchText = () => {
   text ??= fetch(HELP_URL).then((r) => {
