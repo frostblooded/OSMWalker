@@ -104,7 +104,7 @@ describe("the real help", () => {
     expect(page("xp").body).toContain("He also gets a free pack of city cards");
     expect(page("citycards").body).toContain("Rare 5% of the time, Uncommon 25% and Common 70%");
     expect(page("citycards").body).toContain("he gets Charm +1 while he is in that country");
-    expect(page("placedex").body).toContain("The sweep knows 330 kinds.");
+    expect(page("placedex").body).toContain("It knows 330 kinds, bridges among them");
     expect(page("souvenirs").body).toContain("there is a 30% chance he finds it there");
     expect(page("souvenirs").body).toContain("every 5 souvenirs make his fares 2% cheaper, up to 10%");
     expect(page("crawls").body).toMatch(/^- ☕ Coffee crawl: 4 different cafes or coffee shops in a day, then \+2 energy at each one he visits,$/m);
