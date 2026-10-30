@@ -4,6 +4,7 @@
 // storyteller that paces the incidents that happen to him.
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
+import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as F from "./forecast";
@@ -150,6 +151,8 @@ export class Stats {
   cityPool: CC.Pool | null = null;
   /** Deadpan jokes from data/jokes.json; not saved, the game sets it. */
   jokes: Jokes = {};
+  /** Border words and quips from data/borders.json; not saved, the game sets it. */
+  borders: Borders | null = null;
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
@@ -561,7 +564,7 @@ export class Stats {
     return xp;
   }
 
-  /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
+  /** He is now in `city` (`code`, `country`): worn items count the country in their story, and a new country gets the border lines. */
   arrive(city: string, code: string, country: string): void {
     const was = this.where;
     this.where = { city, code, country };
@@ -570,6 +573,11 @@ export class Stats {
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
+    if (was.code && was.code !== code) {
+      const first = !seen.includes(code);
+      const stamps = seen.filter((c) => !c.includes(":")).length + (first ? 1 : 0);
+      for (const line of crossing(this.borders, code, country, stamps, first)) this.say(line);
+    }
     for (const s of [code, `${code}:${city}`]) {
       if (seen.includes(s)) continue;
       seen.push(s);

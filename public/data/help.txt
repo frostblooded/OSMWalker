@@ -396,6 +396,14 @@ Fares are in euros and never free (though a rascal may skip a bus ticket: see Ki
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+## Crossing a border {borders}
+Each time he arrives in a different country than the one he left, by any kind of trip, the feed and History get a few border lines:
+- a passport stamp, with how many countries he has been to (the Collection's countries list shows them all),
+- some euros swapped for the local money, just to hold: prices in the game stay in euros,
+- on his first visit to that country, the first word he learns there, such as "Zdravey" (hello) in Bulgaria,
+- a dry remark about the border guard.
+
+{BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
