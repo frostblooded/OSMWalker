@@ -183,7 +183,10 @@ describe("incidents in his life", () => {
     const line = s.happen(cafe, 12, fixed(0, 0));
     expect(line).toBe("🧪 At Cafe. It happened.");
     expect(s.incidentLine).toBe(line);
+    expect(s.incidentLatest()).toBe(true);
     expect(s.story.tension).toBe(0);
+    s.say("Reached Park");
+    expect(s.incidentLatest()).toBe(false);
   });
 
   it("keeps the storyteller in the save, and an old save starts on Classic", () => {

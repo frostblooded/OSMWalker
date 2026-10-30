@@ -734,6 +734,11 @@ export class Stats {
     return (this.incidentLine = Inc.play(card, this, place.name, rng));
   }
 
+  /** True while his latest feed line is an incident, so the line over the map stands out. */
+  incidentLatest(): boolean {
+    return !!this.incidentLine && this.history.latest() === this.incidentLine;
+  }
+
   /** Notes a stop at a place, for the weekly recap. */
   stop(place: { class: string; subclass: string }): void {
     this.week.stop(place.class);

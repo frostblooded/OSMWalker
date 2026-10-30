@@ -144,7 +144,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           )}
         </section>
         {s.history.entries.length > 0 && (
-          <div class={`toast${s.incidentLine && s.history.latest() === s.incidentLine ? " story" : ""}`} role="status" key={s.history.entries.length}>
+          <div class={`toast${s.incidentLatest() ? " story" : ""}`} role="status" key={s.history.entries.length}>
             {s.history.latest()}
           </div>
         )}
