@@ -182,8 +182,8 @@ export class Game {
       const f = await this.deps.api.forecast(city, this.origin[0], this.origin[1], now);
       this.weatherBusy = null;
       if (!f) {
+        // The Api has logged why (one row that counts repeats), so he just goes on by the kept forecast.
         this.weatherRetryAt = this.now() + WEATHER_RETRY_MS;
-        this.problems.warn(`Couldn't get the weather for ${city}`);
         return;
       }
       if (city !== this.city) return;

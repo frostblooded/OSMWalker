@@ -14,6 +14,7 @@ import { NIGHT_SHADE } from "../core/sky";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
+import { Loading, useLazy } from "./lazy";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 
 /** Fastest the screen texts redraw. */
@@ -36,8 +37,6 @@ const loadSheets = async () => {
   ]);
   return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard };
 };
-type Sheets = Awaited<ReturnType<typeof loadSheets>>;
-
 type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
@@ -48,33 +47,10 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [sheets, setSheets] = useState<Sheets | null>(null);
-  const [sheetsFailed, setSheetsFailed] = useState(false);
-  const loading = useRef(false);
-  /** Loads the sheets once. The browser keeps a failed import failed, so a failure (offline, or a deploy replaced the files) asks for a reload. */
-  const fetchSheets = () => {
-    if (loading.current) return;
-    loading.current = true;
-    loadSheets()
-      .then(setSheets)
-      .catch((e: Error) => {
-        game.problems.warn(`Couldn't load the menu's screens: ${e.message}`);
-        setSheetsFailed(true);
-      });
-  };
+  const lazySheets = useLazy(loadSheets, "the menu's screens", (t) => game.problems.warn(t));
+  const sheets = lazySheets.mod;
   // While you were away loads on its own, so the reopen card never waits on, or fails with, the menu's sheets.
-  const [awaySheet, setAwaySheet] = useState<typeof import("./AwaySheet") | null>(null);
-  const [awayFailed, setAwayFailed] = useState(false);
-  const awayLoading = useRef(false);
-  /** Loads While you were away once; a failure asks for a reload, as with the sheets. */
-  const fetchAway = () => {
-    if (awayLoading.current) return;
-    awayLoading.current = true;
-    import("./AwaySheet").then(setAwaySheet, (e: Error) => {
-      game.problems.warn(`Couldn't load While you were away: ${e.message}`);
-      setAwayFailed(true);
-    });
-  };
+  const lazyAway = useLazy(() => import("./AwaySheet"), "While you were away", (t) => game.problems.warn(t));
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
 
@@ -102,8 +78,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         // The sheets follow once the map is up, so they open at once and work offline later.
         setTimeout(() => {
           if (gone) return;
-          fetchSheets();
-          fetchAway();
+          lazySheets.start();
+          lazyAway.start();
         }, SHEETS_AFTER_MS);
       })
       .catch((e: Error) => {
@@ -149,12 +125,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   }, [sheets]);
 
   useEffect(() => {
-    if ((sheet || received) && !sheets) fetchSheets();
-  }, [sheet, sheets, received]);
+    if (sheet || received) lazySheets.start();
+  }, [sheet, received]);
 
   useEffect(() => {
-    if (game.away && !awaySheet) fetchAway();
-  }, [game.away, awaySheet]);
+    if (game.away) lazyAway.start();
+  }, [game.away]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -278,27 +254,27 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close}>
-          {sheets ? <sheets.HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          {sheets ? <sheets.StatsSheet stats={game.stats} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.StatsSheet stats={game.stats} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          {sheets ? <sheets.CollectionSheet stats={game.stats} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.CollectionSheet stats={game.stats} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "postcard" && (
         <SheetBox title="📮 Send a postcard" onClose={close} full>
-          {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {received && sheet === null && !game.away && (
@@ -313,27 +289,27 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
               onDone={() => onReceivedDone?.()}
             />
           ) : (
-            <Loading failed={sheetsFailed} />
+            <Loading failed={lazySheets.failed} />
           )}
         </SheetBox>
       )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
-          {sheets ? <sheets.HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "debug" && (
         <SheetBox title="🐞 Debug" onClose={close} full>
-          {sheets ? <sheets.DebugSheet game={game} onDone={close} /> : <Loading failed={sheetsFailed} />}
+          {sheets ? <sheets.DebugSheet game={game} onDone={close} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          {awaySheet ? (
-            <awaySheet.AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
+          {lazyAway.mod ? (
+            <lazyAway.mod.AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
           ) : (
-            <Loading failed={awayFailed} />
+            <Loading failed={lazyAway.failed} />
           )}
         </SheetBox>
       )}
@@ -472,7 +448,3 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     </div>
   );
 }
-
-/** Stands in for a screen while its code loads, or says that it couldn't. */
-export const Loading = ({ failed }: { failed: boolean }) =>
-  failed ? <div class="notice error">✖ Couldn't load this screen. Check your connection and reload the page.</div> : <p class="dim small">Loading…</p>;

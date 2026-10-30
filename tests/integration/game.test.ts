@@ -721,7 +721,9 @@ describe("game", () => {
       expect(again.stats.sky?.weather).toEqual({ kind: "snow", tempC: -2 });
       run(again, 2);
       await tick();
-      expect(again.problems.warnings.map((w) => w.text)).toContain("Couldn't get the weather for Sofia, Bulgaria");
+      // The failed request is logged once by the Api, with no second line about the weather.
+      const weatherRows = () => again.problems.warnings.map((w) => w.text).filter((t) => /open-meteo|weather/.test(t));
+      expect(weatherRows()).toEqual(["Request to api.open-meteo.com failed: HTTP 503 (server overloaded)"]);
       const tries = down;
       run(again, 5);
       await tick();
