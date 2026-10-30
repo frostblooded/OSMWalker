@@ -205,7 +205,7 @@ export class Trips {
     const at = (test: (p: Place) => boolean) => nearest(places, here[0], here[1], Infinity, test);
     const roadM = straight * ROAD_FACTOR;
     const setOff = (mode: Mode, distance_m: number): Plan => ({ city, mode, station: roadOut(here), fare: 0, arrive: [city.lat, city.lon], distance_m });
-    if (hasBike && straight <= CYCLE_MAX_M) return setOff("bike", roadM);
+    if (hasBike && straight < CYCLE_MAX_M) return setOff("bike", roadM);
     /** The road way out: his car, else a ferry now and then, a train for long trips, or the bus. */
     const road = (): [Mode, Place] | null => {
       if (hasCar) {
@@ -291,7 +291,7 @@ export const roadOut = (here: LatLon): Place => ({ name: "the road out of town",
 /** "Heading to X for the bus to Y (€5)", or how he sets off on his bike or hitchhiking. */
 export function heading(plan: Plan, to: string): string {
   if (plan.mode === "bike") return `Setting off on his bike for ${to}`;
-  if (plan.mode === "hitch") return `Broke, so he's heading to the road out of town to hitchhike to ${to}`;
+  if (plan.mode === "hitch") return `Broke, so he sticks his thumb out to hitchhike to ${to}`;
   return `Heading to ${plan.station.name} for the ${plan.mode} to ${to} (${euro(plan.fare)})`;
 }
 

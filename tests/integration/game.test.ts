@@ -432,7 +432,7 @@ describe("game", () => {
     g.skipRoll = false;
     g.debugNewGoal();
     expect(g.walker!.departing!.mode).toBe("hitch");
-    expect(g.stats.history.latest()).toBe("Broke, so he's heading to the road out of town to hitchhike to somewhere in Bulgaria");
+    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to somewhere in Bulgaria");
     for (let i = 0; i < 3600 && !g.stats.where.city.startsWith("Plovdiv"); i++) g.step(1);
     const lines = g.stats.history.entries.map((e) => e.text);
     expect(lines).toContain("Hitchhiked to Plovdiv, Bulgaria");
