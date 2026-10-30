@@ -38,7 +38,7 @@ export const STRENGTH_MAX = 2;
 /** A need this strong (half way below NEED_AT) or urgent shows in the feed when it picks his goal. */
 export const SAY_URGE = 0.25;
 /** How the feed names each need. */
-export const NEED_WORDS: Record<NeedKey, string> = { fullness: "Hungry", thirst: "Thirsty", energy: "Tired", health: "Hurt", mood: "Glum", hygiene: "Grubby", money: "Short of money" };
+export const NEED_WORDS: Record<NeedKey, string> = { fullness: "Hungry", thirst: "Thirsty", energy: "Tired", health: "Hurt", mood: "Glum", hygiene: "Grubby", money: "Short of money", bag: "Bag full" };
 
 /** The feed line for a goal picked for `why`, or "" when the need is too mild to mention (or it is money, and he only saves up). */
 export function needLine(why: NeedKey | "", pull: number, urgent: boolean, place: string, cents: number): string {
@@ -76,6 +76,7 @@ export function needScore(action: Action, stats: Stats): { score: number; why: N
     if (v > 0 && m in stats.meters) add(m as Meter, (urge(stats.meters[m as Meter]) * Math.min(v, FULL_FIX)) / FULL_FIX);
   }
   if (action.earn !== undefined) add("money", moneyUrge(stats));
+  if (action.resale && stats.bagFull()) add("bag", 1);
   return { score, why };
 }
 
@@ -162,8 +163,9 @@ export function weight(action: Action, stats: Stats): number {
 /**
  * How much a place with `actions` pulls his next goal, counting only what he
  * can do at `hour`: the best of its actions' 1 + NEED_BOOST x need score,
- * times how well that action suits him. A shop that sells the vehicle he has saved up for pulls
- * GOAL_SHOP_PULL, which only an urgent need beats.
+ * times how well that action suits him. A shop that sells the vehicle he has
+ * saved up for pulls GOAL_SHOP_PULL, which only an urgent need beats. With a
+ * full bag, a resale shop meets a need in full, for a selling run.
  */
 export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   const saving = stats.saving();

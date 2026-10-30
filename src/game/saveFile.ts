@@ -10,6 +10,8 @@ import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
 
 export const SAVE_KEY = "osmwalker.save";
+/** The last save that couldn't be used, copied here before the new game overwrites it. */
+export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
 export const DEFAULT_ZOOM = 17;
@@ -88,33 +90,44 @@ export class SaveFile {
     }
   }
 
-  /** The saved game, null when there is none, or why it can't be used. */
+  /** The saved game, null when there is none, or why it can't be used (then a copy is kept under BAD_SAVE_KEY). */
   read(): Saved | string | null {
     const raw = this.kv?.getItem(SAVE_KEY);
     if (!raw) return null;
-    let d: Stored;
+    const out = this.parse(raw);
+    if (typeof out === "string") {
+      try {
+        this.kv?.setItem(BAD_SAVE_KEY, raw);
+      } catch {
+        // full: the save itself is still there until the next write
+      }
+    }
+    return out;
+  }
+
+  private parse(raw: string): Saved | string {
     try {
-      d = JSON.parse(raw) as Stored;
+      const d = JSON.parse(raw) as Stored;
       if (!d.walker) throw new Error("no walker");
+      const walker = Walker.fromJSON(d.walker);
+      if (walker.fromNode === null || !walker.graph.hasNode(walker.fromNode)) return "The saved game had no spot for him; starting over";
+      walker.bounds ??= cityBounds(d.origin[0], d.origin[1]);
+      return {
+        city: d.city,
+        country: d.country || "",
+        skipRoll: d.skip_roll,
+        origin: d.origin,
+        zoom: d.zoom || DEFAULT_ZOOM,
+        walker,
+        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes, where he is, item stories,
+        // the day's stops and the week.
+        stats: Stats.fromJSON(d.stats),
+        debugLog: DebugLog.fromJSON(d.debug_log),
+        savedAt: d.saved_at ?? 0,
+      };
     } catch {
       return "The saved game was unreadable; starting over";
     }
-    const walker = Walker.fromJSON(d.walker);
-    if (walker.fromNode === null || !walker.graph.hasNode(walker.fromNode)) return "The saved game had no spot for him; starting over";
-    walker.bounds ??= cityBounds(d.origin[0], d.origin[1]);
-    return {
-      city: d.city,
-      country: d.country || "",
-      skipRoll: d.skip_roll,
-      origin: d.origin,
-      zoom: d.zoom || DEFAULT_ZOOM,
-      walker,
-      // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes, where he is, item stories,
-      // the day's stops and the week.
-      stats: Stats.fromJSON(d.stats),
-      debugLog: DebugLog.fromJSON(d.debug_log),
-      savedAt: d.saved_at ?? 0,
-    };
   }
 
   /** New city: drops the game, keeps the settings. */

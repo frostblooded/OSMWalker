@@ -4,6 +4,7 @@ import { URGENT_SLIP } from "../../src/core/goals";
 import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needOf, restMinutes, URGENT_AT, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
+import * as Jokes from "../../src/core/jokes";
 import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
@@ -261,6 +262,58 @@ describe("gear", () => {
     expect(stats.cents - before).toBeGreaterThanOrEqual(4000);
     expect(stats.cents - before).toBeLessThanOrEqual(6000);
     expect(line).toContain("Sold");
+  });
+
+  it("a full bag at a resale shop is a selling run, a line per sale", () => {
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5, 1000 + i));
+    const lines: string[] = [];
+    stats.onSay = (l) => lines.push(l);
+    stats.do({ name: "Sell his loot", min: 10, sell: true, resale: true }, "Pawn Stars", rng);
+    expect(stats.bag).toHaveLength(S.SELL_RUN_LEFT);
+    expect(lines.filter((l) => l.startsWith("Sold his"))).toHaveLength(BAG_SIZE - S.SELL_RUN_LEFT);
+    // The cheapest went first.
+    expect(Math.min(...stats.bag.map((it) => it.price))).toBe(1000 + BAG_SIZE - S.SELL_RUN_LEFT);
+  });
+
+  it("a shop that isn't a resale shop, or a bag that isn't full, sells one thing", () => {
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5, 1000 + i));
+    stats.do({ name: "Sell his loot", min: 10, sell: true }, "Arms & Co", rng);
+    expect(stats.bag).toHaveLength(BAG_SIZE - 1);
+    stats.do({ name: "Sell his loot", min: 10, sell: true, resale: true }, "Pawn Stars", rng);
+    expect(stats.bag).toHaveLength(BAG_SIZE - 2);
+  });
+
+  it("resale shops pull him like a need while his bag is full", () => {
+    const resale = { name: "Sell his loot", min: 10, sell: true, resale: true };
+    expect(needOf([resale], stats, 12).pull).toBe(1);
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5));
+    expect(needOf([resale], stats, 12)).toMatchObject({ pull: 1 + NEED_BOOST, why: "bag" });
+    expect(needOf([{ name: "Sell", min: 10, sell: true }], stats, 12).pull).toBe(1);
+  });
+
+  it("jokes are keyed by place classes the actions know", () => {
+    const jokes = JSON.parse(dataFile("jokes.json")) as Record<string, string[]>;
+    const classes = new Set(Object.keys(JSON.parse(dataFile("actions.json"))).map((k) => k.split("/")[0]));
+    for (const [k, lines] of Object.entries(jokes)) {
+      expect(k === "_generic" || classes.has(k), k).toBe(true);
+      expect(lines.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("now and then a line gets a deadpan joke for that kind of place", () => {
+    stats.jokes = JSON.parse(dataFile("jokes.json"));
+    const lines = Array.from({ length: 400 }, (_, i) => stats.do({ name: "Looked around", min: 5 }, "Big Museum", new Rng(i), "museum"));
+    const joked = lines.filter((l) => l !== "Looked around at Big Museum");
+    expect(joked.length / lines.length).toBeGreaterThan(0.08);
+    expect(joked.length / lines.length).toBeLessThan(0.18);
+    for (const l of joked) expect(Jokes.jokesFor(stats.jokes, "museum").some((j) => l.endsWith(` ${j}`))).toBe(true);
+    expect(Jokes.jokesFor(stats.jokes, "nowhere")).toBe(stats.jokes._generic);
+    expect(Jokes.jokesFor({}, "museum")).toEqual([]);
+    // With no jokes loaded the dice aren't touched.
+    const plain = new Stats();
+    const r = new Rng(9);
+    plain.do({ name: "Looked around", min: 5 }, "Big Museum", r, "museum");
+    expect(r.randf()).toBe(new Rng(9).randf());
   });
 
   it("shop actions offer an item", () => {

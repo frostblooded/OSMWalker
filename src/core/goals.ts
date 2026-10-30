@@ -19,7 +19,7 @@ export const SPOT_TRIES = 30;
 export const URGENT_NEAR_M = 100;
 
 export type Vec = [number, number];
-export type NeedKey = Meter | "money";
+export type NeedKey = Meter | "money" | "bag";
 /**
  * How a place meets his needs (see activities.ts needOf): its pull (1 = not at
  * all), whether it fixes an urgent need, or one at rock bottom, and the need it
