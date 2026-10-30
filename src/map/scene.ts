@@ -8,6 +8,7 @@
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
+import type { MapIcon } from "../core/mapIcons";
 import type { LatLon } from "../core/trips";
 import type { Game } from "../game/game";
 import { look } from "../game/hud";
@@ -31,6 +32,8 @@ export interface MapPort {
   setRoute(key: string, route: () => RouteLine): void;
   setArea(box: BBox | null, outline: LatLon[][]): void;
   setEvents(markers: EventMarker[]): void;
+  /** The game's icons, sent on only when `key` changes. */
+  setMapIcons(key: string, icons: () => MapIcon[]): void;
   follow(zoom?: number): void;
   focus(at: LatLon, minZoom: number): void;
   fit(box: BBox, padding: Padding, maxZoom?: number): void;
@@ -43,6 +46,8 @@ export interface MapPort {
 
 /** Zoom for looking at one History event. */
 export const EVENT_ZOOM = 17;
+/** Steps per degree at which the icons near him are picked again (1/200 of a degree, about 500 m). */
+const ICON_GRID = 200;
 
 export class MapScene {
   /** Told when the camera starts or stops following him, for the "Back to him" pill. */
@@ -84,6 +89,8 @@ export class MapScene {
     const routeOn = g.showRoute && !w.travel && !!w.goal;
     v.setRoute(routeOn ? `${w.goal}:${w.toNode}:${w.route.length}:${Math.floor(performance.now() / 1000)}` : "", () => w.routeLine());
     v.setArea(g.showCityArea && !w.travel ? w.bounds : null, g.cityOutline);
+    // Icons change with the city's places and as he moves about 500 m (the nearest ones show).
+    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);

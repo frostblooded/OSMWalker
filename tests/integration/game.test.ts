@@ -12,7 +12,8 @@ import type { Forecast } from "../../src/core/forecast";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
-import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { EXTRAS } from "../../src/core/poiGen";
+import { Game, MADE_CITIES, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
@@ -348,8 +349,66 @@ describe("game", () => {
     expect(g.stats.vehicleGoal()!.name).toBe("Scooter");
   });
 
+  it("makes up the must-haves a city lacks once the area is loaded, and keeps them in the save", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.severeNow).toEqual([]);
+    expect(g.problems.severe).toEqual([]);
+    const made = g.walker!.graph.placesIn(g.walker!.bounds!).filter((p) => p.made);
+    // The cafe feeds him and pays; Sofia is capital-sized, so it gets the most extras.
+    expect(made.filter((p) => p.must).map((p) => p.subclass)).toEqual(["bus_station", "fuel", "guest_house"]);
+    expect(made.filter((p) => p.extra)).toHaveLength(EXTRAS.capital);
+    g.save();
+    const back = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    back.problems.quiet = true;
+    expect(back.load()).toBe(true);
+    expect(back.made["Sofia, Bulgaria"]).toEqual(g.made["Sofia, Bulgaria"]);
+  });
+
+  it("keeps the made-up places of the cities he was in most recently", async () => {
+    for (const before of [["Sofia, Bulgaria"], []]) {
+      const { g } = game({ places: [CAFE] });
+      for (const c of before) g.made[c] = [];
+      for (let i = 1; Object.keys(g.made).length < MADE_CITIES; i++) g.made[`Town ${i}`] = [];
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 5; i++) {
+        run(g, 1);
+        await tick();
+      }
+      // A city he is back in moves to the end; a new one pushes out the one he left longest ago.
+      expect(Object.keys(g.made).at(-1)).toBe("Sofia, Bulgaria");
+      expect(Object.keys(g.made)).toHaveLength(MADE_CITIES);
+      expect("Town 1" in g.made).toBe(before.length > 0);
+    }
+  });
+
+  it("still checks the city when its made-up places can't load", async () => {
+    vi.resetModules();
+    vi.doMock("../../src/core/poiGen", () => {
+      throw new Error("offline");
+    });
+    try {
+      const { g } = game({ places: [CAFE] });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 30 && !g.severeNow.length; i++) {
+        run(g, 1);
+        await tick();
+      }
+      expect(g.made).toEqual({});
+      expect(g.severeNow.map((p) => p.title)).toContain("Can't leave Sofia, Bulgaria");
+    } finally {
+      vi.doUnmock("../../src/core/poiGen");
+    }
+  });
+
   it("flags a city with no way out once the area is loaded", async () => {
     const { g } = game({ places: [CAFE] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     await tick();
     for (let i = 0; i < 5; i++) {
@@ -363,6 +422,7 @@ describe("game", () => {
 
   it("lists what looks wrong with the city for Debug", async () => {
     const { g } = game({ places: [] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     for (let i = 0; i < 5; i++) {
       run(g, 1);

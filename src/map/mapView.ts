@@ -7,6 +7,7 @@ import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "ma
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
+import type { MapIcon } from "../core/mapIcons";
 import type { LatLon } from "../core/trips";
 import type { MapPort, Padding } from "./scene";
 
@@ -61,8 +62,13 @@ export class MapView implements MapPort {
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
+  private iconKey = "";
+  /** The icon pictures and layer, added the first time there is an icon to show. */
+  private iconLayer: Promise<boolean> | null = null;
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
+  /** Told the `id` of a game icon the player taps. */
+  onIconTap: (id: string) => void = () => {};
 
   static async create(container: HTMLElement, center: LatLon, zoom: number): Promise<MapView> {
     const v = new MapView();
@@ -267,6 +273,36 @@ export class MapView implements MapPort {
     (this.map.getSource("events") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
       features: markers.map((m) => ({ type: "Feature", properties: { label: m.label }, geometry: { type: "Point", coordinates: [m.at[1], m.at[0]] } })),
+    });
+  }
+
+  /**
+   * The game's icons (made-up places, travel hubs, quests); only sent to
+   * MapLibre when `key` changes. The pictures load as their own chunk the
+   * first time there is one to show.
+   */
+  setMapIcons(key: string, icons: () => MapIcon[]): void {
+    if (key === this.iconKey) return;
+    this.iconKey = key;
+    const list = icons();
+    if (!list.length && !this.iconLayer) return;
+    const data: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: list.map((i) => ({
+        type: "Feature",
+        properties: { id: i.id, icon: i.icon, label: i.label, kind: i.kind ?? "place", pulse: !!i.pulse, ends_at: i.ends_at ?? -1 },
+        geometry: { type: "Point", coordinates: [i.at[1], i.at[0]] },
+      })),
+    };
+    // A chunk that can't load (offline before it was cached) leaves the map without icons until the game is opened again.
+    this.iconLayer ??= import("./icons")
+      .then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)))
+      .then(
+        () => true,
+        () => false,
+      );
+    void this.iconLayer.then((ok) => {
+      if (ok && this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);
     });
   }
 

@@ -4,6 +4,7 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as CatchUp from "../core/catchup";
+import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -18,7 +19,9 @@ import * as Snap from "./snap";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
+import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
+import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
 import * as Speeds from "../core/speeds";
@@ -181,6 +184,21 @@ export function values(data: GameData): Record<string, string> {
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
+    MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
+    BED_ENERGY: num(CityCheck.BED_ENERGY),
+    AIRPORT_POP: num(Trips.AIRPORT_POP),
+    TOWN_POP: num(Gen.TOWN_POP),
+    CITY_POP: num(Gen.CITY_POP),
+    MEGA_POP: num(Gen.MEGA_POP),
+    EXTRAS_TOWN: num(Gen.EXTRAS.town),
+    EXTRAS_CITY: num(Gen.EXTRAS.city),
+    EXTRAS_CAPITAL: num(Gen.EXTRAS.capital),
+    TOWERS_CITY: num(Gen.TOWERS.city),
+    TOWERS_CAPITAL: num(Gen.TOWERS.capital),
+    TOWERS_MEGA: num(Gen.TOWERS_MEGA),
+    TOWER_APART_KM: num(Gen.TOWER_APART_M / 1000),
+    MADE_CITIES: num(G.MADE_CITIES),
+    ICON_CAP: num(MapIcons.ICON_CAP.place),
     SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
