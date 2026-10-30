@@ -93,12 +93,12 @@ test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
 
 test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {
   await startInSofia(page);
-  await reopenWith(page, KEEPSAKES);
+  await reopenWith(page, `${KEEPSAKES} d.stats.keepsakes.title = "Globetrotter";`);
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Collection/ }).click();
   const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Completion", "Landmark cards", "City cards"]) await expect(sheet).toContainText(t);
+  for (const t of ["Completion", "Globetrotter", "Landmark cards", "City cards"]) await expect(sheet).toContainText(t);
   await expect(sheet.locator(".dex-tile.gold")).toContainText("Alexander Nevsky Cathedral");
   await sheet.getByRole("tab", { name: /Places/ }).click();
   for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
@@ -112,6 +112,10 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   await sheet.getByRole("tab", { name: /Feats/ }).click();
   await expect(sheet).toContainText("Passport stamps");
   expect(await smallButtons(page)).toEqual([]);
+  await sheet.getByRole("button", { name: /Close/ }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("🎖 TitleGlobetrotter");
 });
 
 test("Stats tells a bought item's story", async ({ page }) => {

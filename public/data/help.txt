@@ -517,7 +517,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
-- 🌍 World: every country, with the cities he has been to, and the souvenirs.
+- 🌍 World: every country, how many cities he has been to, and the souvenirs.
 - 🎒 Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
 - 🏅 Feats: his badges, a card for each tab they belong to.
 
