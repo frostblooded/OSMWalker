@@ -1,6 +1,7 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for), zoom on the right edge and the main buttons in a bar at the
-// bottom, in reach of the thumb.
+// is, where he goes, a guess about his next trip, what he waits for), zoom on
+// the right edge and the main buttons in a bar at the bottom, in reach of the
+// thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
@@ -367,6 +368,8 @@ function MiniBar({ icon, share, color }: { icon: string; share: number; color: s
 export function SheetBox({ title, onClose, onBack, onResize, full, children }: { title: string; onClose: () => void; onBack?: () => void; onResize?: () => void; full?: boolean; children: ComponentChildren }) {
   // The height as a share of the screen once dragged; null is the sheet's own height.
   const [share, setShare] = useState<number | null>(null);
+  // Counts releases, so History refits even when a drag ends at the same height.
+  const [drops, setDrops] = useState(0);
   const box = useRef<HTMLElement>(null);
   const drag = useRef<{ y: number; h: number } | null>(null);
   useEffect(() => {
@@ -375,8 +378,8 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
     return () => removeEventListener("keydown", esc);
   }, [onClose]);
   useEffect(() => {
-    if (share !== null) onResize?.();
-  }, [share]);
+    if (drops) onResize?.();
+  }, [drops]);
   const down = (e: PointerEvent) => {
     if (!box.current || (e.target as Element).closest("button")) return;
     drag.current = { y: e.clientY, h: box.current.offsetHeight };
@@ -397,9 +400,12 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
     drag.current = null;
     if (!d || !el || !el.style.height) return;
     const next = settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
-    el.style.height = el.style.maxHeight = el.style.top = "";
-    if (next === "close") onClose();
-    else setShare(next);
+    if (next === "close") return onClose();
+    // Written here as well as in the style prop: Preact won't rewrite a value it thinks is unchanged.
+    el.style.height = el.style.top = "";
+    el.style.maxHeight = full && next >= 1 ? "" : `${next * 100}%`;
+    setShare(next);
+    setDrops(drops + 1);
   };
   const whole = full && (share === null || share >= 1);
   const style = share !== null && !whole ? { maxHeight: `${share * 100}%` } : undefined;

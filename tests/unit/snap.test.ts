@@ -1,6 +1,6 @@
 // How tall a dragged sheet ends up: where it was let go, or closed.
 import { describe, expect, it } from "vitest";
-import { CLOSE_AT, settle, TALL } from "../../src/ui/snap";
+import { CLOSE_AT, FULL_AT, settle, TALL } from "../../src/ui/snap";
 
 describe("a dragged sheet", () => {
   const screen = 1000;
@@ -13,6 +13,11 @@ describe("a dragged sheet", () => {
   it("is never taller than its tallest", () => {
     expect(settle(900, screen, false)).toBe(TALL);
     expect(settle(1200, screen, true)).toBe(1);
+  });
+
+  it(`fills the screen again when a full sheet is let go above ${FULL_AT * 100}%`, () => {
+    expect(settle(950, screen, true)).toBe(1);
+    expect(settle(900, screen, true)).toBe(0.9);
   });
 
   it(`closes when let go below ${CLOSE_AT * 100}% of the screen`, () => {

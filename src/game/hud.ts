@@ -1,7 +1,6 @@
 // What the screens show about him, worked out once from the game: his look
-// on the map, the soundscape, the top card (what he is
-// doing, where he goes, how long until he moves again, why he waits) and the
-// facts Debug lists. Plain data, so the screens only lay it out and the
+// on the map, the soundscape, the top card (what he is doing, where he goes,
+// how long until he moves again, why he waits) and the facts Debug lists. Plain data, so the screens only lay it out and the
 // numbers are tested without a browser.
 import { distanceM, type BBox } from "../core/geo";
 import * as Looks from "../core/look";

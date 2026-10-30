@@ -335,3 +335,21 @@ test("the map credit stays under an open sheet's buttons", async ({ page }) => {
   const top = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("[role='dialog'], .maplibregl-ctrl")?.className, [credit.x + credit.width / 2, credit.y + credit.height / 2]);
   expect(top).toContain("sheet");
 });
+
+test("a sheet keeps its height when a second drag ends where it started", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  const height = async () => (await menu.boundingBox())!.height;
+  const tall = await height();
+  await dragTitle(page, /Menu/, 120);
+  await expect.poll(height).toBeLessThan(tall - 100);
+  const kept = await height();
+  const b = (await menu.locator("header h2").boundingBox())!;
+  await page.mouse.move(b.x + 10, b.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 10, b.y + 40);
+  await page.mouse.move(b.x + 10, b.y + 10);
+  await page.mouse.up();
+  expect(Math.abs((await height()) - kept)).toBeLessThan(2);
+});
