@@ -17,8 +17,9 @@ export const label = (dest: City, abroad: boolean) => (abroad ? dest.country : d
 
 /**
  * A guess for a trip to `dest` from `country`: the answer and decoys of the
- * same kind (other cities of the country but not `here`, or other countries), in random
- * order. Fewer choices when there aren't enough decoys; null with none.
+ * same kind (other cities of the country but not `here`, or other
+ * countries), in random order. Fewer choices when there aren't enough
+ * decoys; null with none.
  */
 export function makeGuess(dest: City, country: string, here: string, cities: City[], rng: Rng): Guess | null {
   const abroad = dest.code !== country;

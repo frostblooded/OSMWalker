@@ -1,6 +1,7 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for), zoom on the right edge and the main
-// buttons in a bar at the bottom, in reach of the thumb.
+// is, where he goes, a guess about his next trip, what he waits for), zoom
+// on the right edge and the main buttons in a bar at the bottom, in reach of
+// the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";

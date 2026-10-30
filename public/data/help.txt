@@ -339,7 +339,7 @@ When the trip dice send him to another city, the top card shows "🎲 Where to?"
 
 Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
 
-If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. Trips he takes while you are away have no guess.
+If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. So does leaving the game for {MIN_AWAY_MIN} minute or more before he boards: the catch-up starts him afresh at a place (see While you were away). Trips he takes while you are away have no guess.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.

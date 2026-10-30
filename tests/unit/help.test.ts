@@ -87,6 +87,7 @@ describe("the real help", () => {
     expect(page("offline").body).toContain("While you were away");
     expect(page("guess").body).toContain("with 3 choices");
     expect(page("guess").body).toContain("earns 1 ☘ clover");
+    expect(page("guess").body).toContain("leaving the game for 1 minute or more");
     expect(page("care").body).toContain("after at least 1 hour away earns 1 ☘ clover");
     expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
   });
