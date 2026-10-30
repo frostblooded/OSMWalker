@@ -169,6 +169,23 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.friends).toMatchObject({ list: [], partner: "", companion: null });
   });
 
+  it("loads saves from before clubs, townies and anniversaries: no clubs, news from the next day, his birthday the day he set out", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const game = saved();
+    game.stats.chronicle.note("start", "Set out from Sofia, Bulgaria", 1234);
+    f.write(game);
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.clubs;
+    delete d.stats.townies;
+    delete d.stats.anniversaries;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.clubs.list).toEqual([]);
+    expect(back.townies).toMatchObject({ day: "", done: {} });
+    expect(back.anniversaries).toMatchObject({ born: 1234, day: "" });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

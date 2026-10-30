@@ -225,6 +225,9 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
+## Chance cards at work {work_cards}
+After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
+{WORK_CARD_LIST}
 ## Saving for a vehicle {saving}
 He always saves up for the cheapest vehicle one step above what he rides:
 - on foot, a {GOAL_BIKE} for {CHEAP_BIKE},
@@ -522,7 +525,7 @@ Up to {WHISPERS_PER_DAY} times a day (by your device's date) you can whisper one
 
 Whispers are always optional, and they never use up clovers. His dice for whether he listens are separate from his walk's, so a whisper changes only what he would have done next.
 ## Kind or rascal {lean}
-He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed ({KIND_DEEDS}) moves him {DEED_STEP} towards kind, and each rascal deed ({RASCAL_DEEDS}) {DEED_STEP} towards rascal.
+He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed ({KIND_DEEDS}) moves him {DEED_STEP} towards kind, and each rascal deed ({RASCAL_DEEDS}) {DEED_STEP} towards rascal. At work, handing in the extra from the till is a kind deed and pocketing it a rascal one (see Chance cards at work).
 
 From {LEAN_AT} either way it shows:
 - Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.
@@ -575,7 +578,7 @@ A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one ite
 ## Night legends {legends}
 At night ({TIME_NIGHT}) at castles, graveyards, memorials, shrines, old wells, wizard towers and the like, the storyteller may tell a night legend instead: a pale lady on a castle wall, a lantern between the graves, a black cat that only greets the lucky. There are {LEGEND_COUNT}, each written for its kind of place. They come like any incident (see The storyteller), but where one fits it is {LEGEND_WEIGHT} times likelier than any other card.
 ## Viktor, his rival {rival}
-{RIVAL_ICON} {RIVAL_NAME} is another traveller. When he reaches a new city, {RIVAL_TOWN_PCT} of the time Viktor is there too. Then each place he reaches has a {RIVAL_MEET_PCT} chance of a meeting, when no incident happens there. It all happens by itself.
+{RIVAL_ICON} {RIVAL_NAME} is another traveller. When he reaches a new city, {RIVAL_TOWN_PCT} of the time Viktor is there too. Then each place he reaches has a {RIVAL_MEET_PCT} chance of a meeting, when no incident happens there and it isn't his club night or an invitation to a club (see Clubs). It all happens by itself.
 
 Most meetings are a contest for the same thing, at a place where it fits: the same day's work, the last window table, a chess game, a pub quiz, the last croissant, a photo spot, an arm-wrestle, a race to the corner. Each leans on an attribute. His odds are his attribute plus {HIS_PER_LEVEL} per level of his, against {RIVAL_PER_LEVEL} per level of Viktor's (Viktor starts at level {RIVAL_START_LEVEL}). A win gives {WIN_FX}; a loss {LOSE_FX}, and Viktor goes up a level.
 
@@ -585,13 +588,27 @@ Viktor remembers. He brings up where they last met in another city, and every co
 
 For {SEEN_MIN} minutes after a meeting he shows on the map beside him, as a smaller round {RIVAL_ICON} on a cream badge. His card on the Stats sheet keeps the score.
 ## Friends and a partner {friends}
-He makes friends by himself. At a kind of place where he knows no one who hangs out there, each stop has a {FRIEND_NEW_PCT} chance he gets talking with a local, who then hangs out at that kind of place in that city. Back at such a place, a stop has a {FRIEND_SEE_PCT} chance he runs into one of them again, and each meeting adds a heart 💗, up to {HEARTS_MAX}. Friends only come at a stop where no incident happens and Viktor doesn't turn up.
+He makes friends by himself. At a kind of place where he knows no one who hangs out there, each stop has a {FRIEND_NEW_PCT} chance he gets talking with a local, who then hangs out at that kind of place in that city. Back at such a place, a stop has a {FRIEND_SEE_PCT} chance he runs into one of them again, and each meeting adds a heart 💗, up to {HEARTS_MAX}. Friends only come at a stop where no incident happens, no club night or club invitation comes (see Clubs), and Viktor doesn't turn up.
 
 From {MEET_UP_AT} hearts a friend also meets up with him on purpose anywhere in their city: a {MEET_UP_PCT} chance at each stop. He keeps up to {FRIENDS_PER_CITY} friends in each city; a new one takes the place of the one with the fewest hearts.
 
 The first friend to reach {HEARTS_MAX} hearts becomes his partner, for good. His partner comes along on every trip, and is never forgotten to make room. The Stats sheet lists his friends with their hearts.
 ## Travel companions {companions}
-Until he has a partner, a fellow traveller joins him on {COMPANION_PCT} of his trips: a student, a retired sailor, a backpacker and others. They split the fare he paid ({SPLIT_PCT} of it back to him, never of a fine) and chat at his next {COMPANION_STOPS} quiet stops (no incident or Viktor), then go their own way at the one after. While one is along, the traveller takes those stops: no friends turn up, and no second traveller joins.
+Until he has a partner, a fellow traveller joins him on {COMPANION_PCT} of his trips: a student, a retired sailor, a backpacker and others. They split the fare he paid ({SPLIT_PCT} of it back to him, never of a fine) and chat at his next {COMPANION_STOPS} quiet stops (no incident, club night or invitation, or Viktor), then go their own way at the one after. While one is along, the traveller takes those stops: no friends turn up, and no second traveller joins.
+## Clubs {clubs}
+A friend with {CLUB_JOIN_AT} hearts or more may invite him to their club: a {CLUB_INVITE_PCT} chance at each quiet stop (no incident) in their city, while he has no club there. The club meets at the place where he and the friend met (only a friend still living in that city invites him), on one weekday at its own hour, by your phone's clock. He belongs to one club a city and {CLUB_MAX} in all.
+
+From then on he goes by himself: when he is in that city on that day, the first quiet stop (no incident) anywhere in the city in the {CLUB_NIGHT_H} hours from the club's start becomes the club night, as he heads over, and the friend gets a heart. One night a week, never more. If he is somewhere else, the club meets without him. The Stats sheet lists his clubs on the Friends card.
+{CLUB_LIST}
+The hedge mages' circle is the one club not of this world: it meets at a wizard's tower (see Made-up places).
+## Friends' news {townies}
+His friends live their own lives, also while you are away. Each day there is a {NEWS_PCT} chance that one of them with {NEWS_AT} hearts or more has news: a new hobby, a dog, a wedding, a baby, a shop of their own. His partner is with him, so has none. Big news comes as a letter to him, marked 💌 (his own letters to you are ✉); the rest is a line in the feed. Each piece of news happens to a friend once.
+
+A friend may move to another city he has been to. From then on that is their city: he may run into them there, at the same kind of place.
+## Anniversaries {anniversaries}
+The day he set out is his birthday (in a game begun before his life story was kept, the first day after anniversaries came to the game). Each year on it he has a party in the city he is in, with his partner and the friends there with {PARTY_AT} hearts or more ({PARTY_MAX} at most), for {PARTY_MOOD} mood. With his mood out of 100 as the chance (at least {GREAT_MIN_PCT}), it is a great one, and he glows for {GLOW_H} hours: {GLOW_PER_H} mood an hour. With no friends there it is a quiet one alone, {ALONE_MOOD} mood.
+
+On the same day of each of the other months (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -618,7 +635,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
-- Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner).
+- Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
