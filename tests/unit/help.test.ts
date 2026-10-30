@@ -7,7 +7,7 @@ import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import * as Help from "../../src/ui/help";
-import { HELP_URL } from "../../src/ui/HelpSheet";
+import { HELP_URL } from "../../src/ui/helpUrl";
 import { dataFile } from "../support/data";
 
 const data = {
