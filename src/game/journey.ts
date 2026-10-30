@@ -3,8 +3,9 @@
 // trip is planned and its fare checked, the bus or car road is asked for in
 // the background, and at the station he pays or stays to save up. The
 // walker does the walking and the riding; this module decides and pays.
+import { anyUrgent } from "../core/activities";
 import type { Entry } from "../core/debugLog";
-import { euro, signed } from "../core/money";
+import { euro } from "../core/money";
 import type { Rng } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
@@ -37,6 +38,10 @@ export class Journey {
     if (this.skipRoll) {
       this.skipRoll = false;
       this.log = { skipped: "first pick in a new city" };
+      return null;
+    }
+    if (anyUrgent(stats)) {
+      this.log = { skipped: "an urgent need comes first" };
       return null;
     }
     const r = this.deps.roll?.() ?? this.deps.rng.randf();
@@ -73,9 +78,7 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    setOff(stats, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    setOff(stats, stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
     return "";
   }
 

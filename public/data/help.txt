@@ -18,7 +18,7 @@ While the game is open on screen he lives in real time: one minute on your clock
 
 When you close the game or hide the tab, the time doesn't stop for him. When you come back, the time you were away passes for him in one go, and a "While you were away" card tells you what he did (see While you were away).
 
-The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
+The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over. If a save can't be read, the game says so and starts over, and keeps a copy of the old save on the device in case it can be fixed.
 ## While you were away {away}
 When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), that time passes for him at once, at full speed, the same as if you had watched. Only the first {MAX_AWAY_H} hours after you left count, so he lives through at most {MAX_AWAY_H} hours of a longer absence; the card says how much was left over.
 
@@ -56,13 +56,26 @@ His speed depends on how he gets about:
 - on foot: {WALK_KMH} km/h,
 - bike: {BIKE_KMH} km/h,
 - scooter or motorbike: {MOTORCYCLE_KMH} km/h,
-- car: {CITY_CAR_KMH} km/h (city traffic).
+- car: {CITY_CAR_KMH} km/h (city traffic),
+- a fantasy mount: see Fantasy mounts.
 
 He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
 
 Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy.
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
+## Fantasy mounts {mounts}
+Now and then the real map has a little magic in it. These mounts can be had, each from a real place of the right kind:
+- a giant tortoise from a pet shop: {TORTOISE_KMH} km/h, and he never tires on it,
+- a broomstick from a hardware or DIY shop: {BROOM_KMH} km/h,
+- a flying carpet from a carpet shop: {CARPET_KMH} km/h,
+- a dragon from the stable at a real castle: {DRAGON_KMH} km/h.
+
+The tortoise, broomstick and carpet sit beside the bike, scooter and car: each ranks with that vehicle, so he swaps one for the other only when the new one is stronger (a better material). A pet, hardware or carpet shop only has one in {MOUNT_STOCK_PCT} of the time he asks. The dragon is the top tier, above any car: from {CHEAP_DRAGON}, it is what he saves up for once he has a car (see Saving for a vehicle).
+
+Flyers (the broomstick, the carpet and the dragon) don't follow the streets. When his goal is at least {FLY_MIN_M} m away and a park or garden is loaded near it (at most {LAND_MAX_M} m from the goal, and at most {LAND_SHARE_PCT} as far from it as he is), he flies there in a straight line, lands, and walks the rest on foot, at walking speed. Otherwise he goes by the streets like anyone else. While you're away the same rules decide when he flies, except that any such park will do, even one far from a street. On the map his mount shows at his side, except a sulking dragon, which stays behind.
+
+A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly (if it starts to sulk in the air, he comes down at the nearest corner), and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
@@ -71,6 +84,28 @@ Each place has a rank from the map, where 1 is the most important in its area, s
 If no places have loaded yet, he heads for a random spot in the city box instead and walks on through it without stopping.
 
 He counts as arrived when he is within {ARRIVE_M} m of the place.
+## Made-up places {made_places}
+The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions. They give no cards, souvenirs, Placedex entries or crawl progress, since those are for real places, but the first of each extra kind and his first wizard's tower count as odd places in the Collection.
+
+Must-haves fill gaps. If none of the loaded places is one of these, the city gets one near its centre, on a street:
+- a bus station ("Plovdiv coach station"), so he can leave,
+- a gas station, so a car can refuel,
+- somewhere to eat (an action that fills him by at least {MEAL_FULLNESS}),
+- somewhere to sleep (an action that gives at least {BED_ENERGY} energy),
+- a job centre, so he can always earn.
+
+A city of {AIRPORT_POP} people or more with no real airport within {AIRPORT_KM} km gets an airport of its own outside it, so planes can fly there too.
+
+Extras give stories a stage: notice boards, an adventurers' hall, old wells, lookouts, hidden shrines and storytellers' corners, each next to a fitting real spot (a well in a park, a lookout at a viewpoint), or near the centre when the city has no such spot. How many a city gets depends on its size:
+- a town (up to {TOWN_POP} people): {EXTRAS_TOWN},
+- a city (up to {CITY_POP} people): {EXTRAS_CITY} and {TOWERS_CITY} wizard's tower,
+- a big city: {EXTRAS_CAPITAL} and {TOWERS_CAPITAL} wizard's towers ({TOWERS_MEGA} above {MEGA_POP} people).
+
+Wizard's towers rise at the grandest real landmarks (castles first, then viewpoints, sights, monuments and museums), at least {TOWER_APART_KM} km apart. A city with no landmark gets none.
+
+A city keeps its made-up places: they are rolled from the city's name and saved, so the tower is still at the same castle when he comes back. The save keeps them for the {MADE_CITIES} cities he was in most recently.
+## Map icons {map_icons}
+The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places, indigo for magic, and gold plaques for the monuments he built (see Golden bricks). Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once (his monuments always show), and none while he rides to another city.
 ## Picking the next goal {goal_pick}
 He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
 
@@ -80,7 +115,9 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need for resale shops (see The bag and selling). Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much.
+
+Urgent: while a meter is under {URGENT_AT} and some place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -115,8 +152,6 @@ While he walks, a bubble over his head shows what he needs most: the icon of his
 While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
 ## City sound {sound}
 The 🔊 City sound switch in the menu (off at first) plays a soft loop for where he is: cafe chatter with the odd clinking cup while he stays at a place to eat or drink, birds and leaves in parks and gardens, and a low street hum anywhere else. On a trip it is quiet. The sound is made on your phone, so it downloads nothing; it stops while the game is in the background.
-## The day ribbon {ribbon}
-Under the bars in the top card, a thin row shows the places he stopped at today as small icons (☕ 🏛 🍺 🏨), the newest on the right, including the ones from while you were away. It shows the last {RIBBON} stops; "+5" in front counts the earlier ones today. The day starts at midnight on your phone's clock, and the game keeps his last {MAX_STOPS} stops.
 # 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
@@ -131,20 +166,37 @@ An action can:
 
 Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
-What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back."
+What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
-- For each meter the action raises, it gains (60 - meter) / 20 x (amount, at most 50) / 20, but only if that meter is below 60. So the hungrier he is, the more he leans towards food, and the bigger the meal the stronger the pull.
 - Browsing for an item: +1 when he has more than {SKINT_X3}.
 - Selling his loot: +2.
-- Paid work: +3 while he has less than {SKINT}, otherwise +0.5.
 - Anything that would leave him under {SKINT} weighs half as much.
 - A country's own actions get +{FLAVOUR_WEIGHT} (see Country flavour).
-- While he saves up for a trip or his next vehicle, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
+- While he saves up for a trip or his next vehicle, spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
 - Browsing the shop of the vehicle he has saved up for: +{GOAL_SHOP}.
+- A kind deed while he leans kind: +{KIND_DEED_WEIGHT} (see Kind or rascal).
+
+His needs here are the ones he feels: while he follows an Eat or Rest whisper, the meters it names count as empty (see Whispers).
+
+Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always, and only from actions that fix that meter.
 
 An action with weight 4 is four times as likely as one with weight 1.
+## His needs {urges}
+His needs come first, like real ones: a little hungry he may still visit a museum, starving he goes straight for food.
+
+Urge: each meter (fullness, thirst, energy, health, mood, hygiene) is a need below {NEED_AT}. Its urge is the square of how far below it is: 0 at {NEED_AT}, {URGE_HALF} at {NEED_HALF_AT}, 1 at 0. So it grows slowly at first and steeply near empty. Money is a need too: below {SKINT} its urge grows the same way, down to 1 at €0, and while he saves up for a trip or a vehicle it is at least {SAVING_URGE}.
+
+Need score: an action scores the urge of each meter it raises, times how much of the need it meets: a raise of {FULL_FIX} or more meets it in full, a smaller one in part. Paid work scores the money urge, and with a full bag a resale shop's sale scores 1. The scores of all needs an action meets add up, so a meal with a drink beats a meal alone when he is both hungry and thirsty.
+
+Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom, and fixing it beats every other need. While any meter is urgent he skips the trip dice and stays in town. A meter an Eat or Rest whisper names feels empty while he follows it, so it counts as rock bottom (see Whispers). See Picking the next goal and How he chooses.
+
+The feed says when a strong need picks his goal, for example "Hungry, heading for Bakery Nord": an urgent need, or one at half of {NEED_AT} or lower. Money only counts there while he has less than {SKINT}, not while he just saves up.
+
+Drain: an action that lowers a meter he needs weighs (1 - that meter's urge) as much, at least {HARM_FLOOR_PCT}, so he doesn't go jogging when he is worn out.
+
+His strengths: an action that trains or needs one of his attributes weighs (that attribute / his average attribute) as much, from 1 up to {STRENGTH_MAX} times, so a strong walker leans to the gym and a charming one to people. A place weighs as much as its best-suited action.
 ## Requirements {needs}
 An action can only be picked when he meets all of its requirements:
 - Money: he needs at least the action's price.
@@ -159,9 +211,9 @@ His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He st
 
 Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he levels up (see Wages).
 
-He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
+He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
@@ -172,11 +224,12 @@ For example a job with no attribute need pays {WAGE_LV11} its listed wage at lev
 He always saves up for the cheapest vehicle one step above what he rides:
 - on foot, a {GOAL_BIKE} for {CHEAP_BIKE},
 - on a bike, a {GOAL_SCOOTER} for {CHEAP_SCOOTER},
-- on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR}.
+- on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR},
+- in a car, a {GOAL_DRAGON} for {CHEAP_DRAGON} (see Fantasy mounts).
 
-With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see How he chooses), and places that pay pull his goals like a need.
+A fantasy mount counts as the vehicle it sits beside: on a tortoise he saves for a scooter, on a broomstick for a car, on a carpet for a dragon. With a dragon there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}, and for the dragon its first day of gold ({DRAGON_UPKEEP}) too. With a dragon, on a day it hasn't eaten yet he saves up to its gold plus his reserve, so it doesn't sulk for long. Until he has it, money is a need of at least {SAVING_URGE} urge and spending weighs {SAVING_SPEND_PCT} as much (see His needs), so paid work and places that pay pull him.
 
-Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
+Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for, and with a dragon, its gold on a day it hasn't eaten yet.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
 
@@ -198,25 +251,25 @@ Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
 He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles), and less on a tailwind day (see Daily forecast). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
-When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
+When energy is under {NEED_AT} he needs rest more and more (see His needs), and shuns actions that tire him. Napping under a tree only happens when it is under {NAP_BELOW}. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
 Fullness (FU, the green bar) is how fed he is, from 0 to 100, starting at {START_FULLNESS}.
 
 It drops by {FULLNESS_PER_H} every hour the game is open, so from full it lasts about {FULLNESS_HOURS} hours. Meals, snacks and buffs such as Snacking fill it.
 
-Under 60 he leans more and more towards food. At 0 he starts losing {STARVING_PER_H} health per hour until he eats.
+Under {NEED_AT} he needs food more and more (see His needs); under {URGENT_AT} he heads straight for it. At 0 he starts losing {STARVING_PER_H} health per hour until he eats.
 ## Thirst {thirst}
 Thirst is how well watered he is, from 0 to 100 (higher is better), starting at {START_THIRST}.
 
 It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts about {THIRST_HOURS} hours. Drinks, drinking fountains, cafes and bars fill it.
 
-Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
+Under {NEED_AT} he needs a drink more and more (see His needs); under {URGENT_AT} he heads straight for one. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it more for a day (see Daily forecast).
 
 It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
-When mood is under 60 he leans towards cheerful actions.
+When mood is under {NEED_AT} he needs cheering up more and more (see His needs).
 
 Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
 ## Hygiene {hygiene}
@@ -224,7 +277,7 @@ Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
 It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hotel rooms, the laundry, a spa and the toilets raise it; sweaty jobs and workouts lower it.
 
-When hygiene is under 60 he leans towards actions that clean him up.
+When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 # 💪 Attributes
@@ -247,8 +300,9 @@ Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing
 ## Luck {luck}
 Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
 
-Luck does three things:
+Luck does four things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
+- Fewer bad incidents: the same cut makes an incident less likely to be a bad one (see The storyteller).
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
 - Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, more on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
@@ -277,7 +331,7 @@ When his health reaches 0 he faints. He wakes up at the nearest hospital the gam
 Waking up costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
 # 🎒 Items and gear
 ## Gear and items {items}
-He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles).
+He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).
 
 Each item fits one slot: weapon, offhand, head, body, feet, bag, trinket or vehicle. He wears at most one item per slot. There is no fighting: gear only adds to his attributes, and vehicles to his speed.
 
@@ -309,7 +363,7 @@ Each modifier adds {MOD_PRICE_PCT} of the price.
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
-At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus {SELL_PER_CHA_PCT} of that for every point of charm. For example an item worth €100 sells for {SELL_100_CHA0} with charm 0, or {SELL_100_CHA5} with charm 5. The daily forecast can raise it for a day (see Daily forecast).
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus {SELL_PER_CHA_PCT} of that for every point of charm. For example an item worth €100 sells for {SELL_100_CHA0} with charm 0, or {SELL_100_CHA5} with charm 5. The daily forecast can raise it for a day (see Daily forecast), and a rascal gets more (see Kind or rascal).
 
 While his bag is full he goes on a selling run: resale shops ({RESALE_SHOPS}) pull his next goal like an empty need (see Picking the next goal). There "Sell his loot" sells his cheapest things one after another until {SELL_RUN_LEFT} are left, with a line for each sale. Other shops still buy just one thing at a time.
 
@@ -318,7 +372,7 @@ If his bag is full when another item comes in before he finds such a shop, he se
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
 ## Trips to other cities {trips}
-Every time he picks a new goal he rolls the trip dice:
+Every time he picks a new goal he rolls the trip dice, unless a need is urgent (see His needs):
 - {COUNTRY_PCT}: he travels to a city in another country,
 - {CITY_PCT}: he travels to another city in the same country,
 - otherwise he stays and picks a place in this city.
@@ -340,18 +394,18 @@ How he goes depends on the distance in a straight line:
 
 By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
-To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
+To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide, plus the made-up ones of big cities, see Made-up places), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open. So 100 km by bus takes about {BUS_100_MIN} minutes, and 300 km by bus about {BUS_300_MIN}. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
-Fares are in euros and never free:
+Fares are in euros and never free (though a rascal may skip a bus ticket: see Kind or rascal):
 - bus: {BUS_PER_KM} per km of road,
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
 - car: fuel at {FUEL_PER_KM} per km of road.
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
-He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -398,6 +452,15 @@ A crawl is a little set he finishes by visiting different places of a kind. Each
 {CRAWL_LIST}
 
 "A day" is a day on your device's clock, so a crawl he hasn't finished by midnight starts over. "In one city" starts over when he travels to another city. Visiting the same place twice counts once.
+## Golden bricks {bricks}
+Now and then he finds a golden brick at a stop: {BRICK_PCT} of stops, but never more than {BRICKS_PER_DAY} on one day (by your device's date), so his first goal takes about a month. The feed says "Found a golden brick" with how many he has.
+
+He saves them for a monument with his name:
+{MONUMENT_LIST}
+
+With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
+## His life {chronicle}
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -412,7 +475,27 @@ You never steer him, but you can leave him a small gift. Gifts cost clovers, and
 ☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:
 {GIFT_LIST}
 
-A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip).
+A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip). Each package he opens adds to his trust in you (see His trust in you).
+## His trust in you {trust}
+He doesn't know who you are, but he can tell someone is looking out for him. His trust in you runs from 0 to {TRUST_MAX} and starts at {TRUST_START}. The Care package sheet shows it.
+- A check-in that earns a clover adds {TRUST_PER_CHECKIN}, and each care package he opens adds {TRUST_PER_GIFT}.
+- Staying away fades it by {TRUST_FADE_PER_DAY} for each whole day after the first, but never by more than {TRUST_FADE_MAX} at once, so it never drops sharply.
+
+Each time his trust passes {LETTER_AT}, he writes you a letter in his History (it starts with ✉). After opening a package he sometimes writes a thank-you too, about {THANKS_PCT} of the time. The more he trusts you, the more likely he listens to a whisper (see Whispers).
+## Whispers {whisper}
+Up to {WHISPERS_PER_DAY} times a day (by your device's date) you can whisper one word to him from the Care package sheet. He listens with a chance of {HEED_MIN_PCT}, plus {HEED_PER_TRUST_PCT} for each point of trust, so {HEED_FULL_PCT} at full trust. Otherwise he shrugs it off. Either way his History says so. When he listens, he follows the whisper for {NUDGE_MIN} minutes:
+- 🍞 Eat: he acts as if he is starving and thirsty: food and drink are all he looks for, the nearest first, and he won't start a new trip (see His needs).
+- 💤 Rest: he acts as if he has no energy left: coffee, benches and naps are all he looks for, the nearest first, and he won't start a new trip.
+- 🧭 Explore: places he has never been to pull him {EXPLORE_PULL} times as hard.
+- 💰 Save: he saves as if for a trip: paid work counts more and spending less (see How he chooses).
+
+Whispers are always optional, and they never use up clovers. His dice for whether he listens are separate from his walk's, so a whisper changes only what he would have done next.
+## Kind or rascal {lean}
+He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed ({KIND_DEEDS}) moves him {DEED_STEP} towards kind, and each rascal deed ({RASCAL_DEEDS}) {DEED_STEP} towards rascal.
+
+From {LEAN_AT} either way it shows:
+- Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.
+- Rascal: things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has).
 ## Guess the next trip {guess}
 When the trip dice send him to another city, the top card shows "🎲 Where to?" with up to {GUESS_CHOICES} choices while he walks to the station:
 - for a trip in his country, the right city and other cities of the country,
@@ -423,6 +506,8 @@ The city he is in is never a choice. When the bundled city list has no other cit
 Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
 
 If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. So does leaving the game for {MIN_AWAY_MIN} minute or more before he boards: the catch-up starts him afresh at a place (see While you were away). Trips he takes while you are away have no guess.
+## Suggest a line {phrases}
+✍ Suggest a line in the menu opens a new GitHub issue (you need a free GitHub account) with three things to fill in: the kind of place, a dry line he might add after what he did there, and the name you want credited. If the line fits, it ships in a later update with "(line by your name)" at its end, and from then on it can show up in anyone's feed (see What he does at places). Nothing is sent until you press Submit on GitHub.
 ## Postcards to friends {postcards}
 ☰ Menu → 📮 Send a postcard writes a card of where he is right now: the city, the place or street he is at, his level and the last thing he did. Sign it with your name if you like (up to {POSTCARD_NAME_MAX} letters; the game remembers it, even through New city), then tap 📤 Share postcard. Your phone's share sheet opens; where there is none, the link is copied, or shown for you to copy.
 
@@ -436,6 +521,26 @@ When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} fo
 At chess he wins {CHESS_BASE_PCT} of the time, plus {CHESS_PER_WIT_PCT} for each point of Wits, up to {CHESS_MAX_PCT}.
 
 A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for, and its guess.
+# 📖 Stories
+## The storyteller {storyteller}
+A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.
+
+Below {FIRE_AT} nothing happens. Above it, each place he reaches may bring an incident (see Incidents), likelier the higher the tension: none at {FIRE_AT}, {FIRE_MAX_PCT} of stops at {TENSION_MAX}.
+
+An incident is good, bad or odd. The share of bad ones depends on the storyteller: {STORY_BAD}. Luck makes bad ones rarer, the same way it makes mishaps rarer (see Luck). After a bad one the tension drops to 0, and for {LUCKY_H} hours only good or odd things happen. A good or odd one leaves {KEEP_AFTER_GOOD_PCT} of the tension. The last {RECENT_INCIDENTS} incidents don't come again while another one fits.
+
+Pick the storyteller in ☰ Menu → Storyteller: each tap switches between Calm, Classic and Chaotic. It starts on Classic, is kept with his game, and counts from his next stop. It runs while you are away too.
+## Incidents {incidents}
+Incidents are things that happen to him, not things he chooses to do: a stray dog follows him, a wedding waves him in for cake, a pickpocket brushes past. The storyteller decides when (see The storyteller). There are {INCIDENT_COUNT}: {GOOD_INCIDENTS} good, {BAD_INCIDENTS} bad and {ODD_INCIDENTS} odd.
+
+Some only happen at some places (a wedding at a church or town hall, food poisoning at a restaurant or snack bar), at some times (quiz night at a pub in the evening), or while he gets about a certain way (a bike thief only when he rides a bike, a parking ticket only by car or motorbike, and a few only on a fantasy mount).
+
+Each one is a line in his History that starts with its icon, and the line over the map stands out: bold, on a shaded card with an orange edge.
+
+A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one item from his bag, but never his gear or a treasured item. A high enough attribute wards some off:
+{GUARD_LIST}
+
+{CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. He picks by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. Nothing waits for you.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -444,7 +549,9 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+
+To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
 Camera follows him (a switch, on at first and remembered) keeps him in view: the map glides over to him whenever he walks out of the middle of the screen. Turn it off and the map stays wherever you leave it, even when he walks off the screen (see The map).
 
@@ -453,7 +560,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
@@ -461,12 +568,19 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
-🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
-- Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
-- City cards: how many of each rarity he has out of all, foil and gold, spares waiting to be sold and free packs waiting to be opened, then a row per country he has cards from (tap Countries), with ✔ for a finished set.
-- Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
-- Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
-- Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
+🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
+
+At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
+- 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
+- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
+- 🌍 World: every country, how many cities he has been to, the souvenirs, and his monuments with his golden bricks (see Golden bricks).
+- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
+- 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
+
+Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.
+## Badges and titles {badges}
+A feat counts something he does. Its first number gives him a 🥉 Bronze badge, the second 🥈 Silver and the third 🥇 Gold. The feed says so, and a badge stays even if the count drops later (say he sells a treasured item). A Gold badge also gives him a title, shown on the Collection and Stats sheets: the newest one he earned. Badges and titles give nothing else.
+{FEAT_LIST}
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
@@ -474,7 +588,7 @@ While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km),
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 
-Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
+Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. Missing ones are normally made up (see Made-up places), so this only shows when that fails, for example when the game is offline before it has kept that part of its code. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
 
 At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
 

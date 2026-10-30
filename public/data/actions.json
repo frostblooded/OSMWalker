@@ -279,7 +279,8 @@
     "attrs": {
      "luck": 3
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Sneak out without paying",
@@ -300,7 +301,8 @@
     "fx": {
      "mood": -20
     }
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Order the oysters",
@@ -863,7 +865,8 @@
    },
    "needs": {
     "wit": 6
-   }
+   },
+   "deed": 1
   }
  ],
  "art_gallery": [
@@ -937,7 +940,8 @@
    },
    "needs": {
     "wit": 6
-   }
+   },
+   "deed": 1
   }
  ],
  "attraction": [
@@ -1054,6 +1058,15 @@
     "wit": 0.2,
     "xp": 20
    }
+  },
+  {
+   "name": "Visit the dragon stable",
+   "min": 20,
+   "item": "dragons",
+   "fx": {
+    "xp": 20,
+    "mood": 10
+   }
   }
  ],
  "monument": [
@@ -1167,7 +1180,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Community soup kitchen",
@@ -1227,7 +1241,8 @@
    "fx": {
     "str": 0.2,
     "xp": 15
-   }
+   },
+   "deed": 1
   }
  ],
  "cinema": [
@@ -1431,7 +1446,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Search the grass",
@@ -1539,7 +1555,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Search the grass",
@@ -1601,7 +1618,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   }
  ],
  "dog_park": [
@@ -2025,7 +2043,8 @@
     "per_h": {
      "mood": 1
     }
-   }
+   },
+   "deed": 1
   }
  ],
  "doctors": [
@@ -2226,7 +2245,8 @@
    "fx": {
     "wit": 0.5,
     "xp": 30
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Student cafeteria",
@@ -2608,7 +2628,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/hunting": [
@@ -2638,7 +2659,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/knives": [
@@ -2668,7 +2690,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/antiques": [
@@ -2699,7 +2722,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/hardware": [
@@ -2729,7 +2753,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Odd repair job",
@@ -2738,6 +2763,14 @@
    "fx": {
     "wit": 0.2,
     "xp": 15
+   }
+  },
+  {
+   "name": "Ask after a broomstick",
+   "min": 10,
+   "item": "brooms",
+   "fx": {
+    "xp": 5
    }
   }
  ],
@@ -2768,7 +2801,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Odd repair job",
@@ -2777,6 +2811,14 @@
    "fx": {
     "wit": 0.2,
     "xp": 15
+   }
+  },
+  {
+   "name": "Ask after a broomstick",
+   "min": 10,
+   "item": "brooms",
+   "fx": {
+    "xp": 5
    }
   }
  ],
@@ -2807,7 +2849,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2846,7 +2889,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2885,7 +2929,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2924,7 +2969,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2963,7 +3009,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/watches": [
@@ -2993,7 +3040,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/gift": [
@@ -3023,7 +3071,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Buy a city card pack",
@@ -3063,7 +3112,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/charity": [
@@ -3094,7 +3144,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/pawnbroker": [
@@ -3125,7 +3176,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "music": [
@@ -3155,7 +3207,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try a guitar",
@@ -3431,7 +3484,8 @@
    },
    "needs": {
     "time": "day"
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Sit in on an evening class",
@@ -3784,7 +3838,8 @@
    "fx": {
     "cha": 0.1,
     "xp": 5
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Wash cars for coins",
@@ -3954,7 +4009,8 @@
     "energy": -15,
     "str": 0.3,
     "xp": 15
-   }
+   },
+   "deed": 1
   }
  ],
  "swimming_pool": [
@@ -4365,6 +4421,15 @@
     "hygiene": -10,
     "xp": 15
    }
+  },
+  {
+   "name": "Ask about the giant tortoise",
+   "min": 10,
+   "item": "tortoises",
+   "fx": {
+    "xp": 5,
+    "mood": 5
+   }
   }
  ],
  "shop/confectionery": [
@@ -4558,6 +4623,239 @@
    "min": 5,
    "fx": {
     "mood": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "notice_board": [
+  {
+   "name": "Read the notices",
+   "min": 5,
+   "fx": {
+    "wit": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Pin up a lost-cat poster",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "cha": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Take an odd job off the board",
+   "min": 60,
+   "earn": [
+    10,
+    20
+   ],
+   "fx": {
+    "energy": -10,
+    "xp": 15
+   }
+  }
+ ],
+ "guild_hall": [
+  {
+   "name": "Swap tales with adventurers",
+   "min": 30,
+   "fx": {
+    "mood": 15,
+    "cha": 0.2,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Train in the yard",
+   "min": 45,
+   "fx": {
+    "energy": -20,
+    "str": 0.3,
+    "xp": 20
+   }
+  },
+  {
+   "name": "Take a bounty off the wall",
+   "min": 90,
+   "earn": [
+    20,
+    35
+   ],
+   "fx": {
+    "energy": -25,
+    "xp": 30
+   },
+   "needs": {
+    "time": "day"
+   }
+  },
+  {
+   "name": "Bowl of hall stew",
+   "min": 20,
+   "cost": 6,
+   "fx": {
+    "fullness": 45,
+    "xp": 3
+   }
+  }
+ ],
+ "old_well": [
+  {
+   "name": "Toss a coin and make a wish",
+   "min": 2,
+   "cost": 1,
+   "fx": {
+    "luck": 0.2,
+    "mood": 5,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Draw cool water",
+   "min": 5,
+   "fx": {
+    "thirst": 40,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Peer into the dark",
+   "min": 5,
+   "fx": {
+    "wit": 0.1,
+    "xp": 5
+   }
+  }
+ ],
+ "lookout": [
+  {
+   "name": "Take in the view",
+   "min": 10,
+   "fx": {
+    "mood": 15,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Map the streets below",
+   "min": 30,
+   "fx": {
+    "wit": 0.3,
+    "xp": 20
+   }
+  }
+ ],
+ "shrine": [
+  {
+   "name": "Light a candle",
+   "min": 10,
+   "cost": 1,
+   "fx": {
+    "mood": 15,
+    "luck": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Sit in silence",
+   "min": 20,
+   "fx": {
+    "mood": 20,
+    "energy": 10,
+    "xp": 5
+   }
+  }
+ ],
+ "storyteller": [
+  {
+   "name": "Listen to a tall tale",
+   "min": 30,
+   "fx": {
+    "mood": 20,
+    "wit": 0.2,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Tell his own story",
+   "min": 20,
+   "fx": {
+    "cha": 0.3,
+    "mood": 10,
+    "xp": 10
+   }
+  }
+ ],
+ "wizard_tower": [
+  {
+   "name": "Gaze at the strange lights",
+   "min": 10,
+   "fx": {
+    "mood": 15,
+    "luck": 0.1,
+    "xp": 15
+   }
+  },
+  {
+   "name": "Run an errand for the wizard",
+   "min": 60,
+   "earn": [
+    15,
+    30
+   ],
+   "fx": {
+    "energy": -15,
+    "wit": 0.2,
+    "xp": 30
+   }
+  },
+  {
+   "name": "Buy a lucky charm",
+   "min": 5,
+   "cost": 8,
+   "fx": {
+    "luck": 0.3,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Leaf through a spellbook",
+   "min": 45,
+   "fx": {
+    "wit": 0.5,
+    "xp": 25
+   },
+   "needs": {
+    "time": "evening"
+   }
+  }
+ ],
+ "shop/carpet": [
+  {
+   "name": "Browse the rugs",
+   "min": 15,
+   "fx": {
+    "mood": 5,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Ask for the carpet that flies",
+   "min": 10,
+   "item": "carpets",
+   "fx": {
+    "xp": 5,
+    "mood": 5
+   }
+  },
+  {
+   "name": "Haggle over a runner",
+   "min": 10,
+   "fx": {
+    "cha": 0.1,
     "xp": 5
    }
   }

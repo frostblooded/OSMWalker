@@ -481,7 +481,7 @@ describe("goal weights", () => {
     expect(parts.heading_w).toBeCloseTo(G.headingWeight([0, 1], [0, 500]), 3);
     expect(parts.need_w).toBe(1);
     expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
-    w.needWeight = (q) => (q.name === "Ahead" ? 4 : 1);
+    w.need = (q) => ({ pull: q.name === "Ahead" ? 4 : 1, urgent: false, bottom: false, why: "" });
     const needy = w.weigh(p);
     expect(needy.need_w).toBe(4);
     expect(needy.weight).toBeCloseTo(4 * parts.weight, 6);
@@ -522,8 +522,8 @@ describe("goal weights", () => {
     const w = atCross();
     const a = moved(42, 23, [500, 0]);
     const b = moved(42, 23, [-500, 0]);
-    setPlaces(w.graph, [cafe("Food", a[0], a[1]), cafe("Other", b[0], b[1])]);
-    w.needWeight = (q) => (q.name === "Food" ? 5 : 1);
+    setPlaces(w.graph, [{ ...cafe("Food", a[0], a[1]), subclass: "food" }, cafe("Other", b[0], b[1])]);
+    w.need = (q) => ({ pull: q.subclass === "food" ? 5 : 1, urgent: false, bottom: false, why: "" });
     let food = 0;
     for (let s = 0; s < 300; s++) {
       w.rng = new Rng(s);
@@ -532,6 +532,83 @@ describe("goal weights", () => {
       food += +(w.place!.name === "Food");
     }
     expect(food).toBeGreaterThan(220);
+  });
+
+  it("a place's own pull counts for that place alone, though need is worked out per kind", () => {
+    const w = atCross();
+    const a = moved(42, 23, [500, 0]);
+    const b = moved(42, 23, [-500, 0]);
+    // Both cafes, so need is asked once for the kind; "New" comes second.
+    setPlaces(w.graph, [cafe("Old", b[0], b[1]), cafe("New", a[0], a[1])]);
+    w.need = () => ({ pull: 1, urgent: false, bottom: false, why: "" });
+    w.placePull = (q) => (q.name === "New" ? 5 : 1);
+    let fresh = 0;
+    for (let s = 0; s < 300; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      fresh += +(w.place!.name === "New");
+    }
+    expect(fresh).toBeGreaterThan(220);
+  });
+
+  const urgentPicks = (bottom: boolean) => {
+    const w = atCross();
+    const specs: [string, number][] = [["Near food", 150], ["Far food", 600], ["Museum", 500]];
+    setPlaces(w.graph, specs.map(([name, east]) => {
+      const ll = moved(42, 23, [east, 0]);
+      return { ...cafe(name, ll[0], ll[1]), subclass: name.endsWith("food") ? "food" : "museum" };
+    }));
+    w.need = (q) => (q.subclass === "food" ? { pull: 30, urgent: true, bottom, why: "fullness" } : { pull: 1, urgent: false, bottom: false, why: "" });
+    const counts: Record<string, number> = {};
+    for (let s = 0; s < 1000; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.legFrom = moved(42, 23, [500, 0]);
+      w.pickGoal();
+      counts[w.place!.name] = (counts[w.place!.name] ?? 0) + 1;
+    }
+    return (k: string) => counts[k] ?? 0;
+  };
+
+  it("at rock bottom, head only for a fix, mostly the nearest", () => {
+    const c = urgentPicks(true);
+    expect(c("Museum")).toBe(0);
+    expect(c("Near food")).toBeGreaterThan(5 * c("Far food"));
+  });
+
+  it("with an urgent need, now and then do as he likes anyway", () => {
+    const c = urgentPicks(false);
+    // The museum can only win in the URGENT_SLIP share of picks, and even then food pulls 30x.
+    expect(c("Museum")).toBeGreaterThan(0);
+    expect(c("Museum")).toBeLessThan(1000 * G.URGENT_SLIP);
+    expect(c("Near food")).toBeGreaterThan(800);
+  });
+
+  it("a fix for a need at rock bottom beats a nearer fix for another urgent one", () => {
+    const w = atCross();
+    const near = moved(42, 23, [100, 0]);
+    const far = moved(42, 23, [-400, 0]);
+    setPlaces(w.graph, [{ ...cafe("Museum", near[0], near[1]), subclass: "museum" }, { ...cafe("Diner", far[0], far[1]), subclass: "diner" }]);
+    w.need = (q) => (q.subclass === "diner" ? { pull: 50, urgent: true, bottom: true, why: "fullness" } : { pull: 30, urgent: true, bottom: false, why: "mood" });
+    for (let s = 0; s < 50; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      expect(w.place!.name).toBe("Diner");
+    }
+  });
+
+  it("weigh an urgent fix by nearness alone", () => {
+    const w = atCross();
+    w.legFrom = moved(42, 23, [0, -500]);
+    const ll = moved(42, 23, [0, -200]);
+    const parts = w.weigh(cafe("Behind", ll[0], ll[1], 4), { pull: 10, urgent: true, bottom: false, why: "thirst" });
+    expect(parts.rank_w).toBe(1);
+    expect(parts.heading_w).toBe(1);
+    expect(parts.dist_w).toBeCloseTo(G.nearWeight(parts.dist_m), 6);
+    expect(parts.weight).toBeCloseTo(10 * parts.dist_w, 6);
+    expect(parts.urgent).toBe(true);
   });
 
   it("draw random spots near and ahead", () => {
@@ -808,5 +885,100 @@ describe("relocate", () => {
     expect(walker.graph).not.toBe(graph);
     expect(walker.position()).toEqual([48.85, 2.35]);
     expect(walker.isTraveling()).toBe(false);
+  });
+});
+
+describe("flying mounts", () => {
+  const lonOf = (node: number) => 23.0 + (node - 1) * 0.00604;
+  const park: Place = { name: "Park", class: "park", subclass: "park", rank: 1, lat: 42.0, lon: lonOf(3) };
+  const far = cafe("Far Cafe", 42.0, lonOf(4));
+
+  function flyer(places: Place[]): W.Walker {
+    const g = longStreet(6);
+    g.places.set(cellKey(cellOf(42, 23)), places);
+    const w = new Walker(g);
+    w.bounds = CITY_BOX;
+    w.startAt(1);
+    w.setGoal(far.lat, far.lon);
+    w.place = far;
+    w.flies = true;
+    return w;
+  }
+
+  it("flies straight to a park near a far goal, lands and walks the rest", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.flight).not.toBeNull();
+    expect(w.streetName()).toBe("");
+    const p = w.position();
+    expect(p[1]).toBeGreaterThan(lonOf(1));
+    expect(p[1]).toBeLessThan(lonOf(3));
+    expect(w.walkLeftM()).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)) - 100, 0);
+    w.advance(distanceM(42, lonOf(1), 42, lonOf(3)));
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    // He walks the rest on foot, until his next goal.
+    expect(w.afoot).toBe(true);
+    expect(roundTrip(w, longStreet(6)).afoot).toBe(true);
+    w.advance(distanceM(42, lonOf(3), 42, lonOf(4)) + 1);
+    expect(w.isResting()).toBe(true);
+    expect(w.totalM).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)), 0);
+  });
+
+  it("walks the streets when no park or garden is near the goal, or on foot", () => {
+    const w = flyer([far]);
+    w.advance(100);
+    expect(w.flight).toBeNull();
+    const foot = flyer([park, far]);
+    foot.flies = false;
+    foot.advance(100);
+    expect(foot.flight).toBeNull();
+  });
+
+  it("mid-flight, his route line is the straight line to the goal, with no streets", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.routeLine()).toEqual({ streets: [], rest: [w.position(), [far.lat, far.lon]] });
+  });
+
+  it("a new goal from Debug mid-flight lands him where he was headed first", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.forceNewGoal();
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.afoot).toBe(false);
+  });
+
+  it("comes down at the nearest corner when his mount stops flying mid-air", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.flies = false;
+    w.advance(1);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(1);
+  });
+
+  it("waking in the air with no hospital to go to, he stands on the corner he was landing on", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.wakeAt(null, null)).toBe(false);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.isResting()).toBe(true);
+  });
+
+  it("keeps a flight in the save", () => {
+    const w = flyer([park, far]);
+    w.advance(300);
+    const back = roundTrip(w, longStreet(6));
+    expect(back.flight).toEqual(w.flight);
+    expect(back.position()[1]).toBeCloseTo(w.position()[1], 9);
+    // Reloaded with no streets yet, he still lands and stands where he landed.
+    const bare = roundTrip(w);
+    bare.flies = true;
+    bare.advance(5000);
+    expect(bare.flight).toBeNull();
+    expect(bare.position()).toEqual(w.flight!.to);
   });
 });

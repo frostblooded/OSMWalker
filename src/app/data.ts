@@ -1,7 +1,9 @@
 // The bundled game data, fetched once after first paint (about 166 KB gzip
 // in all), so the city picker shows before any of it arrives.
 import type { ActionTable } from "../core/activities";
+import type { Letters } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Incident } from "../core/incidents";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { parseAirports, parseCities } from "../core/trips";
@@ -60,14 +62,14 @@ export async function parseStream<T>(body: ReadableStream<BufferSource>, parse: 
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json")]).then(
-    async ([a, f, cities, airports, x, j, fc]) => {
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json")]).then(
+    async ([a, f, cities, airports, x, j, fc, l, inc]) => {
       await yieldNow();
       const actions = JSON.parse(a) as ActionTable;
       await yieldNow();
       const flavour = JSON.parse(f) as Record<string, ActionTable>;
       await yieldNow();
-      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[] };
+      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[] };
     },
   );
   return pending;

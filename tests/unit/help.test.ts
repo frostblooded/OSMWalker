@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import * as CC from "../../src/core/cityCards";
+import * as Collection from "../../src/core/collection";
 import { RARITY, SLOTS } from "../../src/core/items";
 import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
@@ -17,6 +18,7 @@ const data = {
   airports: parseAirports(dataFile("airports.tsv")),
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
   forecasts: JSON.parse(dataFile("forecasts.json")),
+  incidents: JSON.parse(dataFile("incidents.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);
@@ -49,6 +51,10 @@ describe("the real help", () => {
   it("has every placeholder filled", () => {
     const left = sections.flatMap((s) => s.pages.flatMap((p) => p.body.match(/\{[A-Z0-9_]+\}/g) ?? []));
     expect(left).toEqual([]);
+  });
+
+  it("takes the nap threshold from the data", () => {
+    expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
 
   it("has no unused values", () => {
@@ -114,8 +120,13 @@ describe("the real help", () => {
     expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
   });
 
+  it("lists every feat with its tiers and title", () => {
+    for (const f of Collection.FEATS) expect(page("badges").body, f.id).toContain(`${f.icon} ${f.name}: `);
+    expect(page("badges").body).toMatch(/^- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter,$/m);
+  });
+
   it("words every crawl's kinds", () => {
-    for (const c of CRAWLS) expect(Help.CRAWL_KINDS[c.id], c.id).toBeTruthy();
+    for (const c of CRAWLS) expect(Collection.CRAWL_KINDS[c.id], c.id).toBeTruthy();
   });
 
   it("has a page for every screen button", () => {
