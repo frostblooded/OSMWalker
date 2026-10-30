@@ -265,7 +265,7 @@ The Stats sheet ends with his records over his whole life. Each best only goes u
 
 It also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
 
-When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH} without a stop, {REC_DAY} in a day, {REC_STOPS} places in a day, {REC_CENTS} or {REC_NOFAINT} without fainting.
+When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH_KM} km without a stop, {REC_DAY_KM} km in a day, {REC_STOPS} places in a day, {REC_CENTS} held, or {REC_NOFAINT} without fainting.
 ## Fainting and hospital {fainting}
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 

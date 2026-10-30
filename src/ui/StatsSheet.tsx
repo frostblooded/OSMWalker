@@ -5,7 +5,7 @@ import { isTreasured, SLOTS, type Item, type Rarity, type Slot } from "../core/i
 import { euro } from "../core/money";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
-import { speed } from "./format";
+import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -78,16 +78,14 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
   );
 }
 
-const km = (m: number) => `${n1(m / 1000)} km`;
-
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
   return (
     <Card icon="🏆" title="Records">
       <div class="zebra">
-        <KV k="🚶 Longest walk without a stop" v={km(r.best.stretchM)} />
-        <KV k="📏 Most walked in a day" v={km(r.best.dayM)} />
+        <KV k="🚶 Longest walk without a stop" v={dist(r.best.stretchM)} />
+        <KV k="📏 Most walked in a day" v={dist(r.best.dayM)} />
         <KV k="📍 Most places in a day" v={r.best.dayStops} />
         <KV k="💰 Most money held" v={euro(r.best.cents)} />
         <KV k="❤ Longest without fainting" v={span(r.best.noFaintS)} />
