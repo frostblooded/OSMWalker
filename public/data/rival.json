@@ -1,10 +1,10 @@
 [
-  {"id": "job", "at": ["office", "town_hall", "shop", "restaurant", "cafe"], "attr": "cha", "text": "is after the same day's work at {PLACE}", "won": "He gets it; Viktor storms off.", "lost": "Viktor gets it and tips his hat."},
-  {"id": "table", "at": ["cafe", "restaurant", "bar", "beer"], "attr": "str", "text": "goes for the last window table at {PLACE}", "won": "He sits first.", "lost": "Viktor is already in the chair."},
-  {"id": "chess", "at": ["park", "garden", "chess", "cafe", "library"], "attr": "wit", "text": "challenges him to chess at {PLACE}", "won": "Checkmate in thirty moves.", "lost": "Viktor wins and resets the board, smiling."},
-  {"id": "quiz", "at": ["beer", "bar", "library", "college"], "attr": "wit", "text": "is on the other team at {PLACE}", "won": "His team wins by a point.", "lost": "Viktor's team wins by a point."},
-  {"id": "croissant", "at": ["bakery", "cafe", "grocery"], "attr": "luck", "text": "reaches for the last croissant at {PLACE}", "won": "He gets it.", "lost": "Viktor takes it, slowly."},
-  {"id": "photo", "at": ["monument", "attraction", "castle", "memorial", "fountain", "museum"], "attr": "luck", "text": "wants the same photo spot at {PLACE}", "won": "He gets the shot.", "lost": "Viktor's shot is better and he says so."},
-  {"id": "arm", "at": ["bar", "beer", "fitness_centre", "sports_centre"], "attr": "str", "text": "offers an arm-wrestle at {PLACE}", "won": "He wins; Viktor rubs his wrist.", "lost": "Viktor wins, barely."},
-  {"id": "race", "at": ["bus", "railway", "ferry_terminal", "park"], "attr": "str", "text": "races him to the corner by {PLACE}", "won": "He gets there first.", "lost": "Viktor waits at the corner, not out of breath."}
+  { "id": "job", "at": ["office", "town_hall", "shop", "restaurant", "cafe"], "attr": "cha", "text": "is after the same day's work at {PLACE}", "won": "He gets it; Viktor storms off.", "lost": "Viktor gets it and tips his hat." },
+  { "id": "table", "at": ["cafe", "restaurant", "bar", "beer"], "attr": "str", "text": "goes for the last window table at {PLACE}", "won": "He sits first.", "lost": "Viktor is already in the chair." },
+  { "id": "chess", "at": ["park", "garden", "chess", "cafe", "library"], "attr": "wit", "text": "challenges him to chess at {PLACE}", "won": "Checkmate in thirty moves.", "lost": "Viktor wins and resets the board, smiling." },
+  { "id": "quiz", "at": ["beer", "bar", "library", "college"], "attr": "wit", "text": "is on the other team at {PLACE}", "won": "His team wins by a point.", "lost": "Viktor's team wins by a point." },
+  { "id": "croissant", "at": ["bakery", "cafe", "grocery"], "attr": "luck", "text": "reaches for the last croissant at {PLACE}", "won": "He gets it.", "lost": "Viktor takes it, slowly." },
+  { "id": "photo", "at": ["monument", "attraction", "castle", "memorial", "fountain", "museum"], "attr": "luck", "text": "wants the same photo spot at {PLACE}", "won": "He gets the shot.", "lost": "Viktor's shot is better and he says so." },
+  { "id": "arm", "at": ["bar", "beer", "fitness_centre", "sports_centre"], "attr": "str", "text": "offers an arm-wrestle at {PLACE}", "won": "He wins; Viktor rubs his wrist.", "lost": "Viktor wins, barely." },
+  { "id": "race", "at": ["bus", "railway", "ferry_terminal", "park"], "attr": "str", "text": "races him to the corner by {PLACE}", "won": "He gets there first.", "lost": "Viktor waits at the corner, not out of breath." }
 ]
