@@ -28,7 +28,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
-The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count.
+The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count. On a bus, a plane or in his car the weather doesn't reach him.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
 
@@ -218,6 +218,8 @@ What the weather does to him:
 - Hot ({HOT_C}°C or more): he gets thirsty {HOT_THIRST} times as fast, and ice cream, fountains and pools pull his goal {HOT_COOL} times as much.
 - Freezing ({COLD_C}°C or less): he loses {COLD_ENERGY_PER_H} energy more an hour.
 - Sunny (clear, {SUNNY_MIN_C}°C to below {HOT_C}°C, while the sky isn't yet dark): his mood gets {SUNNY_MOOD_PER_H} back an hour.
+
+While he rides a bus, a plane or his car the weather doesn't reach him.
 
 Some actions only happen in the right weather, such as hot chocolate while it pours, a snowman in the park or watching the sunset (see Requirements). The top card and the Stats sheet show the weather now.
 ## Seasons {seasons}

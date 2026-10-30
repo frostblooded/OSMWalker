@@ -447,6 +447,23 @@ describe("game", () => {
       expect(again.stats.sky?.weather?.kind).toBe("snow");
     });
 
+    it("keeps the weather off him while he rides", async () => {
+      const { api } = weatherApi(63, 35);
+      const { g } = game({ api, clock: () => NOW, roll: 0.1 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      run(g, 2);
+      expect(g.stats.sky?.weather?.kind).toBe("rain");
+      g.stats.cents = 50_000;
+      g.skipRoll = false;
+      g.debugNewGoal();
+      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      run(g, 2);
+      expect(g.walker!.isTraveling()).toBe(true);
+      expect(g.stats.sky?.weather).toBeNull();
+    });
+
     it("finds shops closed at night and does nothing there", async () => {
       const { g } = game({ places: [SHOP], hour: () => 23 });
       await g.startCity("Sofia, Bulgaria", ...START, null);

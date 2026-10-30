@@ -133,7 +133,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (text.startsWith("Bought")) s.bought.push(text);
   };
   const leftMin = () => (coveredS - elapsed) / 60;
-  const skyNow = () => (stats.sky = deps.skyAt(startMs + elapsed * 1000, city));
+  /** True during a ride, when the weather can't reach him. */
+  let riding = false;
+  const skyNow = () => {
+    const sky = deps.skyAt(startMs + elapsed * 1000, city);
+    return (stats.sky = riding ? { ...sky, weather: null } : sky);
+  };
 
   /** Lets `minutes` pass, `walkedM` of them on foot (or in his vehicle). */
   const pass = (minutes: number, walkedM: number) => {
@@ -257,7 +262,9 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     stats.cents -= plan.fare;
     const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
     stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    riding = true;
     pass(rideMin, 0);
+    riding = false;
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
     s.cities.push(city.name);
