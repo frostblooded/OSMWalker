@@ -309,7 +309,7 @@ export function values(data: GameData): Record<string, string> {
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
     PACK_SIZE: String(CC.PACK_SIZE),
-    CARD_SHOPS: Object.values(CC.CARD_SHOPS).join(", ").replace(/, ([^,]*)$/, " and $1"),
+    CARD_SHOPS: CC.CARD_SHOP_NAMES,
     PACK_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.pack)?.cost ?? 0)),
     PULL_RARE_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Rare")![1]),
     PULL_UNCOMMON_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Uncommon")![1]),

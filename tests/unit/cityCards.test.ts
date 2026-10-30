@@ -45,9 +45,15 @@ describe("the pool", () => {
     expect(pool.byKey.get("A:A2")!.rarity).toBe("Uncommon");
     expect(pool.byKey.get("A:A3")!.rarity).toBe("Common");
     expect(pool.byKey.has("A:A10")).toBe(false);
-    expect(pool.perCountry.get("B")).toBe(2);
+    expect(pool.byCountry.get("B")).toHaveLength(2);
     const real = CC.pool(parseCities(dataFile("cities.tsv")));
     expect(real.cards.length).toBeGreaterThan(1000);
+    expect(real.byKey.size).toBe(real.cards.length);
+  });
+
+  it("gives a name that two towns share to the bigger one only", () => {
+    const p = CC.pool([city("Springfield", "C", 100), city("Springfield", "C", 90), city("Salem", "C", 80)]);
+    expect(p.cards.map((c) => [c.name, c.rarity])).toEqual([["Springfield", "Rare"], ["Salem", "Uncommon"]]);
   });
 
   it("pulls by the rarity odds, then a city of that rarity", () => {
@@ -125,6 +131,16 @@ describe("spares and sets", () => {
     expect(stats.attr("cha")).toBe(charm + CC.SET_CHARM);
     stats.arrive("A0", "A", "A-land");
     expect(stats.attr("cha")).toBe(charm);
+  });
+
+  it("works his sets out again when the pool changes, and has no pool when it is empty", () => {
+    stats.keepsakes.cityCards.set("B:B0", { finish: "", t: 0 });
+    stats.keepsakes.sets = ["A"];
+    stats.setCityPool(CC.pool(CITIES.filter((c) => c.name !== "B1")));
+    expect(stats.keepsakes.sets).toEqual(["B"]);
+    stats.setCityPool(CC.pool([]));
+    expect(stats.cityPool).toBeNull();
+    expect(stats.canDo(pack, 12)).toBe(false);
   });
 
   it("saves them, and loads old saves with none", () => {

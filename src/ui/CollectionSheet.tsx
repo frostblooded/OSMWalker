@@ -34,7 +34,7 @@ function CityCards({ stats: s }: { stats: Stats }) {
   if (!pool) return null;
   const owned = pool.cards.filter((c) => k.cityCards.has(c.key));
   const finishes = [...k.cityCards.values()];
-  const countries = [...new Set(owned.map((c) => c.code))].map((code) => ({ code, country: owned.find((c) => c.code === code)!.country, has: owned.filter((c) => c.code === code).length, of: pool.perCountry.get(code) ?? 0 }));
+  const countries = [...new Set(owned.map((c) => c.code))].map((code) => ({ code, country: owned.find((c) => c.code === code)!.country, has: owned.filter((c) => c.code === code).length, of: pool.byCountry.get(code)?.length ?? 0 }));
   return (
     <Card icon="🎴" title="City cards" right={`${owned.length} / ${pool.cards.length}`}>
       {CARD_RARITIES.map((r) => (
@@ -51,7 +51,7 @@ function CityCards({ stats: s }: { stats: Stats }) {
           </div>
         </Collapsible>
       ) : (
-        <p class="dim small">None yet. He opens a free pack when he levels up or reaches a new city or country, and buys packs at kiosks.</p>
+        <p class="dim small">None yet. He opens a free pack when he levels up or reaches a new city or country, and buys packs at {CC.CARD_SHOP_NAMES}.</p>
       )}
     </Card>
   );

@@ -230,7 +230,7 @@ Strength unlocks physical actions: for example hauling for the butcher needs 3, 
 
 The number counted for requirements is his own strength plus every strength bonus on his gear.
 ## Charm {cha}
-Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments.
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards).
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
@@ -253,7 +253,7 @@ He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the f
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
-Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. On a tie, strength comes first, then charm, wits and luck.
+Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
 ## Fainting and hospital {fainting}
@@ -439,7 +439,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
-- Attributes: a tile for each, with the part his gear adds in green.
+- Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.

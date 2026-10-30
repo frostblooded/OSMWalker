@@ -113,7 +113,7 @@ export class Keepsakes {
   freePacks = 0;
   /** Cities ("code:name") and countries ("code") he has been to, for the free packs. */
   seen: string[] = [];
-  /** Countries whose whole city card set he has. */
+  /** Countries whose whole city card set he has; not saved, worked out again from his cards when the game sets the pool. */
   sets: string[] = [];
 
   /** Starts each day's and city's crawls over when the day or city changed. */
@@ -138,7 +138,6 @@ export class Keepsakes {
       spares: this.spares,
       freePacks: this.freePacks,
       seen: this.seen,
-      sets: this.sets,
     };
   }
 
@@ -156,7 +155,6 @@ export class Keepsakes {
     k.spares = d.spares ?? [];
     k.freePacks = d.freePacks ?? 0;
     k.seen = d.seen ?? [];
-    k.sets = d.sets ?? [];
     return k;
   }
 }

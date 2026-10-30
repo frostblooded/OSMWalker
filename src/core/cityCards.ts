@@ -23,6 +23,8 @@ export const PULL_ODDS: [Rarity, number][] = [
 ];
 /** Map kinds that sell packs and buy his spares, with their names for Help. */
 export const CARD_SHOPS: Record<string, string> = { "shop/kiosk": "kiosks", "shop/newsagent": "newsagents", "shop/gift": "gift shops" };
+/** "kiosks, newsagents and gift shops", for Help and the Collection. */
+export const CARD_SHOP_NAMES = Object.values(CARD_SHOPS).join(", ").replace(/, ([^,]*)$/, " and $1");
 /** What a spare fetches, in cents, by rarity; a Foil one is worth FOIL_MULT times that, a Gold one GOLD_MULT. */
 export const SPARE_CENTS: Partial<Record<Rarity, number>> = { Common: 10, Uncommon: 30, Rare: 100 };
 export const FOIL_MULT = 3;
@@ -31,7 +33,7 @@ export const GOLD_MULT = 10;
 export const SET_CHARM = 1;
 
 export type CityCard = { key: string; name: string; code: string; country: string; rarity: Rarity };
-export type Pool = { cards: CityCard[]; byRarity: Map<Rarity, CityCard[]>; byKey: Map<string, CityCard>; perCountry: Map<string, number> };
+export type Pool = { cards: CityCard[]; byRarity: Map<Rarity, CityCard[]>; byKey: Map<string, CityCard>; byCountry: Map<string, CityCard[]> };
 export type Owned = { finish: Finish; t: number };
 export type Spare = { rarity: Rarity; finish: Finish };
 
@@ -48,15 +50,21 @@ export function pool(cities: City[]): Pool {
     else byCountry.set(c.code, [c]);
   }
   const cards: CityCard[] = [];
-  const perCountry = new Map<string, number>();
+  const sets = new Map<string, CityCard[]>();
   for (const [code, list] of byCountry) {
-    const top = list.sort((a, b) => b.pop - a.pop).slice(0, CARDS_PER_COUNTRY);
-    perCountry.set(code, top.length);
-    top.forEach((c, i) => cards.push({ key: cardKey(code, c.name), name: c.name, code, country: c.country, rarity: i < RARE_UP_TO ? "Rare" : i < UNCOMMON_UP_TO ? "Uncommon" : "Common" }));
+    // Two towns of one name (Springfield, Portland) would share a key, so the smaller one gets no card.
+    const names = new Set(list.sort((a, b) => b.pop - a.pop).map((c) => c.name));
+    const top = [...names].slice(0, CARDS_PER_COUNTRY).map((name, i): CityCard => ({ key: cardKey(code, name), name, code, country: list[0]!.country, rarity: i < RARE_UP_TO ? "Rare" : i < UNCOMMON_UP_TO ? "Uncommon" : "Common" }));
+    sets.set(code, top);
+    cards.push(...top);
   }
   const byRarity = new Map<Rarity, CityCard[]>();
-  for (const c of cards) byRarity.set(c.rarity, [...(byRarity.get(c.rarity) ?? []), c]);
-  const p = { cards, byRarity, byKey: new Map(cards.map((c) => [c.key, c])), perCountry };
+  for (const c of cards) {
+    const list = byRarity.get(c.rarity);
+    if (list) list.push(c);
+    else byRarity.set(c.rarity, [c]);
+  }
+  const p = { cards, byRarity, byKey: new Map(cards.map((c) => [c.key, c])), byCountry: sets };
   built = { from: cities, pool: p };
   return p;
 }
@@ -75,5 +83,8 @@ export function pull(p: Pool, rng: Rng): { card: CityCard; finish: Finish } {
   const list = p.byRarity.get(rarity) ?? p.cards;
   return { card: list[Math.min(Math.floor(rng.randf() * list.length), list.length - 1)]!, finish: rollFinish(rng.randf()) };
 }
+
+/** True when `owned` holds every card of country `code`. */
+export const hasSet = (p: Pool, owned: Map<string, Owned>, code: string) => p.byCountry.get(code)?.every((c) => owned.has(c.key)) ?? false;
 
 export const spareCents = (s: Spare) => (SPARE_CENTS[s.rarity] ?? 0) * (s.finish === "gold" ? GOLD_MULT : s.finish === "foil" ? FOIL_MULT : 1);

@@ -336,6 +336,13 @@ export class Stats {
     return this.buffs.reduce((m, b) => m * b.xp_mult, 1);
   }
 
+  /** Sets the city card pool (none when it is empty) and works out his finished sets from it again, as the city list can change between versions. */
+  setCityPool(pool: CC.Pool): void {
+    this.cityPool = pool.cards.length ? pool : null;
+    const k = this.keepsakes;
+    k.sets = [...pool.byCountry.keys()].filter((code) => CC.hasSet(pool, k.cityCards, code));
+  }
+
   /** True when he has the coins, skills, level and timing for `action`. */
   canDo(action: Action, hour: number): boolean {
     if (action.pack && !this.cityPool) return false;
@@ -505,11 +512,10 @@ export class Stats {
     }
     const line = this.say(`${opening}: ${got.length ? `new ${got.join(", ")}` : "nothing new"}${spares ? `; ${spares} spare${spares > 1 ? "s" : ""}` : ""}`);
     for (const code of touched) {
-      if (k.sets.includes(code)) continue;
-      const cards = pool.cards.filter((c) => c.code === code);
-      if (!cards.every((c) => k.cityCards.has(c.key))) continue;
+      if (k.sets.includes(code) || !CC.hasSet(pool, k.cityCards, code)) continue;
       k.sets.push(code);
-      this.say(`Completed the ${cards[0]!.country} city card set! Charm +${CC.SET_CHARM} while in ${cards[0]!.country}`);
+      const { country } = pool.byCountry.get(code)![0]!;
+      this.say(`Completed the ${country} city card set! Charm +${CC.SET_CHARM} while in ${country}`);
     }
     return line;
   }
