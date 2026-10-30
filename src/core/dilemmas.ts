@@ -84,8 +84,11 @@ export const DILEMMAS: DilemmaKind[] = [
   },
 ];
 
-/** The chess game: his chance to win, from Wits. */
-export const chessWin = (wit: number) => Math.min(0.3 + 0.04 * wit, 0.8);
+/** The chess game: his chance to win is CHESS_BASE plus CHESS_PER_WIT a point of Wits, up to CHESS_MAX. */
+export const CHESS_BASE = 0.3;
+export const CHESS_PER_WIT = 0.04;
+export const CHESS_MAX = 0.8;
+export const chessWin = (wit: number) => Math.min(CHESS_BASE + CHESS_PER_WIT * wit, CHESS_MAX);
 
 const ATTR_NAMES: Record<Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
 

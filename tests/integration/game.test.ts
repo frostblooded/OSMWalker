@@ -8,7 +8,7 @@ import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { parseAirports, parseCities, type City } from "../../src/core/trips";
+import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -549,6 +549,16 @@ describe("game", () => {
       expect(again.city).toBe("Plovdiv, Bulgaria");
       expect(again.stats.cents).toBe(cents);
       expect(again.stats.history.entries.some((e) => e.text === "Hopped on a trucker's free ride to Plovdiv")).toBe(true);
+    });
+
+    it("turns a free ride down while he is on a paid one", async () => {
+      const { again } = await reopenDilemma("trucker");
+      const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
+      again.dilemma!.city = plovdiv!;
+      again.walker!.startTravel({ ...vidin!, bounds: cityBounds(vidin!) }, "bus");
+      again.chooseDilemma(0);
+      expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
+      expect(again.stats.history.latest()).toBe("Thanked the trucker and stayed");
     });
 
     it("goes on trips while away and lands him in the new city", async () => {

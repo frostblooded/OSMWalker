@@ -485,6 +485,8 @@ export class Game {
     if (awayS < MIN_AWAY_S) return;
     this.leaveDilemma();
     this.waking = true;
+    // Loads alongside the street wait; a reopen without it (offline before it was ever cached) just has no dilemma.
+    const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").catch(() => null);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
@@ -492,10 +494,10 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
+      const D = (this.dilemmas = await dilemmas);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
-      const D = (this.dilemmas ??= await import("../core/dilemmas"));
-      this.dilemma = D.rollDilemma(awayS, this.rng, (kind) => {
+      this.dilemma = D && D.rollDilemma(awayS, this.rng, (kind) => {
         const here = w.position();
         return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
       }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE);
@@ -597,9 +599,13 @@ export class Game {
 
   /** Applies a dilemma's outcome; a trip offer sends him to its city at once, free. */
   private settleDilemma(d: Dilemma, pick: number, by: "you" | "him"): void {
-    const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     const w = this.walker;
+    // A ride he has already paid for goes first, so he turns a free one down.
+    if (d.city && w?.isTraveling()) pick = 1;
+    const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     if (!o.trip || !d.city || !w) return;
+    // A free ride replaces a trip he is still walking to the station for, and its guess.
+    this.stats.care.guess = null;
     this.stats.history.breakTrail();
     w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
   }

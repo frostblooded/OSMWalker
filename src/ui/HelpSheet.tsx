@@ -23,6 +23,7 @@ export function HelpSheet({ data, page, onPage }: { data: GameData; page: string
   const [help, setHelp] = useState<Help | null>(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [tries, setTries] = useState(0);
   const hits = useMemo(() => (sections && help ? help.search(sections, query) : []), [sections, help, query]);
   useEffect(() => {
     Promise.all([fetchText(), import("./help")])
@@ -31,9 +32,24 @@ export function HelpSheet({ data, page, onPage }: { data: GameData; page: string
         setSections(h.build(t, data));
       })
       .catch(() => setError("Couldn't load Help. Check your connection and try again."));
-  }, [data]);
+  }, [data, tries]);
 
-  if (error) return <p class="notice error">✖ {error}</p>;
+  if (error) {
+    return (
+      <>
+        <p class="notice error">✖ {error}</p>
+        <button
+          class="btn"
+          onClick={() => {
+            setError("");
+            setTries(tries + 1);
+          }}
+        >
+          ↻ Try again
+        </button>
+      </>
+    );
+  }
   if (!sections || !help) {
     return (
       <p class="notice">
