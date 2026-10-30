@@ -14,7 +14,7 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import { ON_THE_TRAIL, type Place } from "../../src/core/stats";
-import { cityBounds, HITCH_BELOW, parseAirports, parseCities, type City } from "../../src/core/trips";
+import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
@@ -361,18 +361,28 @@ describe("game", () => {
     expect(g.stats.meters.energy).toBeGreaterThan(99);
   });
 
-  it("walks to a near town on the zoomed-out map, fed by hostels, and lands with the walk's reward", async () => {
-    const { g } = game();
+  it("walks to a near town on the zoomed-out map, fed by hostels, with no street downloads, and lands with the walk's reward", async () => {
+    const sofia = streets();
+    let asked = 0;
+    const { g } = game({ load: (t, o) => (asked++, sofia.load(t, o)) });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+    g.stats.cents = 10_000;
+    g.stats.ride(4000, "walk", "the road out of town", "Vidin, Bulgaria");
+    expect(g.stats.cents).toBe(6000);
+    expect(g.stats.buffNames()).toContain(ON_THE_TRAIL);
     g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
-    g.stats.addBuff({ name: ON_THE_TRAIL, min: 180, per_h: { fullness: 5 } });
     g.step(1);
-    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "walk", to: "Vidin" } });
-    expect(doing(g)).toMatch(/^travelling to Vidin by foot, \d+ km left$/);
-    for (let i = 0; i < 4 * 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "walking", ride: { mode: "walk", to: "Vidin" } });
+    expect(doing(g)).toMatch(/^travelling to Vidin on foot, \d+ km left$/);
+    const askedBefore = asked;
+    for (let i = 0; i < LONG_WALK_MAX_S - 60 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(asked).toBe(askedBefore);
+    g.stats.meters.mood = 50;
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
     expect(g.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
     expect(g.stats.buffNames()).not.toContain(ON_THE_TRAIL);
+    expect(g.stats.meters.mood).toBeGreaterThan(50);
   });
 
   it("lands fresh after a bus across the same time zones", async () => {

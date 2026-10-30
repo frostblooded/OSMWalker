@@ -3,6 +3,7 @@ import { euro } from "../../src/core/money";
 import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
+import { WALK } from "../../src/core/speeds";
 import type { Place } from "../../src/core/stats";
 import * as T from "../../src/core/trips";
 import { dataFile } from "../support/data";
@@ -204,9 +205,9 @@ describe("planTrip", () => {
     expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100, false, 0, 1, false, true)).toMatchObject({ mode: "hitch" });
   });
 
-  it("walks at real speed, capped at LONG_WALK_MAX_S", () => {
-    expect(T.rideS("walk", 5_000)).toBeCloseTo(3600, 0);
-    expect(T.rideS("walk", 100_000)).toBe(T.LONG_WALK_MAX_S);
+  it("a long walk always takes LONG_WALK_MAX_S, as even the shortest is longer at real pace", () => {
+    expect((T.LONG_WALK_MIN_M * T.ROAD_FACTOR) / WALK).toBeGreaterThan(T.LONG_WALK_MAX_S);
+    expect(T.rideS("walk", T.LONG_WALK_MIN_M * T.ROAD_FACTOR)).toBe(T.LONG_WALK_MAX_S);
   });
 
   it("cycles to a near town on his bike, for free", () => {

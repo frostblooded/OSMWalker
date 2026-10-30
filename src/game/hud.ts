@@ -38,7 +38,7 @@ export function hud(g: Game): Hud | null {
   let waiting: Hud["waiting"] = "";
   if (!resting && w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
   return {
-    doing: riding ? "riding" : resting ? "resting" : "walking",
+    doing: riding && riding.mode !== "walk" ? "riding" : resting && !riding ? "resting" : "walking",
     city: g.city.split(",")[0]!,
     ride: riding ? { mode: riding.mode, to: riding.to.name } : null,
     street: w.streetName(),
@@ -80,7 +80,7 @@ export function doing(g: Game): string {
   if (!w) return "not started";
   if (w.travel) {
     const t = w.travel;
-    return `travelling to ${t.to.name} by ${MODES[t.mode].by}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
+    return `travelling to ${t.to.name} ${MODES[t.mode].how}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
   }
   if (w.isResting()) return `staying ${w.restLeftS().toFixed(0)} s more at ${w.place?.name ?? "a spot"}`;
   const target = g.goalTarget();

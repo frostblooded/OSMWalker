@@ -47,7 +47,7 @@ export const HITCH_GOOD = 0.25;
 export const LONG_WALK_CHANCE = 0.15;
 export const LONG_WALK_MIN_M = 15_000;
 export const LONG_WALK_MAX_M = 80_000;
-/** A long walk goes at real walking speed, never longer than LONG_WALK_MAX_S of open play. */
+/** A long walk takes LONG_WALK_MAX_S of open play: even the shortest is longer at real walking speed. */
 export const LONG_WALK_MAX_S = 3 * 3600;
 /** He sleeps in a hostel every HOSTEL_EVERY_M of road, at HOSTEL_CENTS a night, and gets LONG_WALK_XP_PER_KM XP a km and LONG_WALK_MOOD mood at the end. */
 export const HOSTEL_EVERY_M = 25_000;
@@ -131,22 +131,22 @@ export function roll(r: number, boost = 1): Kind {
 const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH, walk: WALK };
 const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0, walk: 0 };
 /** How each way of travelling looks on screen and in the feed. */
-export const MODES: Record<Mode, { icon: string; by: string }> = {
-  bus: { icon: "🚌", by: "bus" },
-  plane: { icon: "✈", by: "plane" },
-  car: { icon: "🚗", by: "car" },
-  train: { icon: "🚆", by: "train" },
-  ferry: { icon: "⛴", by: "ferry" },
-  bike: { icon: "🚲", by: "bike" },
-  hitch: { icon: "👍", by: "a hitched lift" },
-  walk: { icon: "🥾", by: "foot" },
+export const MODES: Record<Mode, { icon: string; how: string }> = {
+  bus: { icon: "🚌", how: "by bus" },
+  plane: { icon: "✈", how: "by plane" },
+  car: { icon: "🚗", how: "by car" },
+  train: { icon: "🚆", how: "by train" },
+  ferry: { icon: "⛴", how: "by ferry" },
+  bike: { icon: "🚲", how: "by bike" },
+  hitch: { icon: "👍", how: "by a hitched lift" },
+  walk: { icon: "🥾", how: "on foot" },
 };
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
 export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
 
-/** Seconds a ride of `distanceM` takes; a long walk goes at real speed. */
+/** Seconds a ride of `distanceM` takes; a long walk always takes LONG_WALK_MAX_S. */
 export function rideS(mode: Mode, distanceM: number): number {
-  if (mode === "walk") return Math.min(distanceM / WALK, LONG_WALK_MAX_S);
+  if (mode === "walk") return LONG_WALK_MAX_S;
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
 }
 
