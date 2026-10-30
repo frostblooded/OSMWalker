@@ -22,8 +22,8 @@ export const NOT_A_PLACE_SUBCLASS = new Set(["bus_stop", "tram_stop", "subway_en
 /** A named street bridge is a place too, of this class; rank 10 (POIs are mostly 1 to 5) makes it a goal now and then. */
 export const BRIDGE = "bridge";
 export const BRIDGE_RANK = 10;
-/** A street name that already says bridge, in a few languages; others become "Bridge on <street>". */
-const BRIDGE_WORD = /bridge|brücke|brug|pont|puente|ponte|most|híd|köprü/i;
+/** A street name that already says bridge, in a few languages (a whole word, or the end of a compound like "Oberbaumbrücke"); others become "Bridge on <street>". */
+const BRIDGE_WORD = /(?<!\p{L})(bridge|pont|puente|ponte|most|мост)(?!\p{L})|(brücke|brug|híd|köprüsü|köprü)(?!\p{L})/iu;
 /** Edge cuts are rounded to this many units (about 2 m), so both tiles' clipped copies of a street meet. */
 const SNAP = 4;
 /** How close (in units, about 0.6 m) a dead end or other node must be to a segment to be joined onto it. */

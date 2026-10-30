@@ -93,6 +93,16 @@ describe("ofm streets", () => {
     expect(b[0]!.lon).toBeCloseTo(mid[1]!, 9);
   });
 
+  it("keeps a street name only when it says bridge as a word, or ends a compound with it", () => {
+    const named = (street: string) => {
+      const line = [100, 100, 200, 100];
+      const cell = fromLayers({ transportation: { extent: 4096, features: [{ tags: { class: "minor", brunnel: "bridge" }, lines: [line] }] }, transportation_name: { extent: 4096, features: [{ tags: { name: street, class: "minor" }, lines: [line] }] } }, WEST);
+      return cell.places[0]!.name;
+    };
+    for (const kept of ["Tower Bridge", "Pont Neuf", "Лъвов мост", "Oberbaumbrücke", "Erzsébet híd"]) expect(named(kept)).toBe(kept);
+    for (const street of ["Dupont Street", "Pontiac Avenue", "Bruges Road", "Uppermost Lane", "Bridgewater Road"]) expect(named(street)).toBe(`Bridge on ${street}`);
+  });
+
   it("finds the bridges in a real tile", () => {
     const b = fromPbf(pbf(EAST), EAST).places.filter((p) => p.class === BRIDGE);
     expect(b.map((p) => p.name)).toContain("Bridge on Черковна");
