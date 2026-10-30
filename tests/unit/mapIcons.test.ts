@@ -1,3 +1,5 @@
+// Map icons: which places get one (made-up places, real bus stations and
+// airports), nearest first and capped, and a picture for every icon name.
 import { describe, expect, it } from "vitest";
 import { ICON_CAP, ICON_OF, iconOf, placeIcons } from "../../src/core/mapIcons";
 import { ICONS } from "../../src/map/icons";

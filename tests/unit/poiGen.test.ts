@@ -1,3 +1,5 @@
+// Made-up places: must-haves for what a city lacks, extras and wizard towers
+// by city size, seeded per city, and made airports for big cities.
 import { describe, expect, it } from "vitest";
 import { ICON_OF } from "../../src/core/mapIcons";
 import * as G from "../../src/core/poiGen";
