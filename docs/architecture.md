@@ -10,7 +10,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 
 | Layer | Folder | What it holds |
 | --- | --- | --- |
-| Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core`; `HelpSheet.tsx` loads it as its own chunk, off the startup path, and the text when Help first opens. |
+| Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core` (and `snap.ts`); `HelpSheet.tsx` loads it as its own chunk, off the startup path, and the text when Help first opens. |
 | App | `src/app/` | `loop.ts` ticks the game while the page is visible. `data.ts` fetches `public/data/` once. `sound.ts` is the optional city sound, made with Web Audio and loaded only when it is turned on. |
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
