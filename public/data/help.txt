@@ -18,7 +18,7 @@ While the game is open on screen he lives in real time: one minute on your clock
 
 When you close the game or hide the tab, the time doesn't stop for him. When you come back, the time you were away passes for him in one go, and a "While you were away" card tells you what he did (see While you were away).
 
-The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over.
+The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over. If a save can't be read, the game says so and starts over, and keeps a copy of the old save on the device in case it can be fixed.
 ## While you were away {away}
 When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), that time passes for him at once, at full speed, the same as if you had watched. Only the first {MAX_AWAY_H} hours after you left count, so he lives through at most {MAX_AWAY_H} hours of a longer absence; the card says how much was left over.
 
