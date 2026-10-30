@@ -84,7 +84,7 @@ The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for
 ## Ley lines {ley_lines}
 Old lines of power run between the real churches and other places of worship, monuments, memorials and castles of his city: each one is joined to the nearest other one the game has loaded. Open the Stats sheet to see them on the map as dotted indigo lines.
 
-Walking within {LEY_NEAR_M} m of a line fills his Magic by {LEY_PER_KM} for every km, and charms him: {LEY_CHARM_LUCK} luck for {LEY_CHARM_MIN} minutes after he last walked along one. Reaching a place a line joins gives {LEY_BURST} Magic at once, once a day for each place. While you're away there is no map to walk along, but the real places he reaches still give their burst (the made-up ones of a city with no places loaded don't).
+Walking within {LEY_NEAR_M} m of a line fills his Magic by {LEY_PER_KM} for every km, and charms him: {LEY_CHARM_LUCK} luck for {LEY_CHARM_MIN} minutes after he last walked along one. Reaching any church, monument, memorial or castle gives {LEY_BURST} Magic at once, once a day for each place, as each is a point where the lines meet. While you're away there is no map to walk along, but the real places he reaches still give their burst (the made-up ones of a city with no places loaded don't).
 ## Spells {spells}
 Old books in real libraries and bookshops hide little spells. Each time he reaches one there is a {LEARN_PCT} chance he learns a spell he doesn't know yet (also while you're away, but not at a made-up library). He casts them himself, at most one at a time, paying in Magic:
 {SPELL_LIST}
