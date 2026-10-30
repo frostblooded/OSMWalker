@@ -3,7 +3,7 @@
 // and his buffs. Items with a story open to show it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
-import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
