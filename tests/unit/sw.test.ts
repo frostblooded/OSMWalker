@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAP_CACHE_MAX, strategyFor } from "../../src/sw/strategy";
+import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, strategyFor } from "../../src/sw/strategy";
 
 const here = "https://frostblooded.github.io/OSMWalker/";
 const s = (url: string, mode: RequestMode = "cors") => strategyFor(new URL(url, here), here, mode);
@@ -33,5 +33,13 @@ describe("service worker strategy", () => {
   it("leaves the save and other origins' pages alone", () => {
     expect(s(`${here}sw.js`)).toBeNull();
     expect(s("https://example.com/", "navigate")).toBeNull();
+  });
+
+  it("drops the oldest build files past the cap, never the page or game data", () => {
+    const assets = Array.from({ length: APP_ASSETS_MAX + 5 }, (_, i) => `${here}assets/chunk-${i}.js`);
+    const keys = [here, `${here}data/actions.json`, ...assets];
+    expect(overflow(keys, APP_ASSETS_MAX, (u) => u.startsWith(`${here}assets/`))).toEqual(assets.slice(0, 5));
+    expect(overflow(assets.slice(0, 3), APP_ASSETS_MAX, () => true)).toEqual([]);
+    expect(APP_ASSETS_MAX).toBeGreaterThan(40);
   });
 });
