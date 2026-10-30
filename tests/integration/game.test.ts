@@ -99,6 +99,37 @@ describe("game", () => {
     expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
   });
 
+  it("notices a public holiday once, fetches each country's list once a year, and keeps it on the device", async () => {
+    const asked: string[] = [];
+    const day = Date.UTC(2026, 2, 3, 10); // Liberation Day in Bulgaria
+    const api = new Api(async (url) => {
+      if (!url.includes("nager")) return new Response("", { status: 503 });
+      asked.push(url);
+      return new Response(JSON.stringify([{ date: "2026-03-03", name: "Liberation Day", localName: "Освобождение", global: true, types: ["Public"] }]));
+    });
+    const { g, storage } = game({ api, places: [CAFE], clock: () => day });
+    // The code table and the list both arrive in the background.
+    const settle = async (x: Game) => {
+      for (let i = 0; i < 100 && !x.holiday; i++) {
+        run(x, 1);
+        await new Promise((r) => setTimeout(r, 5));
+      }
+    };
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await settle(g);
+    expect(g.holiday?.name).toBe("Liberation Day");
+    const said = () => g.stats.history.entries.filter((e) => e.text.includes("Liberation Day")).map((e) => e.text);
+    expect(said()).toEqual(["It's Liberation Day (Освобождение) here, a public holiday"]);
+    run(g, 400);
+    expect(said()).toHaveLength(1);
+    expect(asked).toEqual(["https://date.nager.at/api/v3/PublicHolidays/2026/BG"]);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    await settle(again);
+    expect(again.holiday?.name).toBe("Liberation Day");
+    expect(asked).toHaveLength(1);
+  });
+
   it("keeps the walk across a save", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);

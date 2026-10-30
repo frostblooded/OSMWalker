@@ -11,6 +11,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
+import * as Holidays from "../core/holidays";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
@@ -21,7 +22,7 @@ import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
 import { Journey, type Where } from "./journey";
-import { DEFAULT_ZOOM, SaveFile, type KV } from "./saveFile";
+import { DEFAULT_ZOOM, SaveFile, type HolidayBook, type KV } from "./saveFile";
 
 export { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY } from "./saveFile";
 
@@ -72,6 +73,8 @@ export class Game {
   zoom = DEFAULT_ZOOM;
   /** Trivia actions for random spots, from Wikidata. */
   cityFacts: Action[] = [];
+  /** Today's public holiday where he is, or null. */
+  holiday: Holidays.Holiday | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -97,12 +100,19 @@ export class Game {
   private noPlacesWarned = "";
   private severeOf = "";
   private severeLogged = new Set<string>();
+  /** Holiday lists by "CC:year" (from the device, then Nager.Date), and lists being fetched. */
+  private holidayBook: HolidayBook;
+  private holidayAsked = new Set<string>();
+  /** Two-letter country codes, loaded on first use so the code table stays out of the startup script. */
+  private iso2: ((code: string) => string) | null = null;
+  private iso2Asked = false;
   private readonly rng: Rng;
   private readonly file: SaveFile;
 
   constructor(private readonly deps: GameDeps) {
     this.rng = deps.rng ?? new Rng();
     this.file = deps.storage === undefined ? new SaveFile() : new SaveFile(deps.storage);
+    this.holidayBook = this.file.readHolidays();
     this.trips = new Trips(deps.data.cities, deps.data.airports);
     this.journey = new Journey({ trips: this.trips, rng: this.rng, roll: deps.rollSource, route: (a, b) => deps.api.route(a, b), problem: (t) => this.problems.warn(t) });
     this.activities = new Activities(deps.data.actions, deps.data.flavour);
@@ -234,7 +244,7 @@ export class Game {
     this.track();
     const bonus = this.stats.visit(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
-    const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
+    const action = choose([...this.activities.forPlace(place, this.country, this.holiday !== null), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
@@ -468,6 +478,7 @@ export class Game {
       trips: this.trips,
       rng: this.rng,
       hourAt: (ms) => this.hour(ms),
+      holidayAt: (ms, code) => this.holidayOn(ms, code) !== null,
       roll: this.deps.rollSource,
       facts: this.cityFacts,
       skipRoll: this.skipRoll,
@@ -559,6 +570,7 @@ export class Game {
    */
   private checkCity(): void {
     const w = this.walker;
+    this.checkHoliday();
     if (!w || w.isTraveling()) {
       this.severeNow = [];
       return;
@@ -588,6 +600,46 @@ export class Game {
         `Loaded in the city box: ${sm.bus} bus stations, ${sm.airport} airports, ${sm.gas} gas stations, ${sm.dealer} car dealers, ${sm.earn} places that pay.`,
       ]);
     }
+  }
+
+  /** The holiday on the day of unix ms in the country with `code`, or null; fetches that year's list the first time it is missing. */
+  private holidayOn(ms: number, code: string): Holidays.Holiday | null {
+    if (!this.iso2) {
+      if (!this.iso2Asked) {
+        this.iso2Asked = true;
+        void import("../core/iso2").then((m) => (this.iso2 = m.iso2));
+      }
+      return null;
+    }
+    const cc = this.iso2(code);
+    if (!cc) return null;
+    const day = Holidays.dayOf(ms);
+    const key = `${cc}:${day.slice(0, 4)}`;
+    const list = this.holidayBook.lists[key];
+    if (list) return Holidays.on(list, ms);
+    if (!this.holidayAsked.has(key)) {
+      this.holidayAsked.add(key);
+      void this.deps.api.holidays(Number(day.slice(0, 4)), cc).then((got) => {
+        if (!got) return; // failed: asked again next session
+        this.holidayBook.lists[key] = got;
+        this.file.writeHolidays(this.holidayBook, new Date(this.now()).getFullYear());
+      });
+    }
+    return null;
+  }
+
+  /** Once a second: today's holiday where he is, told in the feed once a day. */
+  private checkHoliday(): void {
+    const now = this.now();
+    this.holiday = this.country ? this.holidayOn(now, this.country) : null;
+    const said = `${this.country}:${Holidays.dayOf(now)}`;
+    if (!this.holiday || this.holidayBook.said === said) return;
+    this.holidayBook.said = said;
+    this.file.writeHolidays(this.holidayBook, new Date(now).getFullYear());
+    const h = this.holiday;
+    const local = h.localName && h.localName !== h.name ? ` (${h.localName})` : "";
+    this.stats.say(`It's ${h.name}${local} here, a public holiday`);
+    this.changed();
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

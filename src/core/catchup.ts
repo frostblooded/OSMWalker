@@ -55,6 +55,8 @@ export type CatchUpDeps = {
   rng: Rng;
   /** The hour of day at unix ms, for actions that need a time of day. */
   hourAt: (ms: number) => number;
+  /** True when unix ms falls on a public holiday in the country with that code. */
+  holidayAt?: (ms: number, code: string) => boolean;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   roll?: () => number;
   /** Trivia actions for the city he starts in. */
@@ -183,7 +185,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
       } else stats.say(`Reached ${place.name}`);
       s.stops++;
-      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
+      const at = startMs + elapsed * 1000;
+      const action = choose([...activities.forPlace(place, city.code, deps.holidayAt?.(at, city.code) ?? false), ...facts], stats, deps.hourAt(at), rng.randf());
       if (action) stats.do(action, place.name, rng);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;

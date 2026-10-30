@@ -4530,5 +4530,56 @@
     "xp": 5
    }
   }
+ ],
+ "_holiday": [
+  {
+   "name": "Watch the holiday parade",
+   "min": 30,
+   "fx": {
+    "mood": 15,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Join a family's holiday picnic",
+   "min": 40,
+   "fx": {
+    "fullness": 25,
+    "mood": 12,
+    "cha": 0.1,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Toast the holiday with strangers",
+   "min": 15,
+   "cost": 3,
+   "fx": {
+    "thirst": 20,
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Hear the holiday bells and speeches",
+   "min": 20,
+   "fx": {
+    "mood": 8,
+    "wit": 0.1,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Watch the holiday fireworks",
+   "min": 20,
+   "fx": {
+    "mood": 20,
+    "xp": 10
+   },
+   "needs": {
+    "time": "night"
+   }
+  }
  ]
 }

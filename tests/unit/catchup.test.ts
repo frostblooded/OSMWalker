@@ -42,6 +42,18 @@ describe("catch-up", () => {
     expect(MAX_AWAY_S).toBe(24 * 3600);
   });
 
+  it("does holiday things on a public holiday there", () => {
+    const holidayLines = (holiday: boolean) => {
+      const asked: string[] = [];
+      const s = catchUp(new Stats(), HOME, [0, 0], 6 * 3600, START_MS, deps({ holidayAt: (_ms, code) => (asked.push(code), holiday) }));
+      return { lines: s.lines.filter((l) => /holiday/.test(l.text)), asked };
+    };
+    const on = holidayLines(true);
+    expect(on.lines.length).toBeGreaterThan(0);
+    expect(on.asked).toContain("AAA");
+    expect(holidayLines(false).lines).toEqual([]);
+  });
+
   it("lets the time pass for his body", () => {
     const stats = new Stats();
     const before = stats.meters.hygiene;

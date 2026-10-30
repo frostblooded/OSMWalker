@@ -1,8 +1,9 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
 // (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
-// for road routes between cities, Wikidata for city trivia and Nominatim for
-// city outlines. Fetch is injected, so it is easy to test.
+// for road routes between cities, Wikidata for city trivia, Nominatim for
+// city outlines and Nager.Date for public holidays. Fetch is injected, so it is easy to test.
 import * as CityFacts from "../core/cityFacts";
+import * as Holidays from "../core/holidays";
 import type { BBox, Tile } from "../core/geo";
 import type { Cell, OverpassData } from "../core/graph";
 import { fromPbf, TILE_ZOOM } from "../core/ofm";
@@ -274,6 +275,25 @@ export class Api {
   async cityFacts(lat: number, lon: number): Promise<CityFacts.Row[]> {
     const data = (await this.getJson(CityFacts.url(lat, lon), 30)) as { results?: { bindings?: CityFacts.Row[] } } | null;
     return data?.results?.bindings ?? [];
+  }
+
+  /** A country's public holidays in `year`: [] when Nager.Date has none for it (204 or 404), null when the request fails. */
+  async holidays(year: number, cc2: string): Promise<Holidays.Holiday[] | null> {
+    const url = Holidays.url(year, cc2);
+    try {
+      const res = await this.fetchFn(url, { signal: AbortSignal.timeout(30_000) });
+      if (res.status === 204 || res.status === 404) return [];
+      if (res.status !== 200) {
+        this.fail(url, describeFailure(res.status));
+        return null;
+      }
+      const list = Holidays.parse(await res.json());
+      if (!list) this.fail(url, "answer was not a holiday list");
+      return list;
+    } catch (e) {
+      this.fail(url, describeFailure(e as Error));
+      return null;
+    }
   }
 
   /** The road route between two points, or [] on failure. */
