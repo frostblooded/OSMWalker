@@ -18,6 +18,7 @@ const data = {
   airports: parseAirports(dataFile("airports.tsv")),
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
   forecasts: JSON.parse(dataFile("forecasts.json")),
+  incidents: JSON.parse(dataFile("incidents.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);

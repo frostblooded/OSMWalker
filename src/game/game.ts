@@ -23,10 +23,12 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Incident } from "../core/incidents";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
+import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
@@ -53,7 +55,7 @@ export const CATCHUP_SLICE_MS = 8;
 /** Cities whose made-up places the save keeps; the oldest is dropped first. */
 export const MADE_CITIES = 20;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -293,6 +295,8 @@ export class Game {
     this.stats.collect(place, this.cardRng);
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
+    // Incidents roll on the card dice, so they leave his walk the same.
+    this.stats.happen(place, this.hour(), this.cardRng);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
@@ -434,13 +438,14 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the forecasts and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
+    this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -723,6 +728,14 @@ export class Game {
   setSound(on: boolean): void {
     this.sound = on;
     this.saveSettings();
+    this.changed();
+  }
+
+  /** Switches to the next storyteller (Calm, Classic, Chaotic, then Calm again); it paces from the next stop on. */
+  nextStoryteller(): void {
+    const s = this.stats.story;
+    s.style = STYLES[(STYLES.indexOf(s.style) + 1) % STYLES.length]!;
+    this.save();
     this.changed();
   }
 

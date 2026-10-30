@@ -144,6 +144,33 @@ describe("game", () => {
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
 
+  it("hands his stats the incident deck, and the storyteller brings one at a place he reaches, on its own dice", async () => {
+    const plain = game({ places: [CAFE] }).g;
+    await plain.startCity("Sofia, Bulgaria", ...START, null);
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }, { id: "mime", icon: "🤡", tone: "odd", text: "A mime at {PLACE}.", say: "He copies him." }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.incidents).toHaveLength(2);
+    plain.stats.story.tension = g.stats.story.tension = 100;
+    run(plain, 3 * 3600);
+    run(g, 3 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts.some((t) => /^(🐕 A dog|🤡 A mime) at Cafe Near/.test(t))).toBe(true);
+    // His walk is the same as without incidents.
+    expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
+  });
+
+  it("switches the storyteller from the menu and keeps it in the save", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.story.style).toBe("classic");
+    g.nextStoryteller();
+    expect(g.stats.story.style).toBe("chaotic");
+    g.nextStoryteller();
+    expect(g.stats.story.style).toBe("calm");
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.story.style).toBe("calm");
+  });
+
   it("an Explore whisper pulls each place he has never been to, not its whole kind", async () => {
     const OLD: Place = { ...CAFE, name: "Cafe Old", lat: 42.6875, lon: 23.3205 };
     const { g } = game({ places: [OLD, CAFE] });

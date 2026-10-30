@@ -142,6 +142,7 @@ a.btn { color: inherit; text-decoration: none; }
 .field:focus { outline: none; box-shadow: 0 0 0 3px var(--accent); }
 .postcard-line { font-style: italic; }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
+.toast.story { border-color: var(--accent-dark); background: var(--zebra); font-weight: 700; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
 /* Only zoom and the menu sit on the map, at the bottom right in reach of the thumb. */

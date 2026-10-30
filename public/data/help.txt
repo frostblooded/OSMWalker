@@ -305,8 +305,9 @@ Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing
 ## Luck {luck}
 Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
 
-Luck does three things:
+Luck does four things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
+- Fewer bad incidents: the same cut makes an incident less likely to be a bad one (see The storyteller).
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
 - Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, more on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
@@ -515,6 +516,26 @@ When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} fo
 At chess he wins {CHESS_BASE_PCT} of the time, plus {CHESS_PER_WIT_PCT} for each point of Wits, up to {CHESS_MAX_PCT}.
 
 A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for, and its guess.
+# 📖 Stories
+## The storyteller {storyteller}
+A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.
+
+Below {FIRE_AT} nothing happens. Above it, each place he reaches may bring an incident (see Incidents), likelier the higher the tension: none at {FIRE_AT}, {FIRE_MAX_PCT} of stops at {TENSION_MAX}.
+
+An incident is good, bad or odd. The share of bad ones depends on the storyteller: {STORY_BAD}. Luck makes bad ones rarer, the same way it makes mishaps rarer (see Luck). After a bad one the tension drops to 0, and for {LUCKY_H} hours only good or odd things happen. A good or odd one leaves {KEEP_AFTER_GOOD_PCT} of the tension. The last {RECENT_INCIDENTS} incidents don't come again while another one fits.
+
+Pick the storyteller in ☰ Menu → Storyteller: each tap switches between Calm, Classic and Chaotic. It starts on Classic, is kept with his game, and counts from his next stop. It runs while you are away too.
+## Incidents {incidents}
+Incidents are things that happen to him, not things he chooses to do: a stray dog follows him, a wedding waves him in for cake, a pickpocket brushes past. The storyteller decides when (see The storyteller). There are {INCIDENT_COUNT}: {GOOD_INCIDENTS} good, {BAD_INCIDENTS} bad and {ODD_INCIDENTS} odd.
+
+Some only happen at some places (a wedding at a church or town hall, food poisoning at a restaurant or snack bar), at some times (quiz night at a pub in the evening), or while he gets about a certain way (a bike thief only when he rides a bike, a parking ticket only by car or motorbike, and a few only on a fantasy mount).
+
+Each one is a line in his History that starts with its icon, and the line over the map stands out: bold, on a shaded card with an orange edge.
+
+A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one item from his bag, but never his gear or a treasured item. A high enough attribute wards some off:
+{GUARD_LIST}
+
+{CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. He picks by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. Nothing waits for you.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -523,7 +544,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
