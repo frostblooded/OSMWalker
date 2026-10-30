@@ -504,7 +504,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.

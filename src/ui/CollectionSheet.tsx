@@ -120,20 +120,20 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
   const tiers = [3, 2, 1].map((t) => C.FEATS.filter((f) => C.tierHeld(f, s) === t).length);
   return (
     <>
-        <Card icon="🗂" title="Completion" right={`${pct(got, total)}%`}>
-          <Bar share={total ? got / total : 0} color="var(--ok)" />
-          <KV k="🏅 Badges" v={`🥇 ${tiers[0]} · 🥈 ${tiers[1]} · 🥉 ${tiers[2]}`} />
-          <KV k="🎖 Title" v={s.keepsakes.title || "none yet"} />
-        </Card>
-        <div class="tabs" role="tablist">
-          {C.TABS.map((t) => (
-            <button key={t.id} role="tab" aria-selected={tab === t.id} class={`tab${tab === t.id ? " on" : ""}`} onClick={() => pick(t.id)}>
-              <span aria-hidden="true">{t.icon}</span>
-              <span class="small">{t.name}</span>
-            </button>
-          ))}
-        </div>
-        {tab === "feats" ? <Feats stats={s} /> : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} stats={s} />)}
+      <Card icon="🗂" title="Completion" right={`${pct(got, total)}%`}>
+        <Bar share={total ? got / total : 0} color="var(--ok)" />
+        <KV k="🏅 Badges" v={`🥇 ${tiers[0]} · 🥈 ${tiers[1]} · 🥉 ${tiers[2]}`} />
+        <KV k="🎖 Title" v={s.keepsakes.title || "none yet"} />
+      </Card>
+      <div class="tabs" role="tablist">
+        {C.TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} class={`tab${tab === t.id ? " on" : ""}`} onClick={() => pick(t.id)}>
+            <span aria-hidden="true">{t.icon}</span>
+            <span class="small">{t.name}</span>
+          </button>
+        ))}
+      </div>
+      {tab === "feats" ? <Feats stats={s} /> : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} stats={s} />)}
     </>
   );
 }

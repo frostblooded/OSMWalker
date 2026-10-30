@@ -123,8 +123,8 @@ export class SaveFile {
         origin: d.origin,
         zoom: d.zoom || DEFAULT_ZOOM,
         walker,
-        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (with the items he owned,
-        // from his gear and bag, and no badges yet), where he is, item stories and the week. The day's stops that older saves carry are dropped.
+        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
+        // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories and the week. The day's stops that older saves carry are dropped.
         stats: Stats.fromJSON(d.stats),
         debugLog: DebugLog.fromJSON(d.debug_log),
         savedAt: d.saved_at ?? 0,
