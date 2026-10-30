@@ -16,7 +16,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
 | Streets | `src/streets/` | The Web Worker that fetches, decodes and caches street tiles (`source.ts`), and `loader.ts`, which picks which tiles to load next. |
 | Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
-| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, clovers and care packages (`gifts.ts`), and `catchup.ts`, which lives through the time the game was closed without walking the map. |
+| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, clovers and care packages (`gifts.ts`), guessing his next trip (`guess.ts`), and `catchup.ts`, which lives through the time the game was closed without walking the map. |
 | Offline | `src/sw/` | The service worker and its cache rules, built on its own. |
 
 ## Hidden links

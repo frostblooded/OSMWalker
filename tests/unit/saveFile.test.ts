@@ -71,7 +71,7 @@ describe("save file", () => {
     delete d.stats.care;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "" });
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "", guess: null });
     expect(back.stats.cents).toBe(4321);
   });
 
