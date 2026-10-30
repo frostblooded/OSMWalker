@@ -75,6 +75,8 @@ export type Leg = { airM: number; groundM: number; afoot: boolean };
  * His way from `from` to `to`: the streets (ROAD_FACTOR x the straight
  * line), or on a flying mount, by the rules of walker.ts takeOff, a straight
  * flight to a park or garden near `to` and a walk on foot from there.
+ * There are no streets here, so takeOff's check for a corner within SNAP_M
+ * of the park is left out.
  */
 export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | null): Leg {
   const line = distanceM(from[0], from[1], to[0], to[1]);
