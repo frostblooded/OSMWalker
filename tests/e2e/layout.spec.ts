@@ -170,6 +170,11 @@ for (const width of [360, 412]) {
       await reopenDeparting(page);
       await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
       await check(page, "guess");
+
+      await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)", t: 0 })}`);
+      await page.reload(); // only the fragment changed, so the page has to load again to read it
+      await expect(page.getByRole("dialog", { name: "📮 Postcard" })).toBeVisible({ timeout: 20000 });
+      await check(page, "postcard-in-game");
     });
   });
 }

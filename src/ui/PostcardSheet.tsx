@@ -65,18 +65,13 @@ export function PostcardSheet({ card, name, onName }: { card: Postcard; name: st
   );
 }
 
-/** A postcard a friend sent; "Send one back" when there is a game to write from. */
+/** A postcard a friend sent: "Send one back" in a game (its sheet has ✕ Close), else "Start my own walk". */
 export function ReceivedSheet({ card, onReply, onDone }: { card: Postcard; onReply?: () => void; onDone: () => void }) {
   return (
     <>
       <PostcardView card={card} />
-      {onReply && (
-        <button class="btn primary" onClick={onReply}>
-          📮 Send one back
-        </button>
-      )}
-      <button class={`btn${onReply ? "" : " primary"}`} onClick={onDone}>
-        {onReply ? "Close" : "Start my own walk"}
+      <button class="btn primary" onClick={onReply ?? onDone}>
+        {onReply ? "📮 Send one back" : "Start my own walk"}
       </button>
     </>
   );
