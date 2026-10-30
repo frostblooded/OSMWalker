@@ -373,8 +373,8 @@ export class Stats {
         how = caught ? " without a ticket, got caught and was fined" : " without a ticket";
       }
     }
-    // His partner comes along, or maybe a fellow traveller who splits the fare; own dice, so the dodge's stay the same.
-    const { back, with: company } = this.friends.board(paid, this.friendData, new Rng(seedOf(`${to}${station}${this.now()}`)));
+    // His partner comes along, or maybe a fellow traveller who splits the fare he paid (not a fine); own dice, so the dodge's stay the same.
+    const { back, with: company } = this.friends.board(how ? 0 : paid, this.friendData, new Rng(seedOf(`${to}${station}${this.now()}`)));
     paid -= back;
     this.cents -= paid;
     return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${company}${paid ? ` (${signed(-paid)})` : ""}`;

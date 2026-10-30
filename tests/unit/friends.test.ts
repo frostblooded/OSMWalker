@@ -1,12 +1,12 @@
 // The people in his life (src/core/friends.ts): locals and their hearts, meet-ups, a partner, fellow travellers.
 import { describe, expect, it } from "vitest";
 import * as F from "../../src/core/friends";
-import type { Rng } from "../../src/core/rng";
+import { Rng, seedOf } from "../../src/core/rng";
+import * as B from "../../src/core/bond";
 import { Stats } from "../../src/core/stats";
 import { dataFile } from "../support/data";
 
 const DATA = JSON.parse(dataFile("friends.json")) as F.FriendData;
-const ACTIONS = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
 
 /** An Rng whose rolls come from `rolls` in turn, and whose picks take the first. */
 const fixed = (...rolls: number[]) => ({ randf: () => rolls.shift() ?? 0, pick: <T>(l: readonly T[]) => l[0]! }) as unknown as Rng;
@@ -20,7 +20,6 @@ describe("friends", () => {
     expect(DATA.icons.length).toBeGreaterThan(0);
     expect(DATA.companions.length).toBeGreaterThanOrEqual(4);
     for (const c of DATA.companions) expect(c.lines.length, c.who).toBeGreaterThan(0);
-    expect(Object.keys(ACTIONS).length).toBeGreaterThan(0);
   });
 
   it("meets a new local now and then where he knows no one who hangs out there", () => {
@@ -98,10 +97,12 @@ describe("friends", () => {
     const back = F.Friends.fromJSON(JSON.parse(JSON.stringify(f)));
     expect(back).toEqual(f);
     expect(F.Friends.fromJSON(undefined)).toEqual(new F.Friends());
-    const bad = F.Friends.fromJSON({ list: [local({ hearts: 99 }), null, { id: 1 }], partner: "gone", companion: { who: "x", lines: [] } });
+    const bad = F.Friends.fromJSON({ list: [local({ hearts: 99 }), null, { id: 1 }, { id: "y", name: "Ben" }], partner: "gone", companion: { who: "x", lines: [] } });
     expect(bad.list).toHaveLength(1);
     expect(bad.list[0]!.hearts).toBe(F.HEARTS_MAX);
     expect(bad).toMatchObject({ partner: "", companion: null });
+    for (const companion of [{ who: "x", icon: "🎒", lines: ["Hi"] }, { who: "x", lines: ["Hi"], left: 2 }, { who: "x", icon: "🎒", lines: ["Hi"], left: 0 }])
+      expect(F.Friends.fromJSON({ companion }).companion, JSON.stringify(companion)).toBeNull();
   });
 });
 
@@ -130,6 +131,34 @@ describe("friends in his stats", () => {
     s.friends.partner = "x";
     expect(s.ride(1000, "train", "Central", "Plovdiv, Bulgaria")).toBe("Took the train to Plovdiv, Bulgaria from Central, with Ana 👩 (-€10)");
     expect(s.cents).toBe(3000);
+  });
+
+  it("gets half the fare back from a fellow traveller, but never half a fine", () => {
+    const s = new Stats();
+    s.cents = 5000;
+    s.friendData = { ...DATA, companions: [DATA.companions[0]!] };
+    // Dice where a companion joins this ride.
+    const joins = (n: number) => new Rng(seedOf(`Plovdiv, BulgariaCentral${n}`)).randf() < F.COMPANION_CHANCE;
+    let t = 0;
+    while (!joins(t)) t++;
+    s.now = () => t;
+    const c = DATA.companions[0]!;
+    expect(s.ride(1000, "train", "Central", "Plovdiv, Bulgaria")).toBe(`Took the train to Plovdiv, Bulgaria from Central; a ${c.who} ${c.icon} joins him and they split the fare (-€5)`);
+    expect(s.cents).toBe(4500);
+    expect(s.friends.companion).not.toBeNull();
+    // A rascal caught without a ticket pays all of his fine, whoever joins.
+    const r = new Stats();
+    r.cents = 5000;
+    r.friendData = s.friendData;
+    r.now = () => t;
+    r.bond.lean = -100;
+    const caught = Array.from({ length: 2000 }, (_, i) => i).find((i) => {
+      const d = new Rng(seedOf(`Central${i}`));
+      return d.randf() < B.DODGE_CHANCE && d.randf() < B.CAUGHT_CHANCE && joins(i);
+    })!;
+    r.now = () => caught;
+    expect(r.ride(1000, "bus", "Central", "Plovdiv, Bulgaria")).toMatch(/got caught and was fined; a .* joins him \(-€20\)$/);
+    expect(r.cents).toBe(5000 - 1000 * B.FINE_MULT);
   });
 
   it("keeps his friends in the save; an old save has met no one", () => {

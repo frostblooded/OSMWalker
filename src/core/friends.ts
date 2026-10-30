@@ -24,8 +24,8 @@ export const COMPANION_CHANCE = 0.25;
 export const COMPANION_STOPS = 3;
 /** Share of the fare a companion pays him back. */
 export const SPLIT = 0.5;
-/** Friends the Stats sheet lists. */
-export const SHOWN = 8;
+/** Friends the Stats sheet lists before the rest fold away. */
+export const SHOWN = 4;
 
 /** data/friends.json: first names, faces, and the fellow travellers who may join a trip. */
 export type FriendData = { names: string[]; icons: string[]; companions: { who: string; icon: string; lines: string[] }[] };
@@ -136,11 +136,12 @@ export class Friends {
     const out = new Friends();
     if (!d || typeof d !== "object") return out;
     const o = d as Record<string, unknown>;
-    if (Array.isArray(o.list)) out.list = (o.list as Friend[]).filter((f) => f && typeof f.id === "string" && typeof f.name === "string");
+    const str = (...v: unknown[]) => v.every((x) => typeof x === "string");
+    if (Array.isArray(o.list)) out.list = (o.list as Friend[]).filter((f) => f && str(f.id, f.name, f.icon, f.city, f.kind));
     for (const f of out.list) f.hearts = Math.min(Math.max(Number(f.hearts) || 0, 0), HEARTS_MAX);
     out.partner = typeof o.partner === "string" && out.list.some((f) => f.id === o.partner) ? o.partner : "";
     const c = o.companion as Companion | null;
-    out.companion = c && typeof c.who === "string" && Array.isArray(c.lines) && c.lines.length ? c : null;
+    out.companion = c && str(c.who, c.icon) && typeof c.left === "number" && c.left > 0 && Array.isArray(c.lines) && c.lines.length ? c : null;
     return out;
   }
 }
