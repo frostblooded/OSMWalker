@@ -497,10 +497,11 @@ export class Game {
       const D = (this.dilemmas = await dilemmas);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
-      this.dilemma = D && D.rollDilemma(awayS, this.rng, (kind) => {
-        const here = w.position();
-        return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
-      }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE);
+      this.dilemma =
+        D?.rollDilemma(awayS, this.rng, (kind) => {
+          const here = w.position();
+          return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
+        }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
     }
