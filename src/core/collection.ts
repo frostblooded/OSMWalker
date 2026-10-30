@@ -181,6 +181,17 @@ export const SETS: CSet[] = [
       }),
   },
   {
+    id: "creatures",
+    tab: "places",
+    icon: "🧌",
+    title: "Creatures",
+    entries: (s) =>
+      s.creatureKinds.map((c) => {
+        const n = s.creatures.met[c.id] ?? 0;
+        return { id: c.id, icon: c.icon, name: c.name, got: n > 0, info: n > 0 ? `Met ${n === 1 ? "once" : `${n} times`}` : c.hint };
+      }),
+  },
+  {
     id: "crawls",
     tab: "places",
     icon: "🏁",
@@ -297,6 +308,7 @@ export const FEATS: Feat[] = [
   { id: "placedex", tab: "places", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
+  { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },

@@ -28,7 +28,7 @@ export const BOARD_TOWN_POP = 20_000;
 export const BOARD_BIG_POP = 2_000_000;
 /** A mid-sized city, for Help's example of the sliding scale. */
 export const BOARD_MID_POP = 300_000;
-/** A board is rolled once this many places of the city are loaded. */
+/** A board is rolled once this many places of the city are loaded, one of them where a quest can start. */
 export const BOARD_PLACES = 20;
 /** Share of the board that may be light-fantasy quests. */
 export const FANTASY_SHARE = 0.1;
@@ -178,6 +178,9 @@ export class Quests {
       this.rev++;
     }
     if (this.rolled || places.length < BOARD_PLACES || !this.bank.quests.length) return;
+    // Bridges can load before shops and cafés; wait for a place a quest can start at.
+    const givers = [...new Set(this.bank.quests.flatMap((k) => k.steps[0]!.at))];
+    if (!places.some((p) => isKind(p, givers))) return;
     this.rolled = true;
     this.rev++;
     const done = new Set(this.done);
@@ -276,7 +279,7 @@ export function questStop(stats: Stats, place: Place, places: readonly Place[], 
     return STEP_MIN;
   }
   q.since++;
-  if (q.events.length < EVENT_MAX && rng.randf() < EVENT_CHANCE) startEvent(stats, null, place, places, hour, rng);
+  if (q.bank.events.length && q.events.length < EVENT_MAX && rng.randf() < EVENT_CHANCE) startEvent(stats, null, place, places, hour, rng);
   return null;
 }
 

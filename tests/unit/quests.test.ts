@@ -72,6 +72,15 @@ describe("the board", () => {
     expect(new Set(s.quests.board.map((o) => o.kind)).size).toBe(s.quests.board.length);
   });
 
+  it("waits for a place a quest can start at, not just any (bridges can load first)", () => {
+    const { s } = fresh();
+    const bridges = Array.from({ length: Q.BOARD_PLACES }, (_, i) => place(`Bridge ${i}`, "bridge", i % 6));
+    s.quests.roll("Testville", 300_000, bridges, new Rng(1));
+    expect(s.quests.rolled).toBe(false);
+    s.quests.roll("Testville", 300_000, [...bridges, ...TOWN], new Rng(1));
+    expect(s.quests.board.length).toBeGreaterThan(0);
+  });
+
   it("never deals the same quest twice on one board, even when the bank is small", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), one({ id: "b" })], events: [] });
     s.quests.roll("Testville", 3_000_000, TOWN, new Rng(13));

@@ -11,6 +11,8 @@ export type Summary = { bus: number; airport: number; gas: number; dealer: numbe
 export const isBusStation = (p: P) => p.class === "bus" && p.subclass === "bus_station";
 /** Places from the aerodrome layer, except military airfields. */
 export const isAirport = (p: P) => p.class === "aerodrome" && p.subclass !== "military";
+export const isRailwayStation = (p: P) => p.class === "railway" && p.subclass === "station";
+export const isFerryTerminal = (p: P) => p.class === "ferry_terminal";
 export const isGasStation = (p: P) => p.class === "fuel" && (p.subclass ?? "fuel") === "fuel";
 export const isCarDealer = (p: P) => p.subclass === "car" && (p.class === "car" || p.class === "shop");
 

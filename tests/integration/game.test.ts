@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import "../../src/core/dilemmas";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
+import { CREATURE_CHANCE, meetingDice } from "../../src/core/creatures";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
@@ -13,7 +14,7 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
+import { cityBounds, HITCH_BELOW, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
@@ -65,6 +66,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     flavour: {},
     cities: parseCities(CITIES),
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
+    creatures: JSON.parse(dataFile("creatures.json")),
   };
   const storage = new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -208,11 +210,13 @@ describe("game", () => {
     expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
   });
 
-  it("hands his stats the friends data, and gives a friend a chance at each stop with no incident or Viktor", async () => {
+  it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {
     const { g } = game({ places: [CAFE] });
     Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], friends: JSON.parse(dataFile("friends.json")) });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.friendData.names.length).toBeGreaterThan(0);
+    expect(g.stats.townNews).toEqual(g.stats.friendData.news);
+    expect(g.stats.townNews.length).toBeGreaterThan(0);
     const stop = vi.spyOn(g.stats.friends, "stop");
     run(g, 400);
     expect(stop).toHaveBeenCalledWith(expect.objectContaining({ city: g.stats.where.city, place: "Cafe Near", kind: "cafe" }), g.stats.friendData, expect.anything());
@@ -261,6 +265,19 @@ describe("game", () => {
     expect(g.stats.bricks.built).toMatchObject([{ kind: 0, park: "Park Near", city: "Sofia, Bulgaria" }]);
     expect(g.stats.chronicle.lines.map((l) => l.text)).toContain("Built a bench with his name in Park Near, Sofia, Bulgaria");
     expect(g.placeIcons().some((i) => i.icon === "plaque")).toBe(true);
+  });
+
+  it("meets the dryad at a park he reaches, once that day, and the feed says what he picked", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the dryad's own dice say she shows up at this park.
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    run(g, 400);
+    expect(g.stats.creatures.met).toEqual({ dryad: 1 });
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {
@@ -370,6 +387,20 @@ describe("game", () => {
     expect(g.stats.buffNames()).toContain("Jet-lagged");
   });
 
+  it("rides a night train with a berth and lands rested, shown as a train ride", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.energy = 20;
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "train");
+    g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "train", to: "Paris" } });
+    expect(doing(g)).toMatch(/^travelling to Paris by train, \d+ km left$/);
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
+    expect(g.stats.meters.energy).toBeGreaterThan(99);
+  });
+
   it("lands fresh after a bus across the same time zones", async () => {
     const { g } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -450,8 +481,10 @@ describe("game", () => {
     g.pickGuess("Plovdiv");
     expect(g.stats.care.guess!.pick).toBe("Plovdiv");
     g.stats.cents = 0;
-    for (let i = 0; i < 600 && g.walker!.isDeparting(); i++) g.step(1);
-    expect(g.walker!.isTraveling()).toBe(false);
+    // Stops at the station: broke, his next pick may send him hitchhiking instead.
+    const stuck = () => g.stats.history.entries.some((e) => e.text.startsWith("Can't afford"));
+    for (let i = 0; i < 600 && !stuck(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus"))).toBe(false);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
     expect(g.stats.care.guess).toBeNull();
     expect(g.stats.care.clovers).toBe(0);
@@ -459,14 +492,29 @@ describe("game", () => {
   });
 
   it("saves up when he can't afford a trip", async () => {
+    const { g } = game({ roll: 0 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = HITCH_BELOW;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
+    expect(g.stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+    expect(g.debugLog.entries.at(-1)!.no_trip).toContain("can't afford the plane to Paris");
+  });
+
+  it("hitchhikes for free when broke, and lands with a story", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 1;
     g.skipRoll = false;
     g.debugNewGoal();
-    expect(g.walker!.isDeparting()).toBe(false);
-    expect(g.stats.savingFor).toBeGreaterThan(1);
-    expect(g.debugLog.entries.at(-1)!.no_trip).toContain("can't afford the bus to Plovdiv");
+    expect(g.walker!.departing!.mode).toBe("hitch");
+    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to somewhere in Bulgaria");
+    for (let i = 0; i < 3600 && !g.stats.where.city.startsWith("Plovdiv"); i++) g.step(1);
+    const lines = g.stats.history.entries.map((e) => e.text);
+    expect(lines).toContain("Hitchhiked to Plovdiv, Bulgaria");
+    expect(lines.some((l) => /driver|lift/.test(l))).toBe(true);
+    expect(g.stats.cents).toBe(1);
   });
 
   it("lands in another country on the debug button, with a fresh graph", async () => {

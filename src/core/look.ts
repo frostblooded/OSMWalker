@@ -31,7 +31,7 @@ const PLACE_ICON: Record<string, string> = {
   "shop/kiosk": "🗞", "shop/newsagent": "🗞", "shop/convenience": "🏪", alcohol_shop: "🍷", "shop/tobacco": "🚬",
   museum: "🏛", art_gallery: "🖼", attraction: "📸", castle: "🏰", monument: "🗿", memorial: "🕯", place_of_worship: "⛪",
   theatre: "🎭", cinema: "🎬", zoo: "🦁", aquarium: "🐠", library: "📚", music: "🎵", theme_park: "🎢", water_park: "🌊",
-  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", campsite: "⛺", cemetery: "🪦", shelter: "🛖", fountain: "⛲",
+  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", campsite: "⛺", cemetery: "🪦", shelter: "🛖", fountain: "⛲", bridge: "🌉",
   pitch: "⚽", sports_centre: "🏟", stadium: "🏟", fitness_centre: "🏋", swimming: "🏊", swimming_pool: "🏊", golf: "⛳",
   yoga: "🧘", climbing: "🧗", boxing: "🥊", billiards: "🎱", ice_rink: "⛸", tennis: "🎾", karting: "🏎", escape_game: "🔐", chess: "♟",
   harbor: "⚓", ferry_terminal: "⛴", railway: "🚉", bus: "🚌", aerialway: "🚡", bicycle_rental: "🚲", bicycle: "🚲", parking: "🅿",

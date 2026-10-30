@@ -8,6 +8,7 @@ import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { hearts, SHOWN, type Friend } from "../core/friends";
+import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -232,7 +233,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
   );
 }
 
-/** The friends he has made, his partner first, then most hearts; past SHOWN the rest fold away. */
+/** The friends he has made, his partner first, then most hearts; past SHOWN the rest fold away. Then his clubs, with their city and night. */
 function FriendsCard({ s }: { s: Stats }) {
   const f = s.friends;
   const list = [...f.list].sort((a, b) => Number(b.id === f.partner) - Number(a.id === f.partner) || b.hearts - a.hearts);
@@ -250,6 +251,10 @@ function FriendsCard({ s }: { s: Stats }) {
           <div class="zebra">{list.slice(SHOWN).map(row)}</div>
         </Collapsible>
       )}
+      {s.clubs.list.map((c) => {
+        const k = clubKind(c);
+        return <KV key={c.city} k={`${k.icon} ${k.name[0]!.toUpperCase()}${k.name.slice(1)}`} v={`${c.city.split(",")[0]} · ${DAYS[c.day]!.slice(0, 3)} ${String(c.hour).padStart(2, "0")}:00`} />;
+      })}
     </Card>
   );
 }

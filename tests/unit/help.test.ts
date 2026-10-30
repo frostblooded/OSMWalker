@@ -20,6 +20,7 @@ const data = {
   forecasts: JSON.parse(dataFile("forecasts.json")),
   incidents: JSON.parse(dataFile("incidents.json")),
   quests: JSON.parse(dataFile("quests.json")),
+  creatures: JSON.parse(dataFile("creatures.json")),
   borders: JSON.parse(dataFile("borders.json")),
 };
 const raw = dataFile("help.txt");
@@ -53,6 +54,12 @@ describe("the real help", () => {
   it("has every placeholder filled", () => {
     const left = sections.flatMap((s) => s.pages.flatMap((p) => p.body.match(/\{[A-Z0-9_]+\}/g) ?? []));
     expect(left).toEqual([]);
+  });
+
+  it("lists each place creature with its three picks and his own", () => {
+    const body = page("creatures").body;
+    expect(body).toContain("- 🧌 Bridge troll, under bridges: Answer its riddle (+20 XP, +1 Wits for 2 h; if it fails, pays €6, -5 mood); Pay the toll (pays €3, +1 Luck for 2 h)");
+    expect(body).toContain("On his own he picks drink from her hands.");
   });
 
   it("takes the nap threshold from the data", () => {
@@ -101,7 +108,7 @@ describe("the real help", () => {
     expect(page("xp").body).toContain("He also gets a free pack of city cards");
     expect(page("citycards").body).toContain("Rare 5% of the time, Uncommon 25% and Common 70%");
     expect(page("citycards").body).toContain("he gets Charm +1 while he is in that country");
-    expect(page("placedex").body).toContain("The sweep knows 329 kinds.");
+    expect(page("placedex").body).toContain("It knows 330 kinds, bridges among them");
     expect(page("souvenirs").body).toContain("there is a 30% chance he finds it there");
     expect(page("souvenirs").body).toContain("every 5 souvenirs make his fares 2% cheaper, up to 10%");
     expect(page("crawls").body).toMatch(/^- ☕ Coffee crawl: 4 different cafes or coffee shops in a day, then \+2 energy at each one he visits,$/m);

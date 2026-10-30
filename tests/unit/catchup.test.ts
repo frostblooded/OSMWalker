@@ -7,7 +7,7 @@ import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import { HITCH_BELOW, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
@@ -274,6 +274,16 @@ describe("catch-up", () => {
     expect(stats.bricks.count).toBeLessThanOrEqual(2 * BRICKS_PER_DAY);
   });
 
+  it("meets place creatures while away, at most one a day, taking his own pick", () => {
+    const stats = Object.assign(new Stats(), { creatureKinds: JSON.parse(dataFile("creatures.json")) });
+    const parks = [place("Town Park", "park", "park", 0.003, 0), place("Rose Garden", "garden", "garden", 0, 0.004), place("Old Fountain", "fountain", "fountain", -0.003, 0)];
+    catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
+    const met = Object.values(stats.creatures.met).reduce((a, b) => a + b, 0);
+    expect(met).toBeGreaterThan(0);
+    expect(met).toBeLessThanOrEqual(2);
+    expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
+  });
+
   it("builds no monument at made-up places, which are no real parks", () => {
     const stats = new Stats();
     stats.bricks.count = 10_000;
@@ -283,10 +293,31 @@ describe("catch-up", () => {
 
   it("saves up when he can't afford a trip", () => {
     const stats = new Stats();
-    stats.cents = 0;
-    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0.1 }));
+    stats.cents = HITCH_BELOW;
+    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0 }));
     expect(s.cities).toEqual([]);
-    expect(stats.savingFor).toBeGreaterThan(0);
+    expect(stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+  });
+
+  it("cycles to a near town on his bike, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.equip(Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS[0]!, []));
+    let rolls = 0;
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ trips: near, roll: () => (rolls++ ? 0.99 : 0.1) }));
+    const lines = s.lines.map((l) => l.text);
+    expect(lines).toContain("Setting off on his bike for Neartown");
+    expect(lines).toContain("Cycled off to Neartown, A-land");
+    expect(lines.some((l) => /^Tired legs after cycling \d+ km$/.test(l))).toBe(true);
+  });
+
+  it("hitchhikes when broke, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 0;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    expect(s.cities).toEqual(["Nexttown, A-land"]);
+    expect(s.lines.some((l) => l.text === "Hitchhiked to Nexttown, A-land")).toBe(true);
   });
 
   it("faints when he starves, and pays the hospital", () => {

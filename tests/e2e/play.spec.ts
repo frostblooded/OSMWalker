@@ -47,8 +47,8 @@ test("the storyteller switches from the menu, is remembered, and brings incident
   await expect(teller).toContainText("Classic");
   await teller.click();
   await expect(teller).toContainText("Chaotic");
-  // Chaotic and at full tension, six hours away bring incidents for sure.
-  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100;");
+  // Chaotic and at full tension, six hours away bring incidents for sure; an empty quest board leaves every stop to them.
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100; d.stats.quests = { city: d.city, rolled: true, board: [] };");
   const away = page.getByRole("dialog", { name: /While you were away/ });
   await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
   const icons = (JSON.parse(readFileSync("public/data/incidents.json", "utf8")) as { icon: string }[]).map((c) => c.icon);

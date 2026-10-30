@@ -23,6 +23,7 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Creature } from "../core/creatures";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
 import type { Contest } from "../core/rival";
@@ -33,7 +34,7 @@ import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, NO_PLACES_BOOST, ROAD_FACTOR, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -61,7 +62,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; quests?: Q.Bank };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -301,6 +302,8 @@ export class Game {
     this.stats.care.open(this.stats);
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
+    // Until the timed choices can ask you, he takes his own pick.
+    this.stats.meetAt(place);
     // Incidents roll on the card dice, so they leave his walk the same.
     this.stats.happen(place, this.hour(), this.cardRng);
     // Quests roll on the card dice too; a quest step or event takes the place of an action.
@@ -430,6 +433,8 @@ export class Game {
       const lag = this.stats.landFlight(t.from[1], t.arrive[1]);
       if (lag) this.stats.say(lag);
     }
+    const rode = this.stats.landRide(t.mode, distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, this.city);
+    if (rode) this.stats.say(rode);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();
@@ -458,7 +463,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the quest bank and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the quest bank and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -467,9 +472,11 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
+    this.stats.creatureKinds = this.deps.data.creatures ?? [];
     this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
     this.stats.contests = this.deps.data.contests ?? [];
     this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
+    this.stats.townNews = this.deps.data.friends?.news ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 

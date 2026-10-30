@@ -9,6 +9,7 @@ import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
+import * as Creatures from "../core/creatures";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -33,12 +34,16 @@ import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
+import * as Anniv from "../core/anniversaries";
+import * as Clubs from "../core/clubs";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
+import * as Townies from "../core/townies";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -198,6 +203,15 @@ export function values(data: GameData): Record<string, string> {
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
+    CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
+    RIDDLE_PCT: pct(Creatures.RISK_BASE),
+    RIDDLE_PER_WIT_PCT: pct(Creatures.RISK_PER_POINT),
+    RIDDLE_CAP_PCT: pct(Creatures.RISK_CAP),
+    CREATURE_LIST: (data.creatures ?? []).map((c) => {
+      const said = (o: Creatures.Outcome) => [o.pay ? `pays ${euro(o.pay)}` : "", Gifts.effect(o)].filter(Boolean).join(", ");
+      const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
+      return `- ${c.icon} ${c.name}, ${c.where}: ${opts.join("; ")}. On his own he picks ${c.moment.options.find((o) => o.id === c.moment.default)!.label.toLowerCase()}.`;
+    }).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
@@ -384,6 +398,27 @@ export function values(data: GameData): Record<string, string> {
     AIRPORT_KM: km(Trips.AIRPORT_REACH_M),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
+    BIKE_ICON: Trips.MODES.bike.icon,
+    FERRY_ICON: Trips.MODES.ferry.icon,
+    TRAIN_ICON: Trips.MODES.train.icon,
+    HITCH_ICON: Trips.MODES.hitch.icon,
+    TRAIN_KMH: kmh(Speeds.TRAIN),
+    FERRY_KMH: kmh(Speeds.FERRY),
+    BIKE_ROAD_KMH: kmh(Speeds.BIKE_ROAD),
+    HITCH_KMH: kmh(Speeds.HITCH),
+    TRAIN_PER_KM: euro(toCents(Trips.TRAIN_PER_KM)),
+    FERRY_PER_KM: euro(toCents(Trips.FERRY_PER_KM)),
+    TRAIN_FROM_KM: km(Trips.TRAIN_FROM_M),
+    SLEEPER_FROM_KM: km(Trips.SLEEPER_FROM_M),
+    FERRY_PCT: pct(Trips.FERRY_CHANCE),
+    FERRY_MAX_KM: km(Trips.FERRY_MAX_M),
+    CYCLE_MAX_KM: km(Trips.CYCLE_MAX_M),
+    BIKE_EFFORT_KM: num(S.ENERGY_PER_KM * S.EFFORT.bike),
+    HITCH_BELOW: euro(Trips.HITCH_BELOW),
+    HITCH_BAD_PCT: pct(Trips.HITCH_BAD),
+    HITCH_GOOD_PCT: pct(Trips.HITCH_GOOD),
+    HITCH_BAD_FX: Gifts.effect({ fx: Trips.HITCH_BAD_FX }),
+    HITCH_GOOD_FX: Gifts.effect({ fx: Trips.HITCH_GOOD_FX }),
     CAR_ROAD_KMH: kmh(Speeds.CAR_ROAD),
     PLANE_KMH: kmh(Speeds.PLANE),
     RIDE_SPEEDUP: String(Trips.RIDE_SPEEDUP),
@@ -538,6 +573,27 @@ export function values(data: GameData): Record<string, string> {
     SPLIT_PCT: pct(Friends.SPLIT),
     COMPANION_STOPS: num(Friends.COMPANION_STOPS),
     FRIENDS_SHOWN: num(Friends.SHOWN),
+    WORK_CARD_PCT: pct(Work.CARD_CHANCE),
+    SHIFT_MIN: num(Work.SHIFT_MIN),
+    WORK_WIN_BASE_PCT: pct(Work.WIN_BASE),
+    WORK_WIN_PER_PCT: pct(Work.WIN_PER_POINT),
+    WORK_WIN_MAX_PCT: pct(Work.WIN_MAX),
+    WORK_CARD_LIST: Work.helpList(),
+    CLUB_JOIN_AT: num(Clubs.JOIN_AT),
+    CLUB_INVITE_PCT: pct(Clubs.INVITE_CHANCE),
+    CLUB_MAX: num(Clubs.MAX_CLUBS),
+    CLUB_NIGHT_H: num(Clubs.NIGHT_H),
+    CLUB_LIST: Clubs.helpList(),
+    NEWS_PCT: pct(Townies.NEWS_CHANCE),
+    NEWS_AT: num(Townies.NEWS_AT),
+    PARTY_AT: num(Anniv.PARTY_AT),
+    PARTY_MAX: num(Anniv.PARTY_MAX),
+    PARTY_MOOD: num(Anniv.PARTY_MOOD),
+    GREAT_MIN_PCT: pct(Anniv.GREAT_MIN),
+    GLOW_H: num(Anniv.GLOW_MIN / 60),
+    GLOW_PER_H: num(Anniv.GLOW_PER_H),
+    ALONE_MOOD: num(Anniv.ALONE_MOOD),
+    MONTH_MOOD: num(Anniv.MONTH_MOOD),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)

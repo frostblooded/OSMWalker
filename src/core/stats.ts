@@ -1,12 +1,16 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
-// his keepsakes (landmark cards, Placedex, souvenirs, crawls), and the
-// storyteller that paces the incidents that happen to him, and his quests.
+// his keepsakes (landmark cards, Placedex, souvenirs, crawls), the
+// storyteller that paces the incidents that happen to him, his quests, and
+// the people in his life: friends, their clubs and news, and his anniversaries.
 // Time passes in game minutes, which are real minutes while the app is open.
+import { Anniversaries } from "./anniversaries";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
+import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
+import * as Cr from "./creatures";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -15,6 +19,7 @@ import * as Items from "./items";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
+import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
@@ -24,10 +29,12 @@ import { Quests } from "./quests";
 import { Rival, type Contest } from "./rival";
 import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
+import { Townies, type News } from "./townies";
 import * as Kit from "./travelKit";
-import { jetLag, timeZones } from "./trips";
+import * as T from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
+import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
 export const ATTRS = ["str", "cha", "wit", "luck"] as const;
@@ -171,6 +178,10 @@ export class Stats {
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
   chronicle = new Chronicle();
+  /** The place creatures he has met. */
+  creatures = new Cr.Creatures();
+  /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
+  creatureKinds: readonly Cr.Creature[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -187,6 +198,14 @@ export class Stats {
   friends = new Friends();
   /** Names, faces and fellow travellers from data/friends.json; not saved, the game sets it. */
   friendData: FriendData = { names: [], icons: [], companions: [] };
+  /** The clubs his friends brought him into. */
+  clubs = new Clubs();
+  /** What his friends got up to, and the day it was last rolled. */
+  townies = new Townies();
+  /** The news his friends may have, from data/friends.json; not saved, the game sets it. */
+  townNews: readonly News[] = [];
+  /** His birthday (the day he set out) and month marks. */
+  anniversaries = new Anniversaries();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -384,6 +403,8 @@ export class Stats {
     const { back, with: company } = this.friends.board(how ? 0 : paid, this.friendData, new Rng(seedOf(`${to}${station}${this.now()}`)));
     paid -= back;
     this.cents -= paid;
+    if (mode === "bike") return `Cycled off to ${to}${company}`;
+    if (mode === "hitch") return `Hitchhiked to ${to}${company}`;
     return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${company}${paid ? ` (${signed(-paid)})` : ""}`;
   }
 
@@ -432,11 +453,40 @@ export class Stats {
 
   /** Landed after flying from longitude `fromLon` to `toLon`: jet lag for the time zones crossed; the feed line, or "". */
   landFlight(fromLon: number, toLon: number): string {
-    const zones = timeZones(fromLon, toLon);
-    const lag = jetLag(zones);
+    const zones = T.timeZones(fromLon, toLon);
+    const lag = T.jetLag(zones);
     if (!lag) return "";
     this.addBuff(lag);
     return `Jet-lagged after flying across ${zones} time zone${zones === 1 ? "" : "s"}`;
+  }
+
+  /**
+   * Landed in `to` after `distM` by `mode`: a night train leaves him rested,
+   * cycling tires him, and a hitched lift may go badly or be a great story
+   * (its own dice from the town and time, so the walk's stay the same). The
+   * feed line, or "".
+   */
+  landRide(mode: T.Mode, distM: number, to: string): string {
+    if (mode === "train" && distM >= T.SLEEPER_FROM_M) {
+      this.meters.energy = 100;
+      return "Slept in a berth on the night train and woke up rested";
+    }
+    if (mode === "bike") {
+      const km = distM / 1000;
+      this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * km });
+      return `Tired legs after cycling ${Math.round(km)} km`;
+    }
+    if (mode !== "hitch") return "";
+    const r = new Rng(seedOf(`hitch${to}${this.now()}`)).randf();
+    if (r < T.HITCH_BAD) {
+      this.applyFx(T.HITCH_BAD_FX);
+      return "The driver let him off miles short, and he walked the last stretch";
+    }
+    if (r < T.HITCH_BAD + T.HITCH_GOOD) {
+      this.applyFx(T.HITCH_GOOD_FX);
+      return "The driver told stories the whole way: a ride to remember";
+    }
+    return "A quiet lift with a friendly driver";
   }
 
   /** Starts a timed effect, replacing one of the same name. */
@@ -453,6 +503,8 @@ export class Stats {
   passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
     this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
+    const date = dayOf(t * 1000);
+    if (date !== this.anniversaries.day) this.newDay(date, t);
     this.week.walked(walkedM);
     const h = minutes / 60;
     const fx: Fx = {
@@ -474,6 +526,18 @@ export class Stats {
     this.applyFx(fx);
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
+  }
+
+  /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
+  private newDay(date: string, t: number): void {
+    const f = this.friends;
+    this.townies.prune(f.list);
+    this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
+    const mark = this.anniversaries.check(date, t, this.meters.mood, this.where.city, f.list, f.partner, new Rng(seedOf(`party${date}`)));
+    if (!mark) return;
+    this.applyFx(mark.fx);
+    if (mark.buff) this.addBuff(mark.buff);
+    this.say(mark.line);
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -598,7 +662,10 @@ export class Stats {
     const jokes = jokesFor(this.jokes, kind);
     // No jokes loaded, no roll, so the dice stay the same as without them.
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
-    return this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    // Maybe a chance card at work; its own dice, so the walk's stay the same.
+    if (earned && action.min >= Work.SHIFT_MIN && !action.risk) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    return line;
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
@@ -771,6 +838,28 @@ export class Stats {
     this.milestone(`built${b.built.length}`, `Built a ${k.name} with his name in ${place.name}, ${m.city}`);
   }
 
+  /** Right after reaching `place`: now and then, at most once a day, the creature that lives at such places shows up (creatures.ts), or null. Its own dice, so his walk stays the same. */
+  creatureAt(place: Pick<Place, "class" | "name">): Cr.Creature | null {
+    const t = this.now();
+    return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
+  }
+
+  /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */
+  meet(c: Cr.Creature, where: string, pick: string): string {
+    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(this.now(), `${where}${pick}`).randf());
+    const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
+    this.cents -= paid;
+    if (o.fx) this.applyFx(o.fx);
+    if (o.buff) this.addBuff(o.buff);
+    return this.say(`${c.icon} ${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
+  }
+
+  /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
+  meetAt(place: Pick<Place, "class" | "name">): void {
+    const c = this.creatureAt(place);
+    if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+  }
+
   /** Writes milestone `key` in his chronicle, once. */
   milestone(key: string, text: string): void {
     this.chronicle.note(key, text, this.now());
@@ -778,8 +867,9 @@ export class Stats {
 
   /**
    * Maybe an incident at a stop at `place` at `hour`, when the storyteller
-   * says so (Luck makes bad ones rarer), or else a meeting with his rival,
-   * or else one with a friend or his fellow traveller.
+   * says so (Luck makes bad ones rarer), or else his club night if one is on
+   * (or an invitation to one), or else a meeting with his rival, or else one
+   * with a friend or his fellow traveller.
    * Returns its feed line, or "". Without a deck the stories are off and
    * nothing rolls, so the dice stay the same as without one.
    */
@@ -790,6 +880,15 @@ export class Stats {
     if (tone && card) {
       this.story.after(card.id, tone);
       return (this.incidentLine = Inc.play(card, this, place.name, rng));
+    }
+    // Clubs roll their own dice, so the walk's stay the same.
+    const t = this.now();
+    const fx: Fx = {};
+    const when = { city: this.where.city, day: new Date(t * 1000).getDay(), hour, date: dayOf(t * 1000), t };
+    const club = this.clubs.stop(when, this.friends, fx, new Rng(seedOf(`club${t}${place.name}`)));
+    if (club) {
+      this.applyFx(fx);
+      return (this.incidentLine = this.say(club));
     }
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
     if (met) return (this.incidentLine = met);
@@ -841,7 +940,8 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(), quests: this.quests.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
 
@@ -869,6 +969,7 @@ export class Stats {
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
+    s.creatures = Cr.Creatures.fromJSON(d.creatures);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
@@ -878,6 +979,10 @@ export class Stats {
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
     s.friends = Friends.fromJSON(d.friends);
+    // A save from before clubs, townies and anniversaries: no clubs yet, news from the next day on, and his birthday is the day he set out, if his life story knows it.
+    s.clubs = Clubs.fromJSON(d.clubs);
+    s.townies = Townies.fromJSON(d.townies);
+    s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     return s;
   }
 }
