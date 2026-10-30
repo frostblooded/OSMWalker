@@ -77,7 +77,7 @@ Flyers (the broomstick, the carpet and the dragon) don't follow the streets. Whe
 
 A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly (if it starts to sulk in the air, he comes down at the nearest corner), and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
 ## Place creatures {creatures}
-A little folklore lives in the city. When he reaches a place where a creature lives (a real one or one the game made up, such as an old well), it shows up {CREATURE_PCT} of the time, but he meets at most one creature a day (also while you're away). Each one offers him a choice of three:
+A little folklore lives in the city. When he reaches a place where a creature lives (a real one or one the game made up, such as an old well), it shows up {CREATURE_PCT} of the time, but he meets at most one creature a day (also while you're away). Each one offers him a choice:
 {CREATURE_LIST}
 
 The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for each point of Wits above 1, up to {RIDDLE_CAP_PCT}. The cleverer he is, the more often he tries it on his own. He only pays what he has. For now he always makes his own pick; soon you'll be able to tap one before a timer runs out. Each creature he meets gets a tile in the Collection (Places tab).

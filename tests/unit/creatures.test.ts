@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { SETS } from "../../src/core/collection";
 import { CREATURE_CHANCE, CREATURES, Creatures, creatureOf, RIDDLE_CAP, riddleOdds, SPRITE_COIN, TROLL_TOLL, type Creature } from "../../src/core/creatures";
 import { signed } from "../../src/core/money";
+import { BRIDGE } from "../../src/core/ofm";
+import { ODD_KINDS } from "../../src/core/poiGen";
+import { dataFile } from "../support/data";
 import { optionFor } from "../../src/core/moments";
 import { Stats } from "../../src/core/stats";
 
@@ -31,6 +34,14 @@ describe("place creatures", () => {
     for (const cls of ["fountain", "old_well", "drinking_water"]) expect(creatureOf(cls)?.id).toBe("sprite");
     for (const cls of ["park", "garden"]) expect(creatureOf(cls)?.id).toBe("dryad");
     expect(creatureOf("cafe")).toBeUndefined();
+  });
+
+  it("lives only at place classes the game still has: bridges from the streets, made-up wells, and kinds with actions", () => {
+    const actions = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
+    for (const c of CREATURES) for (const cls of c.at) expect(actions[cls], `${c.id} at ${cls}`).toBeDefined();
+    expect(creatureOf(BRIDGE)?.id).toBe("troll");
+    expect(creatureOf("old_well")).toBeDefined();
+    expect(ODD_KINDS).toContain("old_well");
   });
 
   it("each asks a choice of three, with an outcome for each and a default among them", () => {
