@@ -127,8 +127,9 @@ export function fill(text: string, o: { giver?: string; item?: string; place?: s
 }
 
 export class Quests {
-  /** The city the board is for. */
+  /** The city his board, events and quest belong to, and whether its board is rolled yet. */
   city = "";
+  rolled = false;
   board: Offer[] = [];
   active: Active | null = null;
   events: LiveEvent[] = [];
@@ -164,18 +165,19 @@ export class Quests {
 
   /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board, events and quest at once. */
   roll(city: string, pop: number, places: readonly Place[], rng: Rng): void {
-    if (this.city === city) return;
-    // Another city's board, events and quest stay behind (a free ride can take him away mid-quest).
-    if (this.city || this.active) {
-      this.city = "";
+    if (this.city !== city) {
+      // Another city's board, events and quest stay behind (a free ride can take him away mid-quest).
+      this.city = city;
+      this.rolled = false;
       this.board = [];
       this.events = [];
       this.active = null;
       this.nudge = "";
       this.rev++;
     }
-    if (places.length < BOARD_PLACES || !this.bank.quests.length) return;
-    this.city = city;
+    if (this.rolled || places.length < BOARD_PLACES || !this.bank.quests.length) return;
+    this.rolled = true;
+    this.rev++;
     const done = new Set(this.done);
     const byKind = indexKinds(places);
     const n = boardSize(pop);
@@ -199,7 +201,7 @@ export class Quests {
   }
 
   toJSON() {
-    return { city: this.city, board: this.board, active: this.active, events: this.events, done: this.done, finished: this.finished, log: this.log, since: this.since, wait: this.wait, nudge: this.nudge };
+    return { city: this.city, rolled: this.rolled, board: this.board, active: this.active, events: this.events, done: this.done, finished: this.finished, log: this.log, since: this.since, wait: this.wait, nudge: this.nudge };
   }
 
   static fromJSON(d: unknown): Quests {
@@ -207,6 +209,8 @@ export class Quests {
     if (!d || typeof d !== "object") return q;
     const o = d as Partial<ReturnType<Quests["toJSON"]>>;
     q.city = typeof o.city === "string" ? o.city : "";
+    // Older saves only named a city once its board was rolled.
+    q.rolled = typeof o.rolled === "boolean" ? o.rolled : !!q.city;
     q.board = Array.isArray(o.board) ? o.board : [];
     q.active = o.active && typeof o.active === "object" ? o.active : null;
     q.events = Array.isArray(o.events) ? o.events : [];

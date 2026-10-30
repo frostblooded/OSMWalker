@@ -917,7 +917,7 @@ export class Game {
   /** Rolls the city's quest board (core/quests.ts) once enough of its places are loaded, so its icons show before his first quest. */
   private rollBoard(): void {
     const q = this.stats.quests;
-    if (!this.city || q.city === this.city || !q.bank.quests.length) return;
+    if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
     q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng);
     if (q.rev !== rev) this.changed();

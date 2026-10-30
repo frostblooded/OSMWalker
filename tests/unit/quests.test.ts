@@ -175,8 +175,30 @@ describe("going on a quest", () => {
     expect(s.quests.active).not.toBeNull();
     // Its places aren't loaded yet: everything from the old city goes at once.
     s.quests.roll("Farville", 300_000, [], new Rng(7));
-    expect([s.quests.active, s.quests.board, s.quests.events, s.quests.city]).toEqual([null, [], [], ""]);
+    expect([s.quests.active, s.quests.board, s.quests.events, s.quests.city, s.quests.rolled]).toEqual([null, [], [], "Farville", false]);
     expect(Q.questGoal(s, [], HERE, new Rng(7))).toBeNull();
+    // Once enough of its places load, Farville gets its board.
+    s.quests.roll("Farville", 300_000, TOWN, new Rng(7));
+    expect(s.quests.rolled).toBe(true);
+    expect(s.quests.board.length).toBeGreaterThan(0);
+  });
+
+  it("an event you nudged in a town too small for a board stays behind too", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [one()], events: [] });
+    const few = TOWN.slice(0, 5);
+    s.quests.roll("Smallton", 5_000, few, new Rng(7));
+    s.quests.events = [{ id: "e@1", kind: "e", at: Q.spotOf(few[0]!), ends: s.now() + 600, line: 0 }];
+    s.quests.nudge = "e@1";
+    // Each second the same town asks again: its own event stays.
+    s.quests.roll("Smallton", 5_000, few, new Rng(7));
+    expect(s.quests.events).toHaveLength(1);
+    s.quests.roll("Farville", 300_000, [], new Rng(7));
+    expect([s.quests.events, s.quests.nudge]).toEqual([[], ""]);
+  });
+
+  it("an older save's city counts as rolled", () => {
+    expect(Q.Quests.fromJSON({ city: "Testville" }).rolled).toBe(true);
+    expect(Q.Quests.fromJSON({}).rolled).toBe(false);
   });
 });
 
