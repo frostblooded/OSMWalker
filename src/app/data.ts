@@ -3,6 +3,7 @@
 import type { ActionTable } from "../core/activities";
 import type { Letters } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Creature } from "../core/creatures";
 import type { Incident } from "../core/incidents";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
@@ -62,14 +63,14 @@ export async function parseStream<T>(body: ReadableStream<BufferSource>, parse: 
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json")]).then(
-    async ([a, f, cities, airports, x, j, fc, l, inc]) => {
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json"), text("creatures.json")]).then(
+    async ([a, f, cities, airports, x, j, fc, l, inc, cr]) => {
       await yieldNow();
       const actions = JSON.parse(a) as ActionTable;
       await yieldNow();
       const flavour = JSON.parse(f) as Record<string, ActionTable>;
       await yieldNow();
-      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[] };
+      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[], creatures: JSON.parse(cr) as Creature[] };
     },
   );
   return pending;

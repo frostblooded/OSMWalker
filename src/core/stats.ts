@@ -166,6 +166,8 @@ export class Stats {
   chronicle = new Chronicle();
   /** The place creatures he has met. */
   creatures = new Cr.Creatures();
+  /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
+  creatureKinds: readonly Cr.Creature[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** Paces the incidents. */
@@ -721,7 +723,7 @@ export class Stats {
   /** Right after reaching `place`: now and then, at most once a day, the creature that lives at such places shows up (creatures.ts), or null. Its own dice, so his walk stays the same. */
   creatureAt(place: Pick<Place, "class" | "name">): Cr.Creature | null {
     const t = this.now();
-    return this.creatures.roll(place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
+    return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
   }
 
   /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */

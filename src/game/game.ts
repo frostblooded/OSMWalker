@@ -23,6 +23,7 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Creature } from "../core/creatures";
 import type { Incident } from "../core/incidents";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
@@ -55,7 +56,7 @@ export const CATCHUP_SLICE_MS = 8;
 /** Cities whose made-up places the save keeps; the oldest is dropped first. */
 export const MADE_CITIES = 20;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; creatures?: Creature[] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -438,7 +439,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck, the place creatures and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -446,6 +447,7 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
+    this.stats.creatureKinds = this.deps.data.creatures ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 

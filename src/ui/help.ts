@@ -194,10 +194,10 @@ export function values(data: GameData): Record<string, string> {
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
-    RIDDLE_PCT: pct(Creatures.RIDDLE_BASE),
-    RIDDLE_PER_WIT_PCT: pct(Creatures.RIDDLE_PER_WIT),
-    RIDDLE_CAP_PCT: pct(Creatures.RIDDLE_CAP),
-    CREATURE_LIST: Creatures.CREATURES.map((c) => {
+    RIDDLE_PCT: pct(Creatures.RISK_BASE),
+    RIDDLE_PER_WIT_PCT: pct(Creatures.RISK_PER_POINT),
+    RIDDLE_CAP_PCT: pct(Creatures.RISK_CAP),
+    CREATURE_LIST: (data.creatures ?? []).map((c) => {
       const said = (o: Creatures.Outcome) => [o.pay ? `pays ${euro(o.pay)}` : "", Gifts.effect(o)].filter(Boolean).join(", ");
       const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
       return `- ${c.icon} ${c.name}, ${c.where}: ${opts.join("; ")}. On his own he picks ${c.moment.options.find((o) => o.id === c.moment.default)!.label.toLowerCase()}.`;

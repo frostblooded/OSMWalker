@@ -66,6 +66,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     flavour: {},
     cities: parseCities(CITIES),
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
+    creatures: JSON.parse(dataFile("creatures.json")),
   };
   const storage = new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });

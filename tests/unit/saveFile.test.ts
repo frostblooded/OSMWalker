@@ -228,7 +228,7 @@ describe("save file", () => {
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = (f.read() as Saved).stats;
     expect(back.creatures.met).toEqual({});
-    expect(back.creatures.roll("park", "2026-10-30", 0)?.id).toBe("dryad");
+    expect(back.creatures.day).toBe("");
   });
 
   it("says why a save is unreadable", () => {
