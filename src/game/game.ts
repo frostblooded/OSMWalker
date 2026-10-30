@@ -26,6 +26,7 @@ import type { Forecast } from "../core/forecast";
 import type { Incident } from "../core/incidents";
 import type { Contest } from "../core/rival";
 import type { Borders } from "../core/border";
+import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
@@ -59,7 +60,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -454,6 +455,7 @@ export class Game {
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.contests = this.deps.data.contests ?? [];
+    this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
