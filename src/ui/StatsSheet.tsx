@@ -1,6 +1,7 @@
 // His character sheet: level and XP, what he saves up for, six meters and
 // Magic as bars, the spells he knows, four attributes with what his gear
-// adds, every gear slot, the bag and his buffs. Items with a story open to show it. His records close it.
+// adds, every gear slot, the bag and his buffs. Items with a story open to
+// show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { span } from "../core/records";

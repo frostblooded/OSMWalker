@@ -4,8 +4,7 @@
 // changed. The camera follows him; a tap on the goal chip shows him and his
 // goal until he picks a new one; a trip zooms out to the whole ride until he
 // lands; History fits his trail above its sheet; the Stats sheet shows the
-// ley lines. The map itself sits behind
-// MapPort, so tests use a fake.
+// ley lines. The map itself sits behind MapPort, so tests use a fake.
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
