@@ -163,7 +163,7 @@ He spends money on food, drinks, tickets, trips and gear, and earns it from jobs
 
 He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
 ## Wages {wages}
-Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that. As he grows he earns more, well above real wages, so that vehicles come within reach:
+Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 
@@ -196,7 +196,7 @@ When health reaches 0 he faints and wakes up in hospital (see Fainting and hospi
 ## Energy {energy}
 Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
-He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
+He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles), and less on a tailwind day (see Daily forecast). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
 When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
@@ -212,7 +212,7 @@ It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts ab
 
 Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
 ## Mood {mood}
-Mood is how happy he is, from 0 to 100, starting at {START_MOOD}.
+Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it twice as much for a day (see Daily forecast).
 
 It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
@@ -250,11 +250,11 @@ Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and f
 Luck does three things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
-- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
+- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, doubled on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
-He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs; XP from actions is multiplied by buffs such as Inspired.
+He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
@@ -299,7 +299,7 @@ Each modifier adds {MOD_PRICE_PCT} of the price.
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
-At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5. The daily forecast can raise it for a day (see Daily forecast).
 
 While his bag is full he goes on a selling run: resale shops ({RESALE_SHOPS}) pull his next goal like an empty need (see Picking the next goal). There "Sell his loot" sells his cheapest things one after another until {SELL_RUN_LEFT} are left, with a line for each sale. Other shops still buy just one thing at a time.
 

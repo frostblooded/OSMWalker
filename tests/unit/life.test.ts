@@ -307,6 +307,11 @@ describe("gear", () => {
     for (const l of joked) expect(Jokes.jokesFor(stats.jokes, "museum").some((j) => l.endsWith(` ${j}`))).toBe(true);
     expect(Jokes.jokesFor(stats.jokes, "nowhere")).toBe(stats.jokes._generic);
     expect(Jokes.jokesFor({}, "museum")).toEqual([]);
+    // With no jokes loaded the dice aren't touched.
+    const plain = new Stats();
+    const r = new Rng(9);
+    plain.do({ name: "Looked around", min: 5 }, "Big Museum", r, "museum");
+    expect(r.randf()).toBe(new Rng(9).randf());
   });
 
   it("shop actions offer an item", () => {

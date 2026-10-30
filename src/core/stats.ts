@@ -439,7 +439,8 @@ export class Stats {
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     const jokes = jokesFor(this.jokes, kind);
-    const joke = rng.randf() < JOKE_CHANCE && jokes.length ? ` ${rng.pick(jokes)}` : "";
+    // No jokes loaded, no roll, so the dice stay the same as without them.
+    const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     return this.say(text + (where ? ` at ${where}` : "") + money + joke);
   }
 

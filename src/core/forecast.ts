@@ -3,7 +3,7 @@
 // gets the same one with no server (Godville's newspaper). It changes a
 // little of how things go that day; he never has to do anything about it.
 import { dayOf } from "./gifts";
-import { Rng } from "./rng";
+import { Rng, seedOf } from "./rng";
 
 /** What a forecast changes: mood from places of one class, fares, money on the street, sale prices, walking effort, first-visit XP or wages. */
 export type Effect = "mood" | "fare" | "find" | "sell" | "effort" | "visit" | "wage";
@@ -13,10 +13,9 @@ export type Forecast = { id: string; icon: string; text: string; effect: Effect;
 /** Until the data has loaded (and in tests that don't load it), a day that changes nothing. */
 export const QUIET: Forecast = { id: "quiet", icon: "📰", text: "A quiet day", effect: "mood", mult: 1 };
 
-/** How much `f` changes things, in words: "twice" for a multiple of 2, else the percent up or down. */
+/** How much `f` changes things, in words: "twice" for 2, else the percent up or down. */
 export function amount(f: Forecast): string {
   if (f.mult === 2) return "twice";
-  if (f.mult > 2) return `${f.mult} times`;
   return `${Math.round(Math.abs(f.mult - 1) * 100)}%`;
 }
 
@@ -26,9 +25,7 @@ export const words = (f: Forecast) => f.text.replace("{n}", amount(f));
 /** The forecast out of `list` for local date `day` ("2026-10-30"). */
 export function forecastOn(list: readonly Forecast[], day: string): Forecast {
   if (!list.length) return QUIET;
-  let seed = 2166136261;
-  for (let i = 0; i < day.length; i++) seed = Math.imul(seed ^ day.charCodeAt(i), 16777619);
-  return new Rng(seed).pick(list);
+  return new Rng(seedOf(day)).pick(list);
 }
 
 let cached = { list: [] as readonly Forecast[], min: NaN, f: QUIET };
