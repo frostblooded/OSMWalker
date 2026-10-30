@@ -87,7 +87,7 @@ Wizard's towers rise at the grandest real landmarks (castles first, then viewpoi
 
 A city keeps its made-up places: they are rolled from the city's name and saved, so the tower is still at the same castle when he comes back. The save keeps them for the {MADE_CITIES} cities he was in most recently.
 ## Map icons {map_icons}
-The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places and indigo for magic. Real bus stations and airports get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once, and none while he rides to another city.
+The game marks its own places on the map with round icons: blue for travel (bus stations, airports, gas stations), green for food and beds, amber for work, purple for story places and indigo for magic. Real bus stations and the airports he can fly from get one too. Icons show once a whole city fits in view, and their names show from street level. At most the {ICON_CAP} nearest to him show at once, and none while he rides to another city.
 ## Picking the next goal {goal_pick}
 He picks his next goal like someone with a plan for the day: not always the nearest place, not across town on a whim, and mostly carrying on the way he was going. Every place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is four numbers multiplied together:
 

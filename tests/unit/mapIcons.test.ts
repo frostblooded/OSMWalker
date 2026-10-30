@@ -13,7 +13,8 @@ describe("map icons", () => {
     expect(iconOf(p("Inn", "lodging", "guest_house", 42, { made: true }))).toBe("bed");
     expect(iconOf(p("Tower", "wizard_tower", "wizard_tower", 42, { made: true }))).toBe("tower");
     expect(iconOf(p("Central", "bus", "bus_station", 42))).toBe("bus");
-    expect(iconOf(p("Intl", "aerodrome", "airport", 42))).toBe("plane");
+    expect(iconOf(p("Intl", "aerodrome", "airport", 42, { iata: "INT" }))).toBe("plane");
+    expect(iconOf(p("Airfield on the map", "aerodrome", "airport", 42))).toBe("");
     expect(iconOf(p("Hotel", "lodging", "hotel", 42))).toBe("");
   });
 
@@ -26,8 +27,9 @@ describe("map icons", () => {
   });
 
   it("add airports inside the box, once each", () => {
-    const air = p("Intl", "aerodrome", "airport", 42.1);
-    expect(placeIcons([air], [air, p("Far", "aerodrome", "airport", 50)], BOX, [42, 23]).map((i) => i.label)).toEqual(["Intl"]);
+    const air = p("Intl", "aerodrome", "airport", 42.1, { iata: "INT" });
+    const tile = p("Intl from the map", "aerodrome", "airport", 42.1001);
+    expect(placeIcons([air, tile], [air, p("Far", "aerodrome", "airport", 50, { iata: "FAR" })], BOX, [42, 23]).map((i) => i.label)).toEqual(["Intl"]);
   });
 
   it("keep a made place's own id", () => {

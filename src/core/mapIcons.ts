@@ -34,7 +34,8 @@ export const ICON_CAP: Record<IconKind, number> = { place: 40, quest: 30, event:
 export function iconOf(p: Place): string {
   if (p.made) return ICON_OF[p.subclass] ?? ICON_OF[p.class] ?? "";
   if (isBusStation(p)) return "bus";
-  if (isAirport(p)) return "plane";
+  // Only airports he can fly from (trips.ts's list, which has codes), not every airfield on the map, so each shows once.
+  if (isAirport(p) && "iata" in p) return "plane";
   return "";
 }
 
