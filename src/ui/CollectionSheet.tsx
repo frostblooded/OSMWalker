@@ -169,13 +169,15 @@ function Ruins({ stats: s }: { stats: Stats }) {
   return (
     <Card icon="🏰" title="Ruin crawls" right={s.ruins.count}>
       {logs.length ? (
-        logs.map((r, i) => (
-          <Entry
-            key={i}
-            title={`🏰 ${r.name} · ${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}
-            lines={[...r.rooms.map((m) => `${m.won ? "✔" : "⚠"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
-          />
-        ))
+        <div class="zebra">
+          {logs.map((r, i) => (
+            <Entry
+              key={i}
+              title={`🏰 ${r.name} · ${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}
+              lines={[...r.rooms.map((m) => `${m.won ? "✔" : "⚠"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
+            />
+          ))}
+        </div>
       ) : (
         <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>
       )}
