@@ -6,12 +6,15 @@
 // gas station, and pays for the ride. Where the places allow it he takes the
 // train from a railway station instead of the bus, now and then a ferry from
 // a ferry terminal, and cycles to a near town on his bike. Broke, he
-// hitchhikes for free. A long flight leaves him jet-lagged.
+// hitchhikes for free. Now and then, on foot, he walks to a near town over
+// hours of open play, sleeping in hostels on the way (no streets load on the
+// way: he is on the zoomed-out map like a ride). A long flight leaves him
+// jet-lagged.
 import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from "./cityCheck";
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
-import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, HITCH, PLANE, TRAIN } from "./speeds";
+import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, HITCH, PLANE, TRAIN, WALK } from "./speeds";
 import type { Action, Fx, Place } from "./stats";
 
 export const COUNTRY_CHANCE = 0.025;
@@ -40,6 +43,17 @@ export const HITCH_BELOW = 2000;
 /** A hitched ride goes badly this share of the time, and is a great story HITCH_GOOD of the time. */
 export const HITCH_BAD = 0.15;
 export const HITCH_GOOD = 0.25;
+/** On foot, a trip to a town LONG_WALK_MIN_M to LONG_WALK_MAX_M away (straight) is a long walk this share of the time. */
+export const LONG_WALK_CHANCE = 0.15;
+export const LONG_WALK_MIN_M = 15_000;
+export const LONG_WALK_MAX_M = 80_000;
+/** A long walk goes at real walking speed, never longer than LONG_WALK_MAX_S of open play. */
+export const LONG_WALK_MAX_S = 3 * 3600;
+/** He sleeps in a hostel every HOSTEL_EVERY_M of road, at HOSTEL_CENTS a night, and gets LONG_WALK_XP_PER_KM XP a km and LONG_WALK_MOOD mood at the end. */
+export const HOSTEL_EVERY_M = 25_000;
+export const HOSTEL_CENTS = 2000;
+export const LONG_WALK_XP_PER_KM = 2;
+export const LONG_WALK_MOOD = 20;
 export const HITCH_BAD_FX: Fx = { mood: -10, energy: -15 };
 export const HITCH_GOOD_FX: Fx = { mood: 15, xp: 20 };
 /** Rides go this many times faster than the real speeds, and never take longer than RIDE_MAX_S. */
@@ -74,7 +88,7 @@ export const JET_LAG_ENERGY_PER_H = 4;
 export const JET_LAG_XP = 0.9;
 
 export type Kind = "stay" | "city" | "country";
-export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch";
+export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch" | "walk";
 export type City = { name: string; code: string; country: string; lat: number; lon: number; pop: number; bounds?: BBox };
 export type Airport = Place & { iata: string; code: string };
 export type LatLon = [number, number];
@@ -114,8 +128,8 @@ export function roll(r: number, boost = 1): Kind {
   return "stay";
 }
 
-const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH };
-const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0 };
+const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH, walk: WALK };
+const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0, walk: 0 };
 /** How each way of travelling looks on screen and in the feed. */
 export const MODES: Record<Mode, { icon: string; by: string }> = {
   bus: { icon: "🚌", by: "bus" },
@@ -125,12 +139,14 @@ export const MODES: Record<Mode, { icon: string; by: string }> = {
   ferry: { icon: "⛴", by: "ferry" },
   bike: { icon: "🚲", by: "bike" },
   hitch: { icon: "👍", by: "a hitched lift" },
+  walk: { icon: "🥾", by: "foot" },
 };
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
 export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
 
-/** Seconds a ride of `distanceM` takes. */
+/** Seconds a ride of `distanceM` takes; a long walk goes at real speed. */
 export function rideS(mode: Mode, distanceM: number): number {
+  if (mode === "walk") return Math.min(distanceM / WALK, LONG_WALK_MAX_S);
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
 }
 
@@ -139,8 +155,12 @@ export function fare(mode: Mode, distanceM: number): number {
   const km = distanceM / 1000;
   if (mode === "plane") return Math.ceil(toCents(PLANE_BASE) + 100 * PLANE_PER_KM * km);
   if (FREE.has(mode)) return 0;
+  if (mode === "walk") return HOSTEL_CENTS * hostelNights(distanceM);
   return Math.max(Math.ceil(100 * PER_KM[mode] * km), 1);
 }
+
+/** Hostel nights on a long walk of `distanceM` of road. */
+export const hostelNights = (distanceM: number) => Math.floor(distanceM / HOSTEL_EVERY_M);
 
 /** How likely he flies rather than goes by road: 0 below 200 km, 1 above 1000 km. */
 export function planeChance(distanceM: number): number {
@@ -198,14 +218,23 @@ export class Trips {
    * How he gets from `here` to `city`, or why he can't. `places` are the
    * places loaded around him, `r` in [0, 1) decides plane or road (and a
    * ferry), `fareMult` scales the fare (his souvenirs make it cheaper), and
-   * `hasBike` lets him cycle to a near town.
+   * `hasBike` lets him cycle to a near town, `onFoot` go on a long walk.
    */
-  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number, fareMult = 1, hasBike = false): Plan | NoPlan {
+  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number, fareMult = 1, hasBike = false, onFoot = false): Plan | NoPlan {
     const straight = distanceM(here[0], here[1], city.lat, city.lon);
     const at = (test: (p: Place) => boolean) => nearest(places, here[0], here[1], Infinity, test);
     const roadM = straight * ROAD_FACTOR;
     const setOff = (mode: Mode, distance_m: number): Plan => ({ city, mode, station: roadOut(here), fare: 0, arrive: [city.lat, city.lon], distance_m });
     if (hasBike && straight < CYCLE_MAX_M) return setOff("bike", roadM);
+    const p = planeChance(straight);
+    // The part of r the plane didn't use, spread over [0, 1) again, so the ferry odds don't depend on the plane's.
+    let rr = r < p ? r / p : (r - p) / (1 - p);
+    if (onFoot && straight >= LONG_WALK_MIN_M && straight <= LONG_WALK_MAX_M) {
+      const cost = Math.ceil(fare("walk", roadM) * fareMult);
+      if (rr < LONG_WALK_CHANCE && cost <= cents) return { ...setOff("walk", roadM), fare: cost };
+      // And again for what the walk didn't use.
+      rr = rr < LONG_WALK_CHANCE ? rr / LONG_WALK_CHANCE : (rr - LONG_WALK_CHANCE) / (1 - LONG_WALK_CHANCE);
+    }
     /** The road way out: his car, else a ferry now and then, a train for long trips, or the bus. */
     const road = (): [Mode, Place] | null => {
       if (hasCar) {
@@ -219,10 +248,7 @@ export class Trips {
       const bus = at(isBusStation);
       return bus && ["bus", bus];
     };
-    const p = planeChance(straight);
     const order: ("plane" | "road")[] = r < p ? ["plane", "road"] : ["road", "plane"];
-    // The part of r the plane didn't use, spread over [0, 1) again, so the ferry odds don't depend on the plane's.
-    const rr = r < p ? r / p : (r - p) / (1 - p);
     let short: NoPlan | null = null;
     for (const way of order) {
       let mode: Mode = "plane";
@@ -291,6 +317,10 @@ export const roadOut = (here: LatLon): Place => ({ name: "the road out of town",
 /** "Heading to X for the bus to Y (€5)", or how he sets off on his bike or hitchhiking. */
 export function heading(plan: Plan, to: string): string {
   if (plan.mode === "bike") return `Setting off on his bike for ${to}`;
+  if (plan.mode === "walk") {
+    const n = hostelNights(plan.distance_m);
+    return `Setting off on foot for ${to}: a long walk${n ? `, with ${n} hostel night${n === 1 ? "" : "s"} on the way (${euro(plan.fare)})` : ""}`;
+  }
   if (plan.mode === "hitch") return `Broke, so he sticks his thumb out to hitchhike to ${to}`;
   return `Heading to ${plan.station.name} for the ${plan.mode} to ${to} (${euro(plan.fare)})`;
 }

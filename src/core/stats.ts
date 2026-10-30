@@ -65,6 +65,8 @@ export const FIND_MAX = 200;
 export const moodXpMult = (mood: number) => MOOD_XP_MIN + ((MOOD_XP_MAX - MOOD_XP_MIN) * mood) / 100;
 export const riskMult = (luck: number) => 1 - Math.min(LUCK_RISK_CUT * luck, LUCK_RISK_CAP);
 export const findChance = (luck: number) => Math.min(FIND_PER_LUCK * luck, FIND_CAP);
+/** The buff that keeps him fed and clean on a long walk (hostels on the way). */
+export const ON_THE_TRAIL = "On the trail";
 export const ENERGY_PER_KM = 2;
 /** Share of the walking effort each way of getting about takes, per km. */
 export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05, tortoise: 0, broom: 0.2, carpet: 0.05, dragon: 0.05 };
@@ -382,6 +384,11 @@ export class Stats {
     paid -= back;
     this.cents -= paid;
     if (mode === "bike") return `Cycled off to ${to}${company}`;
+    if (mode === "walk") {
+      // Hostel meals and showers on the way keep him fed and clean.
+      this.addBuff({ name: ON_THE_TRAIL, min: T.LONG_WALK_MAX_S / 60, per_h: { fullness: FULLNESS_PER_H, thirst: THIRST_PER_H, hygiene: HYGIENE_PER_H } });
+      return `Walked out of town towards ${to}${company}${paid ? ` (${signed(-paid)} for hostels)` : ""}`;
+    }
     if (mode === "hitch") return `Hitchhiked to ${to}${company}`;
     return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${company}${paid ? ` (${signed(-paid)})` : ""}`;
   }
@@ -440,7 +447,7 @@ export class Stats {
 
   /**
    * Landed in `to` after `distM` by `mode`: a night train leaves him rested,
-   * cycling tires him, and a hitched lift may go badly or be a great story
+   * cycling tires him, a long walk ends his hostel buff with XP and mood, and a hitched lift may go badly or be a great story
    * (its own dice from the town and time, so the walk's stay the same). The
    * feed line, or "".
    */
@@ -453,6 +460,13 @@ export class Stats {
       const km = distM / 1000;
       this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * km });
       return `Tired legs after cycling ${Math.round(km)} km`;
+    }
+    if (mode === "walk") {
+      const km = Math.round(distM / 1000);
+      this.buffs = this.buffs.filter((b) => b.name !== ON_THE_TRAIL);
+      this.applyFx({ xp: T.LONG_WALK_XP_PER_KM * km, mood: T.LONG_WALK_MOOD });
+      const n = T.hostelNights(distM);
+      return `Walked ${km} km to ${to}${n ? `, sleeping in ${n} hostel${n === 1 ? "" : "s"} on the way` : ""}`;
     }
     if (mode !== "hitch") return "";
     const r = new Rng(seedOf(`hitch${to}${this.now()}`)).randf();

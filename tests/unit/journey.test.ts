@@ -80,6 +80,18 @@ describe("journey", () => {
     expect(asked).toHaveLength(1);
   });
 
+  it("on foot, now and then sets off on a long walk to a near town", () => {
+    let plan: Plan | null = null;
+    let stats = new Stats();
+    for (let seed = 1; seed < 60 && plan?.mode !== "walk"; seed++) {
+      stats = new Stats();
+      const j = new Journey({ trips: new Trips(parseCities(NEAR), parseAirports(AIRPORTS)), rng: new Rng(seed), roll: () => 0.1, route: async () => [], problem: () => {} });
+      plan = j.consider(where(), stats);
+    }
+    expect(plan?.mode).toBe("walk");
+    expect(stats.history.latest()).toMatch(/^Setting off on foot for somewhere in A-land: a long walk/);
+  });
+
   it("asks for no road for a ferry, which sails straight", async () => {
     const asked: LatLon[][] = [];
     const ferry: Place = { ...BUS, name: "Harbour", class: "ferry_terminal", subclass: "ferry_terminal" };

@@ -120,7 +120,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </span>
             <div class="grow">
               <div class="city">{h.city} · {h.doing}</div>
-              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${MODES[h.ride.mode].by}` : streetLine(h.street, h.doing === "resting")}</div>
+              <div class="street">{h.ride ? `${h.ride.mode === "walk" ? "Walking" : "Riding"} to ${h.ride.to} by ${MODES[h.ride.mode].by}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>

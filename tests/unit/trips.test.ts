@@ -191,6 +191,24 @@ describe("planTrip", () => {
     expect(ferries.length).toBeLessThanOrEqual(32);
   });
 
+  it("on foot, sometimes walks to a near town, paying for hostel nights", () => {
+    const c = city("Walkton", 0.3, 0);
+    const road = distanceM(0, 0, 0.3, 0) * T.ROAD_FACTOR;
+    const walk = trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, T.LONG_WALK_CHANCE - 0.01, 1, false, true);
+    expect(walk).toMatchObject({ mode: "walk", fare: T.HOSTEL_CENTS * T.hostelNights(road), station: { name: "the road out of town" } });
+    expect(T.hostelNights(road)).toBe(1);
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, T.LONG_WALK_CHANCE, 1, false, true)).toMatchObject({ mode: "bus" });
+    // Not with a vehicle, not too near or far, and not when he can't pay the hostels.
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, false)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, true)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100, false, 0, 1, false, true)).toMatchObject({ mode: "hitch" });
+  });
+
+  it("walks at real speed, capped at LONG_WALK_MAX_S", () => {
+    expect(T.rideS("walk", 5_000)).toBeCloseTo(3600, 0);
+    expect(T.rideS("walk", 100_000)).toBe(T.LONG_WALK_MAX_S);
+  });
+
   it("cycles to a near town on his bike, for free", () => {
     const near = city("Neartown", 0.2, 0);
     expect(trips().planTrip(near, [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bike", fare: 0 });
@@ -199,7 +217,7 @@ describe("planTrip", () => {
 
   it("has a ride time and an icon for every way of travelling", () => {
     for (const m of Object.keys(T.MODES) as T.Mode[]) expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
-    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍"]);
+    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍", "🥾"]);
     expect(T.fare("bike", 50_000)).toBe(0);
     expect(T.fare("hitch", 50_000)).toBe(0);
     expect(T.fare("train", 100_000)).toBe(Math.ceil(100 * T.TRAIN_PER_KM * 100));

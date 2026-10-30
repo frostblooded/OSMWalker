@@ -12,7 +12,7 @@ import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
-import type { Place } from "../../src/core/stats";
+import { ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
@@ -344,6 +344,20 @@ describe("game", () => {
     for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
     expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
     expect(g.stats.meters.energy).toBeGreaterThan(99);
+  });
+
+  it("walks to a near town on the zoomed-out map, fed by hostels, and lands with the walk's reward", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+    g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
+    g.stats.addBuff({ name: ON_THE_TRAIL, min: 180, per_h: { fullness: 5 } });
+    g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "walk", to: "Vidin" } });
+    expect(doing(g)).toMatch(/^travelling to Vidin by foot, \d+ km left$/);
+    for (let i = 0; i < 4 * 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
+    expect(g.stats.buffNames()).not.toContain(ON_THE_TRAIL);
   });
 
   it("lands fresh after a bus across the same time zones", async () => {

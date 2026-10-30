@@ -1,6 +1,6 @@
 // Packing a travel kit before a trip (src/core/travelKit.ts, Stats.packForTrip), and what a landing does to him (Stats.landFlight, Stats.landRide).
 import { describe, expect, it } from "vitest";
-import { Stats, KEEP_CENTS } from "../../src/core/stats";
+import { KEEP_CENTS, ON_THE_TRAIL, Stats } from "../../src/core/stats";
 import { choose, KIT, list, PACK_BELOW } from "../../src/core/travelKit";
 import { SLEEPER_FROM_M } from "../../src/core/trips";
 
@@ -87,6 +87,19 @@ describe("Stats.landRide", () => {
       seen.add(line);
     }
     expect(seen.size).toBe(3);
+  });
+
+  it("a long walk keeps him fed on the way, then pays off in XP and mood", () => {
+    const s = new Stats();
+    expect(s.ride(2000, "walk", "the road out of town", "Pernik")).toBe("Walked out of town towards Pernik (-€20 for hostels)");
+    expect(s.buffNames()).toContain(ON_THE_TRAIL);
+    const before = { ...s.meters };
+    s.passTime(60, 0);
+    expect(s.meters.fullness).toBeCloseTo(before.fullness, 5);
+    const xp = s.xp + s.level * 1000;
+    expect(s.landRide("walk", 30_000, "Pernik")).toBe("Walked 30 km to Pernik, sleeping in 1 hostel on the way");
+    expect(s.buffNames()).not.toContain(ON_THE_TRAIL);
+    expect(s.xp + s.level * 1000).toBeGreaterThan(xp);
   });
 
   it("a bus, car, ferry or plane changes nothing here", () => {

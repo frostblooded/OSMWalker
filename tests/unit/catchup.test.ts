@@ -301,6 +301,19 @@ describe("catch-up", () => {
     expect(lines.some((l) => /^Tired legs after cycling \d+ km$/.test(l))).toBe(true);
   });
 
+  it("goes on a long walk to a near town now and then, as in a watched trip", () => {
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    let lines: string[] = [];
+    for (let seed = 1; seed < 60 && !lines.some((l) => l.startsWith("Setting off on foot")); seed++) {
+      const stats = new Stats();
+      stats.cents = 100_000;
+      let rolls = 0;
+      lines = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps({ trips: near, rng: new Rng(seed), roll: () => (rolls++ ? 0.99 : 0.1) })).lines.map((l) => l.text);
+    }
+    expect(lines.some((l) => l.startsWith("Setting off on foot for Neartown"))).toBe(true);
+    expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land/.test(l))).toBe(true);
+  });
+
   it("hitchhikes when broke, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 0;
