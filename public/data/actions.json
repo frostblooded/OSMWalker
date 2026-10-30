@@ -2724,6 +2724,17 @@
  ],
  "shop/antiques": [
   {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
+  {
    "name": "Browse the weapons and armour",
    "min": 15,
    "item": "weapons",
@@ -3113,6 +3124,17 @@
   }
  ],
  "shop/second_hand": [
+  {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
   {
    "name": "Browse the trinkets",
    "min": 15,

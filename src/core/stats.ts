@@ -12,6 +12,7 @@ import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
+import * as Mn from "./midnight";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -46,7 +47,7 @@ export const FX_KEYS = [...METERS, ...ATTRS, "xp"] as const;
 /** Requirement keys an action's needs may use. */
 export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below"] as const;
 /** Hours that count as each time of day (night wraps past midnight). */
-export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5] } as const;
+export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5], midnight: [0, 3] } as const;
 export type TimeOfDay = keyof typeof TIMES;
 
 export const FULLNESS_PER_H = 5;
@@ -130,6 +131,8 @@ export type Action = {
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
+  /** Knocks at the shop after midnight (see midnight.ts). */
+  midnight?: boolean;
   /** Buys a pack of city cards (see cityCards.ts). */
   pack?: boolean;
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
@@ -192,6 +195,8 @@ export class Stats {
   lore = new Mg.Lore();
   /** What the spells are, from data/spells.json; not saved, the game sets it. */
   spellKinds: readonly Mg.Spell[] = [];
+  /** The enchantments and trinkets he found at the shop after midnight. */
+  finds = new Mn.Finds();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -555,6 +560,8 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
+    // Enchanted gear gathers Magic as he walks.
+    fx.magic = (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
@@ -661,6 +668,10 @@ export class Stats {
         return this.say(`Asked after a ${base}${where ? ` at ${where}` : ""}, but there were none in today`);
       }
       return this.buy(this.offer(action.item, rng), where);
+    }
+    if (action.midnight) {
+      this.applyFx(action.fx ?? {});
+      return this.midnightShop(where, rng);
     }
     if (action.sell) {
       this.applyFx(action.fx ?? {});
@@ -915,6 +926,38 @@ export class Stats {
     if (this.lore.known.length === 1) this.milestone("spell", `Learned his first spell, ${s.name}, at ${place.name}`);
   }
 
+  /** Magic his enchanted gear gathers for each km he walks. */
+  gearMagic(): number {
+    let v = 0;
+    for (const item of Object.values(this.gear)) v += item?.stats.magic ?? 0;
+    return v;
+  }
+
+  /** At the shop after midnight at `where`: an enchanted item (bought like any gear, if it is an upgrade) or a trinket used at once, for euros plus Magic. Returns the feed line. */
+  private midnightShop(where: string, rng: Rng): string {
+    const at = `${where ? ` at ${where}` : ""} after midnight`;
+    if (rng.randf() < Mn.ENCHANTED_CHANCE) {
+      const item = Items.makeEnchanted(rng.pick(Mn.ENCHANTED_KINDS), this.level, rng, this.attr("luck"));
+      item.price = Math.round(item.price * Mn.ENCHANTED_PRICE);
+      if (this.magic < Mn.ENCHANTED_MAGIC) return this.say(`🌙 Saw a ${item.rarity} ${item.name}${at}, but hadn't the Magic for it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS) return this.say(`🌙 Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      this.cents -= item.price;
+      this.magic -= Mn.ENCHANTED_MAGIC;
+      item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
+      this.equip(item);
+      for (const e of Items.ENCHANTMENTS) if (item.name.includes(e.name)) this.finds.note(e.name);
+      return this.say(`🌙 Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)}, Magic −${Mn.ENCHANTED_MAGIC})`);
+    }
+    const t = rng.pick(Mn.TRINKETS);
+    if (this.magic < t.magic || this.cents - t.cents < KEEP_CENTS) return this.say(`🌙 Saw a ${t.name}${at}, but couldn't pay for it (${euro(t.cents)}${t.magic ? ` and ${t.magic} Magic` : ""})`);
+    this.cents -= t.cents;
+    this.magic -= t.magic;
+    if (t.fx) this.applyFx(t.fx);
+    if (t.buff) this.addBuff(t.buff);
+    this.finds.note(t.id);
+    return this.say(`${t.icon} Bought a ${t.name}${at} and ${t.say} (${signed(-t.cents)}${t.magic ? `, Magic −${t.magic}` : ""})`);
+  }
+
   /** Casts the spell that helps now, if he has the Magic (magic.ts toCast). */
   private castIfNeeded(): void {
     const s = Mg.toCast(this.spellKinds, this.lore.known, this.magic, this.meters, this.buffNames());
@@ -1006,7 +1049,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
@@ -1039,6 +1082,8 @@ export class Stats {
     // A save from before magic: no Magic and no spells yet.
     s.magic = d.magic ?? 0;
     s.lore = Mg.Lore.fromJSON(d.lore);
+    // A save from before the shop after midnight: nothing found there yet.
+    s.finds = Mn.Finds.fromJSON(d.finds);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);

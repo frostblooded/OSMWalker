@@ -306,6 +306,16 @@ describe("save file", () => {
     expect(back.lore.toJSON()).toEqual({ known: [], casts: {}, day: "", tapped: [] });
   });
 
+  it("loads saves from before the shop after midnight: nothing found there yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.finds;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.finds.got).toEqual([]);
+  });
+
   it("says why a save is unreadable", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

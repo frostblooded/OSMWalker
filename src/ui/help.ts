@@ -11,6 +11,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
+import * as Midnight from "../core/midnight";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -147,6 +148,8 @@ export const fill = (text: string, vals: Record<string, string>) => text.replace
 export const build = (text: string, data: GameData) => parse(fill(text, values(data)));
 
 /** Shortest form of a number: 0.5, 2, 1.3. */
+/** Stat names in the enchantment list. */
+const ENCHANT_STAT: Record<string, string> = { str: "strength", cha: "charm", wit: "wits", luck: "luck", speed: "speed", magic: "Magic" };
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
 /** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
@@ -223,6 +226,11 @@ export function values(data: GameData): Record<string, string> {
     SPELL_AT: num(Magic.SPELL_AT),
     SPARE_MAGIC: num(Magic.SPARE_MAGIC),
     SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
+    ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
+    ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
+    ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
+    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => `${ENCHANT_STAT[k]} +${v}${k === "magic" ? " a km" : ""}`).join(", ")})`).join(", "),
+    TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
