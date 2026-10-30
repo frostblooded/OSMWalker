@@ -3,7 +3,7 @@
 // and his buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
-import type { Quests } from "../core/quests";
+import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
@@ -215,7 +215,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
   const k = q.active && q.kind(q.active.kind);
   // A new city drops the old board and events (Quests.roll), so these are always the city he is in.
   const events = q.events.filter((e) => e.ends > now).length;
-  const recent = q.log.slice(-2).reverse();
+  const recent = q.log.slice(-CARD_RECENT).reverse();
   return (
     <Card icon="❗" title="Quests" right={`${q.finished} done`}>
       <KV k="🎯 Now" v={k ? `${k.icon} ${k.title} (${q.active!.step + 1} / ${k.steps.length})` : <span class="dim">None</span>} />

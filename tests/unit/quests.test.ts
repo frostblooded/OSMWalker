@@ -267,4 +267,14 @@ describe("quests while he is away", () => {
     expect(sum.lines.some((l) => l.text.includes("New quest"))).toBe(true);
     expect(s.quests.log.length).toBeGreaterThan(0);
   });
+
+  it("rolls the board of a city he left before enough of it had loaded", () => {
+    const s = new Stats();
+    s.quests = Q.Quests.fromJSON({ city: "Testville, France", rolled: false });
+    s.quests.bank = BANK;
+    const city: AwayCity = { name: "Testville, France", code: "FR", center: HERE, bounds: bboxAround(HERE[0], HERE[1], 2000), places: TOWN, pop: 300_000 };
+    const trips = new Trips(parseCities(dataFile("cities.tsv")), parseAirports(dataFile("airports.tsv")));
+    catchUp(s, city, HERE, 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), hourAt: () => 12, roll: () => 0.999 });
+    expect(s.quests.rolled).toBe(true);
+  });
 });

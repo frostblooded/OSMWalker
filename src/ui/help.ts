@@ -502,6 +502,7 @@ export function values(data: GameData): Record<string, string> {
     STEP_MIN: num(Quests.STEP_MIN),
     WORSE_PCT: pct(Quests.WORSE_SHARE),
     LOG_MAX: num(Quests.LOG_MAX),
+    CARD_RECENT: num(Quests.CARD_RECENT),
     EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
     EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
     EVENT_MAX: num(Quests.EVENT_MAX),

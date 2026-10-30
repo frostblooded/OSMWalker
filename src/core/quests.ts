@@ -51,6 +51,8 @@ export const WORSE_SHARE = 0.4;
 export const DONE_MAX = 1000;
 /** Quests and events kept in his log. */
 export const LOG_MAX = 40;
+/** Recent quests and events the Stats card shows. */
+export const CARD_RECENT = 2;
 
 export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind };
 /** One step: where (actions.json keys, class or class/subclass) and what he does, one line picked from `say`. */

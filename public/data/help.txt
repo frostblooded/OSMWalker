@@ -564,7 +564,7 @@ After every {QUEST_EVERY_MIN} to {QUEST_EVERY_MAX} stops he takes one on, likeli
 
 At the end it goes well at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}), and pays its money, XP and effects, now and then with a thank-you item for his bag. One that ends worse pays {WORSE_PCT} of it. Nothing waits for you.
 
-On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between. It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last few. The {LOG_MAX} newest quests and events are kept.
+On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between. It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last {CARD_RECENT}. The {LOG_MAX} newest quests and events are kept.
 
 While you are away he takes on quests, does their steps and joins events the same way, in a city whose places are loaded.
 ## World events {world_events}
