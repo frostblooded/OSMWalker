@@ -520,10 +520,10 @@
       "good": ["{GIVER} waives the fine and lets him read a page; a little Magic sticks to his fingers.", "The book purrs on its shelf; {GIVER} gives him a library card for life."],
       "worse": ["He pays the fine himself. It is a lot of five-cent days.", "The book bit him, gently."],
       "reward": { "eur": [-5, 5], "xp": 50, "fx": { "magic": 15, "wit": 0.3 } } },
-    { "id": "night_shopkeeper", "icon": "🌙", "title": "The Night Shopkeeper", "lean": "cha", "fantasy": true,
+    { "id": "night_shopkeeper", "icon": "🌙", "title": "The Night Shopkeeper", "lean": "cha", "fantasy": true, "time": "night",
       "items": ["a key that hums", "a teacup that is always warm", "a mirror that shows tomorrow's weather", "a music box with no tune"],
       "steps": [
-        { "at": ["shop/antiques", "shop/second_hand"], "say": ["The shop at {PLACE} is open after midnight. {GIVER} behind the counter asks him to find the owner of {ITEM}.", "At {PLACE}, long after closing time, {GIVER} pushes {ITEM} across the counter: it wants to go home."] },
+        { "at": ["shop/antiques", "shop/second_hand"], "say": ["The shop at {PLACE} is still open, deep in the night. {GIVER} behind the counter asks him to find the owner of {ITEM}.", "At {PLACE}, long after closing time, {GIVER} pushes {ITEM} across the counter: it wants to go home."] },
         { "at": ["place_of_worship", "memorial", "monument"], "say": ["{ITEM} goes quiet near {PLACE}, as if it knows the way.", "At {PLACE} an old caretaker recognises {ITEM} and points down the street."] },
         { "at": ["shop/antiques", "shop/second_hand", "cafe"], "say": ["He brings word back to {PLACE}; {GIVER} smiles like a cat."] }
       ],
