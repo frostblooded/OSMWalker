@@ -152,8 +152,11 @@ describe("stats", () => {
     expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 5), 9);
     expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1.3, 9);
     const before = stats.cents;
+    // His money as the job's line is said, before any chance card at work (workCards.ts).
+    let paid: number | null = null;
+    stats.onSay = () => (paid ??= stats.cents);
     const line = stats.do(job, "Bar", rng);
-    expect(stats.cents - before).toBe(Math.round(10000 * stats.wageMult(job)));
+    expect(paid! - before).toBe(Math.round(10000 * stats.wageMult(job)));
     expect(line).toContain(euro(Math.round(10000 * stats.wageMult(job))));
   });
 
