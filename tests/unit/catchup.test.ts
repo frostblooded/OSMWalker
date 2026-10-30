@@ -178,6 +178,15 @@ describe("catch-up", () => {
     expect(stats.cents).toBeLessThan(500_000);
   });
 
+  it("lands jet-lagged after a flight, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0) }));
+    expect(s.lines.some((l) => l.text.startsWith("Took the plane to Farcity"))).toBe(true);
+    expect(s.lines.some((l) => l.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
+  });
+
   it("packs a travel kit as he boards, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 500_000;
