@@ -18,6 +18,7 @@ import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
+import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
@@ -44,7 +45,7 @@ export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -273,7 +274,7 @@ export class Game {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
     }
-    this.stats.do(action, place.name, this.rng);
+    this.stats.do(action, place.name, this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
     this.changed();
   }
@@ -405,9 +406,10 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
+    this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 

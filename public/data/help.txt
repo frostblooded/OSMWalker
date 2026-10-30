@@ -39,6 +39,11 @@ The card shows how long you were away, how many places he visited and how many w
 The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
 
 After a week ends, the next While you were away sheet opens with two cards about it, His week and His week's progress, ready for a screenshot. Each week's recap shows once; a week with no stops has none.
+## Daily forecast {forecast}
+Every day has one forecast, shown on the top card under his goal. It is picked from the date on your phone, so everyone playing on the same date gets the same one, and it lasts until midnight. He doesn't do anything differently because of it; it just changes how some things go that day:
+{FORECAST_LIST}
+
+While you are away, each day he lives through has its own forecast.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
@@ -75,7 +80,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
+Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need for pawn, second-hand, antique and charity shops (see The bag and selling). Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -126,7 +131,7 @@ An action can:
 
 Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
-What he did pops up at the top for a few seconds, and goes into his History.
+What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back."
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
@@ -296,7 +301,9 @@ Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats she
 
 At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
 
-If his bag is full when another item comes in, he sells the cheapest item he may sell on the spot, which can be the new one.
+While his bag is full he goes on a selling run: pawn shops, second-hand, antique and charity shops pull his next goal like an empty need (see Picking the next goal). There "Sell his loot" sells his cheapest things one after another until {SELL_RUN_LEFT} are left, with a line for each sale. Other shops still buy just one thing at a time.
+
+If his bag is full when another item comes in before he finds such a shop, he sells the cheapest item he may sell on the spot, which can be the new one.
 
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
@@ -332,7 +339,7 @@ Fares are in euros and never free:
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
 - car: fuel at {FUEL_PER_KM} per km of road.
 
-Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs make it cheaper (see Souvenirs).
+Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}

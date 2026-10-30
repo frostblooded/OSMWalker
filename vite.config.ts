@@ -29,6 +29,7 @@ export default defineConfig({
     },
   },
   test: {
+    setupFiles: ["tests/support/setup.ts"],
     include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx", "tests/integration/**/*.test.ts", "tests/integration/**/*.test.tsx"],
   },
 });

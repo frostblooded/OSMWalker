@@ -7,11 +7,13 @@ import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
+import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
+import * as Jokes from "../core/jokes";
 import * as Day from "../core/day";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
@@ -169,6 +171,9 @@ export function values(data: GameData): Record<string, string> {
     CHESS_BASE_PCT: pct(Dilemmas.CHESS_BASE),
     CHESS_PER_WIT_PCT: pct(Dilemmas.CHESS_PER_WIT),
     CHESS_MAX_PCT: pct(Dilemmas.CHESS_MAX),
+    FORECAST_LIST: Forecast.FORECASTS.map((f) => `- ${f.icon} ${f.text}`).join("\n"),
+    JOKE_PCT: pct(Jokes.JOKE_CHANCE),
+    SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),
