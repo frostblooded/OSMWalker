@@ -103,9 +103,41 @@ describe("ofm streets", () => {
     for (const street of ["Dupont Street", "Pontiac Avenue", "Bruges Road", "Uppermost Lane", "Bridgewater Road"]) expect(named(street)).toBe(`Bridge on ${street}`);
   });
 
+  it("puts a bridge across a tile edge in one tile only, where it crosses the edge", () => {
+    const bridge = (line: number[]): Layers => ({
+      transportation: { extent: 4096, features: [{ tags: { class: "minor", brunnel: "bridge" }, lines: [line] }] },
+      transportation_name: { extent: 4096, features: [{ tags: { name: "Vitosha", class: "minor" }, lines: [line] }] },
+    });
+    // The same bridge as each tile clips it, running into the other tile's edge buffer.
+    const west = fromLayers(bridge([4000, 1000, 4160, 1000]), WEST).places;
+    const east = fromLayers(bridge([-64, 1000, 96, 1000]), EAST).places;
+    expect(west.map((p) => p.name)).toEqual(["Bridge on Vitosha"]);
+    expect(east).toEqual([]);
+    const edge = coordsOf(fromLayers(layers(minor([4000, 1000, 4160, 1000])), WEST), nodeId(EAST.x * 4096, WEST.y * 4096 + 1000))!;
+    expect(west[0]!.lat).toBeCloseTo(edge[0]!, 9);
+    expect(west[0]!.lon).toBeCloseTo(edge[1]!, 9);
+  });
+
+  it("names a bridge after the street most of its points belong to, not a cross street at one end", () => {
+    const cell = fromLayers(
+      {
+        transportation: { extent: 4096, features: [{ tags: { class: "minor", brunnel: "bridge" }, lines: [[100, 100, 200, 100, 300, 100]] }] },
+        transportation_name: {
+          extent: 4096,
+          features: [
+            { tags: { name: "Vitosha", class: "minor" }, lines: [[100, 100, 200, 100, 300, 100]] },
+            { tags: { name: "Cross Street", class: "minor" }, lines: [[100, 0, 100, 100, 100, 200]] },
+          ],
+        },
+      },
+      WEST,
+    );
+    expect(cell.places.map((p) => p.name)).toEqual(["Bridge on Vitosha"]);
+  });
+
   it("finds the bridges in a real tile", () => {
-    const b = fromPbf(pbf(EAST), EAST).places.filter((p) => p.class === BRIDGE);
-    expect(b.map((p) => p.name)).toContain("Bridge on Черковна");
+    const b = fromPbf(pbf(WEST), WEST).places.filter((p) => p.class === BRIDGE);
+    expect(b.map((p) => p.name)).toContain("Bridge on бул. Драган Цанков");
     expect(b.some((p) => p.name === "Footbridge")).toBe(true);
   });
 

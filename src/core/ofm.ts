@@ -91,31 +91,40 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
 }
 
 /**
- * One place per walkable bridge in the tile, at the middle point of its line:
- * a street bridge by the street's name, an unnamed footbridge as "Footbridge".
- * The name layer is simplified past a bridge's own cut points, so names are
- * matched by any shared point, not by segment.
+ * One place per walkable bridge in the tile (see bridgeAt): a street bridge
+ * by the street's name, an unnamed footbridge as "Footbridge". The name layer
+ * is simplified past a bridge's own cut points, so names are matched by the
+ * points they share with the bridge, and the name most of them carry wins
+ * (a point at a crossing carries both streets).
  */
 export function bridges(layer: Layer | undefined, nameLayer: Layer | undefined, tile: Tile): Place[] {
   if (!layer) return [];
   const scale = UNITS / layer.extent;
-  const named = new Map<number, string>();
+  const named = new Map<number, string[]>();
   for (const f of nameLayer?.features ?? []) {
     const name = String(f.tags.name ?? "");
     const k = UNITS / nameLayer!.extent;
-    if (name !== "") for (const line of f.lines ?? []) for (let i = 0; i + 1 < line.length; i += 2) named.set(idAt([line[i]! * k, line[i + 1]! * k], tile), name);
+    if (name === "") continue;
+    for (const line of f.lines ?? []) {
+      for (let i = 0; i + 1 < line.length; i += 2) {
+        const id = idAt([line[i]! * k, line[i + 1]! * k], tile);
+        const list = named.get(id);
+        if (!list) named.set(id, [name]);
+        else if (!list.includes(name)) list.push(name);
+      }
+    }
   }
   const seen = new Set<string>();
   const out: Place[] = [];
   for (const f of layer.features) {
     if (f.tags.brunnel !== "bridge" || !WALKABLE.has(String(f.tags.class)) || NOT_WALKABLE_SUBCLASS.has(String(f.tags.subclass))) continue;
     for (const line of f.lines ?? []) {
-      if (line.length < 4) continue;
-      const i = Math.floor((line.length / 2 - 1) / 2) * 2;
-      const p: Pt = [line[i]! * scale, line[i + 1]! * scale];
-      if (p[0] < 0 || p[1] < 0 || p[0] >= UNITS || p[1] >= UNITS) continue; // the neighbouring tile has it
+      const p = bridgeAt(line, scale);
+      if (!p) continue;
+      const votes = new Map<string, number>();
+      for (let j = 0; j + 1 < line.length; j += 2) for (const n of named.get(idAt([line[j]! * scale, line[j + 1]! * scale], tile)) ?? []) votes.set(n, (votes.get(n) ?? 0) + 1);
       let street = "";
-      for (let j = 0; j + 1 < line.length && !street; j += 2) street = named.get(idAt([line[j]! * scale, line[j + 1]! * scale], tile)) ?? "";
+      for (const [n, v] of votes) if (v > (votes.get(street) ?? 0)) street = n;
       const name = street === "" ? (f.tags.class === "path" ? "Footbridge" : "") : BRIDGE_WORD.test(street) ? street : `Bridge on ${street}`;
       const gx = tile.x * UNITS + p[0];
       const gy = tile.y * UNITS + p[1];
@@ -126,6 +135,34 @@ export function bridges(layer: Layer | undefined, nameLayer: Layer | undefined, 
     }
   }
   return out;
+}
+
+/**
+ * Where a bridge line's place goes, in tile units, or null when another tile
+ * has it. A line inside the tile: its middle point. One that leaves the tile:
+ * the first point where it crosses the right or bottom edge, snapped as
+ * street cuts are, so the tile on the other side (which sees it cross its left
+ * or top edge) agrees and skips it.
+ */
+function bridgeAt(line: number[], scale: number): Pt | null {
+  let crosses = false;
+  for (let i = 0; i + 3 < line.length; i += 2) {
+    const p: Pt = [line[i]! * scale, line[i + 1]! * scale];
+    const q: Pt = [line[i + 2]! * scale, line[i + 3]! * scale];
+    if (inside(p) && inside(q)) continue;
+    const cut = clip(p, q, UNITS);
+    if (!cut) continue;
+    crosses = true;
+    for (const [c, end] of [[cut[0], p], [cut[1], q]] as const) {
+      if (same(c, end)) continue;
+      const e = snapToEdge(c, UNITS);
+      if (e[0] === UNITS || e[1] === UNITS) return e;
+    }
+  }
+  if (crosses || line.length < 4) return null;
+  const i = Math.floor((line.length / 2 - 1) / 2) * 2;
+  const mid: Pt = [line[i]! * scale, line[i + 1]! * scale];
+  return inside(mid) ? mid : null; // all in the buffer past the edge: the neighbouring tile has it
 }
 
 /** Named places inside the tile. A lower rank is more important within its tile. */
