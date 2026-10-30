@@ -308,7 +308,7 @@ When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 ## Magic {magic}
-Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), enchanted gear as he walks (see The shop after midnight), and a few fantasy quests and night events, such as The Ley Hunter and humming stones; his spells and the shop after midnight spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
+Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), enchanted gear as he walks (see The shop after midnight), a strange story from a nap in a fairy ring (see Fairy rings), and a few fantasy quests and events, such as The Ley Hunter, humming stones and a circle of mushrooms; his spells and the shop after midnight spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
@@ -406,7 +406,7 @@ Rare spectacle, with no fighting: some real places give a glimpse of something e
 
 Each time he reaches such a place there is a {GIANT_PCT} chance one shows, at most once a day. He stops to watch ({GIANT_FX}) and takes a photo: the first photo of each giant is a Legendary tile in the Collection (Places tab, Giants), and the first sighting of each goes in his life story. It works the same while you're away, but not at the made-up places of a city with no places loaded. The Giant spotter badge (Feats tab) counts the kinds he has seen.
 ## Fairy rings {fairy_rings}
-At dawn ({FAIRY_DAWN}) a fairy ring may grow on the lawn of a real park or garden. Each time he reaches one at dawn there is a {FAIRY_PCT} chance he lies down in it for a nap, but never within {FAIRY_GAP_DAYS} days of his last one. He sleeps {NAP_HOURS} hours and wakes rested (full energy), with one of these:
+At dawn ({FAIRY_DAWN}) a fairy ring may grow on the lawn of a real park or garden. Each time he reaches one at dawn there is a {FAIRY_PCT} chance he lies down in it for a nap, but never within {FAIRY_GAP_DAYS} days of his last one. While you're away the nap takes {NAP_HOURS} hours of his day; while you watch it is a stop like any other (see Staying somewhere). He wakes rested (full energy), with one of these:
 - {GIFT_PCT} of the time, a fairy gift in his hand: a Fairy-spun trinket ({FAIRY_MOD}), which he wears if it beats his own, else keeps in his bag;
 - otherwise a burst of {STORY_MAGIC} Magic and a strange story he can't quite tell.
 

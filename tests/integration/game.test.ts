@@ -12,6 +12,7 @@ import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
+import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
@@ -327,6 +328,28 @@ describe("game", () => {
     expect(texts).toContain("🌀 The old stones of Old Monument shimmered like a door, and he stepped through");
     expect(texts).toContain(`🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`);
     expect(g.walker!.isTraveling()).toBe(false);
+  });
+
+  it("at dawn a fairy ring in a park he reaches may take him for a nap in place of an action, and he wakes with a gift or a story", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], hour: () => FAIRY_FROM_H });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the park's own dice take him.
+    let t = 1_800_000_000;
+    while (new Rng(seedOf(`fairy${t}${PARK.name}`)).randf() >= FAIRY_CHANCE) t += 60;
+    g.stats.now = () => t;
+    const napped: string[] = [];
+    const doIt = g.stats.do.bind(g.stats);
+    g.stats.do = (...a) => {
+      napped.push(a[0].name);
+      return doIt(...a);
+    };
+    for (let i = 0; i < 400 && !g.stats.rings.naps; i++) g.step(1);
+    expect(g.stats.rings.naps).toBe(1);
+    expect(g.doing?.name).toBe("Asleep in a fairy ring");
+    expect(napped).toEqual([]);
+    expect(g.stats.rings.gifts.length + g.stats.rings.stories.length).toBe(1);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("🍄 Lay down in a ring of mushrooms in Park Near at dawn"))).toBe(true);
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {
