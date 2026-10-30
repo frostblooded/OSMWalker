@@ -208,7 +208,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} onDone={() => game.dismissAway()} />
+          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} onDone={() => game.dismissAway()} />
         </SheetBox>
       )}
     </div>

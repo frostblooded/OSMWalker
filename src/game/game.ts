@@ -333,6 +333,7 @@ export class Game {
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
     this.track();
+    this.stats.enterCity(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
@@ -515,6 +516,7 @@ export class Game {
   dismissAway(): void {
     this.away = null;
     this.awayClover = false;
+    this.stats.week.seen();
     this.changed();
   }
 

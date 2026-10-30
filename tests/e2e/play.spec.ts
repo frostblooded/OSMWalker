@@ -101,3 +101,20 @@ test("every tap target is at least 48 px", async ({ page }) => {
   );
   expect(small).toEqual([]);
 });
+
+test("after a week turns over, the away sheet opens with his week", async ({ page }) => {
+  await startInSofia(page);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
+  // His week started 8 days ago, with a few stops in it.
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("old-week")) return;
+    sessionStorage.setItem("old-week", "1");
+    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
+    d.stats.week = { tally: { start: Math.floor(Date.now() / 1000) - 8 * 86400, walkedM: 4200, stops: 9, newPlaces: 4, kinds: { cafe: 5, park: 4 }, cities: [], cents: 20000, level: 1 }, last: null, shown: true };
+    localStorage.setItem("osmwalker.save", JSON.stringify(d));
+  });
+  await reopenAfter(page, 1);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toContainText("His week", { timeout: 20000 });
+  await expect(away).toContainText("cafe ×5");
+});

@@ -55,6 +55,9 @@ describe("catch-up", () => {
     expect(s.stops).toBeGreaterThan(3);
     // Each stop goes on his day ribbon too, with when he got there.
     expect(stats.stops.length).toBe(s.stops);
+    // And in his week, for the weekly recap.
+    expect(stats.week.tally.stops).toBe(s.stops);
+    expect(stats.week.tally.walkedM).toBeCloseTo(s.walkedM, 0);
     expect(stats.stops[0]!.t).toBeGreaterThanOrEqual(START_MS / 1000);
     expect(s.walkedM).toBeGreaterThan(1000);
     expect(PLACES).toContainEqual(s.end.place);

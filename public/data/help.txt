@@ -35,6 +35,10 @@ If he was on a bus, a plane or driving his car when you left, the ride finishes 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
 The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+## His week {recap}
+The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
+
+After a week ends, the next While you were away sheet opens with two cards about it, His week and His week's progress, ready for a screenshot. Each week's recap shows once; a week with no stops has none.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
