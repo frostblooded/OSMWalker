@@ -78,7 +78,10 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
+    const abroad = stats.where.code !== "" && dest.code !== stats.where.code;
     setOff(stats, stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
+    const kit = stats.packForTrip(abroad);
+    if (kit) stats.say(kit);
     return "";
   }
 

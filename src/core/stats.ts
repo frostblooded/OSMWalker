@@ -21,6 +21,7 @@ import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
 import { Storyteller } from "./storyteller";
+import * as Kit from "./travelKit";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
 
@@ -394,6 +395,19 @@ export class Stats {
   private bagAdd(item: Item): void {
     this.bag.push(item);
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
+  }
+
+  /** As he boards for another city: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
+  packForTrip(abroad: boolean): string {
+    const kit = Kit.choose(this.meters, this.cents, abroad, KEEP_CENTS);
+    if (!kit.length) return "";
+    let cost = 0;
+    for (const k of kit) {
+      cost += k.cents;
+      this.addBuff(k.buff);
+    }
+    this.cents -= cost;
+    return `Packed ${Kit.list(kit.map((k) => k.name))} for the trip (${signed(-cost)})`;
   }
 
   /** Starts a timed effect, replacing one of the same name. */
