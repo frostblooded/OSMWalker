@@ -110,6 +110,10 @@ describe("friends", () => {
     const bad = F.Friends.fromJSON({ list: [local({ hearts: 99 }), null, { id: 1 }, { id: "y", name: "Ben" }], partner: "gone", companion: { who: "x", lines: [] } });
     expect(bad.list).toHaveLength(1);
     expect(bad.list[0]!.hearts).toBe(F.HEARTS_MAX);
+    const { place: _, ...noPlace } = local();
+    const odd = F.Friends.fromJSON({ list: [noPlace, local({ id: "z", hearts: 0, met: undefined as never })] });
+    expect(odd.list.map((g) => g.id)).toEqual(["z"]);
+    expect(odd.list[0]).toMatchObject({ hearts: 1, met: 0 });
     expect(bad).toMatchObject({ partner: "", companion: null });
     for (const companion of [{ who: "x", icon: "🎒", lines: ["Hi"] }, { who: "x", lines: ["Hi"], left: 2 }, { who: "x", icon: "🎒", lines: ["Hi"], left: 0 }])
       expect(F.Friends.fromJSON({ companion }).companion, JSON.stringify(companion)).toBeNull();

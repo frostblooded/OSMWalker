@@ -138,8 +138,13 @@ export class Friends {
     if (!d || typeof d !== "object") return out;
     const o = d as Record<string, unknown>;
     const str = (...v: unknown[]) => v.every((x) => typeof x === "string");
-    if (Array.isArray(o.list)) out.list = (o.list as Friend[]).filter((f) => f && str(f.id, f.name, f.icon, f.city, f.kind));
-    for (const f of out.list) f.hearts = Math.min(Math.max(Number(f.hearts) || 0, 0), HEARTS_MAX);
+    const spot = (p: Friend["place"]) => !!p && typeof p.name === "string" && Number.isFinite(p.lat) && Number.isFinite(p.lon);
+    if (Array.isArray(o.list)) out.list = (o.list as Friend[]).filter((f) => f && str(f.id, f.name, f.icon, f.city, f.kind) && spot(f.place));
+    for (const f of out.list) {
+      f.hearts = Math.min(Math.max(Number(f.hearts) || 0, 1), HEARTS_MAX);
+      f.met = Number(f.met) || 0;
+      f.seen = Number(f.seen) || 0;
+    }
     out.partner = typeof o.partner === "string" && out.list.some((f) => f.id === o.partner) ? o.partner : "";
     const c = o.companion as Companion | null;
     out.companion = c && str(c.who, c.icon) && typeof c.left === "number" && c.left > 0 && Array.isArray(c.lines) && c.lines.length ? c : null;
