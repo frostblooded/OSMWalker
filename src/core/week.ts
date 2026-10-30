@@ -92,8 +92,8 @@ export class Week {
     const w = new Week();
     if (!d) return w;
     w.tally = d.tally;
-    w.last = d.last ?? null;
-    w.shown = d.shown ?? true;
+    w.last = d.last;
+    w.shown = d.shown;
     return w;
   }
 }

@@ -465,11 +465,6 @@ export class Stats {
     this.week.stop(place.class);
   }
 
-  /** Notes that he arrived in a city, for the weekly recap. */
-  enterCity(name: string): void {
-    this.week.city(name);
-  }
-
   fainted(): boolean {
     return this.meters.health <= 0;
   }

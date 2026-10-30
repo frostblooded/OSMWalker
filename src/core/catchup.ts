@@ -249,7 +249,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
-    stats.enterCity(city.name);
+    stats.week.city(city.name);
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
