@@ -7,6 +7,7 @@ import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
+import * as Cr from "./creatures";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -15,6 +16,7 @@ import * as Items from "./items";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
+import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
@@ -170,6 +172,10 @@ export class Stats {
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
   chronicle = new Chronicle();
+  /** The place creatures he has met. */
+  creatures = new Cr.Creatures();
+  /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
+  creatureKinds: readonly Cr.Creature[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -768,6 +774,28 @@ export class Stats {
     this.milestone(`built${b.built.length}`, `Built a ${k.name} with his name in ${place.name}, ${m.city}`);
   }
 
+  /** Right after reaching `place`: now and then, at most once a day, the creature that lives at such places shows up (creatures.ts), or null. Its own dice, so his walk stays the same. */
+  creatureAt(place: Pick<Place, "class" | "name">): Cr.Creature | null {
+    const t = this.now();
+    return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
+  }
+
+  /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */
+  meet(c: Cr.Creature, where: string, pick: string): string {
+    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(this.now(), `${where}${pick}`).randf());
+    const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
+    this.cents -= paid;
+    if (o.fx) this.applyFx(o.fx);
+    if (o.buff) this.addBuff(o.buff);
+    return this.say(`${c.icon} ${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
+  }
+
+  /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
+  meetAt(place: Pick<Place, "class" | "name">): void {
+    const c = this.creatureAt(place);
+    if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+  }
+
   /** Writes milestone `key` in his chronicle, once. */
   milestone(key: string, text: string): void {
     this.chronicle.note(key, text, this.now());
@@ -838,7 +866,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
     };
   }
 
@@ -866,6 +894,7 @@ export class Stats {
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
+    s.creatures = Cr.Creatures.fromJSON(d.creatures);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);

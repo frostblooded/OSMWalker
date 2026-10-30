@@ -251,6 +251,18 @@ describe("save file", () => {
     expect(back.chronicle.lines).toEqual([]);
   });
 
+  it("loads saves from before place creatures: none met yet, free to meet one today", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.creatures;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.creatures.met).toEqual({});
+    expect(back.creatures.day).toBe("");
+  });
+
   it("says why a save is unreadable", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
