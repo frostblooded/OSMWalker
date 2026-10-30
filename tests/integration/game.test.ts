@@ -426,6 +426,26 @@ describe("game", () => {
       expect(weatherCalls()).toBe(2);
     });
 
+    it("waits for the weather on reopen, so the catch-up lives by it", async () => {
+      let now = NOW;
+      const { weatherCalls, api } = weatherApi(71, -2);
+      // A slow answer, which the catch-up must wait for.
+      const fetchFn = (api as unknown as { fetchFn: (u: string) => Promise<Response> }).fetchFn;
+      const slow = new Api((u) => new Promise((ok) => setTimeout(() => ok(fetchFn(u)), 600)));
+      const { g, storage } = game({ api: slow, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += 2 * 3600_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      await again.wake();
+      expect(weatherCalls()).toBe(1);
+      expect(again.forecast?.city).toBe("Sofia, Bulgaria");
+      expect(again.away).not.toBeNull();
+      expect(again.stats.sky?.weather?.kind).toBe("snow");
+    });
+
     it("finds shops closed at night and does nothing there", async () => {
       const { g } = game({ places: [SHOP], hour: () => 23 });
       await g.startCity("Sofia, Bulgaria", ...START, null);

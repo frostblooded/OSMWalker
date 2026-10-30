@@ -10,7 +10,7 @@ import type { Weather } from "./weather";
 
 export const SEASONS = ["spring", "summer", "autumn", "winter"] as const;
 export type Season = (typeof SEASONS)[number];
-/** Weather an action may need: wet (rain, snow or storm), snow, hot, cold, sunny (clear and not cold). */
+/** Weather an action may need: wet (rain, snow or storm), snow, hot, cold, sunny (clear, SUNNY_MIN_C to below HOT_C). */
 export const WEATHER_NEEDS = ["wet", "snow", "hot", "cold", "sunny"] as const;
 export type WeatherNeed = (typeof WEATHER_NEEDS)[number];
 
@@ -137,6 +137,7 @@ export function skyAt(ms: number, lat: number, lon: number, offsetS: number, wea
 export const isWet = (sky: Sky | null) => !!sky?.weather && ["rain", "snow", "storm"].includes(sky.weather.kind);
 export const isHot = (sky: Sky | null) => !!sky?.weather && sky.weather.tempC >= HOT_C;
 export const isCold = (sky: Sky | null) => !!sky?.weather && sky.weather.tempC <= COLD_C;
+export const isSunny = (sky: Sky | null) => sky?.weather?.kind === "clear" && sky.weather.tempC >= SUNNY_MIN_C && sky.weather.tempC < HOT_C;
 
 /** True when the sky meets an action's weather need. */
 export function meets(need: WeatherNeed, sky: Sky | null): boolean {
@@ -146,7 +147,7 @@ export function meets(need: WeatherNeed, sky: Sky | null): boolean {
   if (need === "snow") return w.kind === "snow";
   if (need === "hot") return isHot(sky);
   if (need === "cold") return isCold(sky);
-  return w.kind === "clear" && w.tempC > COLD_C;
+  return isSunny(sky);
 }
 
 const kinds = (p: Pick<Place, "class" | "subclass">) => [`${p.class}/${p.subclass}`, p.class];
@@ -164,10 +165,9 @@ export function placeWeight(place: Pick<Place, "class" | "subclass">, sky: Sky |
 
 /** Changes to his meters an hour from the weather, on top of the usual ones. */
 export function weatherPerH(sky: Sky | null): { thirstMult: number; energy: number; mood: number } {
-  const w = sky?.weather;
   let mood = 0;
   if (isWet(sky)) mood -= WET_MOOD_PER_H;
-  else if (w?.kind === "clear" && w.tempC >= SUNNY_MIN_C && w.tempC < HOT_C) mood += SUNNY_MOOD_PER_H;
+  else if (isSunny(sky)) mood += SUNNY_MOOD_PER_H;
   return { thirstMult: isHot(sky) ? HOT_THIRST : 1, energy: isCold(sky) ? -COLD_ENERGY_PER_H : 0, mood };
 }
 

@@ -210,7 +210,7 @@ When hygiene is under 60 he leans towards actions that clean him up.
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 # 🌦 Weather and sky
 ## Weather {weather}
-The weather in his city is the real weather there, from Open-Meteo. The game asks for it once every {WEATHER_TTL_MIN} minutes while it is open, and gets the hours from a day ago to two days ahead in one small request, so the catch-up knows what the sky did while you were away. The last forecast is kept on the device. Until it arrives, or if it can't be reached, the weather is unknown and changes nothing.
+The weather in his city is the real weather there, from Open-Meteo. The game asks for it once every {WEATHER_TTL_MIN} minutes while it is open, and gets the hours from a day ago to the end of tomorrow in one small request, so the catch-up knows what the sky did while you were away. The last forecast is kept on the device. Until it arrives, or if it can't be reached, the weather is unknown and changes nothing.
 
 What the weather does to him:
 - Wet (rain, snow or a storm): outdoor places such as parks, gardens and sports pitches pull his goal {WET_OUTDOOR} times as much, and shelters such as museums, cafes, libraries and cinemas {WET_SHELTER} times. His mood drops {WET_MOOD_PER_H} more an hour.
@@ -233,7 +233,7 @@ After sunset the map darkens under a blue shade as the sun sinks, until it is {N
 ## Opening hours {opening}
 Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
 
-He never sets off for a closed place (it weighs 0 when he picks his next goal). If a place closes while he is on his way, he finds it closed, does nothing there and moves on after the usual minute.
+He never sets off for a closed place (it weighs 0 when he picks his next goal). If a place closes while he is on his way, he finds it closed, does nothing there (no action and no first-visit XP) and moves on after the usual minute.
 
 # 💪 Attributes
 ## Strength {str}
@@ -370,7 +370,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
-- Sky: the season, the weather, the city's time, and today's sunrise and sunset, with a line on what the weather does to him (see Weather).
+- Sky: the season, the weather, the city's time, and today's sunrise and sunset, with a line for each thing the weather does to him right now (see Weather).
 - Attributes: a tile for each, with the part his gear adds in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.

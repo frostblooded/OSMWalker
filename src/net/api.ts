@@ -278,12 +278,12 @@ export class Api {
     return data?.results?.bindings ?? [];
   }
 
-  /** The road route between two points, or [] on failure. */
-  /** Hourly weather around `lat`, `lon` from a day ago to two days ahead, stamped with unix ms `nowMs`, or null. */
+  /** Hourly weather around `lat`, `lon` from a day ago to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
   async forecast(city: string, lat: number, lon: number, nowMs: number): Promise<Forecast | null> {
     return parseForecast(await this.getJson(weatherUrl(lat, lon), 20), city, nowMs);
   }
 
+  /** The road route between two points, or [] on failure. */
   async route(a: LatLon, b: LatLon): Promise<LatLon[]> {
     return osrmPath(await this.getJson(osrmUrl(a, b), 30));
   }

@@ -192,7 +192,8 @@ export class Walker {
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
     info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? "every place near enough is closed" : `every loaded place is within ${ARRIVE_M} m of him`;
-    this.events.problem?.(`Picked a random spot: ${info.fallback}`);
+    // Night closures are normal, not a problem worth a warning.
+    if (!near) this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);
   }
 

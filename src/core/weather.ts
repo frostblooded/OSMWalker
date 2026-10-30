@@ -1,6 +1,6 @@
 // Real weather for his city from Open-Meteo (free, no key): one small
 // request gives the city's clock offset and hourly weather from a day ago to
-// two days ahead, so the catch-up knows what the sky did while the game was
+// the end of tomorrow, so the catch-up knows what the sky did while the game was
 // closed. Pure: the game fetches and caches it.
 
 export const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";

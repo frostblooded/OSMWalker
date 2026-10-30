@@ -1,3 +1,5 @@
+// The sky on its own: the sun, seasons, the city's clock, opening hours,
+// Open-Meteo forecasts, and what weather does to him and to his goals.
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import { dataFile } from "../support/data";
@@ -119,7 +121,8 @@ describe("what the sky does", () => {
   it("tells which weather needs are met", () => {
     expect(Sky.meets("wet", at(0, 0, 0, { kind: "storm", tempC: 20 }))).toBe(true);
     expect(Sky.meets("snow", at(0, 0, 0, rain))).toBe(false);
-    expect(Sky.meets("sunny", at(0, 0, 0, hot))).toBe(true);
+    expect(Sky.meets("sunny", at(0, 0, 0, { kind: "clear", tempC: 20 }))).toBe(true);
+    expect(Sky.meets("sunny", at(0, 0, 0, hot))).toBe(false);
     expect(Sky.meets("cold", at(0, 0, 0, { kind: "snow", tempC: -1 }))).toBe(true);
     expect(Sky.meets("hot", null)).toBe(false);
   });

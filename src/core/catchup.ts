@@ -183,17 +183,21 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const place = pickPlace();
       if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
       moveTo(place, [place.lat, place.lon]);
+      s.stops++;
+      const sky = skyNow();
+      if (!isOpen(place, sky.clock, sky.holiday)) {
+        stats.say(`Found ${place.name} closed`);
+        pass(Math.min(restMinutes({ name: "", min: 1 }), leftMin()), 0);
+        yield;
+        continue;
+      }
       if (city.places) {
         const bonus = stats.visit(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
       } else stats.say(`Reached ${place.name}`);
-      s.stops++;
-      const sky = skyNow();
-      const open = isOpen(place, sky.clock, sky.holiday);
-      const action = open ? choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf()) : null;
+      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, rng);
-      else if (!open) stats.say(`Found ${place.name} closed`);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }

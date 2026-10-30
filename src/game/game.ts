@@ -269,14 +269,14 @@ export class Game {
   /** At a destination: a first-visit bonus, then an action he can do there, which sets how long he stays. */
   private onArrived(place: Place): void {
     this.track();
-    const bonus = this.stats.visit(place);
-    this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     const sky = (this.stats.sky = this.sky());
     if (!isOpen(place, sky.clock, sky.holiday)) {
       this.stats.say(`Found ${place.name} closed`);
       this.changed();
       return;
     }
+    const bonus = this.stats.visit(place);
+    this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);

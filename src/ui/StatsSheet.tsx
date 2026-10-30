@@ -4,7 +4,7 @@
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
-import { isCold, isHot, isWet, type Sky } from "../core/sky";
+import { isCold, isHot, isSunny, isWet, SNOW_SPEED, type Sky } from "../core/sky";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
@@ -40,14 +40,24 @@ const cap = (t: string) => t[0]!.toUpperCase() + t.slice(1);
 
 function SkyCard({ sky }: { sky: Sky }) {
   const w = sky.weather;
-  const note = isWet(sky) ? "🌧 Wet: he heads indoors and his mood drops." : isHot(sky) ? "🥵 Hot: he gets thirsty faster and looks for ways to cool off." : isCold(sky) ? "🥶 Freezing: he tires faster." : "";
+  const notes = [
+    w?.kind === "snow" && `🌨 Snow: he walks at ${Math.round(SNOW_SPEED * 100)}% of his speed.`,
+    isWet(sky) && "🌧 Wet: he heads indoors and his mood drops.",
+    isHot(sky) && "🥵 Hot: he gets thirsty faster and looks for ways to cool off.",
+    isCold(sky) && "🥶 Freezing: he tires faster.",
+    isSunny(sky) && "😎 Sunny: his mood rises.",
+  ].filter(Boolean);
   return (
     <Card icon="🌦" title="Sky" right={`${SEASON_ICON[sky.season]} ${cap(sky.season)}`}>
       <KV k="Weather" v={w ? `${skyIcon(sky)} ${cap(w.kind)}, ${Math.round(w.tempC)}°C` : <span class="dim">Unknown yet</span>} />
       <KV k="🕒 City time" v={hhmm(sky.clock)} />
       <KV k="🌅 Sunrise" v={hhmm(sky.rise)} />
       <KV k="🌇 Sunset" v={hhmm(sky.set)} />
-      {note && <p class="small tone-warning">{note}</p>}
+      {notes.map((n) => (
+        <p key={n as string} class="small tone-warning">
+          {n}
+        </p>
+      ))}
     </Card>
   );
 }
