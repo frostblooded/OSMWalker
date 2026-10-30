@@ -291,7 +291,8 @@ test("a sheet drags smaller by its title bar, opens on a tap and closes when dra
   await dragTitle(page, /Menu/, tall - screen * 0.35);
   await expect(menu).toHaveClass(/half/);
   expect(Math.abs((await height()) - screen * 0.35)).toBeLessThan(4);
-  await dragTitle(page, /Menu/, screen * 0.3);
+  const head = (await menu.locator("header").boundingBox())!.height;
+  await dragTitle(page, /Menu/, (await height()) - head);
   await expect(menu).toHaveClass(/peek/);
   await expect(menu.getByRole("button", { name: /History/ })).toBeHidden();
   await menu.locator("header h2").click();
@@ -315,8 +316,8 @@ test("the map credit stays under an open sheet's buttons", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   const menu = page.getByRole("dialog", { name: /Menu/ });
+  await expect(menu).toBeVisible();
   const credit = (await page.locator(".maplibregl-ctrl-attrib").boundingBox())!;
   const top = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("[role='dialog'], .maplibregl-ctrl")?.className, [credit.x + credit.width / 2, credit.y + credit.height / 2]);
-  await expect(menu).toBeVisible();
   expect(top).toContain("sheet");
 });

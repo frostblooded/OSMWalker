@@ -6,12 +6,12 @@ import { biasMin, historyTime } from "./format";
 import { Card } from "./kit";
 
 export function HistorySheet({ history: h, day, onFocus }: { history: History; day: Day; onFocus: (at: LatLon) => void }) {
-  if (!h.entries.length) return <p class="dim">Nothing yet. What he does shows up here.</p>;
   const bias = biasMin();
   const rows = h.entries.map((e, i) => ({ e, i })).reverse();
   return (
     <>
       <DayRibbon day={day} />
+      {!h.entries.length && <p class="dim">Nothing yet. What he does shows up here.</p>}
       <ol class="history zebra">
         {rows.map(({ e, i }) => (
           <li key={`${e.t}:${i}`}>
@@ -33,9 +33,10 @@ type Day = { icons: string[]; more: number };
 function DayRibbon({ day }: { day: Day }) {
   if (!day.icons.length) return null;
   const n = day.icons.length + day.more;
+  const stops = `${n} ${n === 1 ? "stop" : "stops"}`;
   return (
-    <Card icon="📅" title="Today" right={`${n} ${n === 1 ? "stop" : "stops"}`}>
-      <div class="ribbon" role="img" aria-label={`Today: ${n} stops`}>
+    <Card icon="📅" title="Today" right={stops}>
+      <div class="ribbon" role="img" aria-label={`Today: ${stops}`}>
         {day.more > 0 && <span class="dim">+{day.more}</span>}
         {day.icons.map((icon, i) => (
           <span key={i}>{icon}</span>

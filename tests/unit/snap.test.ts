@@ -1,3 +1,4 @@
+// Where a dragged sheet settles: tall, half, title bar only, or closed.
 import { describe, expect, it } from "vitest";
 import { HALF, snapTo, TALL } from "../../src/ui/snap";
 

@@ -90,7 +90,7 @@ test("History shows the places he stopped at today, not the top card", async ({ 
   await expect(page.locator(".hud .ribbon")).toHaveCount(0);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /History/ }).click();
-  await expect(page.getByRole("dialog", { name: /History/ }).locator(".ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops$/);
+  await expect(page.getByRole("dialog", { name: /History/ }).locator(".ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops?$/);
 });
 
 test("while he walks to a station you can guess where he is going, once", async ({ page }) => {

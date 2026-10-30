@@ -453,7 +453,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
 - Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
 ## History {history}
-📜 History starts with the 📅 Today card, the places he stopped at today (see The day ribbon). Under it, it lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
+📜 History starts with the 📅 Today card once he has stopped somewhere today, with the places he stopped at (see The day ribbon). Under it, it lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
 ## Debug {debug}
