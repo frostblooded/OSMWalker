@@ -1,3 +1,4 @@
+// The street cell cache (src/streets/idb.ts): pruning by save time, the version 1 upgrade, and an upgrade another tab blocks.
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { IdbStore } from "../../src/streets/idb";
@@ -50,5 +51,27 @@ describe("street cell cache", () => {
     await s.prune(1);
     expect(await s.get("old")).toBeUndefined();
     expect((await s.get("new"))?.t).toBe(2);
+  });
+
+  it("gives up on the cache, rather than hanging, while an old tab holds the version 1 database", async () => {
+    const name = `blocked-${n++}`;
+    const old = await new Promise<IDBDatabase>((ok) => {
+      const open = indexedDB.open(name, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore("cells");
+      open.onsuccess = () => ok(open.result);
+    });
+    await expect(new IdbStore(name).get("x")).rejects.toThrow(/another tab/i);
+    old.close();
+  });
+
+  it("closes its database when a newer version wants it", async () => {
+    const name = `newer-${n++}`;
+    const s = new IdbStore(name);
+    await s.put("a", cell(1));
+    await new Promise<void>((ok, fail) => {
+      const open = indexedDB.open(name, 3);
+      open.onblocked = () => fail(new Error("blocked"));
+      open.onsuccess = () => (open.result.close(), ok());
+    });
   });
 });
