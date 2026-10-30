@@ -9,7 +9,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud, look } from "../../src/game/hud";
+import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -129,6 +129,7 @@ describe("game", () => {
     expect(g.walker!.isResting()).toBe(true);
     expect(g.doing).not.toBeNull();
     expect(look(g).pose).not.toBeNull();
+    expect(ribbon(g, 0).icons).toEqual(["☕"]);
   });
 
   it("keeps the walk across a save", async () => {
@@ -268,6 +269,17 @@ describe("game", () => {
     expect(g.walker!.graph).not.toBe(old);
     expect(g.loader.graph).toBe(g.walker!.graph);
     expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "country", trip: "Paris, France" });
+  });
+
+  it("shows last week's recap once: closing the away sheet marks it seen", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.week.roll(1, 0, 1, 0);
+    g.stats.week.stop("cafe");
+    g.stats.week.roll(8 * 86400, 0, 1, 0);
+    expect(g.stats.week.pending()).not.toBeNull();
+    g.dismissAway();
+    expect(g.stats.week.pending()).toBeNull();
   });
 
   it("wakes in hospital after fainting", async () => {

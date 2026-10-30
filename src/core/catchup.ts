@@ -179,6 +179,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const place = pickPlace();
       if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
       moveTo(place, [place.lat, place.lon]);
+      stats.stop(place);
       if (city.places) {
         const bonus = stats.visit(place);
         if (bonus > 0) s.firstVisits++;
@@ -248,6 +249,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
+    stats.enterCity(city.name);
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);

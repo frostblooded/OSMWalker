@@ -1,20 +1,24 @@
 // While you were away: the summary card that opens when the game comes back
 // after a while, with how long it covered, what he did and where, his money
 // and level before and after, the clover this check-in earned, and
-// everything he did folded away below.
+// everything he did folded away below. After a week turns over, last
+// week's recap leads it, once.
 import type { Summary } from "../core/catchup";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
 import { timeText } from "../core/history";
+import { placeIcon } from "../core/look";
 import { euro, signed } from "../core/money";
+import type { Recap, Week } from "../core/week";
 import { biasMin, dist, duration } from "./format";
 import { Card, Collapsible, KV } from "./kit";
 
-export function AwaySheet({ summary: s, clover, onDone }: { summary: Summary; clover: boolean; onDone: () => void }) {
+export function AwaySheet({ summary: s, clover, week, onDone }: { summary: Summary; clover: boolean; week: Week; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
   return (
     <>
+      {week.pending() && <WeekRecap recap={week.pending()!} favourite={week.favourite()} />}
       <Card icon="🌙" title="Time away" right={duration(s.awayS)}>
         <KV k="Lived through" v={duration(s.coveredS)} />
         {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
@@ -62,4 +66,30 @@ export function AwaySheet({ summary: s, clover, onDone }: { summary: Summary; cl
       </button>
     </>
   );
+}
+
+/** Last week in two cards: what he did, then how he got on. */
+function WeekRecap({ recap: r, favourite }: { recap: Recap; favourite: [string, number] | null }) {
+  const money = r.endCents - r.cents;
+  return (
+    <>
+      <Card icon="📅" title="His week" right={weekText(r.start)}>
+        <KV k="👣 Walked" v={dist(r.walkedM)} />
+        <KV k="📍 Stops" v={r.stops} />
+        <KV k="✨ New places" v={r.newPlaces} />
+        {favourite && <KV k="❤ Favourite" v={`${placeIcon({ class: favourite[0], subclass: "" })} ${favourite[0].replace(/_/g, " ")} ×${favourite[1]}`} />}
+      </Card>
+      <Card icon="⭐" title="His week's progress">
+        <KV k="⭐ Level" v={r.endLevel > r.level ? `${r.level} → ${r.endLevel}` : r.endLevel} tone={r.endLevel > r.level ? "ok" : undefined} />
+        <KV k="💰 Money" v={signed(money)} tone={money > 0 ? "ok" : undefined} />
+        <KV k="🏙 Cities" v={r.cities.length ? r.cities.map((c) => c.split(",")[0]).join(", ") : "stayed put"} />
+      </Card>
+    </>
+  );
+}
+
+/** "26 Oct – 1 Nov" for the week starting at unix seconds `start`. */
+function weekText(start: number): string {
+  const f = (t: number) => new Date(t * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return `${f(start + 3600)} – ${f(start + 6 * 86400 + 3600)}`;
 }

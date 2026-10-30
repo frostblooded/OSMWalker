@@ -35,6 +35,10 @@ If he was on a bus, a plane or driving his car when you left, the ride finishes 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
 The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+## His week {recap}
+The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
+
+After a week ends, the next While you were away sheet opens with two cards about it, His week and His week's progress, ready for a screenshot. Each week's recap shows once; a week with no stops has none.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
@@ -104,6 +108,8 @@ His face shows how he feels. The first of these that fits wins:
 While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
 
 While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
+## The day ribbon {ribbon}
+Under the bars in the top card, a thin row shows the places he stopped at today as small icons (☕ 🏛 🍺 🏨), the newest on the right, including the ones from while you were away. It shows the last {RIBBON} stops; "+5" in front counts the earlier ones today. The day starts at midnight on your phone's clock, and the game keeps his last {MAX_STOPS} stops.
 # 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.

@@ -2,6 +2,7 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
+import { addStop, type Stop } from "./day";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
@@ -11,6 +12,7 @@ import type { Rng } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
 import type { Vehicle } from "./speeds";
+import { Week } from "./week";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
 export const ATTRS = ["str", "cha", "wit", "luck"] as const;
@@ -121,6 +123,10 @@ export class Stats {
   dex: K.Dex = {};
   /** Clovers and the care package on its way to him. */
   care = new Care();
+  /** The places he stopped at lately, for the day ribbon. */
+  stops: Stop[] = [];
+  /** This week in numbers, and last week's recap. */
+  week = new Week();
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -264,6 +270,9 @@ export class Stats {
 
   /** Lets `minutes` pass, `walkedM` of them on the move. */
   passTime(minutes: number, walkedM: number): void {
+    const t = this.now();
+    this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
+    this.week.walked(walkedM);
     const h = minutes / 60;
     const fx: Fx = {
       fullness: -FULLNESS_PER_H * h,
@@ -389,6 +398,7 @@ export class Stats {
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
+    this.week.newPlace();
     this.addXp(FIRST_VISIT_XP);
     return FIRST_VISIT_XP;
   }
@@ -464,6 +474,17 @@ export class Stats {
     return line;
   }
 
+  /** Notes a stop at a place, for the day ribbon. */
+  stop(place: { class: string; subclass: string }): void {
+    addStop(this.stops, place, this.now());
+    this.week.stop(place.class);
+  }
+
+  /** Notes that he arrived in a city, for the weekly recap. */
+  enterCity(name: string): void {
+    this.week.city(name);
+  }
+
   fainted(): boolean {
     return this.meters.health <= 0;
   }
@@ -490,7 +511,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where,
+      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
     };
   }
 
@@ -511,6 +532,8 @@ export class Stats {
     s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
+    s.stops = d.stops ?? [];
+    s.week = Week.fromJSON(d.week);
     return s;
   }
 }
