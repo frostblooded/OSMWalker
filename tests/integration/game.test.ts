@@ -10,6 +10,7 @@ import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
+import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -363,6 +364,25 @@ describe("game", () => {
     // He rests at the hospital, but did nothing there to strike a pose for.
     expect(g.doing).toBeNull();
     expect(look(g).pose).toBeNull();
+  });
+
+  it("on a broomstick he flies to a park near a far goal, then walks the rest at walking pace", async () => {
+    const far: Place = { ...CAFE, name: "Far Cafe", lat: 42.687, lon: 23.33 };
+    const park: Place = { name: "Little Park", class: "park", subclass: "park", rank: 1, lat: 42.687, lon: 23.3292 };
+    const { g } = game({ places: [far, park] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.equip(Items.build(Items.KINDS.brooms[0]!, Items.MATERIALS[0]!, []));
+    await tick();
+    const w = g.walker!;
+    for (let i = 0; i < 60 && !w.flight; i++) run(g, 1);
+    expect(w.flight).not.toBeNull();
+    expect(w.flies).toBe(true);
+    for (let i = 0; i < 600 && w.flight; i++) run(g, 1);
+    expect(w.flight).toBeNull();
+    expect(w.afoot).toBe(true);
+    run(g, 1);
+    expect(w.speedMps).toBeCloseTo(g.stats.speedMps(true), 6);
+    expect(w.speedMps).toBeLessThan(g.stats.speedMps() / 2);
   });
 
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
