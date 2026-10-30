@@ -8,11 +8,13 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
+import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
+import * as Jokes from "../core/jokes";
 import * as Day from "../core/day";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
@@ -173,6 +175,13 @@ export function values(data: GameData): Record<string, string> {
     CHESS_BASE_PCT: pct(Dilemmas.CHESS_BASE),
     CHESS_PER_WIT_PCT: pct(Dilemmas.CHESS_PER_WIT),
     CHESS_MAX_PCT: pct(Dilemmas.CHESS_MAX),
+    FORECAST_LIST: (data.forecasts ?? []).map((f) => `- ${f.icon} ${Forecast.words(f)}`).join("\n"),
+    RESALE_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.resale))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    JOKE_PCT: pct(Jokes.JOKE_CHANCE),
+    SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
@@ -229,8 +238,19 @@ export function values(data: GameData): Record<string, string> {
     FIND_MIN: euro(S.FIND_MIN),
     FIND_MAX: euro(S.FIND_MAX),
     LUCKY_LUCK: "+3",
+    NEED_BOOST: num(Activities.NEED_BOOST),
     NEED_MAX: num(1 + Activities.NEED_BOOST),
-    NEED_HALF: num(1 + Activities.NEED_BOOST / 2),
+    NEED_HALF: num(1 + Activities.NEED_BOOST * Activities.urge(Activities.NEED_AT / 2)),
+    NEED_HALF_AT: String(Activities.NEED_AT / 2),
+    URGE_HALF: num(Activities.urge(Activities.NEED_AT / 2)),
+    URGENT_AT: String(Activities.URGENT_AT),
+    BOTTOM_AT: String(Activities.BOTTOM_AT),
+    SLIP_PCT: pct(Goals.URGENT_SLIP),
+    URGENT_NEAR_M: num(Goals.URGENT_NEAR_M),
+    FULL_FIX: String(Activities.FULL_FIX),
+    SAVING_URGE: num(Activities.SAVING_URGE),
+    HARM_FLOOR_PCT: pct(Activities.HARM_FLOOR),
+    STRENGTH_MAX: num(Activities.STRENGTH_MAX),
     STAY_MIN: num(Activities.MAX_MINUTES),
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
@@ -244,7 +264,6 @@ export function values(data: GameData): Record<string, string> {
     SKINT: euro(Activities.SKINT),
     SKINT_X3: euro(3 * Activities.SKINT),
     FLAVOUR_WEIGHT: num(Activities.FLAVOUR_WEIGHT),
-    SAVING_EARN: `+${num(Activities.SAVING_EARN_WEIGHT)}`,
     SAVING_SPEND_PCT: pct(Activities.SAVING_SPEND_MULT),
     FULLNESS_PER_H: num(S.FULLNESS_PER_H),
     FULLNESS_HOURS: String(Math.round(100 / S.FULLNESS_PER_H)),
@@ -259,6 +278,9 @@ export function values(data: GameData): Record<string, string> {
     BAG_SIZE: String(S.BAG_SIZE),
     KEEP_CENTS: euro(S.KEEP_CENTS),
     SELL_PCT: pct(S.SELL_SHARE),
+    SELL_PER_CHA_PCT: pct(S.SELL_PER_CHA),
+    SELL_100_CHA0: euro(Math.round(10000 * S.SELL_SHARE)),
+    SELL_100_CHA5: euro(Math.round(10000 * S.SELL_SHARE * (1 + 5 * S.SELL_PER_CHA))),
     START_CENTS: euro(s.cents),
     EXAMPLE_PRICE: euro(120),
     CHEAP_BIKE: euro(cheapest("bicycles")),
@@ -322,6 +344,7 @@ export function values(data: GameData): Record<string, string> {
     POWER_TO_STAT: num(Items.POWER_TO_STAT),
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
     ACTION_COUNT: String(sum(data.actions)),
+    NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),

@@ -8,6 +8,7 @@ import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
+import type { Forecast } from "../../src/core/forecast";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -118,6 +119,26 @@ describe("game", () => {
     const { g } = game({ fail: true });
     expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("Couldn't load streets. Check your connection and try again.");
     expect(g.problems.warnings.map((w) => w.text)).toContain("Couldn't load the streets where he starts in Sofia, Bulgaria");
+  });
+
+  it("a strong need picks his goal and the feed says so", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.thirst = 5;
+    g.walker!.forceNewGoal();
+    expect(g.stats.history.entries.some((e) => e.text === "Thirsty, heading for Cafe Near")).toBe(true);
+  });
+
+  it("hands his stats the jokes and forecasts, and jokes fit the kind of place", async () => {
+    const { g } = game({ places: [CAFE] });
+    const forecasts: Forecast[] = [{ id: "cafe", icon: "☕", text: "Cafés feel {n} as good today", effect: "mood", kind: "cafe", mult: 2 }];
+    Object.assign(g.data, { jokes: { cafe: ["Cafe joke."], _generic: ["Other joke."] }, forecasts });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.forecast().id).toBe("cafe");
+    run(g, 3 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
+    expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
 
   it("walks to a place, does something there and rests", async () => {

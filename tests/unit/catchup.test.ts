@@ -93,10 +93,32 @@ describe("catch-up", () => {
     expect(s.bought.every((l) => l.startsWith("Bought"))).toBe(true);
   });
 
+  it("at rock bottom he heads for the nearest fix, even past nearer, finer places", () => {
+    // A rank 1 museum 500 m ahead (his favourite odds) against a diner 900 m away.
+    const city: AwayCity = { ...HOME, places: [place("Grand Museum", "museum", "museum", 0.0045, 0), place("Big Diner", "restaurant", "restaurant", -0.008, 0)] };
+    const first = (fullness: number, seed: number) => {
+      const stats = new Stats();
+      stats.meters.fullness = fullness;
+      const s = catchUp(stats, city, [0, 0], 3600, START_MS, deps({ rng: new Rng(seed) }));
+      return s.lines.find((l) => l.text.startsWith("Reached"))!.text;
+    };
+    for (let seed = 0; seed < 20; seed++) expect(first(2, seed)).toMatch(/^Reached Big Diner/);
+    expect(Array.from({ length: 20 }, (_, i) => first(80, i)).some((t) => t.startsWith("Reached Grand Museum"))).toBe(true);
+  });
+
   it("is the same every time for the same dice", () => {
     const a = catchUp(new Stats(), HOME, [0, 0], 4 * 3600, START_MS, deps());
     const b = catchUp(new Stats(), HOME, [0, 0], 4 * 3600, START_MS, deps());
     expect(a.lines.map((l) => l.text)).toEqual(b.lines.map((l) => l.text));
+  });
+
+  it("jokes fit the kind of place he is at", () => {
+    const stats = new Stats();
+    stats.jokes = { cafe: ["Cafe joke."], restaurant: ["Diner joke."], _generic: ["Other joke."] };
+    const s = catchUp(stats, HOME, [0, 0], 12 * 3600, START_MS, deps());
+    const texts = s.lines.map((l) => l.text);
+    expect(texts.some((t) => / at Cafe (One|Two).* Cafe joke\.$/.test(t))).toBe(true);
+    expect(texts.some((t) => / at Cafe (One|Two).* (Diner|Other) joke\.$/.test(t))).toBe(false);
   });
 
   it("uses made-up places of the usual kinds where none are loaded", () => {
@@ -112,8 +134,10 @@ describe("catch-up", () => {
   it("goes on trips as usual, and lands in a city with made-up places", () => {
     const stats = new Stats();
     stats.cents = 500_000;
-    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1 }));
-    expect(s.cities.length).toBeGreaterThan(0);
+    // One trip, then he stays put.
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    expect(s.cities).toHaveLength(1);
     expect(s.cities[0]).toBe("Nexttown, A-land");
     expect(s.end.city.name).not.toBe(HOME.name);
     expect(s.end.city.places).toBeNull();
@@ -140,7 +164,9 @@ describe("catch-up", () => {
       stats.cents = 3000; // enough for the bus, not for new gear
       stats.gear.head = { name: "Cap", slot: "head", stats: {}, rarity: "Common", price: 100, story: { from: "Old", t: 0, countries: ["ZZZ"], km: 0 } };
       for (let i = 0; i < souvenirs; i++) stats.keepsakes.souvenirs.set(`C${i}`, { name: "magnet", country: "", city: "", t: 0 });
-      const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1 }));
+      let rolls = 0;
+      // Long enough to ride there, too short to earn a new cap.
+      const s = catchUp(stats, HOME, [0, 0], 3 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
       return { stats, bus: s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text };
     };
     const { stats, bus } = run(0);
@@ -150,6 +176,16 @@ describe("catch-up", () => {
     const cheaper = run(SOUVENIRS_PER_CUT * 5).bus;
     const fare = (line: string) => Math.round(Number(line.match(/-€([\d.]+)/)![1]) * 100);
     expect(fare(cheaper)).toBe(Math.ceil(fare(bus) * (1 - FARE_CUT_MAX)));
+  });
+
+  it("stays put while a need is urgent", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    stats.meters.energy = 0;
+    // Nothing in town gives energy back, so it stays urgent the whole time.
+    const city: AwayCity = { ...HOME, places: [place("Grand Museum", "museum", "museum", 0.0045, 0)] };
+    const s = catchUp(stats, city, [0, 0], 600, START_MS, deps({ roll: () => 0.1, activities: new Activities({ museum: [{ name: "Look", min: 1 }] }) }));
+    expect(s.cities).toEqual([]);
   });
 
   it("saves up when he can't afford a trip", () => {
