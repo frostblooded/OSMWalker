@@ -14,6 +14,7 @@ import { distanceM } from "./geo";
 import * as Items from "./items";
 import { leanShare } from "./incidents";
 import { signed, toCents } from "./money";
+import { BRIDGE } from "./ofm";
 import type { Rng } from "./rng";
 import { inTime, type Attr, type Fx, type Place, type Stats, type TimeOfDay } from "./stats";
 import type { LatLon } from "./trips";
@@ -28,7 +29,7 @@ export const BOARD_TOWN_POP = 20_000;
 export const BOARD_BIG_POP = 2_000_000;
 /** A mid-sized city, for Help's example of the sliding scale. */
 export const BOARD_MID_POP = 300_000;
-/** A board is rolled once this many places of the city are loaded, one of them where a quest can start. */
+/** A board is rolled once this many places of the city (bridges aside) are loaded, one of them where a quest can start. */
 export const BOARD_PLACES = 20;
 /** Share of the board that may be light-fantasy quests. */
 export const FANTASY_SHARE = 0.1;
@@ -177,10 +178,10 @@ export class Quests {
       this.nudge = "";
       this.rev++;
     }
-    if (this.rolled || places.length < BOARD_PLACES || !this.bank.quests.length) return;
-    // Bridges can load before shops and cafés; wait for a place a quest can start at.
+    if (this.rolled || !this.bank.quests.length) return;
+    // Bridges can load before shops and cafés, and no quest starts at one: they don't count.
     const givers = [...new Set(this.bank.quests.flatMap((k) => k.steps[0]!.at))];
-    if (!places.some((p) => isKind(p, givers))) return;
+    if (places.filter((p) => p.class !== BRIDGE).length < BOARD_PLACES || !places.some((p) => isKind(p, givers))) return;
     this.rolled = true;
     this.rev++;
     const done = new Set(this.done);
