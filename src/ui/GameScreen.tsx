@@ -14,14 +14,31 @@ import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
-import { CollectionSheet } from "./CollectionSheet";
 import { CareSheet } from "./CareSheet";
-import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
-import { StatsSheet } from "./StatsSheet";
+
+/**
+ * Sheets that are opened now and then load as their own chunks, off the startup
+ * path; main.tsx fetches them at idle so they open at once, and offline.
+ */
+const sheets = { stats: () => import("./StatsSheet"), collection: () => import("./CollectionSheet"), debug: () => import("./DebugSheet") };
+type Sheets = { [K in keyof typeof sheets]: Awaited<ReturnType<(typeof sheets)[K]>> };
+const loaded: Partial<Sheets> = {};
+function useSheet<K extends keyof Sheets>(k: K): Sheets[K] | null | false {
+  const [m, setM] = useState<Sheets[K] | null | false>(loaded[k] ?? null);
+  useEffect(() => {
+    if (!m) sheets[k]().then((x) => setM((loaded[k] = x as Sheets[K])), () => setM(false));
+  }, [k, m]);
+  return m;
+}
+function Lazy<K extends keyof Sheets>({ k, show }: { k: K; show: (m: Sheets[K]) => ComponentChildren }) {
+  const m = useSheet(k);
+  if (m === false) return <p class="notice error">✖ Couldn't load this. Check your connection and try again.</p>;
+  return <>{m ? show(m) : <p class="dim">Loading…</p>}</>;
+}
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -219,12 +236,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          <StatsSheet stats={game.stats} />
+          <Lazy k="stats" show={(m) => <m.StatsSheet stats={game.stats} />} />
         </SheetBox>
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          <CollectionSheet stats={game.stats} />
+          <Lazy k="collection" show={(m) => <m.CollectionSheet stats={game.stats} />} />
         </SheetBox>
       )}
       {sheet === "care" && (
@@ -256,7 +273,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "debug" && (
         <SheetBox title="🐞 Debug" onClose={close} full>
-          <DebugSheet game={game} onDone={close} />
+          <Lazy k="debug" show={(m) => <m.DebugSheet game={game} onDone={close} />} />
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
