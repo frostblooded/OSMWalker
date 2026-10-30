@@ -770,19 +770,20 @@ export class Game {
    */
   private placesMade(w: Walker, bounds: BBox): boolean {
     if (this.madeOf === this.city && this.madeIn === w.graph) return true;
+    // Browsers remember a chunk that failed to load, so trying again before a reload is no use: the check runs without them.
+    if (this.madeFailed === this.city) return true;
     if (!this.madePending) {
       this.madePending = true;
       void this.makePlaces(w, bounds).finally(() => (this.madePending = false));
     }
-    // If the maker couldn't load, the check runs without them while it keeps trying.
-    return this.madeFailed === this.city;
+    return false;
   }
 
   /**
    * Puts the city's made-up places on the map: made now (from what the real
    * ones lack) or the ones it got before. The maker (core/poiGen.ts) loads as
    * its own chunk, off the startup path; if it can't load (offline before it
-   * was cached) the next city check tries again.
+   * was cached) the city goes without them until the game is opened again.
    */
   private async makePlaces(w: Walker, bounds: BBox): Promise<void> {
     const city = this.city;

@@ -375,7 +375,7 @@ describe("game", () => {
     try {
       const { g } = game({ places: [CAFE] });
       await g.startCity("Sofia, Bulgaria", ...START, null);
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 30 && !g.severeNow.length; i++) {
         run(g, 1);
         await tick();
       }

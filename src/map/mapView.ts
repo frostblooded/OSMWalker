@@ -294,16 +294,12 @@ export class MapView implements MapPort {
         geometry: { type: "Point", coordinates: [i.at[1], i.at[0]] },
       })),
     };
-    // A chunk that can't load (offline before it was cached) is tried again on the next change.
+    // A chunk that can't load (offline before it was cached) leaves the map without icons until the game is opened again.
     this.iconLayer ??= import("./icons")
       .then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)))
       .then(
         () => true,
-        () => {
-          this.iconLayer = null;
-          this.iconKey = "";
-          return false;
-        },
+        () => false,
       );
     void this.iconLayer.then((ok) => {
       if (ok && this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);

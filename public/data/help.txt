@@ -78,7 +78,7 @@ Must-haves fill gaps. If none of the loaded places is one of these, the city get
 
 A city of {AIRPORT_POP} people or more with no real airport within {AIRPORT_KM} km gets an airport of its own outside it, so planes can fly there too.
 
-Extras give stories a stage: notice boards, an adventurers' hall, old wells, lookouts, hidden shrines and storytellers' corners, each next to a fitting real spot (a well in a park, a lookout at a viewpoint). How many a city gets depends on its size:
+Extras give stories a stage: notice boards, an adventurers' hall, old wells, lookouts, hidden shrines and storytellers' corners, each next to a fitting real spot (a well in a park, a lookout at a viewpoint), or near the centre when the city has no such spot. How many a city gets depends on its size:
 - a town (up to {TOWN_POP} people): {EXTRAS_TOWN},
 - a city (up to {CITY_POP} people): {EXTRAS_CITY} and {TOWERS_CITY} wizard's tower,
 - a big city: {EXTRAS_CAPITAL} and {TOWERS_CAPITAL} wizard's towers ({TOWERS_MEGA} above {MEGA_POP} people).
@@ -479,7 +479,7 @@ While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km),
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 
-Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. Missing ones are normally made up (see Made-up places), so this only shows when that fails. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
+Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. Missing ones are normally made up (see Made-up places), so this only shows when that fails, for example when the game is offline before it has kept that part of its code. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
 
 At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
 
