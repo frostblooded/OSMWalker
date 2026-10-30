@@ -23,7 +23,12 @@ export const NIGHT_H = 2;
 
 export const DAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"] as const;
 
-/** A kind of club: the map classes of the places it meets at, its hour, and what a night does. */
+/**
+ * A kind of club: the map classes of the places it meets at, its hour, and
+ * what a night does. The classes come from the map (OpenFreeMap) and, for
+ * wizard_tower, from poiGen.ts TOWER_KIND; tests/unit/clubs.test.ts checks
+ * each still exists.
+ */
 export type ClubKind = { id: string; name: string; icon: string; at: readonly string[]; hour: number; fx: Fx };
 
 export const KINDS: ClubKind[] = [
@@ -52,11 +57,6 @@ export type Club = {
   nights: number;
 };
 
-/**
- * The map classes in KINDS' `at` come from the map (OpenFreeMap) and, for
- * wizard_tower, from poiGen.ts TOWER_KIND; tests/unit/clubs.test.ts checks
- * each still exists.
- */
 /** Where he is when it happens: the city, the local weekday (Date.getDay()) and hour, the local date and unix seconds. */
 export type When = { city: string; day: number; hour: number; date: string; t: number };
 
