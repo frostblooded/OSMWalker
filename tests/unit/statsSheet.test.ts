@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, and his Magic and spells.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, and his Magic and spells.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -64,5 +64,11 @@ describe("Stats sheet", () => {
     expect(text).toContain(`Spells1 / ${spells.length}`);
     expect(text).toContain("🍲 Warm soup20 Magic · cast 3×");
     expect(text).not.toContain("none yet");
+  });
+
+  it("lists his clubs on the Friends card, with their city and night", () => {
+    const stats = new Stats();
+    stats.clubs.list = [{ kind: "chess", host: "x", city: "Sofia, Bulgaria", place: { name: "Café Rila", lat: 0, lon: 0 }, day: 2, hour: 19, joined: 0, last: "", nights: 0 }];
+    expect(shown(stats)).toContain("♟ Chess clubSofia · Tue 19:00");
   });
 });

@@ -8,6 +8,7 @@
 // parts. Names and lines live in data/friends.json. All of it happens by
 // itself. Pure; Stats owns one.
 import type { Rng } from "./rng";
+import type { News } from "./townies";
 
 export const HEARTS_MAX = 10;
 /** Hearts from which they meet up on purpose anywhere in their city. */
@@ -27,8 +28,8 @@ export const SPLIT = 0.5;
 /** Friends the Stats sheet lists before the rest fold away. */
 export const SHOWN = 4;
 
-/** data/friends.json: first names, faces, and the fellow travellers who may join a trip. */
-export type FriendData = { names: string[]; icons: string[]; companions: { who: string; icon: string; lines: string[] }[] };
+/** data/friends.json: first names, faces, the fellow travellers who may join a trip, and the news friends may have (townies.ts). */
+export type FriendData = { names: string[]; icons: string[]; companions: { who: string; icon: string; lines: string[] }[]; news?: News[] };
 
 export type Friend = {
   /** Stable for ever: where and when they met. */
@@ -98,14 +99,17 @@ export class Friends {
   }
 
   private see(f: Friend, at: Spot, text: string): string {
+    const couple = this.heart(f, at.t);
+    return `${f.icon} ${text.replace("{NAME}", f.name)} (${hearts(f.hearts)})${couple}`;
+  }
+
+  /** A heart for `f`, seen at unix seconds `t`; at HEARTS_MAX with no partner yet, they become a couple. Returns what the feed line adds for that, or "". */
+  heart(f: Friend, t: number): string {
     f.hearts = Math.min(f.hearts + 1, HEARTS_MAX);
-    f.seen = at.t;
-    let line = `${f.icon} ${text.replace("{NAME}", f.name)} (${hearts(f.hearts)})`;
-    if (f.hearts >= HEARTS_MAX && !this.partner) {
-      this.partner = f.id;
-      line += `. ${f.name} and he are a couple now`;
-    }
-    return line;
+    f.seen = t;
+    if (f.hearts < HEARTS_MAX || this.partner) return "";
+    this.partner = f.id;
+    return `. ${f.name} and he are a couple now`;
   }
 
   private befriend(at: Spot, data: FriendData, rng: Rng): string {

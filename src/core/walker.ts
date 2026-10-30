@@ -123,6 +123,8 @@ export class Walker {
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
+  /** Asked on every destination pick after the trip planner: a quest step or world event to go to (see quests.ts questGoal), or null; set by the game. */
+  questGoal: (() => Place | null) | null = null;
   /** How a place meets his needs (see activities.ts needOf); set by the game. */
   need: ((p: Place) => Need) | null = null;
   /** A pull of one place on its own, on top of its kind's need (an Explore whisper's, see activities.ts exploreWeight); set by the game. */
@@ -171,6 +173,13 @@ export class Walker {
       this.place = plan.station;
       this.departing = plan;
       this.events.picked?.({ trip: `${plan.city.name}, ${plan.city.country}`, by: `${plan.mode} from ${plan.station.name}` });
+      return;
+    }
+    const story = this.questGoal?.();
+    if (story) {
+      this.setGoal(story.lat, story.lon);
+      this.place = story;
+      this.events.picked?.({ quest: story.name, class: story.class });
       return;
     }
     if (!this.bounds && this.here()) {

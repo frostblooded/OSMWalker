@@ -17,6 +17,7 @@ describe("trust", () => {
     expect(B.isNote(B.letter(LETTERS, 0, 0))).toBe(true);
     expect(B.isNote(B.whisperLine("eat", true))).toBe(true);
     expect(B.isNote(B.whisperLine("rest", false))).toBe(true);
+    expect(B.isNote(`${B.FRIEND_LETTER_MARK} A letter from Ana in Sofia: "Hi"`)).toBe(true);
     expect(B.isNote("Had a coffee at Cafe Near")).toBe(false);
   });
 

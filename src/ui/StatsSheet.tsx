@@ -1,14 +1,16 @@
-// His character sheet: level and XP, what he saves up for, six meters and
-// Magic as bars, the spells he knows, four attributes with what his gear
-// adds, every gear slot, the bag and his buffs. Items with a story open to
-// show it. His records close it.
+// His character sheet: level and XP, his quests, what he saves up for,
+// six meters and Magic as bars, the spells he knows, four attributes with
+// what his gear adds, every gear slot, the bag and his buffs. Items with a
+// story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
+import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { hearts, SHOWN, type Friend } from "../core/friends";
+import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -140,6 +142,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
+      <QuestCard q={s.quests} now={s.now()} />
       {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
           {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
@@ -233,7 +236,29 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
   );
 }
 
-/** The friends he has made, his partner first, then most hearts; past SHOWN the rest fold away. */
+/** The quest he is on, what the city's board and the streets around him still hold, and his last few quests and events. */
+function QuestCard({ q, now }: { q: Quests; now: number }) {
+  const k = q.active && q.kind(q.active.kind);
+  // A new city drops the old board and events (Quests.roll), so these are always the city he is in.
+  const events = q.events.filter((e) => e.ends > now).length;
+  const recent = q.log.slice(-CARD_RECENT).reverse();
+  return (
+    <Card icon="❗" title="Quests" right={`${q.finished} done`}>
+      <KV k="🎯 Now" v={k ? `${k.icon} ${k.title} (${q.active!.step + 1} / ${k.steps.length})` : <span class="dim">None</span>} />
+      <KV k="📋 On the board" v={q.board.length} />
+      <KV k="🌟 Events" v={events} />
+      {recent.length > 0 && (
+        <div class="zebra">
+          {recent.map((e, i) => (
+            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** The friends he has made, his partner first, then most hearts; past SHOWN the rest fold away. Then his clubs, with their city and night. */
 function FriendsCard({ s }: { s: Stats }) {
   const f = s.friends;
   const list = [...f.list].sort((a, b) => Number(b.id === f.partner) - Number(a.id === f.partner) || b.hearts - a.hearts);
@@ -251,6 +276,10 @@ function FriendsCard({ s }: { s: Stats }) {
           <div class="zebra">{list.slice(SHOWN).map(row)}</div>
         </Collapsible>
       )}
+      {s.clubs.list.map((c) => {
+        const k = clubKind(c);
+        return <KV key={c.city} k={`${k.icon} ${k.name[0]!.toUpperCase()}${k.name.slice(1)}`} v={`${c.city.split(",")[0]} · ${DAYS[c.day]!.slice(0, 3)} ${String(c.hour).padStart(2, "0")}:00`} />;
+      })}
     </Card>
   );
 }

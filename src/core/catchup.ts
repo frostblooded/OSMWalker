@@ -3,7 +3,8 @@
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
 // a flight on a flying mount, see legM), does an action at each, rolls the
 // trip dice as usual and pays and rides like he would, and the storyteller
-// may bring an incident at a stop (see storyteller.ts). In a city whose
+// may bring an incident at a stop (see storyteller.ts); he takes on quests
+// and joins world events as he would while watched (see quests.ts). In a city whose
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). Pure: the game applies where he ends up.
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
@@ -11,6 +12,7 @@ import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
+import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
@@ -47,8 +49,8 @@ export const MADE_UP_KINDS: { class: string; subclass: string; label: string; we
   { class: "laundry", subclass: "dry_cleaning", label: "laundry", weight: 0.9 },
 ];
 
-/** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. */
-export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null };
+/** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. `pop` sizes its quest board. */
+export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number };
 
 export type CatchUpDeps = {
   activities: Activities;
@@ -205,7 +207,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
-      const place = pickPlace();
+      // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
+      const cardRng = deps.cardRng ?? rng;
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!walk(legM(stats, here, [place.lat, place.lon], city.places))) break;
       moveTo(place, [place.lat, place.lon]);
       stats.stop(place);
@@ -225,8 +230,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, deps.hourAt(startMs + elapsed * 1000), deps.cardRng ?? rng);
+      stats.happen(place, deps.hourAt(startMs + elapsed * 1000), cardRng);
       s.stops++;
+      const story = city.places ? questStop(stats, place, city.places, deps.hourAt(startMs + elapsed * 1000), cardRng) : null;
+      if (story !== null) {
+        pass(Math.min(story, leftMin()), 0);
+        yield;
+        continue;
+      }
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
@@ -250,7 +261,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       skipRoll = false;
       return false;
     }
-    if (anyUrgent(stats)) return false;
+    if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
     if (kind === "stay") return false;
