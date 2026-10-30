@@ -277,6 +277,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return true;
     }
     stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
+    const kit = stats.packForTrip(dest.code);
+    if (kit) stats.say(kit);
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];

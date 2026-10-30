@@ -35,6 +35,7 @@ import * as Rival from "../core/rival";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
+import * as Kit from "../core/travelKit";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
 import type { GameData } from "../game/game";
@@ -410,6 +411,11 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    KIT_LIST: Kit.KIT.map((k) => {
+      const fx = [...Object.entries(k.buff.per_h ?? {}).map(([m, v]) => `${m} +${v} an hour`), ...Object.entries(k.buff.attrs ?? {}).map(([a, v]) => `${Inc.ATTR_NAMES[a as S.Attr]} +${v}`)];
+      const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
+      return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
+    }).join("\n"),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
