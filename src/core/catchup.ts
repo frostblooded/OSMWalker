@@ -5,7 +5,7 @@
 // rides like he would. In a city whose places aren't loaded he visits
 // made-up places of the usual kinds ("a cafe in Lyon"). Pure: the game
 // applies where he ends up.
-import { choose, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { euro, signed } from "./money";
@@ -214,6 +214,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       skipRoll = false;
       return false;
     }
+    if (anyUrgent(stats)) return false;
     const places = city.places ?? [];
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
     if (kind === "stay") return false;
@@ -265,24 +266,22 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const hour = deps.hourAt(startMs + elapsed * 1000);
     const need = flat.kinds.map((p) => needOf(activities.peek(p, city.code), stats, hour));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
-    let r = rng.randf();
-    let urgent: boolean;
-    [urgent, r] = urgentRules(need.some((n) => n.urgent), need.some((n) => n.bottom), r);
+    const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
     const weights = real.map((_, i) => {
       const n = need[flat.kind[i]!]!;
-      if (urgent && !n.urgent) return 0;
+      if (keep && !keep(n)) return 0;
       const v: Vec = [flat.x[i]! - hx, flat.y[i]! - hy];
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return urgent ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull;
+      return keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull;
     });
     if (any) return real[pickIndex(weights, r)]!;
     const made = madeUp();
     const madeNeed = made.map((p) => needOf(activities.peek(p, city.code), stats, hour));
-    [urgent, r] = urgentRules(madeNeed.some((n) => n.urgent), madeNeed.some((n) => n.bottom), rng.randf());
-    return made[pickIndex(made.map((p, i) => (urgent && !madeNeed[i]!.urgent ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, urgent).weight)), r)]!;
+    const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
+    return made[pickIndex(made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade)]!;
   }
 
   function madeUp(): Place[] {

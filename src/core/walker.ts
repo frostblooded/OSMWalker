@@ -176,17 +176,16 @@ export class Walker {
         if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
         return v;
       });
-      let r = this.rng.randf();
-      let urgent: boolean;
-      [urgent, r] = urgentRules(needs.some((v) => v.urgent), needs.some((v) => v.bottom), r);
-      if (urgent) {
-        options = options.filter((_, i) => needs[i]!.urgent);
-        info.urgent_fixes = options.length;
+      const [keep, r] = urgentRules(needs, this.rng.randf());
+      let pairs = options.map((q, i) => [q, needs[i]!] as const);
+      if (keep) {
+        pairs = pairs.filter(([, v]) => keep(v));
+        info.urgent_fixes = pairs.length;
       }
-      const parts = options.map((q) => this.weigh(q, urgent ? kinds.get(kindOf(q)) : { ...kinds.get(kindOf(q))!, urgent: false }));
+      const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
       const weights = parts.map((w) => w.weight);
       const i = pickIndex(weights, r);
-      const pl = options[i]!;
+      const [pl, need] = pairs[i]!;
       this.setGoal(pl.lat, pl.lon);
       this.place = pl;
       Object.assign(info, parts[i], {
@@ -195,7 +194,7 @@ export class Walker {
         class: pl.class,
         rank: Math.trunc(pl.rank ?? 1),
         total_weight: weights.reduce((a, w) => a + w, 0),
-        ...(kinds.get(kindOf(pl))!.why && { need: kinds.get(kindOf(pl))!.why }),
+        ...(need.why && { need: need.why }),
       });
       this.events.picked?.(info);
       return;

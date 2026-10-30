@@ -156,7 +156,8 @@ describe("catch-up", () => {
       stats.gear.head = { name: "Cap", slot: "head", stats: {}, rarity: "Common", price: 100, story: { from: "Old", t: 0, countries: ["ZZZ"], km: 0 } };
       for (let i = 0; i < souvenirs; i++) stats.keepsakes.souvenirs.set(`C${i}`, { name: "magnet", country: "", city: "", t: 0 });
       let rolls = 0;
-      const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+      // Long enough to ride there, too short to earn a new cap.
+      const s = catchUp(stats, HOME, [0, 0], 3 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
       return { stats, bus: s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text };
     };
     const { stats, bus } = run(0);
@@ -166,6 +167,16 @@ describe("catch-up", () => {
     const cheaper = run(SOUVENIRS_PER_CUT * 5).bus;
     const fare = (line: string) => Math.round(Number(line.match(/-€([\d.]+)/)![1]) * 100);
     expect(fare(cheaper)).toBe(Math.ceil(fare(bus) * (1 - FARE_CUT_MAX)));
+  });
+
+  it("stays put while a need is urgent", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    stats.meters.energy = 0;
+    // Nothing in town gives energy back, so it stays urgent the whole time.
+    const city: AwayCity = { ...HOME, places: [place("Grand Museum", "museum", "museum", 0.0045, 0)] };
+    const s = catchUp(stats, city, [0, 0], 600, START_MS, deps({ roll: () => 0.1, activities: new Activities({ museum: [{ name: "Look", min: 1 }] }) }));
+    expect(s.cities).toEqual([]);
   });
 
   it("saves up when he can't afford a trip", () => {

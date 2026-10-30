@@ -40,9 +40,9 @@ export const SAY_URGE = 0.25;
 /** How the feed names each need. */
 export const NEED_WORDS: Record<NeedKey, string> = { fullness: "Hungry", thirst: "Thirsty", energy: "Tired", health: "Hurt", mood: "Glum", hygiene: "Grubby", money: "Short of money" };
 
-/** The feed line for a goal picked for `why`, or "" when the need is too mild to mention. */
-export function needLine(why: NeedKey | "", pull: number, urgent: boolean, place: string): string {
-  if (!why || (!urgent && pull < 1 + NEED_BOOST * SAY_URGE)) return "";
+/** The feed line for a goal picked for `why`, or "" when the need is too mild to mention (or it is money, and he only saves up). */
+export function needLine(why: NeedKey | "", pull: number, urgent: boolean, place: string, cents: number): string {
+  if (!why || (!urgent && pull < 1 + NEED_BOOST * SAY_URGE) || (why === "money" && cents >= SKINT)) return "";
   return `${NEED_WORDS[why]}, heading for ${place}`;
 }
 
@@ -161,16 +161,16 @@ export function weight(action: Action, stats: Stats): number {
 
 /**
  * How much a place with `actions` pulls his next goal, counting only what he
- * can do at `hour`: 1 + NEED_BOOST x the best action's need score, times how
- * well it suits him. A shop that sells the vehicle he has saved up for pulls
+ * can do at `hour`: the best of its actions' 1 + NEED_BOOST x need score,
+ * times how well that action suits him. A shop that sells the vehicle he has saved up for pulls
  * GOAL_SHOP_PULL, which only an urgent need beats.
  */
 export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   const saving = stats.saving();
   const shop = saving ? undefined : stats.vehicleGoal()?.kind;
-  let best = 0;
+  let pull = 1;
+  let top = 0;
   let why: NeedKey | "" = "";
-  let lean = 1;
   let urgent = false;
   let bottom = false;
   let goalShop = false;
@@ -178,22 +178,26 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
     if (!stats.canDo(a, hour)) continue;
     if (shop && a.item === shop) goalShop = true;
     const s = needScore(a, stats);
-    if (s.score > best) [best, why] = [s.score, s.why];
-    lean = Math.max(lean, strengthLean(a, stats));
+    pull = Math.max(pull, (1 + NEED_BOOST * s.score) * strengthLean(a, stats));
+    if (s.score > top) [top, why] = [s.score, s.why];
     urgent ||= fixesUrgent(a, stats);
     bottom ||= fixesUrgent(a, stats, BOTTOM_AT);
   }
-  if (goalShop) return { pull: GOAL_SHOP_PULL, urgent, bottom, why };
-  return { pull: (1 + NEED_BOOST * best) * lean, urgent, bottom, why };
+  return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
+}
+
+/** True while any meter is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
+export function anyUrgent(stats: Stats): boolean {
+  return Object.values(stats.meters).some((v) => v < URGENT_AT);
 }
 
 /** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
-export function choose(actions: Action[], stats: Stats, hour: number, r: number): Action | null {
+export function choose(actions: Action[], stats: Stats, hour: number, roll: number): Action | null {
   let options = actions.filter((a) => stats.canDo(a, hour));
-  const fixes = options.filter((a) => fixesUrgent(a, stats));
-  let rules: boolean;
-  [rules, r] = urgentRules(fixes.length > 0, fixes.some((a) => fixesUrgent(a, stats, BOTTOM_AT)), r);
-  if (rules) options = fixes;
+  const needs = options.map((a) => ({ urgent: fixesUrgent(a, stats), bottom: fixesUrgent(a, stats, BOTTOM_AT) }));
+  const [keep, u] = urgentRules(needs, roll);
+  let r = u;
+  if (keep) options = options.filter((_, i) => keep(needs[i]!));
   const weights = options.map((a) => weight(a, stats));
   r *= weights.reduce((s, w) => s + w, 0);
   for (let i = 0; i < options.length; i++) {

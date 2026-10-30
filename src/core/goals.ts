@@ -31,14 +31,15 @@ export const NO_NEED: Need = { pull: 1, urgent: false, bottom: false, why: "" };
 export const URGENT_SLIP = 0.1;
 
 /**
- * Whether an urgent need rules this pick, given `r` uniform in [0, 1), and `r`
- * stretched back to [0, 1) for the pick itself. At rock bottom it always rules;
- * otherwise it does but for URGENT_SLIP of the time.
+ * Which of `needs` an urgent need leaves in this pick (null: all of them),
+ * given `r` uniform in [0, 1), and `r` stretched back to [0, 1) for the pick
+ * itself. With a fix for a need at rock bottom, only such fixes, every time;
+ * otherwise only urgent fixes, but for URGENT_SLIP of the time.
  */
-export function urgentRules(urgent: boolean, bottom: boolean, r: number): [boolean, number] {
-  if (!urgent) return [false, r];
-  if (bottom) return [true, r];
-  return r < URGENT_SLIP ? [false, r / URGENT_SLIP] : [true, (r - URGENT_SLIP) / (1 - URGENT_SLIP)];
+export function urgentRules(needs: Pick<Need, "urgent" | "bottom">[], r: number): [((n: Pick<Need, "urgent" | "bottom">) => boolean) | null, number] {
+  if (needs.some((n) => n.bottom)) return [(n) => n.bottom, r];
+  if (!needs.some((n) => n.urgent)) return [null, r];
+  return r < URGENT_SLIP ? [null, r / URGENT_SLIP] : [(n) => n.urgent, (r - URGENT_SLIP) / (1 - URGENT_SLIP)];
 }
 export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number; urgent?: true };
 

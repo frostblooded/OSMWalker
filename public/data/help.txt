@@ -77,7 +77,7 @@ Heading: his heading is the direction from where his last walk started to where 
 
 Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that.
 
-Urgent: while a meter is under {URGENT_AT} and some place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless the meter is under {BOTTOM_AT}: then he always goes.
+Urgent: while a meter is under {URGENT_AT} and some place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -139,7 +139,7 @@ At each place he first throws out every action he can't do right now (see Requir
 - While he saves up for a trip or his next vehicle, spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
 - Browsing the shop of the vehicle he has saved up for: +{GOAL_SHOP}.
 
-Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always.
+Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always, and only from actions that fix that meter.
 
 An action with weight 4 is four times as likely as one with weight 1.
 ## His needs {urges}
@@ -149,7 +149,9 @@ Urge: each meter (fullness, thirst, energy, health, mood, hygiene) is a need bel
 
 Need score: an action scores the urge of each meter it raises, times how much of the need it meets: a raise of {FULL_FIX} or more meets it in full, a smaller one in part. Paid work scores the money urge. The scores of all needs an action meets add up, so a meal with a drink beats a meal alone when he is both hungry and thirsty.
 
-Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom. See Picking the next goal and How he chooses.
+Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom, and fixing it beats every other need. While any meter is urgent he skips the trip dice and stays in town. See Picking the next goal and How he chooses.
+
+The feed says when a strong need picks his goal, for example "Hungry, heading for Bakery Nord": an urgent need, or one at half of {NEED_AT} or lower. Money only counts there while he has less than {SKINT}, not while he just saves up.
 
 Drain: an action that lowers a meter he needs weighs (1 - that meter's urge) as much, at least {HARM_FLOOR_PCT}, so he doesn't go jogging when he is worn out.
 
@@ -315,7 +317,7 @@ If his bag is full when another item comes in, he sells the cheapest item he may
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
 ## Trips to other cities {trips}
-Every time he picks a new goal he rolls the trip dice:
+Every time he picks a new goal he rolls the trip dice, unless a need is urgent (see His needs):
 - {COUNTRY_PCT}: he travels to a city in another country,
 - {CITY_PCT}: he travels to another city in the same country,
 - otherwise he stays and picks a place in this city.

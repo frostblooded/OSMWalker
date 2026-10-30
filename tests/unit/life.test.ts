@@ -527,10 +527,19 @@ describe("need-driven goals", () => {
     expect(pull([work])).toBeCloseTo(1 + NEED_BOOST * A.SAVING_URGE, 6);
   });
   it("name a strong need in the feed, and stay quiet about a mild one", () => {
-    expect(A.needLine("fullness", 1 + NEED_BOOST * A.SAY_URGE, false, "Bakery")).toBe("Hungry, heading for Bakery");
-    expect(A.needLine("fullness", 2, false, "Bakery")).toBe("");
-    expect(A.needLine("money", 2, true, "Docks")).toBe("Short of money, heading for Docks");
-    expect(A.needLine("", 50, true, "Docks")).toBe("");
+    expect(A.needLine("fullness", 1 + NEED_BOOST * A.SAY_URGE, false, "Bakery", 0)).toBe("Hungry, heading for Bakery");
+    expect(A.needLine("fullness", 2, false, "Bakery", 0)).toBe("");
+    expect(A.needLine("money", 2, true, "Docks", 0)).toBe("Short of money, heading for Docks");
+    expect(A.needLine("", 50, true, "Docks", 0)).toBe("");
+    // Saving up with money in his pocket is not being short of it.
+    expect(A.needLine("money", 1 + NEED_BOOST * A.SAVING_URGE, false, "Docks", A.SKINT)).toBe("");
+  });
+  it("a place pulls as hard as its best action, not a mix of two", () => {
+    const meal: Action = { name: "Meal", min: 1, fx: { fullness: 40 } };
+    const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
+    stats.meters.fullness = 0;
+    stats.attrs.str = 4;
+    expect(pull([meal, lift])).toBeCloseTo(1 + NEED_BOOST, 6);
   });
   it("pull towards places that suit his best attribute", () => {
     const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
@@ -591,6 +600,14 @@ describe("activities", () => {
     for (const r of [0, 0.05, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
     stats.meters.fullness = URGENT_AT;
     expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+  });
+
+  it("a need at rock bottom beats another urgent one", () => {
+    const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
+    const fun: Action = { name: "Fun", min: 10, fx: { mood: 30 } };
+    stats.meters.fullness = A.BOTTOM_AT - 2;
+    stats.meters.mood = URGENT_AT - 5;
+    for (let i = 0; i < 20; i++) expect(choose([fun, eat], stats, 12, i / 20)!.name).toBe("Eat");
   });
 
   it("he shuns actions that drain a meter he needs", () => {

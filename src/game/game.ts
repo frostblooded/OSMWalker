@@ -368,7 +368,7 @@ export class Game {
 
   /** Each pick goes in the debug log with the trip roll that came before it. */
   private onPicked(info: PickInfo): void {
-    const line = needLine(info.need as NeedKey | undefined ?? "", (info.need_w as number) ?? 1, info.urgent === true, String(info.place ?? ""));
+    const line = needLine(info.need as NeedKey | undefined ?? "", (info.need_w as number) ?? 1, info.urgent === true, String(info.place ?? ""), this.stats.cents);
     if (line) this.stats.say(line);
     const e: Entry = { ...this.journey.takeLog(), ...info };
     if (this.forced) e.forced = this.forced;

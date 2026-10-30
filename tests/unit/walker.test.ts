@@ -567,6 +567,20 @@ describe("goal weights", () => {
     expect(c("Near food")).toBeGreaterThan(800);
   });
 
+  it("a fix for a need at rock bottom beats a nearer fix for another urgent one", () => {
+    const w = atCross();
+    const near = moved(42, 23, [100, 0]);
+    const far = moved(42, 23, [-400, 0]);
+    setPlaces(w.graph, [{ ...cafe("Museum", near[0], near[1]), subclass: "museum" }, { ...cafe("Diner", far[0], far[1]), subclass: "diner" }]);
+    w.need = (q) => (q.subclass === "diner" ? { pull: 50, urgent: true, bottom: true, why: "fullness" } : { pull: 30, urgent: true, bottom: false, why: "mood" });
+    for (let s = 0; s < 50; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      expect(w.place!.name).toBe("Diner");
+    }
+  });
+
   it("weigh an urgent fix by nearness alone", () => {
     const w = atCross();
     w.legFrom = moved(42, 23, [0, -500]);
