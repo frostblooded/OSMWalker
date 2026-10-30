@@ -52,6 +52,15 @@ test("a menu screen that fails to load says so and asks for a reload", async ({ 
   await expect(page.locator(".burger .dot")).toBeVisible();
 });
 
+test("While you were away still shows when the menu's screens fail to load", async ({ context, page }) => {
+  await context.route(/\/assets\/HelpSheet-[^/]*\.js$/, (route) => route.abort());
+  await startInSofia(page);
+  await reopenAfter(page, 3);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toContainText("Lived through", { timeout: 20000 });
+  await expect(away).not.toContainText("Couldn't load this screen");
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();

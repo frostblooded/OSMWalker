@@ -66,6 +66,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   const [awaySheet, setAwaySheet] = useState<typeof import("./AwaySheet") | null>(null);
   const [awayFailed, setAwayFailed] = useState(false);
   const awayLoading = useRef(false);
+  /** Loads While you were away once; a failure asks for a reload, as with the sheets. */
   const fetchAway = () => {
     if (awayLoading.current) return;
     awayLoading.current = true;
