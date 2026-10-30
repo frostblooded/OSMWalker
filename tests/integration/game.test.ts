@@ -446,7 +446,7 @@ describe("game", () => {
   describe("catch-up", () => {
     const HOUR = 3600_000;
     /** A game saved `agoMs` before a reopen, and the reopened game. */
-    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}) {
+    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}, loaded: (g: Game) => void = () => {}) {
       let now = Date.UTC(2026, 9, 29, 8);
       const { g, storage } = game({ ...o, clock: () => now });
       await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -456,6 +456,7 @@ describe("game", () => {
       const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       again.problems.quiet = true;
       again.load();
+      loaded(again);
       await again.wake();
       return { g, again, setNow: (t: number) => (now = t), now: () => now };
     }
@@ -517,6 +518,18 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("a reopen that earns a clover adds trust, and he writes when it passes a letter step", async () => {
+      const { again } = await reopen(
+        2 * HOUR,
+        {},
+        (g) => (g.stats.bond.trust = 28),
+        (a) => (a.stats.letters = { tiers: [["First letter."]], thanks: {} }),
+      );
+      expect(again.stats.bond.trust).toBe(32);
+      expect(again.stats.history.entries.some((e) => e.text === "✉ First letter.")).toBe(true);
+      expect(again.lastDeed()!.text).not.toMatch(/^✉/);
     });
 
     it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {

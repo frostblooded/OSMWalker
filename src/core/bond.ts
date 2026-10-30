@@ -6,6 +6,8 @@
 // lives the same without them, and may ignore a whisper.
 import type { Rng } from "./rng";
 
+/** Trust runs from 0 to TRUST_MAX. */
+export const TRUST_MAX = 100;
 export const TRUST_START = 20;
 /** Trust a check-in that earned a clover adds, and an opened care package. */
 export const TRUST_PER_CHECKIN = 4;
@@ -46,6 +48,19 @@ export type Lean = "kind" | "rascal" | "";
 /** Letters from data/letters.json: one list per trust step, and a thank-you per gift id. */
 export type Letters = { tiers: string[][]; thanks: Record<string, string> };
 
+/** How his letters to you and your whispers start in his History, so lines about his own deeds can be told apart (see isNote). */
+export const LETTER_MARK = "✉";
+export const WHISPER_HEARD = "Heard a whisper";
+
+/** His History line for your whisper `word`, heeded or not. */
+export function whisperLine(word: Whisper, heeded: boolean): string {
+  const w = word[0]!.toUpperCase() + word.slice(1);
+  return `${WHISPER_HEARD}: "${w}". ${heeded ? "He nods and does just that for a while" : "He shrugs it off"}`;
+}
+
+/** True for a History line that is a letter to you or a whisper from you, not one of his deeds. */
+export const isNote = (text: string) => text.startsWith(LETTER_MARK) || text.startsWith(WHISPER_HEARD);
+
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
 
 export class Bond {
@@ -73,7 +88,7 @@ export class Bond {
   /** Adds `n` trust; returns the letter step crossed going up, or -1. */
   addTrust(n: number): number {
     const before = this.trust;
-    this.trust = clamp(this.trust + n, 0, 100);
+    this.trust = clamp(this.trust + n, 0, TRUST_MAX);
     return LETTER_AT.findLastIndex((at) => before < at && this.trust >= at);
   }
 
@@ -131,5 +146,5 @@ export class Bond {
 /** The line he writes on crossing letter step `step`, picked with `r` in [0, 1); "" with no letters loaded. */
 export function letter(letters: Letters | null, step: number, r: number): string {
   const list = letters?.tiers[step] ?? [];
-  return list.length ? `✉ ${list[Math.floor(r * list.length)]}` : "";
+  return list.length ? `${LETTER_MARK} ${list[Math.floor(r * list.length)]}` : "";
 }

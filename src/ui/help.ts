@@ -150,6 +150,13 @@ export const CRAWL_KINDS: Record<string, string> = {
 };
 const crawlKinds = (c: K.Crawl) => CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
 
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+function deeds(actions: GameData["actions"], sign: 1 | -1): string {
+  const names = new Set<string>();
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  return [...names].join(", ");
+}
+
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
   const sum = (t: Activities.ActionTable) => Object.values(t).reduce((n, l) => n + l.length, 0);
@@ -180,7 +187,10 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    TRUST_MAX: num(Bond.TRUST_MAX),
     TRUST_START: num(Bond.TRUST_START),
+    KIND_DEEDS: deeds(data.actions, 1),
+    RASCAL_DEEDS: deeds(data.actions, -1),
     TRUST_PER_CHECKIN: num(Bond.TRUST_PER_CHECKIN),
     TRUST_PER_GIFT: num(Bond.TRUST_PER_GIFT),
     TRUST_FADE_PER_DAY: num(Bond.TRUST_FADE_PER_DAY),
@@ -190,7 +200,7 @@ export function values(data: GameData): Record<string, string> {
     WHISPERS_PER_DAY: num(Bond.WHISPERS_PER_DAY),
     HEED_MIN_PCT: pct(Bond.HEED_MIN),
     HEED_PER_TRUST_PCT: pct(Bond.HEED_PER_TRUST),
-    HEED_FULL_PCT: pct(Bond.HEED_MIN + 100 * Bond.HEED_PER_TRUST),
+    HEED_FULL_PCT: pct(Bond.HEED_MIN + Bond.TRUST_MAX * Bond.HEED_PER_TRUST),
     NUDGE_MIN: num(Bond.NUDGE_MIN),
     EXPLORE_PULL: num(Activities.EXPLORE_PULL),
     LEAN_MIN: num(-Bond.LEAN_MAX),

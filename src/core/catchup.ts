@@ -8,7 +8,7 @@
 import { choose, exploreWeight, needWeight, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, pickIndex, randomSpot, rankWeight, type Vec } from "./goals";
-import { euro, signed } from "./money";
+import { euro } from "./money";
 import type { Rng } from "./rng";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
@@ -241,9 +241,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    const { paid, how: dodged } = stats.payFare(plan.fare, plan.mode, `${plan.station.name}${stats.now()}`);
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name}${dodged}${paid ? ` (${signed(-paid)})` : ""}`);
+    stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];

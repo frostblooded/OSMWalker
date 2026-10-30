@@ -19,7 +19,7 @@ import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
-import type { Letters, Whisper } from "../core/bond";
+import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
@@ -644,15 +644,14 @@ export class Game {
   whisper(word: Whisper): void {
     const heeded = this.stats.bond.whisper(word, dayOf(this.now()), this.cardRng);
     if (heeded === null) return;
-    const w = word[0]!.toUpperCase() + word.slice(1);
-    this.stats.say(heeded ? `Heard a whisper: "${w}". He nods and does just that for a while` : `Heard a whisper: "${w}". He shrugs it off`);
+    this.stats.say(whisperLine(word, heeded));
     this.save();
     this.changed();
   }
 
   /** His latest line about something he did: not a whisper you sent or a letter to you. */
   lastDeed(): { text: string; t: number } | null {
-    return this.stats.history.entries.findLast((e) => !e.text.startsWith("Heard a whisper") && !e.text.startsWith("✉")) ?? null;
+    return this.stats.history.entries.findLast((e) => !isNote(e.text)) ?? null;
   }
 
   /** You praise (+1) or scold (-1) his latest deed, which leans him kind or rascal. */

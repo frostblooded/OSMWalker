@@ -161,6 +161,34 @@ describe("catch-up", () => {
     expect(fare(cheaper)).toBe(Math.ceil(fare(bus) * (1 - FARE_CUT_MAX)));
   });
 
+  it("a rascal's bus ride says when he skipped the ticket", () => {
+    const lines: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      stats.bond.lean = -100;
+      const s = catchUp(stats, HOME, [0, 0], 3600, START_MS + i * 60_000, deps({ roll: () => 0.1 }));
+      lines.push(...s.lines.filter((l) => l.text.startsWith("Took the bus")).map((l) => l.text));
+    }
+    expect(lines.some((l) => l.includes(" without a ticket"))).toBe(true);
+  });
+
+  it("while he follows an Explore whisper, places he has never been to pull him", () => {
+    // Every place but Cafe Two is old to him; count how often it is his first stop.
+    const firstAtNew = (explore: boolean) => {
+      let n = 0;
+      for (let i = 0; i < 30; i++) {
+        const stats = new Stats();
+        for (const p of PLACES) if (p.name !== "Cafe Two") stats.visited.add(visitKey(p));
+        if (explore) [stats.bond.nudge, stats.bond.nudgeLeft] = ["explore", 600];
+        const s = catchUp(stats, HOME, [0, 0], 1800, START_MS, deps({ rng: new Rng(i) }));
+        if (s.lines.find((l) => l.text.startsWith("Reached"))?.text.startsWith("Reached Cafe Two")) n++;
+      }
+      return n;
+    };
+    expect(firstAtNew(true)).toBeGreaterThan(firstAtNew(false));
+  });
+
   it("saves up when he can't afford a trip", () => {
     const stats = new Stats();
     stats.cents = 0;

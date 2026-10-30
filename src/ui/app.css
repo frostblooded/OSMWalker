@@ -220,8 +220,6 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
 .gifts > li { display: flex; align-items: center; gap: var(--s3); }
-.whispers { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
-.whispers .btn { flex: 1 1 40%; }
 .away-log > li { display: flex; align-items: baseline; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }

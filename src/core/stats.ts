@@ -302,6 +302,13 @@ export class Stats {
     return { paid, how };
   }
 
+  /** Pays for a ride by `mode` from `station` to `to` ("Plovdiv, Bulgaria") and returns its History line, the same while he plays and in the catch-up. */
+  ride(fare: number, mode: string, station: string, to: string): string {
+    const { paid, how } = this.payFare(fare, mode, `${station}${this.now()}`);
+    const took = mode === "car" ? "Filled up and drove" : `Took the ${mode}`;
+    return `${took} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
+  }
+
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
   keptTreasures(): Set<Item> {
     return new Set(
@@ -618,7 +625,7 @@ export class Stats {
     const step = this.bond.addTrust(B.TRUST_PER_GIFT);
     if (step >= 0) return this.wrote(step);
     const thanks = this.letters?.thanks[id];
-    if (thanks && new Rng(seedOf(`thanks${this.now()}`)).randf() < B.THANKS_CHANCE) this.say(`✉ ${thanks}`);
+    if (thanks && new Rng(seedOf(`thanks${this.now()}`)).randf() < B.THANKS_CHANCE) this.say(`${B.LETTER_MARK} ${thanks}`);
   }
 
   /** Notes a stop at a place, for the day ribbon. */

@@ -13,6 +13,13 @@ const DAY = 86400;
 const fixed = (r: number) => ({ randf: () => r }) as Rng;
 
 describe("trust", () => {
+  it("tells his letters and your whispers from his deeds", () => {
+    expect(B.isNote(B.letter(LETTERS, 0, 0))).toBe(true);
+    expect(B.isNote(B.whisperLine("eat", true))).toBe(true);
+    expect(B.isNote(B.whisperLine("rest", false))).toBe(true);
+    expect(B.isNote("Had a coffee at Cafe Near")).toBe(false);
+  });
+
   it("rises with check-ins and care packages, and stays within 0-100", () => {
     const b = new B.Bond();
     expect(b.trust).toBe(B.TRUST_START);
@@ -171,6 +178,21 @@ describe("kind or rascal", () => {
     for (let i = 0; i < 50; i++) expect(s.payFare(500, "plane", `x${i}`).paid).toBe(500);
     s.bond.lean = 0;
     for (let i = 0; i < 50; i++) expect(s.payFare(500, "bus", `x${i}`).paid).toBe(500);
+  });
+
+  it("says in the ride line when he skipped the ticket or was fined", () => {
+    const s = new Stats();
+    expect(s.ride(500, "bus", "Central", "Plovdiv, Bulgaria")).toBe("Took the bus to Plovdiv, Bulgaria from Central (-€5)");
+    expect(s.ride(500, "car", "Shell", "Plovdiv, Bulgaria")).toBe("Filled up and drove to Plovdiv, Bulgaria from Shell (-€5)");
+    s.bond.lean = -B.LEAN_MAX;
+    const lines = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      s.cents = 10_000;
+      s.now = () => i;
+      lines.add(s.ride(500, "bus", "Central", "Plovdiv"));
+    }
+    expect(lines).toContain("Took the bus to Plovdiv from Central without a ticket");
+    expect(lines).toContain("Took the bus to Plovdiv from Central without a ticket, got caught and was fined (-€10)");
   });
 
   it("a fine never takes more than he has", () => {
