@@ -377,7 +377,7 @@ export class Game {
     this.origin = [dest.lat, dest.lon];
     this.placeStats();
     this.track();
-    this.stats.enterCity(this.city);
+    this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
