@@ -542,6 +542,17 @@
       "good": ["{GIVER} thanks him with a pinch of the shimmer: a little Magic that tingles.", "The arch hums once, like a thank you, and he feels lucky all day."],
       "worse": ["A pigeon walks right through the shimmer and nothing happens. {GIVER} sighs.", "By the time they look again the arch is just an arch."],
       "reward": { "eur": [0, 10], "xp": 60, "fx": { "magic": 15, "wit": 0.3 } } },
+    { "id": "giants_footprints", "icon": "👣", "title": "The Giant's Footprints", "lean": "wit", "fantasy": true,
+      "items": ["a footprint as long as a bus", "a button the size of a cartwheel", "a hair as thick as a rope", "a yawn that echoed off the hills"],
+      "steps": [
+        { "at": ["attraction", "park"], "say": ["{GIVER} at {PLACE} swears the hills moved last night, and shows him {ITEM}.", "Children at {PLACE} are measuring {ITEM}; {GIVER} asks him to find out whose it is."] },
+        { "at": ["museum", "library"], "say": ["An old map at {PLACE} draws a sleeping giant where the hills are. Beside it: {ITEM}.", "A curator at {PLACE} has a drawer full of things like {ITEM}, all labelled 'not ours'."] },
+        { "at": ["attraction", "park", "monument"], "say": ["At {PLACE} he leaves {ITEM} where the giant can find it, and the wind sighs.", "From {PLACE} he watches the far hills until one of them, very slowly, rolls over."] }
+      ],
+      "twists": ["{GIVER} has seen it before, as a child, and nobody believed them.", "The footprints lead into the river and don't come out."],
+      "good": ["{GIVER} believes him at last, and buys him lunch.", "The hills hum him to sleep that night, and he wakes up rested."],
+      "worse": ["It was only road works. {GIVER} is sure it wasn't.", "A rain shower washes the footprints away before anyone else sees them."],
+      "reward": { "eur": [0, 10], "xp": 60, "fx": { "mood": 15, "wit": 0.3 } } },
     { "id": "wizard_apprentice", "icon": "🧙", "title": "The Wizard's Errand", "lean": "wit", "fantasy": true,
       "items": ["a dragon's sneeze", "moonflower petals", "a cat's dream", "dust from a very old book"],
       "steps": [
@@ -681,6 +692,7 @@
   "events": [
     { "id": "lamp_in_the_window", "icon": "🌙", "title": "A lamp in the window", "at": ["shop/antiques", "shop/second_hand"], "time": "midnight", "min": [10, 20], "lean": "luck", "text": ["A lamp is lit in the window of {PLACE}, long after closing.", "The door of {PLACE} stands ajar after midnight, and something inside glitters."], "win": { "say": "The owner lets him try a ring that tingles; a little Magic stays on his finger.", "xp": 15, "fx": { "magic": 10, "luck": 0.2 } }, "lose": { "say": "By the time he gets there the lamp is out and the door locked.", "xp": 5 }, "missed": "Someone saw a lamp in the window of {PLACE} after midnight." },
     { "id": "shimmer_in_the_stones", "icon": "🌀", "title": "A shimmer in the stones", "at": ["monument", "castle"], "time": "night", "min": [10, 20], "lean": "luck", "text": ["The air between the old stones of {PLACE} shimmers like a heat haze, at night.", "Through the arch at {PLACE} he glimpses a street that isn't here."], "win": { "say": "He reaches in, and his hand comes back cold, smelling of another city's rain; a little Magic clings to it.", "xp": 15, "fx": { "magic": 10, "mood": 5 } }, "lose": { "say": "A tram rattles by and the shimmer is gone.", "xp": 5 }, "missed": "People say the stones of {PLACE} shimmered last night." },
+    { "id": "shadow_under_the_water", "icon": "🦑", "title": "A shadow under the water", "at": ["harbor", "ferry_terminal"], "min": [10, 20], "lean": "luck", "text": ["Something long and dark moves under the water off {PLACE}, bigger than any boat.", "The boats at {PLACE} rock all at once on a calm day, and the gulls go quiet."], "win": { "say": "He waits at the edge and a huge eye looks back at him, then blinks, friendly.", "xp": 15, "fx": { "mood": 15 } }, "lose": { "say": "He looks away for a second and the shadow is gone.", "xp": 5 }, "missed": "People at {PLACE} swear something huge swam past today." },
     { "id": "humming_stones", "icon": "✨", "title": "Humming stones", "at": ["monument", "memorial", "place_of_worship"], "time": "night", "min": [10, 20], "lean": "wit", "text": ["The old stones of {PLACE} are humming tonight.", "A faint glow runs along the ground at {PLACE}, where the ley lines meet."], "win": { "say": "He stands still and listens until the hum fills him up.", "xp": 20, "fx": { "magic": 15, "mood": 5 } }, "lose": { "say": "A bus goes past and the hum is gone.", "xp": 5 }, "missed": "People say the stones at {PLACE} hummed all night." },
     { "id": "bakery_oven", "icon": "🔥", "title": "Oven trouble", "at": ["bakery"], "time": "morning", "min": [20, 50], "lean": "str",
       "text": ["The oven at {PLACE} broke down before the morning rush.", "Smoke and shouting at {PLACE}: the oven is dead."],
