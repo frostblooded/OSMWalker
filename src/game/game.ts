@@ -115,6 +115,8 @@ export class Game {
   cityOutline: LatLon[][] = [];
   /** The ley lines between the loaded places (core/magic.ts), worked out again as streets load. */
   leys: Ley[] = [];
+  /** Counts up each time the ley lines are worked out, so the map knows to draw them again. */
+  leysVersion = 0;
   private leysOf = "";
   /** Meters walked since the last check for a ley line under him. */
   private leyM = 0;
@@ -816,11 +818,6 @@ export class Game {
     }
   }
 
-  /**
-   * Once a second: warns (once per city) when enough streets are loaded but
-   * no places of note, and once the streets all around him are loaded checks
-   * that the city has a way out and a way to earn money (severe if not).
-   */
   /** Once a second: the ley lines again if more places loaded, and Magic for what he walked along one. */
   private checkLey(): void {
     const w = this.walker;
@@ -828,12 +825,18 @@ export class Game {
     const key = `${this.city}:${w.graph.cells.size}:${w.graph.made.length}`;
     if (key !== this.leysOf) {
       this.leysOf = key;
+      this.leysVersion++;
       this.leys = leyLines(w.bounds ? w.graph.placesIn(w.bounds) : []);
     }
     if (this.leyM > 0 && onLey(this.leys, w.position())) this.stats.leyWalk(this.leyM);
     this.leyM = 0;
   }
 
+  /**
+   * Once a second: warns (once per city) when enough streets are loaded but
+   * no places of note, and once the streets all around him are loaded checks
+   * that the city has a way out and a way to earn money (severe if not).
+   */
   private checkCity(): void {
     const w = this.walker;
     if (!w || w.isTraveling()) {

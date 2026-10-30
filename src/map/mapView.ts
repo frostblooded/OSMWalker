@@ -20,7 +20,7 @@ const TRIP_COLOR = "#c01c28";
 const AREA_COLOR = "#e8730c";
 const OUTLINE_COLOR = "#7b3fbf";
 const ROUTE_COLOR = "#ff7a3d";
-/** Indigo, as the magic icons (map/icons.ts). */
+/** Indigo `--magic` (app.css), as the magic icons (map/icons.ts); MapLibre can't read CSS tokens. */
 const LEY_COLOR = "#3d2a8a";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];

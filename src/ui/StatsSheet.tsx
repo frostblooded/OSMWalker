@@ -160,7 +160,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           })}
           <div class="meter">
             <KV k="🔮 Magic" v={Math.round(s.magic)} />
-            <Bar share={s.magic / MAGIC_MAX} color="#3d2a8a" />
+            <Bar share={s.magic / MAGIC_MAX} color="var(--magic)" />
           </div>
         </div>
       </Card>
