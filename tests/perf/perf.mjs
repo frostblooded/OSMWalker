@@ -1,5 +1,6 @@
 // Perf budget check: loads the production build under a mid-range phone profile
-// and fails if any number in budgets.json is exceeded.
+// and fails if any number in budgets.json is exceeded. Numbers without a budget
+// (app JS size) are only reported: keep them small, but they never fail CI.
 // Usage: node tests/perf/perf.mjs   (after npm run build)
 // PW_CHROMIUM=/path/to/chrome uses a local Chromium; CI uses the runner's Chrome.
 import { chromium } from "@playwright/test";
@@ -69,8 +70,8 @@ const results = {
 await browser.close();
 server.close();
 
-const rows = Object.entries(budgets).map(([k, limit]) => ({ metric: k, value: results[k], budget: limit, ok: results[k] <= limit }));
-const md = [`### Perf budgets (${profile})`, "", "| Metric | Value | Budget | |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.metric} | ${r.value} | ${r.budget} | ${r.ok ? "✅" : "❌"} |`)].join("\n");
+const rows = Object.entries(results).map(([k, value]) => ({ metric: k, value, budget: budgets[k] ?? "—", ok: !(k in budgets) || value <= budgets[k] }));
+const md = [`### Perf budgets (${profile})`, "", "| Metric | Value | Budget | |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.metric} | ${r.value} | ${r.budget} | ${r.metric in budgets ? (r.ok ? "✅" : "❌") : ""} |`)].join("\n");
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, "perf.json"), JSON.stringify(results, null, 2));
 fs.writeFileSync(path.join(out, "perf.md"), md + "\n");
