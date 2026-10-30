@@ -9,9 +9,9 @@ import { Activities, choose, needWeight, restMinutes, type ActionTable } from ".
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
-import { dayOf } from "../core/gifts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
+import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";

@@ -1,3 +1,4 @@
+// Clovers for checking in and the care packages they buy (src/core/gifts.ts).
 import { describe, expect, it } from "vitest";
 import { Care, CLOVER_AWAY_S, CLOVERS_PER_DAY, dayOf, effect, GIFTS } from "../../src/core/gifts";
 import { Stats } from "../../src/core/stats";
