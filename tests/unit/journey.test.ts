@@ -45,7 +45,7 @@ describe("journey", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;
     expect(plan).toMatchObject({ mode: "bus", station: BUS, city: { name: "Nexttown" } });
-    expect(stats.history.latest()).toContain("Heading to Central Bus for the bus to Nexttown");
+    expect(stats.history.latest()).toContain("Heading to Central Bus for the bus to somewhere in");
     expect(j.takeLog()).toMatchObject({ outcome: "city", options: 1, chance: 1 });
   });
 

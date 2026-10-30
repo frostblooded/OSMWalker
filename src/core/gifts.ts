@@ -2,8 +2,10 @@
 // game after at least CLOVER_AWAY_S away earns a clover, at most
 // CLOVERS_PER_DAY a day, and a missed day costs nothing. Clovers buy one gift
 // at a time, which he opens at his next stop: a snack, or a boost for a few
-// hours. All of it is optional: he never waits for a gift, and you never
+// hours. Right guesses about his next trip earn clovers too (see guess.ts).
+// All of it is optional: he never waits for a gift, and you never
 // choose where he goes.
+import { GUESS_CLOVERS, type Guess } from "./guess";
 import type { Action, Fx, Stats } from "./stats";
 
 /** Shortest time away that earns a clover on reopen. */
@@ -50,6 +52,8 @@ export class Care {
   today = 0;
   /** The gift on its way to him, by id; "" when none. */
   parcel = "";
+  /** The open guess about the trip he is walking to the station for. */
+  guess: Guess | null = null;
 
   /** Earned today, counting a new day as none yet. */
   earnedOn(day: string): number {
@@ -96,8 +100,26 @@ export class Care {
     return stats.say(`Opened your care package: ${gift.icon} ${gift.name}! Thank you! (${effect(gift)})`);
   }
 
+  /** Picks a choice of the open guess; returns false when there is none or it was already picked. */
+  pickGuess(choice: string): boolean {
+    const g = this.guess;
+    if (!g || g.pick || !g.choices.includes(choice)) return false;
+    g.pick = choice;
+    return true;
+  }
+
+  /** He boards: the guess, if any, is settled. Returns the feed line, or "" when nobody guessed. */
+  reveal(stats: Stats): string {
+    const g = this.guess;
+    this.guess = null;
+    if (!g?.pick) return "";
+    if (g.pick !== g.answer) return stats.say(`Not ${g.pick}: he's off to ${g.answer}`);
+    this.clovers += GUESS_CLOVERS;
+    return stats.say(`You guessed it: ${g.answer}! (+${GUESS_CLOVERS} ☘)`);
+  }
+
   toJSON() {
-    return { clovers: this.clovers, day: this.day, today: this.today, parcel: this.parcel };
+    return { clovers: this.clovers, day: this.day, today: this.today, parcel: this.parcel, guess: this.guess };
   }
 
   static fromJSON(d: Partial<ReturnType<Care["toJSON"]>> | undefined): Care {

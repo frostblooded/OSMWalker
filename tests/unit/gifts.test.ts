@@ -82,8 +82,8 @@ describe("care packages", () => {
     s.care.clovers = 2;
     s.care.send("snack");
     const back = Stats.fromJSON(JSON.parse(JSON.stringify(s)));
-    expect(back.care.toJSON()).toEqual({ clovers: 1, day: "2026-10-30", today: 1, parcel: "snack" });
+    expect(back.care.toJSON()).toEqual({ clovers: 1, day: "2026-10-30", today: 1, parcel: "snack", guess: null });
     const { care: _, ...old } = s.toJSON();
-    expect(Stats.fromJSON(old as ReturnType<Stats["toJSON"]>).care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "" });
+    expect(Stats.fromJSON(old as ReturnType<Stats["toJSON"]>).care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "", guess: null });
   });
 });

@@ -84,7 +84,6 @@ export const CRAWLS: Crawl[] = [
 ];
 export const crawlMatches = (c: Crawl, p: Pick<Place, "class" | "subclass">) => !isArtShop(p) && (c.kinds.includes(p.class) || c.kinds.includes(kindOf(p)));
 
-
 /** Everything he has collected, as saved. */
 export class Keepsakes {
   /** By the place's visit key (see Stats.visit). */

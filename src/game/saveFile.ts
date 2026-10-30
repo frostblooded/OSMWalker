@@ -109,9 +109,9 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      // Saves from before care packages have no clovers and nothing on its way. Stats.fromJSON repairs
-      // the rest old saves lack: keepsakes, where he is and item stories.
-      stats: Stats.fromJSON({ ...d.stats, care: d.stats.care ?? new Care().toJSON() }),
+      // Saves from before care packages have no clovers, nothing on its way and no guess. Stats.fromJSON
+      // repairs the rest old saves lack: keepsakes, where he is and item stories.
+      stats: Stats.fromJSON({ ...d.stats, care: { ...new Care().toJSON(), ...d.stats.care } }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };
