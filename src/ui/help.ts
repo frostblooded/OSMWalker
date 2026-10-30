@@ -415,6 +415,7 @@ export function values(data: GameData): Record<string, string> {
       const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
       return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
     }).join("\n"),
+    DEG_PER_ZONE: num(Trips.DEG_PER_ZONE),
     JET_LAG_H_PER_ZONE: num(Trips.JET_LAG_H_PER_ZONE),
     JET_LAG_MAX_H: num(Trips.JET_LAG_MAX_H),
     JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),

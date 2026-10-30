@@ -44,6 +44,8 @@ export const AIRPORT_POP = 500_000;
 const AIRPORT_OUT_M: [number, number] = [8_000, 15_000];
 
 /** After a flight he is jet-lagged JET_LAG_H_PER_ZONE hours per time zone crossed, at most JET_LAG_MAX_H: energy drains faster and XP is cut. */
+/** One time zone per this many degrees of longitude. */
+export const DEG_PER_ZONE = 15;
 export const JET_LAG_H_PER_ZONE = 1;
 export const JET_LAG_MAX_H = 12;
 export const JET_LAG_ENERGY_PER_H = 4;
@@ -133,10 +135,10 @@ function nearest<T extends { lat: number; lon: number }>(list: T[], lat: number,
   return best;
 }
 
-/** Time zones between two longitudes, one per 15 degrees, the short way round. */
+/** Time zones between two longitudes, one per DEG_PER_ZONE degrees, the short way round. */
 export function timeZones(lonA: number, lonB: number): number {
   const d = Math.abs(lonA - lonB) % 360;
-  return Math.round(Math.min(d, 360 - d) / 15);
+  return Math.round(Math.min(d, 360 - d) / DEG_PER_ZONE);
 }
 
 /** The jet lag a flight across `zones` time zones gives, or null for none. */
