@@ -230,7 +230,7 @@ Strength unlocks physical actions: for example hauling for the butcher needs 3, 
 
 The number counted for requirements is his own strength plus every strength bonus on his gear.
 ## Charm {cha}
-Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments.
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards).
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
@@ -253,7 +253,7 @@ He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the f
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
-Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. On a tie, strength comes first, then charm, wits and luck.
+Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
 ## Fainting and hospital {fainting}
@@ -353,6 +353,17 @@ A card's rarity comes from the place's rank on the map (see Places of note):
 - any other: Common.
 
 On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card, given on his first visit; going back gives nothing more, and a card's finish never changes. The feed says "New card", and the Collection sheet shows them all.
+## City cards {citycards}
+City cards are trading cards of the world's cities: the {CITY_CARDS_PER_COUNTRY} biggest cities of every country, {CITY_CARD_TOTAL} cards in all. A card's rarity is fixed by how big its city is in its country:
+- the biggest: Rare,
+- the next {UNCOMMON_CITY_COUNT}: Uncommon,
+- the rest: Common.
+
+Cards come in packs of {PACK_SIZE}. He gets a free pack each time he levels up, and for each new city and each new country he reaches, and opens them at his next stop. He also buys packs at {CARD_SHOPS}: "Buy a city card pack" costs {PACK_PRICE}. Each card in a pack is Rare {PULL_RARE_PCT} of the time, Uncommon {PULL_UNCOMMON_PCT} and Common {PULL_COMMON_PCT}, then a random city of that rarity. Like landmark cards, a card can be Foil or Gold.
+
+A card he already has is a spare, unless it has a better finish: then it takes the old card's place and the old one is the spare. He sells his spares the next time he reaches one of those shops: {SPARE_COMMON} for a Common, {SPARE_UNCOMMON} for an Uncommon and {SPARE_RARE} for a Rare, {FOIL_MULT} times that if Foil and {GOLD_MULT} times if Gold.
+
+When he has every card of a country, its set is done: he gets Charm +{SET_CHARM} while he is in that country. At made-up places (see While you were away) he doesn't sell spares or open free packs; those wait for his next real stop.
 ## Placedex {placedex}
 The Placedex counts every kind of place he has been to, such as a cafe, a Christian place of worship or a viewpoint. The first time he reaches a kind he has never seen, he gets bonus XP by how rare that kind is:
 - Common: +{DEX_XP_COMMON} XP,
@@ -428,13 +439,14 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
-- Attributes: a tile for each, with the part his gear adds in green.
+- Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
 - Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
+- City cards: how many of each rarity he has out of all, foil and gold, spares waiting to be sold and free packs waiting to be opened, then a row per country he has cards from (tap Countries), with ✔ for a finished set.
 - Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
 - Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
 - Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
