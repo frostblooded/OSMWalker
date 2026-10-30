@@ -37,7 +37,7 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
 
 test("Help that couldn't load offers Try again", async ({ page }) => {
   let fail = true;
-  await page.route("**/data/help.txt", (route) => (fail ? route.abort() : route.fallback()));
+  await page.route("**/data/help.txt?*", (route) => (fail ? route.abort() : route.fallback()));
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
