@@ -119,6 +119,7 @@ for (const width of [360, 412]) {
 
       await openMenuItem(page, /Help/);
       const help = page.getByRole("dialog", { name: /Help/ });
+      await expect(help.getByRole("button", { name: "How he walks" })).toBeVisible();
       await check(page, "help");
       await help.getByRole("button", { name: "How he walks" }).click();
       await check(page, "help-page");

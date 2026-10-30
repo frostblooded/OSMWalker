@@ -48,6 +48,16 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [sheets, setSheets] = useState<Sheets | null>(null);
+  const loading = useRef(false);
+  /** Loads the sheets once; a failure (offline, or a deploy replaced the files) is logged and the next open tries again. */
+  const fetchSheets = () => {
+    if (loading.current) return;
+    loading.current = true;
+    loadSheets()
+      .then(setSheets)
+      .catch((e: Error) => game.problems.warn(`Couldn't load the menu's screens: ${e.message}`))
+      .finally(() => (loading.current = false));
+  };
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
 
@@ -73,7 +83,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         loop.start();
         performance.mark("osmwalker:map");
         // The menu's sheets follow once the map is up, so they open at once and work offline later.
-        setTimeout(() => !gone && void loadSheets().then(setSheets), SHEETS_AFTER_MS);
+        setTimeout(() => !gone && fetchSheets(), SHEETS_AFTER_MS);
       })
       .catch((e: Error) => {
         game.problems.error(`The map couldn't start: ${e.message}`);
@@ -111,10 +121,10 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   useEffect(() => {
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  }, [sheet]);
+  }, [sheet, sheets]); // again once the sheet's real content is in, so the trail fits above it
 
   useEffect(() => {
-    if (sheet && !sheets) void loadSheets().then(setSheets);
+    if (sheet && !sheets) fetchSheets();
   }, [sheet, sheets]);
 
   const close = () => setSheet(null);
