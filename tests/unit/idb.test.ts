@@ -62,6 +62,12 @@ describe("street cell cache", () => {
     });
     await expect(new IdbStore(name).get("x")).rejects.toThrow(/another tab/i);
     old.close();
+    // The upgrade then goes through late; its connection must not block the next version.
+    await new Promise<void>((ok, fail) => {
+      const open = indexedDB.open(name, 3);
+      open.onblocked = () => fail(new Error("blocked"));
+      open.onsuccess = () => (open.result.close(), ok());
+    });
   });
 
   it("closes its database when a newer version wants it", async () => {

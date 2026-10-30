@@ -23,14 +23,21 @@ export class IdbStore implements Store {
       const store = e.oldVersion < 1 ? open.result.createObjectStore(STORE) : open.transaction!.objectStore(STORE);
       store.createIndex(BY_TIME, "t");
     };
-    // A tab still on version 1 blocks the upgrade until it closes; meanwhile streets come from the network.
+    // A tab still on version 1 blocks the upgrade until it closes; meanwhile streets come from the network, and the
+    // connection that opens late is closed again. An open one closes when a newer version asks.
+    let gaveUp = false;
     const blocked = new Promise<never>((_, fail) => {
-      open.onblocked = () => fail(new Error("another tab has the old street cache open"));
+      open.onblocked = () => {
+        gaveUp = true;
+        fail(new Error("another tab has the old street cache open"));
+      };
     });
-    this.db = Promise.race([req(open), blocked]).then((db) => {
-      db.onversionchange = () => db.close();
-      return db;
+    open.addEventListener("success", () => {
+      const db = open.result;
+      if (gaveUp) db.close();
+      else db.onversionchange = () => db.close();
     });
+    this.db = Promise.race([req(open), blocked]);
   }
 
   private async tx(mode: IDBTransactionMode): Promise<IDBObjectStore> {
