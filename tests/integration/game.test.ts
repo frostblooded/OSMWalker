@@ -563,6 +563,25 @@ describe("game", () => {
       expect(again.stats.history.latest()).toBe("Decided by himself: Thanked the trucker and stayed");
     });
 
+    it("keeps your own Stay as yours while he is on a paid ride", async () => {
+      const { again } = await reopenDilemma("trucker");
+      const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
+      again.dilemma!.city = plovdiv!;
+      again.walker!.startTravel({ ...vidin!, bounds: cityBounds(vidin!) }, "bus");
+      again.chooseDilemma(1);
+      expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
+    });
+
+    it("says when the first wake has run, so a postcard from a link waits for the away card", async () => {
+      const short = await reopen(10_000);
+      expect(short.again.woke).toBe(true);
+      expect(short.again.away).toBeNull();
+      const long = await reopen(2 * HOUR);
+      expect(long.again.woke).toBe(true);
+      expect(long.again.away).not.toBeNull();
+      expect(new Game({ ...(long.g as unknown as { deps: GameDeps }).deps }).woke).toBe(false);
+    });
+
     it("lets a free ride replace a trip he is walking to, with its guess", async () => {
       const { again } = await reopenDilemma("trucker");
       const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);

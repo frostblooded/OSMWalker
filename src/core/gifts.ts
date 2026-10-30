@@ -62,9 +62,14 @@ export class Care {
     return day === this.day ? this.today : 0;
   }
 
+  /** True when `day` has had all its clovers, so the next one comes tomorrow. */
+  full(day: string): boolean {
+    return this.earnedOn(day) >= CLOVERS_PER_DAY;
+  }
+
   /** A reopen on `day` after `awayS` away: a clover unless it was too short or today's are used up. Returns true when earned. */
   checkIn(awayS: number, day: string): boolean {
-    if (awayS < CLOVER_AWAY_S || this.earnedOn(day) >= CLOVERS_PER_DAY) return false;
+    if (awayS < CLOVER_AWAY_S || this.full(day)) return false;
     this.today = this.earnedOn(day) + CLOVERS_PER_CHECKIN;
     this.day = day;
     this.clovers += CLOVERS_PER_CHECKIN;

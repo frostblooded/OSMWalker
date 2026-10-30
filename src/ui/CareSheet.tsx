@@ -5,11 +5,12 @@ import { Card, KV } from "./kit";
 
 export function CareSheet({ care, now, onSend }: { care: Care; now: number; onSend: (id: string) => void }) {
   const on = care.pending();
+  const day = dayOf(now);
   return (
     <>
       <Card icon="☘" title="Clovers" right={care.clovers}>
-        <KV k="Earned today" v={`${care.earnedOn(dayOf(now))} / ${CLOVERS_PER_DAY}`} />
-        <KV k="Next clover" v={`On reopen after ${CLOVER_AWAY_S / 3600} h away`} />
+        <KV k="Earned today" v={`${care.earnedOn(day)} / ${CLOVERS_PER_DAY}`} />
+        <KV k="Next clover" v={care.full(day) ? "Tomorrow" : `On reopen after ${CLOVER_AWAY_S / 3600} h away`} />
       </Card>
       {on && (
         <Card icon="📦" title="On its way" tone="ok">
