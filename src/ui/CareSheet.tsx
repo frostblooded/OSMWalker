@@ -26,9 +26,12 @@ export function CareSheet({ care, now, onSend }: { care: Care; now: number; onSe
                   <div>
                     {g.icon} {g.name}
                   </div>
-                  <div class="dim small">{effect(g)}</div>
+                  <div class="dim small">
+                    {effect(g)}
+                    {why && ` · ${why}`}
+                  </div>
                 </div>
-                <button class="btn" disabled={!!why} title={why || undefined} aria-label={`Send ${g.name} for ${g.cost} ☘`} onClick={() => onSend(g.id)}>
+                <button class="btn" disabled={!!why} aria-label={`Send ${g.name} for ${g.cost} ☘`} onClick={() => onSend(g.id)}>
                   ☘ {g.cost}
                 </button>
               </li>

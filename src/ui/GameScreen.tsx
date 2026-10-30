@@ -191,7 +191,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          <CareSheet care={s.care} now={Date.now()} onSend={(id) => game.sendGift(id)} />
+          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
         </SheetBox>
       )}
       {sheet === "help" && (

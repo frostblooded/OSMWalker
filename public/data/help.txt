@@ -322,8 +322,8 @@ Each fact becomes a quick action he can do at any place in that city, for exampl
 # ☘ Little touches
 ## Clovers and care packages {care}
 You never steer him, but you can leave him a small gift. Gifts cost clovers, and you earn clovers just by checking in:
-- opening the game (or coming back to its tab) after at least {CLOVER_AWAY_H} hour away earns 1 ☘ clover,
-- at most {CLOVERS_PER_DAY} a day, counted by your device's date,
+- opening the game (or coming back to its tab) after at least {CLOVER_AWAY_H} hour away earns {CLOVERS_PER_CHECKIN} ☘ clover,
+- at most {CLOVERS_PER_DAY} clovers a day, counted by your device's date,
 - there are no streaks: a day you skip costs nothing, and clovers never run out.
 
 ☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:

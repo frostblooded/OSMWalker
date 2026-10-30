@@ -108,6 +108,7 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
+      // Stats.fromJSON fills what older saves lack: buffs, gear, bag, clovers and care packages.
       stats: Stats.fromJSON(d.stats),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,

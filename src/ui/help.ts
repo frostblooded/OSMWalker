@@ -135,6 +135,7 @@ export function values(data: GameData): Record<string, string> {
     MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
+    CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),

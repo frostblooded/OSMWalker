@@ -9,6 +9,8 @@ import type { Action, Fx, Stats } from "./stats";
 /** Shortest time away that earns a clover on reopen. */
 export const CLOVER_AWAY_S = 3600;
 export const CLOVERS_PER_DAY = 3;
+/** Clovers one check-in earns. */
+export const CLOVERS_PER_CHECKIN = 1;
 
 export type Gift = { id: string; icon: string; name: string; cost: number; fx?: Fx; buff?: NonNullable<Action["buff"]> };
 
@@ -57,9 +59,9 @@ export class Care {
   /** A reopen on `day` after `awayS` away: a clover unless it was too short or today's are used up. Returns true when earned. */
   checkIn(awayS: number, day: string): boolean {
     if (awayS < CLOVER_AWAY_S || this.earnedOn(day) >= CLOVERS_PER_DAY) return false;
-    this.today = this.earnedOn(day) + 1;
+    this.today = this.earnedOn(day) + CLOVERS_PER_CHECKIN;
     this.day = day;
-    this.clovers++;
+    this.clovers += CLOVERS_PER_CHECKIN;
     return true;
   }
 

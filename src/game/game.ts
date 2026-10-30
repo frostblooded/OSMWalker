@@ -136,7 +136,8 @@ export class Game {
     return this.deps.hour?.() ?? new Date(ms).getHours();
   }
 
-  private now(): number {
+  /** Unix ms now, by the game's clock. */
+  now(): number {
     return this.deps.clock?.() ?? Date.now();
   }
 
