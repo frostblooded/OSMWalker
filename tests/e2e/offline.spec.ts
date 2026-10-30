@@ -41,11 +41,11 @@ test("keeps one Help text, the current one, and opens it offline", async ({ cont
   await mockServices(context);
   await page.goto("./");
   await page.evaluate(() => navigator.serviceWorker.ready);
-  const url = await page.evaluate(async () => {
-    const find = () => performance.getEntriesByType("resource").find((e) => e.name.includes("/data/help.txt?v="))?.name;
-    while (!find()) await new Promise((ok) => setTimeout(ok, 100));
-    return find()!;
-  });
+  const find = () => page.evaluate(() => performance.getEntriesByType("resource").find((e) => e.name.includes("/data/help.txt?v="))?.name ?? "");
+  await expect.poll(find, { timeout: 10000 }).not.toBe("");
+  const url = await find();
+  // Wait for the worker's own store of it, so the test's store below is the only one.
+  await expect.poll(() => page.evaluate((u) => caches.match(u).then(Boolean), url), { timeout: 10000 }).toBe(true);
   // An older Help from before a deploy is in the cache; storing the current one drops it.
   const old = url.replace(/\?v=.*/, "?v=old");
   await page.evaluate(
