@@ -162,6 +162,26 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
   });
 
+  it("loads saves from before Viktor: they haven't met yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.rival;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.rival).toMatchObject({ level: 2, wins: 0, losses: 0, memory: [], inTown: false });
+  });
+
+  it("loads saves from before friends: he has met no one", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.friends;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.friends).toMatchObject({ list: [], partner: "", companion: null });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -215,6 +235,18 @@ describe("save file", () => {
     expect(back.keepsakes.souvenirs.size).toBe(0);
     expect(back.where).toEqual({ city: "", code: "", country: "" });
     expect(back.cents).toBe(4321);
+  });
+
+  it("loads saves from before records, with fresh ones", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.records;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.records.best.stretchM).toBe(0);
+    expect(back.records.countries).toEqual([]);
   });
 
   it("loads saves from before golden bricks and the life story, with the old firsts skipped", () => {

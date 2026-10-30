@@ -25,13 +25,16 @@ import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
+import type { Contest } from "../core/rival";
+import type { Borders } from "../core/border";
+import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
-import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
+import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -55,8 +58,10 @@ export const DILEMMA_WAIT_MS = 500;
 export const CATCHUP_SLICE_MS = 8;
 /** Cities whose made-up places the save keeps; the oldest is dropped first. */
 export const MADE_CITIES = 20;
+/** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
+export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; quests?: Q.Bank };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; quests?: Q.Bank };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -238,7 +243,7 @@ export class Game {
     w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
-      landed: (c) => this.onLanded(c),
+      landed: (c, t) => this.onLanded(c, t),
       arrived: (p) => this.onArrived(p),
       picked: (i) => this.onPicked(i),
       boarding: (p) => this.onBoarding(p),
@@ -413,7 +418,7 @@ export class Game {
     this.changed();
   }
 
-  private onLanded(dest: City): void {
+  private onLanded(dest: City, t: Travel): void {
     this.city = `${dest.name}, ${dest.country}`;
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
@@ -421,6 +426,10 @@ export class Game {
     this.track();
     this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
+    if (t.mode === "plane") {
+      const lag = this.stats.landFlight(t.from[1], t.arrive[1]);
+      if (lag) this.stats.say(lag);
+    }
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();
@@ -449,15 +458,18 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck, the quest bank and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the quest bank and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
+    this.stats.borders = this.deps.data.borders ?? null;
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
+    this.stats.contests = this.deps.data.contests ?? [];
+    this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -469,6 +481,13 @@ export class Game {
     this.city = "";
     this.file.clear();
     this.changed();
+  }
+
+  /** Where Viktor shows on the map, a few steps east of where they met, for a while after a meeting; null otherwise. */
+  rivalAt(): LatLon | null {
+    if (this.walker?.isTraveling()) return null;
+    const at = this.stats.rival.shownAt(Math.floor(this.now() / 1000), this.stats.where.city);
+    return at && [at[0], at[1] + RIVAL_OFFSET_DEG];
   }
 
   /** [lat, lon] of the place or spot he is heading to or resting at; null while he has none or travels. */

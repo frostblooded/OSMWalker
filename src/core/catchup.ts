@@ -288,6 +288,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return true;
     }
     stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
+    const kit = stats.packForTrip(dest.code);
+    if (kit) stats.say(kit);
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
@@ -297,6 +299,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
+    if (plan.mode === "plane") {
+      const lag = stats.landFlight(plan.station.lon, plan.arrive[1]);
+      if (lag) stats.say(lag);
+    }
     skipRoll = true;
     return true;
   }

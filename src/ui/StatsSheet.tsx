@@ -1,11 +1,14 @@
 // His character sheet: level and XP, his quests, what he saves up for, six
 // meters as bars, four attributes with what his gear adds, every gear slot, the bag
-// and his buffs. Items with a story open to show it.
+// and his buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import type { Quests } from "../core/quests";
+import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
-import { speed } from "./format";
+import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
+import { hearts, SHOWN, type Friend } from "../core/friends";
+import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -74,6 +77,30 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
       <KV k={name} v={`${has >= needs ? "✔ " : ""}${euro(Math.min(has, needs))} / ${euro(needs)}`} tone={has >= needs ? "ok" : undefined} />
       <Bar share={has / needs} color="var(--coin)" />
     </>
+  );
+}
+
+/** His bests and lifetime totals. */
+function Records({ stats: s }: { stats: Stats }) {
+  const r = s.records;
+  return (
+    <Card icon="🏆" title="Records">
+      <div class="zebra">
+        <KV k="🚶 Longest walk without a stop" v={dist(r.best.stretchM)} />
+        <KV k="📏 Most walked in a day" v={dist(r.best.dayM)} />
+        <KV k="📍 Most places in a day" v={r.best.dayStops} />
+        <KV k="💰 Most money held" v={euro(r.best.cents)} />
+        <KV k="❤ Longest without fainting" v={span(r.best.noFaintS)} />
+      </div>
+      <Collapsible title="Totals" right={`${r.countries.length} countries`}>
+        <div class="zebra">
+          <KV k="🌍 Countries" v={r.countries.length} />
+          <KV k="🏙 Cities" v={r.cities.length} />
+          <KV k="💥 Mishaps" v={r.mishaps} />
+          <KV k="🏥 Faints" v={r.faints} />
+        </div>
+      </Collapsible>
+    </Card>
   );
 }
 
@@ -159,6 +186,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">Empty. Gear he takes off goes here.</p>
         )}
       </Card>
+      <RivalCard s={s} />
+      <FriendsCard s={s} />
       <Card icon="✨" title="Effects">
         {s.buffs.length ? (
           <div class="zebra">
@@ -176,6 +205,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">None right now.</p>
         )}
       </Card>
+      <Records stats={s} />
     </>
   );
 }
@@ -196,6 +226,50 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
             <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
           ))}
         </div>
+      )}
+    </Card>
+  );
+}
+
+/** The friends he has made, his partner first, then most hearts; past SHOWN the rest fold away. */
+function FriendsCard({ s }: { s: Stats }) {
+  const f = s.friends;
+  const list = [...f.list].sort((a, b) => Number(b.id === f.partner) - Number(a.id === f.partner) || b.hearts - a.hearts);
+  const row = (p: Friend) => <KV key={p.id} k={`${p.icon} ${p.name}${p.id === f.partner ? " (partner)" : ""}`} v={`${hearts(p.hearts)} · ${p.city.split(",")[0]}`} />;
+  return (
+    <Card icon="💞" title="Friends" right={f.list.length || undefined}>
+      {f.companion && <KV k="Travelling with" v={`${f.companion.icon} ${f.companion.who}`} />}
+      {list.length ? (
+        <div class="zebra">{list.slice(0, SHOWN).map(row)}</div>
+      ) : (
+        <p class="dim small">No one yet. He gets talking with locals as he goes.</p>
+      )}
+      {list.length > SHOWN && (
+        <Collapsible title="More" right={list.length - SHOWN}>
+          <div class="zebra">{list.slice(SHOWN).map(row)}</div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
+const STANDING = { nemesis: "Nemesis", rival: "Rival", friend: "Friendly rival" } as const;
+
+/** Viktor: his level, their record, and what they are to each other. */
+function RivalCard({ s }: { s: Stats }) {
+  const r = s.rival;
+  const last = r.memory.at(-1);
+  return (
+    <Card icon={RIVAL_ICON} title={RIVAL_NAME} right={last ? STANDING[r.standing()] : undefined}>
+      {last ? (
+        <>
+          <KV k="Level" v={r.level} />
+          <KV k="Contests" v={`${r.wins} won · ${r.losses} lost`} />
+          <KV k="Chats" v={r.chats} />
+          <KV k="Last met" v={last.city.split(",")[0]} />
+        </>
+      ) : (
+        <p class="dim small">Not met yet. He travels too.</p>
       )}
     </Card>
   );

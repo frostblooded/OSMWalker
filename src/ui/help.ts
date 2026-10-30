@@ -30,9 +30,13 @@ import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
+import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
+import * as Rival from "../core/rival";
+import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
+import * as Kit from "../core/travelKit";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
 import type { GameData } from "../game/game";
@@ -333,6 +337,11 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
+    REC_STRETCH_KM: km(Rec.BRAG_FROM.stretchM),
+    REC_DAY_KM: km(Rec.BRAG_FROM.dayM),
+    REC_STOPS: String(Rec.BRAG_FROM.dayStops),
+    REC_CENTS: euro(Rec.BRAG_FROM.cents),
+    REC_NOFAINT: Rec.span(Rec.BRAG_FROM.noFaintS),
     HOSPITAL_FEE: euro(S.HOSPITAL_FEE),
     WAKE_HEALTH: num(S.WAKE_HEALTH),
     BAG_SIZE: String(S.BAG_SIZE),
@@ -406,6 +415,17 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    KIT_LIST: Kit.KIT.map((k) => {
+      const fx = [...Object.entries(k.buff.per_h ?? {}).map(([m, v]) => `${m} +${v} an hour`), ...Object.entries(k.buff.attrs ?? {}).map(([a, v]) => `${Inc.ATTR_NAMES[a as S.Attr]} +${v}`)];
+      const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
+      return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
+    }).join("\n"),
+    DEG_PER_ZONE: num(Trips.DEG_PER_ZONE),
+    JET_LAG_H_PER_ZONE: num(Trips.JET_LAG_H_PER_ZONE),
+    JET_LAG_MAX_H: num(Trips.JET_LAG_MAX_H),
+    JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
+    JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
+    BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
@@ -485,6 +505,35 @@ export function values(data: GameData): Record<string, string> {
     EVENT_KINDS: String(bank.events.length),
     FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
     FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
+    LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
+    LEGEND_WEIGHT: num(Inc.LEGEND_WEIGHT),
+    RIVAL_ICON: Rival.RIVAL_ICON,
+    RIVAL_NAME: Rival.RIVAL_NAME,
+    RIVAL_TOWN_PCT: pct(Rival.IN_TOWN_CHANCE),
+    RIVAL_MEET_PCT: pct(Rival.MEET_CHANCE),
+    HIS_PER_LEVEL: num(Rival.HIS_PER_LEVEL),
+    RIVAL_PER_LEVEL: num(Rival.RIVAL_PER_LEVEL),
+    RIVAL_START_LEVEL: num(Rival.START_LEVEL),
+    WIN_FX: Gifts.effect({ fx: Rival.WIN_FX }),
+    LOSE_FX: Gifts.effect({ fx: Rival.LOSE_FX }),
+    FRIENDLY_FX: Gifts.effect({ fx: Rival.FRIENDLY_FX }),
+    FRIENDLY_PCT: pct(Rival.FRIENDLY_BASE),
+    FRIENDLY_PER_CHA_PCT: pct(Rival.FRIENDLY_PER_CHA),
+    FRIENDLY_CAP_PCT: pct(Rival.FRIENDLY_CAP),
+    FEELING_MAX: num(Rival.FEELING_MAX),
+    FEELING_AT: num(Rival.FEELING_AT),
+    FEELING_STEP: num(Rival.FEELING_STEP),
+    SEEN_MIN: num(Rival.SEEN_MIN),
+    FRIEND_NEW_PCT: pct(Friends.NEW_CHANCE),
+    FRIEND_SEE_PCT: pct(Friends.SEE_CHANCE),
+    HEARTS_MAX: num(Friends.HEARTS_MAX),
+    MEET_UP_AT: num(Friends.MEET_UP_AT),
+    MEET_UP_PCT: pct(Friends.MEET_UP_CHANCE),
+    FRIENDS_PER_CITY: num(Friends.PER_CITY),
+    COMPANION_PCT: pct(Friends.COMPANION_CHANCE),
+    SPLIT_PCT: pct(Friends.SPLIT),
+    COMPANION_STOPS: num(Friends.COMPANION_STOPS),
+    FRIENDS_SHOWN: num(Friends.SHOWN),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)

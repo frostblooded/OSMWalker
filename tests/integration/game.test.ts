@@ -15,7 +15,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
-import { Game, MADE_CITIES, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
@@ -195,6 +195,38 @@ describe("game", () => {
     expect(g.storyCard(icon.id)!.state).toBe("on");
   });
 
+  it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], contests: JSON.parse(dataFile("rival.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.contests.length).toBeGreaterThan(0);
+    const meet = vi.spyOn(g.stats.rival, "meet");
+    run(g, 400);
+    // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+  });
+
+  it("hands his stats the friends data, and gives a friend a chance at each stop with no incident or Viktor", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], friends: JSON.parse(dataFile("friends.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.friendData.names.length).toBeGreaterThan(0);
+    const stop = vi.spyOn(g.stats.friends, "stop");
+    run(g, 400);
+    expect(stop).toHaveBeenCalledWith(expect.objectContaining({ city: g.stats.where.city, place: "Cafe Near", kind: "cafe" }), g.stats.friendData, expect.anything());
+  });
+
+  it("shows Viktor beside him for a while after they meet, only in that city", async () => {
+    const { g } = game({ places: [CAFE], clock: () => 2_000_000_000_000 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.rivalAt()).toBeNull();
+    const r = g.stats.rival;
+    Object.assign(r, { town: g.stats.where.city, inTown: true, seenUntil: 2_000_000_000 + 60, seenAt: [42.7, 23.3] });
+    expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
+    r.seenUntil = 2_000_000_000;
+    expect(g.rivalAt()).toBeNull();
+  });
+
   it("switches the storyteller from the menu and keeps it in the save", async () => {
     const { g, storage } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -326,10 +358,32 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ roll: 0.99, outcome: "stay", forced: "goal" });
   });
 
+  it("lands jet-lagged after a flight across time zones", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "plane");
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
+    expect(g.stats.buffNames()).toContain("Jet-lagged");
+  });
+
+  it("lands fresh after a bus across the same time zones", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "bus");
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.where.city).toBe("Paris, France");
+    expect(g.stats.buffNames()).not.toContain("Jet-lagged");
+  });
+
   it("walks to the bus station for a trip, pays and rides", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 50_000;
+    // Full, so he packs nothing and pays only the fare.
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
     g.skipRoll = false;
     g.debugNewGoal();
     const w = g.walker!;

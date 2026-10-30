@@ -2,7 +2,8 @@
 // place (a pickpocket, a stray dog, a wedding invite, a pub quiz win). Cards
 // live in data/incidents.json; the storyteller (storyteller.ts) says when one
 // happens and whether it is good, bad or odd, and this file picks a card that
-// fits where he is and plays it out. Some cards hold a choice of two; he
+// fits where he is (night legends at castles and graveyards first) and plays
+// it out. Some cards hold a choice of two; he
 // picks by himself, leaning on one of his attributes, so nothing waits for
 // you. A bad card never takes more than LOSS_CAP_SHARE of his money, and only
 // takes an item from his bag, never his gear or a treasured item.
@@ -19,6 +20,8 @@ export const LOSS_CAP_SHARE = 0.25;
 /** Each point of the leaning attribute above 1 moves his own pick this much from even, up to LEAN_CAP (dilemmas.ts leans the same). */
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
+/** A night legend is this many times likelier than any other card that fits. */
+export const LEGEND_WEIGHT = 4;
 export const ATTR_NAMES: Record<Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
 
 /** How far `attr` tilts his own pick of a choice toward the bold option, from 0 to LEAN_CAP. */
@@ -56,6 +59,8 @@ export type Incident = Partial<Outcome> & {
   /** A choice of two: the first is the bold one, which he leans to the higher `lean` is. */
   options?: [Option, Option];
   lean?: Attr;
+  /** A night legend: told at night at ruins, castles, graveyards and the like, LEGEND_WEIGHT times likelier there. */
+  legend?: boolean;
 };
 
 /** Where he is when it happens. */
@@ -65,7 +70,12 @@ export type Scene = { place: string; kind: string; hour: number; rides: Vehicle 
 export function pick(deck: readonly Incident[], tone: Tone, scene: Scene, inTime: (t: TimeOfDay, hour: number) => boolean, rng: Rng, recent: readonly string[] = []): Incident | null {
   const fits = deck.filter((c) => c.tone === tone && (!c.at || c.at.includes(scene.kind)) && (!c.time || inTime(c.time, scene.hour)) && (!c.rides || c.rides.includes(scene.rides)));
   const fresh = fits.filter((c) => !recent.includes(c.id));
-  return fresh.length ? rng.pick(fresh) : fits.length ? rng.pick(fits) : null;
+  const from = fresh.length ? fresh : fits;
+  if (!from.length) return null;
+  const weights = from.map((c) => (c.legend ? LEGEND_WEIGHT : 1));
+  let r = rng.randf() * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < from.length; i++) if ((r -= weights[i]!) < 0) return from[i]!;
+  return from.at(-1)!;
 }
 
 /** His own pick of `card`'s options: 0 (the bold one) the likelier the higher his leaning attribute, never less likely than even. */
@@ -119,6 +129,7 @@ export function check(deck: readonly Incident[], classes: Set<string>, attrs: re
     if (!["good", "bad", "odd"].includes(c.tone)) out.push(`${c.id}: tone ${c.tone}`);
     for (const k of c.at ?? []) if (!classes.has(k)) out.push(`${c.id}: no place class ${k}`);
     if (c.guard && !attrs.includes(c.guard.attr)) out.push(`${c.id}: guard attribute ${c.guard.attr}`);
+    if (c.legend && (c.time !== "night" || !c.at)) out.push(`${c.id}: a legend needs night and places`);
     if (c.guard && /\{PLACE\}| (in|on|near|by|at|outside|over|from)$/.test(bare(c))) out.push(`${c.id}: Help can't leave out its place`);
     if (c.options ? c.options.length !== 2 || !c.lean || !attrs.includes(c.lean) : !c.say) out.push(`${c.id}: needs a say, or two options and a lean`);
   }
