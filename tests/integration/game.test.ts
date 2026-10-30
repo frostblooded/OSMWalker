@@ -9,7 +9,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud } from "../../src/game/hud";
+import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -60,7 +60,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
   };
   const storage = new MemStorage();
-  const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
+  const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
   g.problems.quiet = true;
   return { g, storage };
 }
@@ -82,6 +82,19 @@ describe("game", () => {
     await tick();
     run(g, 30);
     expect(g.walker!.totalM).toBeCloseTo(30 * (5 / 3.6), 3); // 5 km/h on foot
+  });
+
+  it("opens a care package at the place he reaches next", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.care.clovers = 2;
+    g.sendGift("guide");
+    expect(g.stats.care.clovers).toBe(0);
+    run(g, 400);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    const reached = texts.findIndex((t) => t.startsWith("Reached Cafe Near"));
+    expect(texts[reached + 1]).toBe("Opened your care package: 📖 City guide! Thank you! (+2 Wits for 4 h)");
+    expect(g.stats.buffNames()).toContain("City guide");
   });
 
   it("says when the streets can't load", async () => {
@@ -107,6 +120,15 @@ describe("game", () => {
     run(g, 400);
     expect([...g.stats.keepsakes.cards.values()]).toMatchObject([{ name: "Museum Near", rarity: "Rare", city: "Sofia, Bulgaria" }]);
     expect(g.stats.keepsakes.dex.has("museum/museum")).toBe(true);
+  });
+
+  it("strikes a pose for what he does at a place", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 400 && !g.walker!.isResting(); i++) run(g, 1);
+    expect(g.walker!.isResting()).toBe(true);
+    expect(g.doing).not.toBeNull();
+    expect(look(g).pose).not.toBeNull();
   });
 
   it("keeps the walk across a save", async () => {
@@ -206,11 +228,15 @@ describe("game", () => {
     const { g } = game({ places: [hospital, CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.meters.health = 0;
+    g.doing = { name: "Nap on a bench", min: 1, fx: { energy: 20 } };
     const coins = g.stats.cents;
     g.step(1);
     expect(g.walker!.place).toEqual(hospital);
     expect(g.walker!.isResting()).toBe(true);
     expect(g.stats.cents).toBeLessThan(coins);
+    // He rests at the hospital, but did nothing there to strike a pose for.
+    expect(g.doing).toBeNull();
+    expect(look(g).pose).toBeNull();
   });
 
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
@@ -386,6 +412,20 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
+      const { again } = await reopen(2 * HOUR, {}, (g) => {
+        g.stats.care.clovers = 1;
+        g.sendGift("snack");
+      });
+      expect(again.awayClover).toBe(true);
+      expect(again.stats.care.clovers).toBe(1);
+      expect(again.stats.care.parcel).toBe("");
+      expect(again.away!.lines.some((l) => l.text.startsWith("Opened your care package: 🥪 Snack"))).toBe(true);
+      again.dismissAway();
+      expect(again.awayClover).toBe(false);
+      expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
     });
 
     it("goes on trips while away and lands him in the new city", async () => {

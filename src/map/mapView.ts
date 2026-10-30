@@ -1,10 +1,12 @@
-// The map: MapLibre with OpenFreeMap's Liberty style, him as a marker, his
-// goal as a pin, his trail and the ride line as lines. MapLibre only draws
-// when something changes, so the game moves the camera a few times a second
-// instead of every frame (see app/loop.ts): the main thread stays idle.
+// The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a
+// face with a bubble over his head), his goal as a pin, his trail and the
+// ride line as lines. MapLibre only draws when something changes, so the
+// game moves the camera a few times a second instead of every frame (see
+// app/loop.ts): the main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
+import type { Look } from "../core/look";
 import type { LatLon } from "../core/trips";
 import type { MapPort, Padding } from "./scene";
 
@@ -58,6 +60,7 @@ export class MapView implements MapPort {
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
+  private lookKey = "";
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
 
@@ -94,7 +97,7 @@ export class MapView implements MapPort {
     });
     creditControl(ml, this.map);
     this.map.touchZoomRotate.disableRotation();
-    this.him = new ml.Marker({ element: markerEl("him", "🙂"), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
+    this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
@@ -185,6 +188,23 @@ export class MapView implements MapPort {
     if (this.following && this.autoFollow && !this.map.isMoving() && !this.inMiddle(at)) {
       this.map.easeTo({ center: [at[1], at[0]], duration: RECENTRE_MS });
     }
+  }
+
+  /**
+   * His face, bubble and pose, written to the page only when one changes. A
+   * new pose plays its CSS animation a few times and then holds still, so the
+   * GPU is idle again after a few seconds.
+   */
+  setLook(l: Look): void {
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}`;
+    if (key === this.lookKey) return;
+    this.lookKey = key;
+    const el = this.him.getElement();
+    el.querySelector(".face")!.textContent = l.face;
+    const bubble = el.querySelector<HTMLElement>(".bubble")!;
+    bubble.textContent = l.pose?.icon ?? l.bubble;
+    bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
+    bubble.hidden = !bubble.textContent;
   }
 
   /** Whether `at` is within the middle of what the player can see (the panels left out). */
@@ -331,6 +351,19 @@ function creditControl(ml: Ml, map: MlMap): void {
   };
   map.on("styledata", fold);
   map.on("sourcedata", fold);
+}
+
+/** Him: a face in an orange disc, with a bubble over his head. */
+function himMarker(): HTMLElement {
+  const el = markerEl("him", "");
+  const face = document.createElement("span");
+  face.className = "face";
+  face.textContent = "🙂";
+  const bubble = document.createElement("span");
+  bubble.className = "bubble";
+  bubble.hidden = true;
+  el.append(face, bubble);
+  return el;
 }
 
 function markerEl(cls: string, text: string): HTMLElement {

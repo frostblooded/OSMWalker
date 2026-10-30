@@ -51,18 +51,18 @@ function Story({ item, kept }: { item: Item; kept: boolean }) {
   );
 }
 
-/** A gear or bag row; one with a story opens to show it. `kept`: he won't sell it (worn, or a kept treasure in the bag). */
-function ItemRow({ label, item, right, kept }: { label?: string; item: Item; right?: string; kept: boolean }) {
+/** A gear row (slot left, item right) or a bag row (item left, price right); one with a story opens to show it. `kept`: he won't sell it (worn, or a kept treasure in the bag). */
+function ItemRow({ slot, item, price, kept }: { slot?: string; item: Item; price?: string; kept: boolean }) {
   const name = (
     <>
-      {label && `${label} `}
       <ItemName item={item} />
       {isTreasured(item) && " 💎"}
     </>
   );
-  if (!item.story) return <KV k={name} v={right ?? ""} />;
+  const [title, right] = slot ? [slot, name] : [name, price ?? ""];
+  if (!item.story) return <KV k={title} v={right} />;
   return (
-    <Collapsible title={name} right={right}>
+    <Collapsible title={title} right={right}>
       <Story item={item} kept={kept} />
     </Collapsible>
   );
@@ -135,7 +135,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <div class="zebra">
           {SLOTS.map((slot) => {
             const item = s.gear[slot];
-            if (item) return <ItemRow key={slot} label={SLOT[slot][0]} item={item} right={SLOT[slot][1]} kept />;
+            if (item) return <ItemRow key={slot} slot={`${SLOT[slot][0]} ${SLOT[slot][1]}`} item={item} kept />;
             return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={<span class="dim">Empty</span>} />;
           })}
         </div>
@@ -145,7 +145,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
               {bag.map((item, i) => (
-                <ItemRow key={i} item={item} right={euro(item.price)} kept={kept.has(item)} />
+                <ItemRow key={i} item={item} price={euro(item.price)} kept={kept.has(item)} />
               ))}
             </div>
           </Collapsible>

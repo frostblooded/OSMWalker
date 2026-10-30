@@ -2,7 +2,7 @@
 ## What OSM Walker is {about}
 OSM Walker is a little life you watch, not steer. A small character walks the real streets of a real city, taken from OpenStreetMap. He picks places to visit, walks there, does something at each one, and slowly gets stronger, richer and more experienced.
 
-You don't control him. Everything he does is decided by the rules on these pages: where he goes, what he does there, what he buys, and when he travels to another city or country. Your part is to check in, see where he has got to, and read what he has been up to. He lives on while the game is closed too (see While you were away).
+You don't control him. Everything he does is decided by the rules on these pages: where he goes, what he does there, what he buys, and when he travels to another city or country. Your part is to check in, see where he has got to, and read what he has been up to. Now and then you can also do something small for him, such as sending a care package (see Little touches). It is always optional: he lives just as well if you never do. He lives on while the game is closed too (see While you were away).
 
 Each page in this Help explains one part of the game in detail, with the real numbers the game uses.
 ## Choosing a city {city_search}
@@ -34,7 +34,7 @@ If he was on a bus, a plane or driving his car when you left, the ride finishes 
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
-The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so. Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
 # 🚶 Walking
 ## How he walks {walking}
 On foot he walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out. A bike or a motor vehicle makes him faster (see Speed and vehicles).
@@ -85,13 +85,25 @@ At each place of note he stops and does one action (see What he does at places).
 
 While he stays, the top card shows "Moving again in 0:59" and an orange bar that fills up as the minute passes. When it is full he picks his next goal and sets off.
 ## The map {map}
-The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face. The game moves him a few times a second and his face glides smoothly between those steps.
+The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face (see His face and bubble). The game moves him a few times a second and his face glides smoothly between those steps.
 
 While the camera follows him (the Camera follows him switch in the menu, on at first) the map stays still while he walks around the middle, and glides over to him once he is more than {MIDDLE_PCT}% of the view away from the middle. That way the whole map is only redrawn every so often, which saves battery. Drag the map to look around, then tap "Back to him" to follow him again. With the switch off the map never moves by itself, and there is no "Back to him".
 
 Use the + and − buttons on the right to zoom in and out; the zoom is remembered. Streets are downloaded in squares around him, {STREET_SQUARES} by {STREET_SQUARES} map tiles of about {TILE_KM} km each (smaller far from the equator), and the squares in the direction he is heading load first. Streets he has seen are kept on the device for {CACHE_DAYS} days, so the same city loads faster next time and works with a weak connection.
 
 During a trip to another city a red line shows the way from where he left to where he is going, and the map zooms out to fit it.
+## His face and bubble {look}
+His face shows how he feels. The first of these that fits wins:
+- 🤒 sick: health below {SICK_AT},
+- 😩 tired: energy below {TIRED_ENERGY},
+- 😖 dirty: hygiene below {DIRTY_AT},
+- 😞 down: mood below {LOW_MOOD},
+- 😄 happy: mood {HAPPY_MOOD} or more,
+- 🙂 fine: anything else.
+
+While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
+
+While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
 # 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
@@ -352,6 +364,17 @@ A crawl is a little set he finishes by visiting different places of a kind. Each
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
 An item worn through {TREASURED_COUNTRIES} or more countries becomes treasured (💎). He never sells his {TREASURED_KEEP} most travelled treasured items from his bag (see The bag and selling). Gear he had before stories existed has none.
+# ☘ Little touches
+## Clovers and care packages {care}
+You never steer him, but you can leave him a small gift. Gifts cost clovers, and you earn clovers just by checking in:
+- opening the game (or coming back to its tab) after at least {CLOVER_AWAY_H} hour away earns {CLOVERS_PER_CHECKIN} ☘ clover,
+- at most {CLOVERS_PER_DAY} clovers a day, counted by your device's date,
+- there are no streaks: a day you skip costs nothing, and clovers never run out.
+
+☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:
+{GIFT_LIST}
+
+A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -360,7 +383,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Help, Debug, the Route to goal, Camera follows him and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Help, Debug, the Route to goal, Camera follows him and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 Camera follows him (a switch, on at first and remembered) keeps him in view: the map glides over to him whenever he walks out of the middle of the screen. Turn it off and the map stays wherever you leave it, even when he walks off the screen (see The map).
 

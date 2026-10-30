@@ -6,10 +6,12 @@ import * as Activities from "../core/activities";
 import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
+import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as K from "../core/keepsakes";
+import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
 import * as Problems from "../core/problems";
 import * as Speeds from "../core/speeds";
@@ -127,7 +129,7 @@ const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
 
 /** "cafes or coffee shops" for a crawl's kinds. */
-const CRAWL_KINDS: Record<string, string> = {
+export const CRAWL_KINDS: Record<string, string> = {
   coffee: "cafes or coffee shops",
   pub: "bars, pubs, clubs or beer gardens",
   sweet: "ice cream parlours, bakeries or sweet shops",
@@ -149,6 +151,10 @@ export function values(data: GameData): Record<string, string> {
     SAVE_EVERY_S: num(G.SAVE_EVERY_S),
     MIN_AWAY_MIN: num(CatchUp.MIN_AWAY_S / 60),
     MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
+    CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
+    CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
+    CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
+    GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
@@ -194,6 +200,9 @@ export function values(data: GameData): Record<string, string> {
     STAY_MIN: num(Activities.MAX_MINUTES),
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
+    SICK_AT: String(Looks.SICK_AT),
+    HAPPY_MOOD: String(Looks.HAPPY_MOOD),
+    LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
     SKINT: euro(Activities.SKINT),

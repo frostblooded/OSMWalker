@@ -2,6 +2,7 @@
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { BBox } from "../../src/core/geo";
+import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
 import type { City } from "../../src/core/trips";
@@ -19,9 +20,15 @@ class FakeMap implements MapPort {
   calls: string[] = [];
   fits: { box: BBox; padding: Padding; maxZoom?: number }[] = [];
   him: [number, number] = [0, 0];
+  look: Look | null = null;
+  looks = 0;
   zoom = 15;
   setHim(at: [number, number]) {
     this.him = at;
+  }
+  setLook(l: Look) {
+    this.look = l;
+    this.looks++;
   }
   setGoal() {}
   setTrip() {}
@@ -86,6 +93,24 @@ describe("map scene", () => {
     scene.draw(0.25, 250);
     expect(map.him).toEqual([42.001, 23.0]);
     expect(map.autoFollow).toBe(false);
+  });
+
+  it("shows his face, with his most pressing need over his head", () => {
+    scene.draw(0.25, 250);
+    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null });
+    game.stats.meters.fullness = 10;
+    scene.draw(0.25, 250);
+    expect(map.look!.bubble).toBe("🍔");
+  });
+
+  it("shows a pose while he stays, and drops it when he moves on", () => {
+    game.doing = { name: "Nap on a bench", min: 1, fx: { energy: 20 } };
+    game.walker!.restFor(1);
+    scene.draw(0.25, 250);
+    expect(map.look!.pose).toEqual({ icon: "💤", motion: "rise" });
+    game.walker!.advance(1e6);
+    scene.draw(0.25, 250);
+    expect(map.look!.pose).toBeNull();
   });
 
   it("measures how fast he moves on screen", () => {

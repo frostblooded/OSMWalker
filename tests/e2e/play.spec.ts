@@ -48,6 +48,21 @@ test("sums up what he did while the game was closed", async ({ page }) => {
   await expect(page.locator(".marker.him")).toBeVisible();
 });
 
+test("a reopen earns a clover that sends him a care package", async ({ page }) => {
+  await startInSofia(page);
+  await reopenAfter(page, 3);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toContainText("Clover for checking in", { timeout: 20000 });
+  await away.getByRole("button", { name: "Carry on" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Care package/ }).click();
+  const care = page.getByRole("dialog", { name: /Care package/ });
+  await expect(care.getByRole("button", { name: /Send City guide/ })).toBeDisabled();
+  await care.getByRole("button", { name: /Send Snack/ }).click();
+  await expect(care).toContainText("Opens at his next stop");
+  await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
+});
+
 test("New city asks for RESET first", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

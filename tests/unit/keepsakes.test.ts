@@ -6,7 +6,7 @@ import type { Item } from "../../src/core/items";
 import * as K from "../../src/core/keepsakes";
 import { NOT_A_PLACE_SUBCLASS } from "../../src/core/ofm";
 import { Rng } from "../../src/core/rng";
-import { BAG_SIZE, Stats, type Action, type Place } from "../../src/core/stats";
+import { BAG_SIZE, moodXpMult, Stats, type Action, type Place } from "../../src/core/stats";
 import { Trips, type City } from "../../src/core/trips";
 import { readFileSync } from "node:fs";
 import { dataFile } from "../support/data";
@@ -153,6 +153,13 @@ describe("souvenirs", () => {
     expect(stats.canDo(souvenir, 12)).toBe(true);
     stats.do(souvenir, "", new Rng(1));
     expect(stats.keepsakes.souvenirs.get("ISL")!.name).toBe("Iceland fridge magnet");
+  });
+
+  it("scales the souvenir's XP by mood, like any action", () => {
+    const xp = { ...souvenir, fx: { xp: 10 } };
+    stats.meters.mood = 100;
+    stats.do(xp, "", new Rng(1));
+    expect(stats.xp).toBe(Math.round(10 * moodXpMult(100)));
   });
 
   it("weighs up the souvenir action", () => {

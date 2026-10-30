@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import { RARITY, SLOTS } from "../../src/core/items";
+import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import * as Help from "../../src/ui/help";
@@ -93,10 +94,19 @@ describe("the real help", () => {
     expect(page("away").body).toContain("at most 24 hours");
     expect(page("away").body).toContain("at least 1 minute");
     expect(page("offline").body).toContain("While you were away");
+    expect(page("care").body).toContain("after at least 1 hour away earns 1 ☘ clover");
+    expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
+  });
+
+  it("words every crawl's kinds, and gives the one price all souvenir actions share", () => {
+    for (const c of CRAWLS) expect(Help.CRAWL_KINDS[c.id], c.id).toBeTruthy();
+    const actions = JSON.parse(dataFile("actions.json")) as ActionTable;
+    const prices = new Set(Object.values(actions).flatMap((list) => (Array.isArray(list) ? list.filter((a) => a.souvenir).map((a) => a.cost) : [])));
+    expect([...prices]).toHaveLength(1);
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "care", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
   });
 });
 

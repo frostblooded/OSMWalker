@@ -2,6 +2,7 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
+import { Care } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
 import * as K from "./keepsakes";
@@ -118,6 +119,8 @@ export class Stats {
   where = { city: "", code: "", country: "" };
   /** Placedex rarities from data/placedex.json; not saved, the game sets it. */
   dex: K.Dex = {};
+  /** Clovers and the care package on its way to him. */
+  care = new Care();
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -249,6 +252,12 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
+  /** Starts a timed effect, replacing one of the same name. */
+  addBuff(buff: NonNullable<Action["buff"]>): void {
+    this.buffs = this.buffs.filter((b) => b.name !== buff.name);
+    this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
+  }
+
   buffNames(): string[] {
     return this.buffs.map((b) => b.name);
   }
@@ -369,11 +378,7 @@ export class Stats {
     this.cents = Math.max(this.cents - spent + earned, 0);
     if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
-    const buff = action.buff;
-    if (buff) {
-      this.buffs = this.buffs.filter((b) => b.name !== buff.name);
-      this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
-    }
+    if (action.buff) this.addBuff(action.buff);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     return this.say(text + (where ? ` at ${where}` : "") + money);
@@ -449,7 +454,9 @@ export class Stats {
     const { code, country, city } = this.where;
     const name = K.souvenirName(code, country);
     this.cents -= cost;
-    this.applyFx(action.fx ?? {});
+    const fx: Fx = { ...action.fx };
+    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
+    this.applyFx(fx);
     this.keepsakes.souvenirs.set(code, { name, country, city, t: this.now() });
     const line = this.say(`Bought a souvenir from ${country || city}: a ${name}${where ? ` at ${where}` : ""} (${signed(-cost)})`);
     if (this.keepsakes.souvenirs.size % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(this.keepsakes.souvenirs.size) > K.fareCut(this.keepsakes.souvenirs.size - 1))
@@ -483,7 +490,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      keepsakes: this.keepsakes.toJSON(), where: this.where,
+      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where,
     };
   }
 
@@ -503,6 +510,7 @@ export class Stats {
     s.bag = d.bag ?? [];
     s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
     s.where = d.where ?? s.where;
+    s.care = Care.fromJSON(d.care);
     return s;
   }
 }

@@ -11,6 +11,7 @@ import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
 import { CollectionSheet } from "./CollectionSheet";
+import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
@@ -20,7 +21,7 @@ import { StatsSheet } from "./StatsSheet";
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -152,6 +153,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("collection")}>
               🗂 Collection
             </button>
+            <button class="btn" onClick={() => setSheet("care")}>
+              🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -194,6 +198,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           <CollectionSheet stats={game.stats} />
         </SheetBox>
       )}
+      {sheet === "care" && (
+        <SheetBox title="🎁 Care package" onClose={close} full>
+          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+        </SheetBox>
+      )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
           <HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} />
@@ -207,7 +216,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} onDone={() => game.dismissAway()} />
+          <AwaySheet summary={game.away} clover={game.awayClover} onDone={() => game.dismissAway()} />
         </SheetBox>
       )}
     </div>

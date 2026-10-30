@@ -18,7 +18,7 @@ function LandmarkCard({ card }: { card: K.Card }) {
       <span class="small dim">{K.kindLabel(card.kind)}</span>
       <span class="small" style={{ color: RARITY_COLOR[card.rarity] }}>
         {card.rarity}
-        {card.finish && ` · ${card.finish === "gold" ? "🥇" : "✨"} ${K.FINISH_NAME[card.finish]}`}
+        {card.finish && ` · ${card.finish === "gold" ? "🥇" : "🌈"} ${K.FINISH_NAME[card.finish]}`}
       </span>
       <span class="small dim">🏙 {card.city}</span>
     </div>
@@ -37,7 +37,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
         {CARD_RARITIES.map((r) => (
           <KV key={r} k={<span style={{ color: RARITY_COLOR[r] }}>{r}</span>} v={cards.filter((c) => c.rarity === r).length} />
         ))}
-        <KV k="✨ Foil · 🥇 Gold" v={`${cards.filter((c) => c.finish === "foil").length} · ${cards.filter((c) => c.finish === "gold").length}`} />
+        <KV k="🌈 Foil · 🥇 Gold" v={`${cards.filter((c) => c.finish === "foil").length} · ${cards.filter((c) => c.finish === "gold").length}`} />
         {cards.length ? (
           <Collapsible title="His cards" right={cards.length > K.CARDS_SHOWN ? `newest ${K.CARDS_SHOWN}` : undefined}>
             <div class="lcards">
@@ -77,7 +77,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
             </div>
           </Collapsible>
         ) : (
-          <p class="dim small">None yet. He buys one at a gift shop, kiosk, sight or museum in each country.</p>
+          <p class="dim small">None yet. He buys one at a gift shop, kiosk, newsagent, sight or museum in each country.</p>
         )}
       </Card>
       <Card icon="🏁" title="Crawls" right={`${k.done.size} / ${K.CRAWLS.length}`}>
