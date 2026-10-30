@@ -1,11 +1,12 @@
 // The Collection: his overall %, badges and title on top, then a tab per
 // topic. Each set is a card with a progress bar and a grid of tiles, like a
 // dex: found entries show their name, the rest are ? tiles; tapping a tile
-// shows its detail or hint. The Feats tab lists badges. Everything comes from
+// shows its detail or hint. The Feats tab lists badges, then his life story. Everything comes from
 // core/collection.ts. Loaded only when the sheet first opens.
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import * as C from "../core/collection";
+import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
 import type { Stats } from "../core/stats";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
@@ -149,7 +150,32 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           </button>
         ))}
       </div>
-      {tab === "feats" ? <Feats stats={s} /> : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)}
+      {tab === "feats" ? (
+        <>
+          <Feats stats={s} />
+          <Life stats={s} />
+        </>
+      ) : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)}
     </>
+  );
+}
+
+/** His life story (core/chronicle.ts), oldest first, with the date of each line. */
+function Life({ stats: s }: { stats: Stats }) {
+  const lines = s.chronicle.lines;
+  return (
+    <Card icon="📖" title="His life" right={lines.length}>
+      {lines.length ? (
+        <ol class="zebra">
+          {lines.map((l, i) => (
+            <li key={i}>
+              <span class="dim small">{dayOf(l.t * 1000)}</span> {l.text}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p class="dim small">Nothing yet. Each first in his life adds a line here.</p>
+      )}
+    </Card>
   );
 }

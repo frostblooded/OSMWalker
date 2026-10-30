@@ -3,6 +3,7 @@
 // found; a feat counts something and has Bronze, Silver and Gold tiers, and
 // Gold gives him a title. A new feature adds its SETS and FEATS here, and the
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
+import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
 import { dayOf } from "./gifts";
 import type { Rarity } from "./items";
 import * as Items from "./items";
@@ -245,6 +246,26 @@ export const SETS: CSet[] = [
     },
   },
   {
+    id: "monuments",
+    tab: "world",
+    icon: "🧱",
+    title: "Monuments",
+    entries: (s) =>
+      MONUMENTS.map((m, i) => {
+        const built = s.bricks.built.filter((b) => b.kind === i);
+        const last = built.at(-1);
+        return { id: m.name, icon: m.icon, name: m.name[0]!.toUpperCase() + m.name.slice(1), got: !!last, info: last ? `${built.length > 1 ? `${built.length} built, the last ` : ""}in ${last.park}, ${last.city}` : `${m.bricks} golden bricks, at a park` };
+      }),
+    facts: (s) => {
+      const b = s.bricks;
+      return [
+        ["🧱 Golden bricks", `${b.count} / ${b.next().bricks}`],
+        ["Saving for", `${b.next().icon} ${b.next().name}`],
+        ["Found today", `${b.day === dayOf(s.now() * 1000) ? b.today : 0} / ${BRICKS_PER_DAY}`],
+      ];
+    },
+  },
+  {
     id: "vehicles",
     tab: "gear",
     icon: "🚲",
@@ -268,6 +289,7 @@ export const FEATS: Feat[] = [
   { id: "placedex", tab: "places", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
+  { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
   { id: "materials", tab: "gear", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },

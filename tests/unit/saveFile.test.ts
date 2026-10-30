@@ -174,6 +174,21 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before golden bricks and the life story, with the old firsts skipped", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.bricks;
+    delete d.stats.chronicle;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.bricks.count).toBe(0);
+    expect(back.bricks.built).toEqual([]);
+    back.arrive("Paris, France", "FRA", "France");
+    expect(back.chronicle.lines).toEqual([]);
+  });
+
   it("says why a save is unreadable", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

@@ -122,15 +122,24 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
   await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
+  for (const t of ["Monuments", "🧱 Golden bricks", "Saving for"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /Gear/ }).click();
   for (const t of ["Item bases", "Materials", "Vehicles"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /Feats/ }).click();
-  await expect(sheet).toContainText("Passport stamps");
+  for (const t of ["Passport stamps", "Builder", "His life", "Set out from Sofia"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("🎖 TitleGlobetrotter");
+});
+
+test("Suggest a line opens a pre-filled GitHub issue", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const link = page.getByRole("link", { name: /Suggest a line/ });
+  await expect(link).toHaveAttribute("href", /^https:\/\/github\.com\/frostblooded\/OSMWalker\/issues\/new\?title=Line.*Your%20name%20for%20the%20credit/);
+  await expect(link).toHaveAttribute("target", "_blank");
 });
 
 test("Stats tells a bought item's story", async ({ page }) => {

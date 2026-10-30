@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
 import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
+import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
@@ -211,6 +212,20 @@ describe("catch-up", () => {
     const city: AwayCity = { ...HOME, places: [place("Grand Museum", "museum", "museum", 0.0045, 0)] };
     const s = catchUp(stats, city, [0, 0], 600, START_MS, deps({ roll: () => 0.1, activities: new Activities({ museum: [{ name: "Look", min: 1 }] }) }));
     expect(s.cities).toEqual([]);
+  });
+
+  it("finds golden bricks while away, at most a few a day", () => {
+    const stats = new Stats();
+    catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps());
+    expect(stats.bricks.count).toBeGreaterThan(0);
+    expect(stats.bricks.count).toBeLessThanOrEqual(2 * BRICKS_PER_DAY);
+  });
+
+  it("builds no monument at made-up places, which are no real parks", () => {
+    const stats = new Stats();
+    stats.bricks.count = 10_000;
+    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(stats.bricks.built).toEqual([]);
   });
 
   it("saves up when he can't afford a trip", () => {
