@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import * as CC from "../../src/core/cityCards";
@@ -6,6 +7,7 @@ import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import * as Help from "../../src/ui/help";
+import { HELP_URL } from "../../src/ui/HelpSheet";
 import { dataFile } from "../support/data";
 
 const data = {
@@ -14,6 +16,7 @@ const data = {
   cities: parseCities(dataFile("cities.tsv")),
   airports: parseAirports(dataFile("airports.tsv")),
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
+  forecasts: JSON.parse(dataFile("forecasts.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);
@@ -169,5 +172,9 @@ describe("search", () => {
   it("finds real pages by their filled numbers", () => {
     expect(Help.search(sections, "€150").length).toBeGreaterThan(0);
     expect(Help.search(sections, "hygiene")[0]!.page.id).toBe("hygiene");
+  });
+
+  it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
+    expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
   });
 });

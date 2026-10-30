@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { loadData, whenIdle } from "./app/data";
 import { App } from "./ui/App";
+import { HELP_URL } from "./ui/HelpSheet";
 // Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
 import "@fontsource/fredoka/latin-600.css";
 import "@fontsource/nunito/latin-700.css";
@@ -36,6 +37,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       // too, so the worker keeps it for offline play after every deploy.
       void import("./ui/help").catch(() => undefined);
       for (const sheet of [import("./ui/StatsSheet"), import("./ui/CollectionSheet"), import("./ui/DebugSheet")]) void sheet.catch(() => undefined);
+      void fetch(HELP_URL).catch(() => undefined);
       void import("./core/dilemmas").catch(() => undefined);
     });
   };

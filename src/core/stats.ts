@@ -3,10 +3,12 @@
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
 import { addStop, type Stop } from "./day";
+import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
 import * as CC from "./cityCards";
+import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
@@ -79,8 +81,12 @@ export const KEEP_CENTS = 2000;
 export const DEALER_OFFERS = 5;
 /** Share of an item's price he gets selling it, before his charm. */
 export const SELL_SHARE = 0.4;
+/** Each point of charm adds this share to what a shop pays. */
+export const SELL_PER_CHA = 0.05;
 /** Treasured items (see Items.isTreasured) he won't sell: his most travelled few. */
 export const TREASURED_KEEP = 3;
+/** At a resale shop with a full bag he sells his cheapest things until this many are left (a selling run). */
+export const SELL_RUN_LEFT = BAG_SIZE / 2;
 
 export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
 /** A timed effect; `attrs` adds to his attributes while it lasts. */
@@ -98,6 +104,8 @@ export type Action = {
   sell?: boolean;
   /** Buys a pack of city cards (see cityCards.ts). */
   pack?: boolean;
+  /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
+  resale?: boolean;
   flavour?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
@@ -125,6 +133,10 @@ export class Stats {
   dex: K.Dex = {};
   /** The city card pool, from data/cities.tsv; not saved, the game sets it. */
   cityPool: CC.Pool | null = null;
+  /** Deadpan jokes from data/jokes.json; not saved, the game sets it. */
+  jokes: Jokes = {};
+  /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
+  forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
   care = new Care();
   /** The places he stopped at lately, for the day ribbon. */
@@ -148,6 +160,11 @@ export class Stats {
     if (name === "cha" && this.where.code && this.keepsakes.sets.includes(this.where.code)) v += CC.SET_CHARM;
     if (name === "cha" && this.meters.hygiene < DIRTY_AT) v *= 1 - (DIRTY_CHARM_CUT * (DIRTY_AT - this.meters.hygiene)) / DIRTY_AT;
     return v;
+  }
+
+  /** Today's forecast, by his clock. */
+  forecast(): F.Forecast {
+    return F.forecastAt(this.forecasts, this.now());
   }
 
   /** The kind of vehicle he rides, or "" on foot. */
@@ -190,7 +207,7 @@ export class Stats {
   wageMult(action: Action): number {
     let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
-    return m;
+    return m * F.mult(this.forecast(), "wage");
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -232,8 +249,24 @@ export class Stats {
     return this.say(`Sold his ${item.name}${at} (${signed(this.sellPrice(item))})`);
   }
 
+  /** True when his bag is full, so resale shops pull him for a selling run. */
+  bagFull(): boolean {
+    return this.bag.length >= BAG_SIZE;
+  }
+
+  /** Sells his cheapest things until SELL_RUN_LEFT are left, a feed line each; returns the last. */
+  sellRun(where: string): string {
+    const at = where ? ` at ${where}` : "";
+    let line = "";
+    while (this.bag.length > SELL_RUN_LEFT) {
+      const item = this.sellCheapest();
+      line = this.say(`Sold his ${item.name}${at} (${signed(this.sellPrice(item))})`);
+    }
+    return line;
+  }
+
   sellPrice(item: Item): number {
-    return Math.round(item.price * SELL_SHARE * (1 + 0.05 * this.attr("cha")));
+    return Math.round(item.price * SELL_SHARE * (1 + SELL_PER_CHA * this.attr("cha")) * F.mult(this.forecast(), "sell"));
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
@@ -286,7 +319,7 @@ export class Stats {
       thirst: -THIRST_PER_H * h,
       hygiene: -HYGIENE_PER_H * h,
       mood: -(MOOD_PER_H + (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
-      energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * walkedM) / 1000,
+      energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * F.mult(this.forecast(), "effort") * walkedM) / 1000,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
     for (const b of this.buffs) {
@@ -306,7 +339,7 @@ export class Stats {
     let line = "";
     while (this.walkMin >= 1) {
       this.walkMin -= 1;
-      if (rng.randf() >= findChance(this.attr("luck"))) continue;
+      if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find")) continue;
       const n = rng.randiRange(FIND_MIN, FIND_MAX);
       this.cents += n;
       line = this.say(`Found ${euro(n)} on the street (${signed(n)})`);
@@ -377,15 +410,15 @@ export class Stats {
     return best ?? first;
   }
 
-  /** Does `action` at `where` and returns the feed line it adds. */
-  do(action: Action, where: string, rng: Rng): string {
+  /** Does `action` at `where`, a place of class `kind`, and returns the feed line it adds. */
+  do(action: Action, where: string, rng: Rng, kind = ""): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
       return this.buy(this.offer(action.item, rng), where);
     }
     if (action.sell) {
       this.applyFx(action.fx ?? {});
-      return this.sellLoot(where);
+      return action.resale && this.bagFull() ? this.sellRun(where) : this.sellLoot(where);
     }
     if (action.pack) {
       this.cents -= toCents(action.cost ?? 0);
@@ -394,6 +427,7 @@ export class Stats {
     }
     let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
+    if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
     let text = action.name;
     const risk = action.risk;
     if (risk && rng.randf() < risk.p * riskMult(this.attr("luck"))) {
@@ -411,7 +445,10 @@ export class Stats {
     if (action.buff) this.addBuff(action.buff);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
-    return this.say(text + (where ? ` at ${where}` : "") + money);
+    const jokes = jokesFor(this.jokes, kind);
+    // No jokes loaded, no roll, so the dice stay the same as without them.
+    const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
+    return this.say(text + (where ? ` at ${where}` : "") + money + joke);
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
@@ -420,8 +457,9 @@ export class Stats {
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
     this.week.newPlace();
-    this.addXp(FIRST_VISIT_XP);
-    return FIRST_VISIT_XP;
+    const xp = Math.round(FIRST_VISIT_XP * F.mult(this.forecast(), "visit"));
+    this.addXp(xp);
+    return xp;
   }
 
   /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
@@ -440,7 +478,7 @@ export class Stats {
 
   /** Cents off a fare for his souvenirs: FARE_CUT for every SOUVENIRS_PER_CUT, up to FARE_CUT_MAX. */
   fareMult(): number {
-    return 1 - K.fareCut(this.keepsakes.souvenirs.size);
+    return (1 - K.fareCut(this.keepsakes.souvenirs.size)) * F.mult(this.forecast(), "fare");
   }
 
   /**

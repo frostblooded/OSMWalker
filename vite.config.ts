@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 import preact from "@preact/preset-vite";
 import type { Plugin } from "vite";
@@ -16,9 +18,13 @@ const lazyCss = (): Plugin => ({
   },
 });
 
+/** Changes with the Help text, so its address does too and no cache serves an old Help after a deploy. */
+const helpVersion = createHash("sha1").update(readFileSync("public/data/help.txt")).digest("hex").slice(0, 8);
+
 // Relative base: GitHub Pages serves the game from /OSMWalker/.
 export default defineConfig({
   base: "./",
+  define: { __HELP_VERSION__: JSON.stringify(helpVersion) },
   plugins: [preact(), lazyCss()],
   build: {
     target: "es2022",

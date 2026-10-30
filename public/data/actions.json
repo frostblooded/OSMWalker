@@ -2687,7 +2687,8 @@
    "sell": true,
    "fx": {
     "xp": 3
-   }
+   },
+   "resale": true
   },
   {
    "name": "Haggle with the owner",
@@ -3050,7 +3051,8 @@
    "sell": true,
    "fx": {
     "xp": 3
-   }
+   },
+   "resale": true
   },
   {
    "name": "Haggle with the owner",
@@ -3080,7 +3082,8 @@
    "sell": true,
    "fx": {
     "xp": 3
-   }
+   },
+   "resale": true
   },
   {
    "name": "Haggle with the owner",
@@ -3110,7 +3113,8 @@
    "sell": true,
    "fx": {
     "xp": 3
-   }
+   },
+   "resale": true
   },
   {
    "name": "Haggle with the owner",
