@@ -1,10 +1,14 @@
+// Keepsakes: landmark cards and their finishes, the Placedex, crawls,
+// souvenirs and fare cuts, item stories, and saving them all.
 import { beforeEach, describe, expect, it } from "vitest";
 import { weight } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as K from "../../src/core/keepsakes";
+import { NOT_A_PLACE_SUBCLASS } from "../../src/core/ofm";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Action, type Place } from "../../src/core/stats";
 import { Trips, type City } from "../../src/core/trips";
+import { readFileSync } from "node:fs";
 import { dataFile } from "../support/data";
 
 const place = (name: string, cls: string, subclass = cls, rank = 3, lat = 42, lon = 23): Place => ({ name, class: cls, subclass, rank, lat, lon });
@@ -83,6 +87,15 @@ describe("placedex", () => {
     expect(stats.history.entries.some((e) => e.text === "New in the Placedex: Windmill (Legendary, +200 XP)")).toBe(true);
   });
 
+  it("keeps its bands and skipped kinds the same as the tool that builds placedex.json", () => {
+    const tool = readFileSync(new URL("../../tools/make_placedex.py", import.meta.url), "utf8");
+    const code = { C: "Common", U: "Uncommon", R: "Rare" } as Record<string, string>;
+    const bands = [...tool.match(/^BANDS = \[(.*)\]$/m)![1]!.matchAll(/\((\d+), "(\w)"\)/g)].map((m) => [Number(m[1]), code[m[2]!]]);
+    expect(bands).toEqual(K.DEX_BANDS);
+    const skipped = [...tool.match(/^SKIPPED = \{(.*)\}$/m)![1]!.matchAll(/"(\w+)"/g)].map((m) => m[1]);
+    expect(new Set(skipped)).toEqual(NOT_A_PLACE_SUBCLASS);
+  });
+
   it("names kinds for people", () => {
     expect(K.kindLabel("place_of_worship/christian")).toBe("Christian · place of worship");
     expect(K.kindLabel("fast_food/fast_food")).toBe("Fast food");
@@ -113,6 +126,12 @@ describe("crawls", () => {
     stats.collect(cafes(1, 20)[0]!, rolls());
     expect(stats.keepsakes.done.has("coffee")).toBe(false);
     expect(stats.keepsakes.progress.coffee).toHaveLength(1);
+  });
+
+  it("doesn't count art shops as galleries or sights", () => {
+    const shop = place("Art Shop", "art_gallery", "art");
+    expect(K.CRAWLS.filter((c) => K.crawlMatches(c, shop))).toEqual([]);
+    expect(K.CRAWLS.filter((c) => K.crawlMatches(c, place("Gallery", "art_gallery", "art_gallery"))).map((c) => c.id)).toEqual(["culture", "sights"]);
   });
 
   it("starts a city's crawl over in a new city", () => {

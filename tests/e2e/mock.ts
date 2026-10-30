@@ -47,7 +47,6 @@ export async function mockServices(context: BrowserContext, opts: { failSearch?:
   return { asked };
 }
 
-/** Reloads as if the game had been closed `hours` ago: the save's time is moved back before the game reads it. */
 /** A save change that gives him a gold card, a Placedex kind, a souvenir and a finished crawl. */
 export const KEEPSAKES = `d.stats.keepsakes = {
   cards: [["Nevsky@42.6960,23.3328", { name: "Alexander Nevsky Cathedral", kind: "place_of_worship/christian", city: "Sofia", rarity: "Rare", finish: "gold", t: 1 }]],
@@ -69,6 +68,7 @@ export async function reopenWith(page: Page, change: string) {
   await page.reload();
 }
 
+/** Reloads as if the game had been closed `hours` ago: the save's time is moved back before the game reads it. */
 export async function reopenAfter(page: Page, hours: number) {
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
   await page.addInitScript((ms) => {

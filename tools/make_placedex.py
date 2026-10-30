@@ -12,8 +12,9 @@ import re
 import sys
 from pathlib import Path
 
-# The game skips these as goals (src/core/ofm.ts NOT_A_PLACE_SUBCLASS).
+# The game skips these as goals; copies src/core/ofm.ts NOT_A_PLACE_SUBCLASS.
 SKIPPED = {"bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"}
+# Copied by DEX_BANDS in src/core/keepsakes.ts, which Help shows.
 BANDS = [(1000, "C"), (100, "U"), (10, "R")]
 
 

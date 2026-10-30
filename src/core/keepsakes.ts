@@ -8,7 +8,9 @@ import type { Place } from "./stats";
 
 /** Map classes that count as landmarks; art shops (art_gallery/art) don't. */
 export const LANDMARK_CLASSES = ["attraction", "museum", "art_gallery", "castle", "monument", "memorial", "zoo", "aquarium", "theatre", "stadium", "place_of_worship", "theme_park"];
-export const isLandmark = (p: Pick<Place, "class" | "subclass">) => LANDMARK_CLASSES.includes(p.class) && !(p.class === "art_gallery" && p.subclass === "art");
+/** The map files shops that sell art under art_gallery; they are no gallery or sight. */
+const isArtShop = (p: Pick<Place, "class" | "subclass">) => p.class === "art_gallery" && p.subclass === "art";
+export const isLandmark = (p: Pick<Place, "class" | "subclass">) => LANDMARK_CLASSES.includes(p.class) && !isArtShop(p);
 
 export type Finish = "" | "foil" | "gold";
 /** Each new card or upgrade roll is gold this often, else foil this often. */
@@ -20,7 +22,9 @@ export const FINISH_ORDER: Record<Finish, number> = { "": 0, foil: 1, gold: 2 };
 export const FINISH_NAME: Record<Finish, string> = { "": "", foil: "Foil", gold: "Gold" };
 
 /** A landmark card's rarity from the place's map rank: 1 is the most important in its area. */
-export const cardRarity = (rank: number): Rarity => (rank <= 1 ? "Rare" : rank === 2 ? "Uncommon" : "Common");
+export const RARE_RANK = 1;
+export const UNCOMMON_RANK = 2;
+export const cardRarity = (rank: number): Rarity => (rank <= RARE_RANK ? "Rare" : rank === UNCOMMON_RANK ? "Uncommon" : "Common");
 /** A finish for a roll r in [0, 1). */
 export const rollFinish = (r: number): Finish => (r < GOLD_CHANCE ? "gold" : r < GOLD_CHANCE + FOIL_CHANCE ? "foil" : "");
 
@@ -28,6 +32,8 @@ export type Card = { name: string; kind: string; city: string; rarity: Rarity; f
 
 /** Bonus XP the first time he sees a place kind, by its Placedex rarity. */
 export const DEX_XP: Record<Rarity, number> = { Common: 10, Uncommon: 30, Rare: 80, Legendary: 200 };
+/** How many of a kind the sweep must find for each rarity; fewer is Legendary. Copies BANDS in tools/make_placedex.py, which applies them. */
+export const DEX_BANDS: [number, Rarity][] = [[1000, "Common"], [100, "Uncommon"], [10, "Rare"]];
 const DEX_CODE: Record<string, Rarity> = { C: "Common", U: "Uncommon", R: "Rare", L: "Legendary" };
 /** Placedex rarity by "class/subclass", from data/placedex.json; kinds it lacks are Legendary. */
 export type Dex = Record<string, string>;
@@ -74,7 +80,7 @@ export const CRAWLS: Crawl[] = [
   { id: "culture", name: "Culture vulture", icon: "🎭", kinds: ["museum", "art_gallery", "theatre"], need: 15, per: "ever", xp: 300, cents: 3000 },
   { id: "sights", name: "Sightseer", icon: "🃏", kinds: LANDMARK_CLASSES, need: 25, per: "ever", xp: 300, cents: 3000 },
 ];
-export const crawlMatches = (c: Crawl, p: Pick<Place, "class" | "subclass">) => c.kinds.includes(p.class) || c.kinds.includes(kindOf(p));
+export const crawlMatches = (c: Crawl, p: Pick<Place, "class" | "subclass">) => !isArtShop(p) && (c.kinds.includes(p.class) || c.kinds.includes(kindOf(p)));
 
 /** The local calendar day of unix seconds `t`, for crawls that last a day. */
 export const dayOf = (t: number) => {

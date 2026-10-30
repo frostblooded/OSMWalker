@@ -121,6 +121,8 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
+/** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
+const band = (r: Items.Rarity) => (K.DEX_BANDS.find(([, b]) => b === r)?.[0] ?? 0).toLocaleString("en-GB");
 const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
@@ -285,9 +287,11 @@ export function values(data: GameData): Record<string, string> {
     DEX_XP_UNCOMMON: String(K.DEX_XP.Uncommon),
     DEX_XP_RARE: String(K.DEX_XP.Rare),
     DEX_XP_LEGENDARY: String(K.DEX_XP.Legendary),
-    DEX_COMMON_MIN: "1,000",
-    DEX_UNCOMMON_MIN: "100",
-    DEX_RARE_MIN: "10",
+    DEX_COMMON_MIN: band("Common"),
+    DEX_UNCOMMON_MIN: band("Uncommon"),
+    DEX_RARE_MIN: band("Rare"),
+    CARD_RARE_RANK: String(K.RARE_RANK),
+    CARD_UNCOMMON_RANK: String(K.UNCOMMON_RANK),
     DEX_KINDS: String(Object.keys(data.dex ?? {}).length),
     SOUVENIR_PRICE: euro(toCents(data.actions["shop/gift"]?.find((a) => a.souvenir)?.cost ?? 0)),
     SOUVENIR_WEIGHT: num(Activities.SOUVENIR_WEIGHT),

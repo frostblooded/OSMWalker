@@ -326,8 +326,8 @@ Each fact becomes a quick action he can do at any place in that city, for exampl
 The first time he reaches a landmark he gets its card. Landmarks are places of these kinds: {LANDMARK_KINDS}. Art shops don't count.
 
 A card's rarity comes from the place's rank on the map (see Places of note):
-- rank 1, the most important in its area: Rare,
-- rank 2: Uncommon,
+- rank {CARD_RARE_RANK}, the most important in its area: Rare,
+- rank {CARD_UNCOMMON_RANK}: Uncommon,
 - any other: Common.
 
 On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card. When he goes back to a landmark he has a card for, there is a {UPGRADE_PCT} chance he rolls its finish again, and he keeps it only if it is better (plain, then Foil, then Gold). The feed says "New card" or "Card upgraded", and the Collection sheet shows them all.
@@ -338,7 +338,7 @@ The Placedex counts every kind of place he has been to, such as a cafe, a Christ
 - Rare: +{DEX_XP_RARE} XP,
 - Legendary: +{DEX_XP_LEGENDARY} XP.
 
-Rarity comes from the POI sweep of 8 big cities: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
+Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
 ## Souvenirs {souvenirs}
 In every country he can buy one souvenir. "Buy a souvenir" costs {SOUVENIR_PRICE} and is an action at gift shops, kiosks, newsagents, sights and museums, but only while he has no souvenir from the country he is in. It weighs +{SOUVENIR_WEIGHT} in How he chooses. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else he buys a fridge magnet.
 

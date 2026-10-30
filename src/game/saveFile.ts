@@ -108,6 +108,7 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
+      // Stats.fromJSON repairs the stats old saves lack: keepsakes, where he is, item stories and the rest.
       stats: Stats.fromJSON(d.stats),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,

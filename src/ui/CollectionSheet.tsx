@@ -21,7 +21,7 @@ function LandmarkCard({ card }: { card: K.Card }) {
         {card.rarity}
         {card.finish && ` · ${card.finish === "gold" ? "🥇" : "✨"} ${K.FINISH_NAME[card.finish]}`}
       </span>
-      <span class="small dim">📍 {card.city}</span>
+      <span class="small dim">🏙 {card.city}</span>
     </div>
   );
 }
@@ -59,9 +59,10 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
         {kinds.length > 0 && (
           <Collapsible title="Kinds he has seen">
             <div class="zebra">
-              {kinds.map(([kind, at]) => (
-                <KV key={kind} k={K.kindLabel(kind)} v={<span style={{ color: RARITY_COLOR[K.dexRarity(s.dex, kind)] }}>{at.city || K.dexRarity(s.dex, kind)}</span>} />
-              ))}
+              {kinds.map(([kind, at]) => {
+                const r = K.dexRarity(s.dex, kind);
+                return <KV key={kind} k={K.kindLabel(kind)} v={<span style={{ color: RARITY_COLOR[r] }}>{at.city ? `${r} · ${at.city}` : r}</span>} />;
+              })}
             </div>
           </Collapsible>
         )}
