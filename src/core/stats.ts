@@ -1,8 +1,8 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls), the
-// storyteller that paces the incidents that happen to him, and the people in
-// his life: friends, their clubs and news, and his anniversaries.
+// storyteller that paces the incidents that happen to him, his quests, and
+// the people in his life: friends, their clubs and news, and his anniversaries.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as B from "./bond";
@@ -25,6 +25,7 @@ import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
+import { Quests } from "./quests";
 import { Rival, type Contest } from "./rival";
 import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
@@ -187,6 +188,8 @@ export class Stats {
   records = new Records();
   /** Paces the incidents. */
   story = new Storyteller();
+  /** His quests, the city's quest board and the world events near him. */
+  quests = new Quests();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
@@ -938,7 +941,7 @@ export class Stats {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
-      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
 
@@ -970,6 +973,8 @@ export class Stats {
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
+    // A save from before quests starts with none, and rolls the board of the city he is in.
+    s.quests = Quests.fromJSON(d.quests);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

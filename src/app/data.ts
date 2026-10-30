@@ -10,6 +10,7 @@ import type { Contest } from "../core/rival";
 import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
+import type { Bank } from "../core/quests";
 import { parseAirports, parseCities } from "../core/trips";
 import type { GameData } from "../game/game";
 
@@ -66,14 +67,14 @@ export async function parseStream<T>(body: ReadableStream<BufferSource>, parse: 
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json"), text("borders.json"), text("rival.json"), text("friends.json"), text("creatures.json")]).then(
-    async ([a, f, cities, airports, x, j, fc, l, inc, b, riv, fr, cr]) => {
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json"), text("borders.json"), text("rival.json"), text("friends.json"), text("creatures.json"), text("quests.json")]).then(
+    async ([a, f, cities, airports, x, j, fc, l, inc, b, riv, fr, cr, qb]) => {
       await yieldNow();
       const actions = JSON.parse(a) as ActionTable;
       await yieldNow();
       const flavour = JSON.parse(f) as Record<string, ActionTable>;
       await yieldNow();
-      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[], borders: JSON.parse(b) as Borders, contests: JSON.parse(riv) as Contest[], friends: JSON.parse(fr) as FriendData, creatures: JSON.parse(cr) as Creature[] };
+      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[], borders: JSON.parse(b) as Borders, contests: JSON.parse(riv) as Contest[], friends: JSON.parse(fr) as FriendData, creatures: JSON.parse(cr) as Creature[], quests: JSON.parse(qb) as Bank };
     },
   );
   return pending;

@@ -19,6 +19,7 @@ const data = {
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
   forecasts: JSON.parse(dataFile("forecasts.json")),
   incidents: JSON.parse(dataFile("incidents.json")),
+  quests: JSON.parse(dataFile("quests.json")),
   creatures: JSON.parse(dataFile("creatures.json")),
   borders: JSON.parse(dataFile("borders.json")),
 };

@@ -161,6 +161,44 @@ describe("game", () => {
     expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
   });
 
+  it("rolls the city's quest board, shows it on the map, takes a quest on and walks its steps", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g, storage } = game({ places: [...cafes, BUS] });
+    const quest = { id: "q", icon: "🧪", title: "Test quest", items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: { eur: 10 }, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["He takes {ITEM} to {PLACE}."] }] };
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [quest], events: [] } });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts).toContain("❗ New quest: Test quest, for Ana at " + texts.find((t) => t.startsWith("❗ New quest"))!.split(" at ").at(-1));
+    expect(texts.some((t) => t === "🧪 He takes a box to Central Bus.")).toBe(true);
+    expect(g.stats.quests.log.at(-1)?.title).toBe("Test quest");
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.quests.done).toContain("q:Ana:0");
+  });
+
+  it("a tapped quest icon tells its story, and Go help sends him to it next", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g } = game({ places: [...cafes, BUS] });
+    const q = (id: string) => ({ id, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["At {PLACE}."] }] });
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [q("a"), q("b")], events: [] } });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 60);
+    g.walker!.forceNewGoal();
+    expect(g.stats.quests.board.length).toBe(2);
+    const icon = g.questIcons().find((i) => i.icon === "quest")!;
+    expect(g.placeIcons()).toContainEqual(icon);
+    const card = g.storyCard(icon.id)!;
+    expect(card.text).toMatch(/^Ana at Cafe \d+ has a box\.$/);
+    expect(card.state).toBe("open");
+    g.nudge(icon.id);
+    expect(g.storyCard(icon.id)!.state).toBe("nudged");
+    g.walker!.forceNewGoal();
+    expect(`quest:${g.stats.quests.active?.key}`).toBe(icon.id);
+    expect(g.questIcons().some((i) => i.pulse)).toBe(true);
+    const on = g.storyCard(icon.id)!;
+    expect(on.state).toBe("on");
+    expect(on.rows[0]).toEqual(["👣 Step", `1 / 2`]);
+  });
+
   it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {
     const { g } = game({ places: [CAFE] });
     Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], contests: JSON.parse(dataFile("rival.json")) });
@@ -371,6 +409,18 @@ describe("game", () => {
     for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
     expect(g.stats.where.city).toBe("Paris, France");
     expect(g.stats.buffNames()).not.toContain("Jet-lagged");
+  });
+
+  it("doesn't set off on a trip while he is on a quest", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    const at = { name: "Cafe Near", class: "cafe", subclass: "cafe", lat: CAFE.lat, lon: CAFE.lon };
+    g.stats.quests.active = { key: "q:Ana:0", kind: "q", giver: "Ana", item: 0, twist: -1, at, step: 0, target: at };
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
   });
 
   it("walks to the bus station for a trip, pays and rides", async () => {
