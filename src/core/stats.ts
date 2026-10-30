@@ -2,7 +2,6 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
-import { addStop, type Stop } from "./day";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -138,8 +137,6 @@ export class Stats {
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
   care = new Care();
-  /** The places he stopped at lately, for the day ribbon. */
-  stops: Stop[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** Minutes walked since the last roll for money on the street. */
@@ -568,9 +565,8 @@ export class Stats {
     if (n % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(n) > K.fareCut(n - 1)) this.say(`Seasoned traveller: fares are now ${Math.round(K.fareCut(n) * 100)}% cheaper`);
   }
 
-  /** Notes a stop at a place, for the day ribbon. */
+  /** Notes a stop at a place, for the weekly recap. */
   stop(place: { class: string; subclass: string }): void {
-    addStop(this.stops, place, this.now());
     this.week.stop(place.class);
   }
 
@@ -600,7 +596,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
+      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
     };
   }
 
@@ -621,7 +617,6 @@ export class Stats {
     s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
-    s.stops = d.stops ?? [];
     s.week = Week.fromJSON(d.week);
     return s;
   }

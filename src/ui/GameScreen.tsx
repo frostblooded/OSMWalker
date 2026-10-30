@@ -1,13 +1,13 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for, the
-// day's stops), zoom on the right edge and the main buttons in a bar at the
-// bottom, in reach of the thumb.
+// is, where he goes, a guess about his next trip, what he waits for), zoom on
+// the right edge and the main buttons in a bar at the bottom, in reach of the
+// thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
-import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
+import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
@@ -17,11 +17,12 @@ import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
-import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { StatsSheet } from "./StatsSheet";
+import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -94,11 +95,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
 
-  // History shows his trail and numbered markers, fitted above the sheet; closing it follows him again.
-  useEffect(() => {
+  // History shows his trail and numbered markers, fitted above the sheet (again when it is dragged); closing it follows him again.
+  const fitHistory = () => {
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  }, [sheet]);
+  };
+  useEffect(fitHistory, [sheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -134,7 +136,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
-          <DayRibbon day={ribbon(game, biasMin())} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
           {game.severeNow.length > 0 && (
@@ -215,7 +216,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
       {sheet === "history" && (
-        <SheetBox title="📜 History" onClose={close}>
+        <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
           <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
         </SheetBox>
       )}
@@ -359,20 +360,6 @@ function ForecastLine({ f }: { f: Forecast }) {
   );
 }
 
-/** Today's stops as small icons, newest on the right. */
-function DayRibbon({ day }: { day: { icons: string[]; more: number } }) {
-  if (!day.icons.length) return null;
-  return (
-    <div class="ribbon" role="img" aria-label={`Today: ${day.icons.length + day.more} stops`}>
-      <span class="dim">Today</span>
-      {day.more > 0 && <span class="dim">+{day.more}</span>}
-      {day.icons.map((icon, i) => (
-        <span key={i}>{icon}</span>
-      ))}
-    </div>
-  );
-}
-
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {
   return (
     <div class="minibar">
@@ -384,15 +371,67 @@ function MiniBar({ icon, share, color }: { icon: string; share: number; color: s
   );
 }
 
-export function SheetBox({ title, onClose, onBack, full, children }: { title: string; onClose: () => void; onBack?: () => void; full?: boolean; children: ComponentChildren }) {
+/**
+ * A sheet over the map. Dragging its title bar resizes it: it stays at the
+ * height where the finger lets go, up to its tallest, and closes when let go
+ * below CLOSE_AT of the screen (src/ui/snap.ts).
+ */
+export function SheetBox({ title, onClose, onBack, onResize, full, children }: { title: string; onClose: () => void; onBack?: () => void; onResize?: () => void; full?: boolean; children: ComponentChildren }) {
+  // The height as a share of the screen once dragged; null is the sheet's own height.
+  const [share, setShare] = useState<number | null>(null);
+  // Counts releases, so History refits even when a drag ends at the same height.
+  const [drops, setDrops] = useState(0);
+  const box = useRef<HTMLElement>(null);
+  const drag = useRef<{ y: number; h: number; dy: number } | null>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
     return () => removeEventListener("keydown", esc);
   }, [onClose]);
+  useEffect(() => {
+    if (drops) onResize?.();
+  }, [drops]);
+  const down = (e: PointerEvent) => {
+    if (!box.current || (e.target as Element).closest("button")) return;
+    drag.current = { y: e.clientY, h: box.current.offsetHeight, dy: 0 };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+  // The height follows the finger without a re-render; it is kept once, on release.
+  const move = (e: PointerEvent) => {
+    const d = drag.current;
+    if (!d || !box.current) return;
+    d.dy = e.clientY - d.y;
+    // A few px of jitter is a tap, not a drag.
+    if (Math.abs(d.dy) < 8 && !box.current.style.height) return;
+    const st = box.current.style;
+    st.height = `${Math.max(d.h - d.dy, 0)}px`;
+    st.maxHeight = "none";
+    st.top = "auto";
+  };
+  // A cancelled gesture (the system took the touch) puts the sheet back as it was.
+  const up = (e: PointerEvent) => {
+    const d = drag.current;
+    const el = box.current;
+    drag.current = null;
+    if (!d || !el?.style.height) return;
+    const next = e.type === "pointercancel" ? (share ?? "keep") : settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
+    // Only a drag down closes it; a short sheet dragged up stays as it was.
+    if (next === "close" && d.dy > 0) return onClose();
+    el.style.height = el.style.top = "";
+    if (next === "close" || next === "keep") {
+      el.style.maxHeight = share === null ? "" : `${share * 100}%`;
+      return;
+    }
+    // Written here as well as in the style prop: Preact won't rewrite a value it thinks is unchanged.
+    el.style.maxHeight = full && next >= 1 ? "" : `${next * 100}%`;
+    setShare(next);
+    setDrops(drops + 1);
+  };
+  const whole = full && (share === null || share >= 1);
+  const style = share !== null && !whole ? { maxHeight: `${share * 100}%` } : undefined;
   return (
-    <section class={`sheet${full ? " full" : ""}`} role="dialog" aria-label={title}>
-      <header>
+    <section class={`sheet${whole ? " full" : ""}`} style={style} role="dialog" aria-label={title} ref={box}>
+      <header onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {onBack && (
           <button class="btn" onClick={onBack} aria-label="Back">
             ‹ Back
