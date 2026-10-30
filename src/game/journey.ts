@@ -5,7 +5,7 @@
 // walker does the walking and the riding; this module decides and pays.
 import { anyUrgent } from "../core/activities";
 import type { Entry } from "../core/debugLog";
-import { euro, signed } from "../core/money";
+import { euro } from "../core/money";
 import type { Rng } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
@@ -78,9 +78,7 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    setOff(stats, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    setOff(stats, stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
     return "";
   }
 

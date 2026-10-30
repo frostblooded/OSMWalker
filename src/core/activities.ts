@@ -4,9 +4,10 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Picks an action he can do, leaning towards what he needs.
+import { KIND_DEED_WEIGHT } from "./bond";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
-import { ATTRS, type Action, type Attr, type Meter, type Place, type Stats } from "./stats";
+import { ATTRS, visitKey, type Action, type Attr, type Meter, type Place, type Stats } from "./stats";
 
 export type ActionTable = Record<string, Action[]>;
 
@@ -73,7 +74,7 @@ export function needScore(action: Action, stats: Stats): { score: number; why: N
     if (s > top) [top, why] = [s, k];
   };
   for (const [m, v] of Object.entries(action.fx ?? {})) {
-    if (v > 0 && m in stats.meters) add(m as Meter, (urge(stats.meters[m as Meter]) * Math.min(v, FULL_FIX)) / FULL_FIX);
+    if (v > 0 && m in stats.meters) add(m as Meter, (urge(stats.felt(m as Meter)) * Math.min(v, FULL_FIX)) / FULL_FIX);
   }
   if (action.earn !== undefined) add("money", moneyUrge(stats));
   if (action.resale && stats.bagFull()) add("bag", 1);
@@ -82,7 +83,7 @@ export function needScore(action: Action, stats: Stats): { score: number; why: N
 
 /** True when `action` raises a meter that is under `below` (URGENT_AT by default). */
 export function fixesUrgent(action: Action, stats: Stats, below = URGENT_AT): boolean {
-  for (const [m, v] of Object.entries(action.fx ?? {})) if (v > 0 && m in stats.meters && stats.meters[m as Meter] < below) return true;
+  for (const [m, v] of Object.entries(action.fx ?? {})) if (v > 0 && m in stats.meters && stats.felt(m as Meter) < below) return true;
   return false;
 }
 
@@ -99,7 +100,7 @@ export function strengthLean(action: Action, stats: Stats): number {
 /** (1 - urge) for each meter `action` lowers while he needs it, so he doesn't go jogging when he is worn out. */
 function harm(action: Action, stats: Stats): number {
   let w = 1;
-  for (const [m, v] of Object.entries(action.fx ?? {})) if (v < 0 && m in stats.meters) w *= 1 - urge(stats.meters[m as Meter]);
+  for (const [m, v] of Object.entries(action.fx ?? {})) if (v < 0 && m in stats.meters) w *= 1 - urge(stats.felt(m as Meter));
   return Math.max(w, HARM_FLOOR);
 }
 
@@ -153,6 +154,7 @@ export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
+  if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
@@ -188,9 +190,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** True while any meter is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
+/** True while any meter he feels (see Stats.felt) is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
 export function anyUrgent(stats: Stats): boolean {
-  return Object.values(stats.meters).some((v) => v < URGENT_AT);
+  return (Object.keys(stats.meters) as Meter[]).some((m) => stats.felt(m) < URGENT_AT);
 }
 
 /** One of `actions` he can do at `hour`, picked by weight with `roll` in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
@@ -207,6 +209,12 @@ export function choose(actions: Action[], stats: Stats, hour: number, roll: numb
     if (r < 0) return options[i]!;
   }
   return options.at(-1) ?? null;
+}
+
+/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. */
+export const EXPLORE_PULL = 3;
+export function exploreWeight(p: Place, stats: Stats): number {
+  return stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
 }
 
 export function restMinutes(_action: Action): number {

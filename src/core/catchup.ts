@@ -5,10 +5,10 @@
 // rides like he would. In a city whose places aren't loaded he visits
 // made-up places of the usual kinds ("a cafe in Lyon"). Pure: the game
 // applies where he ends up.
-import { anyUrgent, choose, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
-import { euro, signed } from "./money";
+import { euro } from "./money";
 import type { Rng } from "./rng";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
@@ -242,9 +242,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
@@ -275,7 +273,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull;
+      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
     });
     if (any) return real[pickIndex(weights, r)]!;
     const made = madeUp();

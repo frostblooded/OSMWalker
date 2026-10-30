@@ -3,6 +3,7 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bond from "../core/bond";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
@@ -152,6 +153,13 @@ export const CRAWL_KINDS: Record<string, string> = {
 };
 const crawlKinds = (c: K.Crawl) => CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
 
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+function deeds(actions: GameData["actions"], sign: 1 | -1): string {
+  const names = new Set<string>();
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  return [...names].join(", ");
+}
+
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
   const sum = (t: Activities.ActionTable) => Object.values(t).reduce((n, l) => n + l.length, 0);
@@ -182,6 +190,32 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    TRUST_MAX: num(Bond.TRUST_MAX),
+    TRUST_START: num(Bond.TRUST_START),
+    KIND_DEEDS: deeds(data.actions, 1),
+    RASCAL_DEEDS: deeds(data.actions, -1),
+    TRUST_PER_CHECKIN: num(Bond.TRUST_PER_CHECKIN),
+    TRUST_PER_GIFT: num(Bond.TRUST_PER_GIFT),
+    TRUST_FADE_PER_DAY: num(Bond.TRUST_FADE_PER_DAY),
+    TRUST_FADE_MAX: num(Bond.TRUST_FADE_MAX),
+    LETTER_AT: Bond.LETTER_AT.join(", "),
+    THANKS_PCT: pct(Bond.THANKS_CHANCE),
+    WHISPERS_PER_DAY: num(Bond.WHISPERS_PER_DAY),
+    HEED_MIN_PCT: pct(Bond.HEED_MIN),
+    HEED_PER_TRUST_PCT: pct(Bond.HEED_PER_TRUST),
+    HEED_FULL_PCT: pct(Bond.HEED_MIN + Bond.TRUST_MAX * Bond.HEED_PER_TRUST),
+    NUDGE_MIN: num(Bond.NUDGE_MIN),
+    EXPLORE_PULL: num(Activities.EXPLORE_PULL),
+    LEAN_MIN: num(-Bond.LEAN_MAX),
+    LEAN_MAX: num(Bond.LEAN_MAX),
+    LEAN_AT: num(Bond.LEAN_AT),
+    JUDGE_STEP: num(Bond.JUDGE_STEP),
+    DEED_STEP: num(Bond.DEED_STEP),
+    KIND_DEED_WEIGHT: num(Bond.KIND_DEED_WEIGHT),
+    RASCAL_SELL_PCT: pct(Bond.RASCAL_SELL - 1),
+    DODGE_PCT: pct(Bond.DODGE_CHANCE),
+    CAUGHT_PCT: pct(Bond.CAUGHT_CHANCE),
+    FINE_MULT: num(Bond.FINE_MULT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),

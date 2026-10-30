@@ -104,7 +104,9 @@ export class Care {
     if (!gift) return "";
     stats.applyFx(gift.fx ?? {});
     if (gift.buff) stats.addBuff(gift.buff);
-    return stats.say(`Opened your care package: ${gift.icon} ${gift.name}! Thank you! (${effect(gift)})`);
+    const line = stats.say(`Opened your care package: ${gift.icon} ${gift.name}! Thank you! (${effect(gift)})`);
+    stats.gifted(gift.id);
+    return line;
   }
 
   /** Picks a choice of the open guess; returns false when there is none or it was already picked. */

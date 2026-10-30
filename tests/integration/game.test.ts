@@ -9,6 +9,7 @@ import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
+import { EXPLORE_PULL } from "../../src/core/activities";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -139,6 +140,35 @@ describe("game", () => {
     const texts = g.stats.history.entries.map((e) => e.text);
     expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
+  });
+
+  it("an Explore whisper pulls each place he has never been to, not its whole kind", async () => {
+    const OLD: Place = { ...CAFE, name: "Cafe Old", lat: 42.6875, lon: 23.3205 };
+    const { g } = game({ places: [OLD, CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.visit(OLD);
+    const w = g.walker!;
+    const ratio = () => w.weigh(CAFE).weight / w.weigh(OLD).weight;
+    const before = ratio();
+    [g.stats.bond.nudge, g.stats.bond.nudgeLeft] = ["explore", 600];
+    expect(ratio()).toBeCloseTo(before * EXPLORE_PULL);
+  });
+
+  it("takes whispers and praise from you without touching his walk dice", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 400);
+    expect(g.lastDeed()).not.toBeNull();
+    const walkDice = (g as unknown as { rng: Rng }).rng;
+    const next = new Rng(0);
+    Object.assign(next, walkDice);
+    for (let i = 0; i < 4; i++) g.whisper("eat");
+    const whispers = g.stats.history.entries.filter((e) => e.text.startsWith("Heard a whisper"));
+    expect(whispers).toHaveLength(3);
+    expect(walkDice.randf()).toBe(next.randf());
+    g.judge(1);
+    g.judge(1);
+    expect(g.stats.bond.lean).toBe(10);
   });
 
   it("walks to a place, does something there and rests", async () => {
@@ -496,7 +526,7 @@ describe("game", () => {
   describe("catch-up", () => {
     const HOUR = 3600_000;
     /** A game saved `agoMs` before a reopen, and the reopened game. */
-    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}) {
+    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}, loaded: (g: Game) => void = () => {}) {
       let now = Date.UTC(2026, 9, 29, 8);
       const { g, storage } = game({ ...o, clock: () => now });
       await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -506,6 +536,7 @@ describe("game", () => {
       const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       again.problems.quiet = true;
       again.load();
+      loaded(again);
       await again.wake();
       return { g, again, setNow: (t: number) => (now = t), now: () => now };
     }
@@ -567,6 +598,18 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("a reopen that earns a clover adds trust, and he writes when it passes a letter step", async () => {
+      const { again } = await reopen(
+        2 * HOUR,
+        {},
+        (g) => (g.stats.bond.trust = 28),
+        (a) => (a.stats.letters = { tiers: [["First letter."]], thanks: {} }),
+      );
+      expect(again.stats.bond.trust).toBe(32);
+      expect(again.stats.history.entries.some((e) => e.text === "✉ First letter.")).toBe(true);
+      expect(again.lastDeed()!.text).not.toMatch(/^✉/);
     });
 
     it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
