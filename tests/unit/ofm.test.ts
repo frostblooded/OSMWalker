@@ -116,6 +116,10 @@ describe("ofm streets", () => {
     const edge = coordsOf(fromLayers(layers(minor([4000, 1000, 4160, 1000])), WEST), nodeId(EAST.x * 4096, WEST.y * 4096 + 1000))!;
     expect(west[0]!.lat).toBeCloseTo(edge[0]!, 9);
     expect(west[0]!.lon).toBeCloseTo(edge[1]!, 9);
+    // Longer than a tile, in from the left and out on the right: only the tile on the left has it.
+    expect(fromLayers(bridge([-64, 2000, 4160, 2000]), EAST).places).toEqual([]);
+    // In from the left and out at the bottom, near a corner: the same.
+    expect(fromLayers(bridge([-64, 4000, 50, 4160]), EAST).places).toEqual([]);
   });
 
   it("names a bridge after the street most of its points belong to, not a cross street at one end", () => {

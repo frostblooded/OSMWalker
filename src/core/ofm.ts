@@ -139,13 +139,15 @@ export function bridges(layer: Layer | undefined, nameLayer: Layer | undefined, 
 
 /**
  * Where a bridge line's place goes, in tile units, or null when another tile
- * has it. A line inside the tile: its middle point. One that leaves the tile:
- * the first point where it crosses the right or bottom edge, snapped as
- * street cuts are, so the tile on the other side (which sees it cross its left
- * or top edge) agrees and skips it.
+ * has it. A line inside the tile: its middle point. One that leaves the tile
+ * belongs to the tile it doesn't enter from the left or top: there it sits at
+ * the first right or bottom edge crossing, snapped as street cuts are, so the
+ * tiles next door (which see it cross their left or top edge) skip it. Only a
+ * bridge that runs down-left through three tiles is placed twice.
  */
 function bridgeAt(line: number[], scale: number): Pt | null {
   let crosses = false;
+  let at: Pt | null = null;
   for (let i = 0; i + 3 < line.length; i += 2) {
     const p: Pt = [line[i]! * scale, line[i + 1]! * scale];
     const q: Pt = [line[i + 2]! * scale, line[i + 3]! * scale];
@@ -156,10 +158,11 @@ function bridgeAt(line: number[], scale: number): Pt | null {
     for (const [c, end] of [[cut[0], p], [cut[1], q]] as const) {
       if (same(c, end)) continue;
       const e = snapToEdge(c, UNITS);
-      if (e[0] === UNITS || e[1] === UNITS) return e;
+      if (e[0] === 0 || e[1] === 0) return null;
+      at ??= e;
     }
   }
-  if (crosses || line.length < 4) return null;
+  if (crosses || line.length < 4) return at;
   const i = Math.floor((line.length / 2 - 1) / 2) * 2;
   const mid: Pt = [line[i]! * scale, line[i + 1]! * scale];
   return inside(mid) ? mid : null; // all in the buffer past the edge: the neighbouring tile has it
