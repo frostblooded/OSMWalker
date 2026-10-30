@@ -12,7 +12,7 @@ import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
 import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, HITCH, PLANE, TRAIN } from "./speeds";
-import type { Action, Place } from "./stats";
+import type { Action, Fx, Place } from "./stats";
 
 export const COUNTRY_CHANCE = 0.025;
 export const CITY_CHANCE = 0.1;
@@ -40,8 +40,8 @@ export const HITCH_BELOW = 2000;
 /** A hitched ride goes badly this share of the time, and is a great story HITCH_GOOD of the time. */
 export const HITCH_BAD = 0.15;
 export const HITCH_GOOD = 0.25;
-export const HITCH_BAD_FX = { mood: -10, energy: -15 };
-export const HITCH_GOOD_FX = { mood: 15, xp: 20 };
+export const HITCH_BAD_FX: Fx = { mood: -10, energy: -15 };
+export const HITCH_GOOD_FX: Fx = { mood: 15, xp: 20 };
 /** Rides go this many times faster than the real speeds, and never take longer than RIDE_MAX_S. */
 export const RIDE_SPEEDUP = 10;
 export const RIDE_MAX_S = 15 * 60;
