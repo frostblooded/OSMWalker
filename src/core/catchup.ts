@@ -222,7 +222,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       // A made-up place here ("a park in Lyon") is no real park to build at.
       stats.bricksAt(city.places ? place : { ...place, made: true });
       stats.meetAt(place);
-      stats.magicAt(place);
+      // Ley lines and old books are in real churches and libraries only.
+      if (city.places) stats.magicAt(place);
       // Incidents roll on the card dice too, so they leave his walk the same.
       stats.happen(place, deps.hourAt(startMs + elapsed * 1000), deps.cardRng ?? rng);
       s.stops++;

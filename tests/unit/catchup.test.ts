@@ -294,6 +294,14 @@ describe("catch-up", () => {
     expect(stats.lore.known.length).toBeGreaterThan(0);
   });
 
+  it("draws no Magic and learns no spells at made-up churches and libraries", () => {
+    const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text))).toBe(true);
+    expect(stats.magic).toBe(0);
+    expect(stats.lore.known).toEqual([]);
+  });
+
   it("builds no monument at made-up places, which are no real parks", () => {
     const stats = new Stats();
     stats.bricks.count = 10_000;
