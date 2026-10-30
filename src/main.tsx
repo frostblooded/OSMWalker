@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { loadData, whenIdle } from "./app/data";
 import { App } from "./ui/App";
+import { HELP_URL } from "./ui/HelpSheet";
 // Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
 import "@fontsource/fredoka/latin-600.css";
 import "@fontsource/nunito/latin-700.css";
@@ -35,6 +36,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       // The code that loads only when needed (Help, postcards, While you were away, a reopen's dilemma, the Collection) is fetched now
       // too, so the worker keeps it for offline play after every deploy.
       void import("./ui/help").catch(() => undefined);
+      void fetch(HELP_URL).catch(() => undefined);
       void import("./core/dilemmas").catch(() => undefined);
       void import("./ui/PostcardSheet").catch(() => undefined);
       void import("./ui/AwaySheet").catch(() => undefined);
