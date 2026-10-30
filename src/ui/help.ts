@@ -14,6 +14,7 @@ import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
+import * as Fairy from "../core/fairy";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -236,6 +237,12 @@ export function values(data: GameData): Record<string, string> {
     ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
     PORTAL_PCT: pct(Portals.PORTAL_CHANCE),
     PORTAL_GAP_DAYS: num(Portals.PORTAL_GAP_DAYS),
+    GIFT_PCT: pct(Fairy.GIFT_CHANCE),
+    FAIRY_PCT: pct(Fairy.FAIRY_CHANCE),
+    FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
+    NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
+    FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
+    STORY_MAGIC: num(Fairy.STORY_MAGIC),
     GIANT_PCT: pct(Giants.GIANT_CHANCE),
     GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
     GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),
@@ -644,5 +651,6 @@ export function values(data: GameData): Record<string, string> {
   Items.RARITY.forEach((_, i) => (v[`MODS${i}_PCT`] = pct(rolls[i + 1]! - rolls[i]!)));
   const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
   for (const [t, [a, b]] of Object.entries(S.TIMES)) v[`TIME_${t.toUpperCase()}`] = `${hh(a)}-${hh(b)}`;
+  v.FAIRY_DAWN = `${hh(Fairy.FAIRY_FROM_H)}-${hh(Fairy.FAIRY_TO_H)}`;
   return v;
 }

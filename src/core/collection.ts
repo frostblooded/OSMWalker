@@ -6,6 +6,7 @@
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
 import { dayOf } from "./gifts";
 import { GIANTS } from "./giants";
+import { STORIES } from "./fairy";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
@@ -207,6 +208,23 @@ export const SETS: CSet[] = [
       }),
   },
   {
+    id: "fairy",
+    tab: "places",
+    icon: "🍄",
+    title: "Fairy rings",
+    entries: (s) => [
+      ...Items.KINDS.trinkets.map((b) => {
+        const got = s.rings.gifts.includes(b.base);
+        return { id: `gift:${b.base}`, icon: "🎁", name: `Fairy-spun ${b.base}`, got, info: got ? "A fairy gift" : "A gift from a nap in a fairy ring" };
+      }),
+      ...STORIES.map((t) => {
+        const got = s.rings.stories.includes(t.id);
+        return { id: `story:${t.id}`, icon: "✨", name: t.name, got, info: got ? t.say : "A story from a nap in a fairy ring" };
+      }),
+    ],
+    facts: (s) => [["🍄 Naps in fairy rings", String(s.rings.naps)]],
+  },
+  {
     id: "spells",
     tab: "gear",
     icon: "🪄",
@@ -347,6 +365,7 @@ export const FEATS: Feat[] = [
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
+  { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },

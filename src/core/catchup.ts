@@ -232,6 +232,13 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (city.places) stats.magicAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
+      const nap = city.places ? stats.fairyAt(place, deps.hourAt(startMs + elapsed * 1000)) : 0;
+      if (nap) {
+        s.stops++;
+        pass(Math.min(nap, leftMin()), 0);
+        yield;
+        continue;
+      }
       const door = city.places ? stats.portalAt(place, trips) : null;
       if (door) {
         s.stops++;
