@@ -1,6 +1,8 @@
 // His keepsakes: landmark cards (counts by rarity and finish, then the cards
 // themselves), city cards by country, the Placedex of place kinds, souvenirs
-// by country and crawls. Loaded only when the sheet first opens.
+// by country, crawls, golden bricks and his monuments, and his life chronicle.
+// Loaded only when the sheet first opens.
+import { BRICKS_PER_DAY, MONUMENTS } from "../core/bricks";
 import * as CC from "../core/cityCards";
 import type { Rarity } from "../core/items";
 import { dayOf } from "../core/gifts";
@@ -131,6 +133,51 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           );
         })}
       </Card>
+      <Bricks stats={s} />
+      <Life stats={s} />
     </>
+  );
+}
+
+/** Golden bricks toward the next monument, and the monuments he built. */
+function Bricks({ stats: s }: { stats: Stats }) {
+  const b = s.bricks;
+  const next = b.next();
+  return (
+    <Card icon="🧱" title="Golden bricks" right={`${b.count} / ${next.bricks}`}>
+      <KV k="Saving for" v={`${next.icon} A ${next.name}`} />
+      <KV k="Found today" v={`${b.day === dayOf(s.now() * 1000) ? b.today : 0} / ${BRICKS_PER_DAY}`} />
+      {b.built.length ? (
+        <Collapsible title="His monuments" right={b.built.length}>
+          <div class="zebra">
+            {b.built.map((m, i) => (
+              <KV key={i} k={`${MONUMENTS[m.kind]!.icon} ${m.park}`} v={m.city} />
+            ))}
+          </div>
+        </Collapsible>
+      ) : (
+        <p class="dim small">None yet. With {next.bricks} bricks he builds one at the next park (see Golden bricks in Help).</p>
+      )}
+    </Card>
+  );
+}
+
+/** His life chronicle, oldest first, with the date of each line. */
+function Life({ stats: s }: { stats: Stats }) {
+  const lines = s.chronicle.lines;
+  return (
+    <Card icon="📖" title="His life" right={lines.length}>
+      {lines.length ? (
+        <ol class="zebra">
+          {lines.map((l, i) => (
+            <li key={i}>
+              <span class="dim small">{dayOf(l.t * 1000)}</span> {l.text}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p class="dim small">Nothing yet. Each first in his life adds a line here.</p>
+      )}
+    </Card>
   );
 }

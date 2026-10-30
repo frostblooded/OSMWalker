@@ -4,6 +4,8 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bond from "../core/bond";
+import * as Bricks from "../core/bricks";
+import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
@@ -190,6 +192,11 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    BRICK_PCT: pct(Bricks.BRICK_CHANCE),
+    BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
+    MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
+    LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
+    COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
     TRUST_MAX: num(Bond.TRUST_MAX),
     TRUST_START: num(Bond.TRUST_START),
     KIND_DEEDS: deeds(data.actions, 1),

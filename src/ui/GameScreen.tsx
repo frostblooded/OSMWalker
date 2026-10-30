@@ -193,6 +193,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             >
               ❓ Help
             </button>
+            <a class="btn" href={PHRASE_URL} target="_blank" rel="noopener">
+              ✍ Suggest a line
+            </a>
             <button class="btn" onClick={() => setSheet("debug")}>
               🐞 Debug {game.problems.unseen > 0 && <span class="dot" role="img" aria-label="new problems" />}
             </button>
@@ -298,6 +301,9 @@ function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: strin
   if (failed) return <p class="tone-error">Couldn't load {what}. Check your connection and try again.</p>;
   return mod ? children(mod) : <p class="dim">Loading…</p>;
 }
+
+/** The phrase box: a new GitHub issue with a form for a line he might say, which ships credited if accepted (see Help). */
+export const PHRASE_URL = `https://github.com/frostblooded/OSMWalker/issues/new?title=${encodeURIComponent("Line: ")}&body=${encodeURIComponent("Kind of place (cafe, park, museum...):\n\nThe line (a dry second sentence after what he did there):\n\nYour name for the credit (or leave empty):\n")}`;
 
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
 

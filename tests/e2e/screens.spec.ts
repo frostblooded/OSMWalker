@@ -98,7 +98,7 @@ test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Collection/ }).click();
   const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Landmark cards", "City cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
+  for (const t of ["Landmark cards", "City cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done", "Golden bricks", "A bench", "His life", "Set out from Sofia"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("button", { name: /Countries/ }).click();
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Today/ }).click();
@@ -107,6 +107,14 @@ test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page
   await sheet.getByRole("button", { name: /His cards/ }).click();
   await expect(sheet.locator(".lcard.gold")).toContainText("Alexander Nevsky Cathedral");
   expect(await smallButtons(page)).toEqual([]);
+});
+
+test("Suggest a line opens a pre-filled GitHub issue", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const link = page.getByRole("link", { name: /Suggest a line/ });
+  await expect(link).toHaveAttribute("href", /^https:\/\/github\.com\/frostblooded\/OSMWalker\/issues\/new\?title=Line.*Your%20name%20for%20the%20credit/);
+  await expect(link).toHaveAttribute("target", "_blank");
 });
 
 test("Stats tells a bought item's story", async ({ page }) => {
