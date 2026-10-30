@@ -108,6 +108,9 @@ export class Game {
   dilemma: Dilemma | null = null;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
+  /** The Collection's badge rules, loaded once he is awake so they stay out of startup JS and off the reopen. */
+  private collection: typeof import("../core/collection") | null = null;
+  private collectionLoading = false;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -448,9 +451,24 @@ export class Game {
     const w = this.walker;
     if (!w) return;
     if (this.waking) return;
+    this.awardBadges();
     this.savedAt = this.now();
     const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt });
     if (err) this.problems.error(err);
+  }
+
+  /** Gives him the badges he has reached (see core/collection.ts), once their rules have loaded. */
+  private awardBadges(): void {
+    this.collection?.award(this.stats);
+  }
+
+  private loadCollection(): void {
+    if (this.collection || this.collectionLoading) return;
+    this.collectionLoading = true;
+    void import("../core/collection").then(
+      (m) => (this.collection = m),
+      () => (this.collectionLoading = false),
+    );
   }
 
   /** Picks up the saved game, if any. */
@@ -522,6 +540,7 @@ export class Game {
   /** The first wake has decided whether there is an away card (or never will: no map, so no loop), so a postcard from a link may show. */
   woken(): void {
     this.woke = true;
+    this.loadCollection();
     this.changed();
   }
 

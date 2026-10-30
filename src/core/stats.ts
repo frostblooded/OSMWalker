@@ -194,6 +194,7 @@ export class Stats {
   equip(item: Item): void {
     const old = this.gear[item.slot];
     this.gear[item.slot] = item;
+    this.keepsakes.own(item);
     if (old) this.bagAdd(old);
   }
 
@@ -581,6 +582,8 @@ export class Stats {
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
     s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
+    // Saves from before the Collection tracked items: count what he has now.
+    for (const item of [...Object.values(s.gear), ...s.bag]) if (item) s.keepsakes.own(item);
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
     s.stops = d.stops ?? [];

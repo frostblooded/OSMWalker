@@ -84,6 +84,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
   return (
     <>
       <Card icon="⭐" title={`Level ${s.level}`} right={euro(s.cents)}>
+        {s.keepsakes.title && <KV k="🎖 Title" v={s.keepsakes.title} />}
         <KV k="XP" v={`${Math.floor(s.xp)} / ${need}`} />
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps())} />

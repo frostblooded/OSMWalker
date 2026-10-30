@@ -150,6 +150,22 @@ export function nextVehicle(has: Vehicle): VehicleGoal | null {
   return { name: KINDS[kind].find((b) => item.name.endsWith(b.base))!.base, kind, cents: item.price };
 }
 
+/** Every base, with the kind of shop that sells it. */
+export const BASES: (Base & { kind: Kind })[] = (Object.entries(KINDS) as [Kind, Base[]][]).flatMap(([kind, list]) => list.map((b) => ({ ...b, kind })));
+/** Every material word: metals, then cloths. */
+export const MATERIAL_NAMES = [...MATERIALS.map((m) => m.metal), ...MATERIALS.map((m) => m.cloth)];
+
+/** The base and material an item is made of, read from its name (items don't store them). */
+export function partsOf(item: Pick<Item, "name" | "slot">): { base?: string; mat?: string } {
+  let best: { base?: string; mat?: string } = {};
+  for (const b of BASES) {
+    if (b.slot !== item.slot || (best.base && best.base.length >= b.base.length)) continue;
+    const mat = MATERIALS.map((m) => (b.cloth ? m.cloth : m.metal)).find((w) => item.name.includes(`${w} ${b.base}`));
+    if (mat) best = { base: b.base, mat };
+  }
+  return best;
+}
+
 /** Total of an item's stat bonuses, to compare gear. */
 export function power(item: Item | undefined): number {
   if (!item) return 0;

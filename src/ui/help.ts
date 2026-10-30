@@ -5,6 +5,7 @@
 import * as Activities from "../core/activities";
 import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
+import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
 import * as Gifts from "../core/gifts";
@@ -133,19 +134,10 @@ const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
 
-/** "cafes or coffee shops" for a crawl's kinds. */
-export const CRAWL_KINDS: Record<string, string> = {
-  coffee: "cafes or coffee shops",
-  pub: "bars, pubs, clubs or beer gardens",
-  sweet: "ice cream parlours, bakeries or sweet shops",
-  parks: "parks or gardens",
-  shops: "shops or clothing stores",
-  museums: "museums",
-  pilgrim: "places of worship",
-  culture: "museums, galleries or theatres",
-  sights: "landmarks (see Landmark cards)",
-};
-const crawlKinds = (c: K.Crawl) => CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
+/** A crawl's kinds; the landmarks one points at their page. */
+const crawlKinds = (c: K.Crawl) => (c.id === "sights" ? `${c.about} (see Landmark cards)` : c.about);
+/** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
+const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
@@ -344,6 +336,7 @@ export function values(data: GameData): Record<string, string> {
     TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),
     TREASURED_KEEP: String(S.TREASURED_KEEP),
     CARDS_SHOWN: String(K.CARDS_SHOWN),
+    FEAT_LIST: Collection.FEATS.map(featLine).join("\n").replace(/,$/, "."),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);

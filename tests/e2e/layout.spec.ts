@@ -140,8 +140,13 @@ for (const width of [360, 412]) {
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
       await openMenuItem(page, /Collection/);
       const collection = page.getByRole("dialog", { name: /Collection/ });
-      for (const fold of [/His cards/, /Countries/, /Today/]) await collection.getByRole("button", { name: fold }).click();
-      await check(page, "collection");
+      for (const tab of ["Cards", "Places", "World", "Gear", "Feats"]) {
+        await collection.getByRole("tab", { name: new RegExp(tab) }).click();
+        // Open the first fold on the tab, so a grid of tiles is checked too.
+        const fold = collection.locator(".fold-head").first();
+        if (await fold.count()) await fold.click();
+        await check(page, `collection-${tab.toLowerCase()}`);
+      }
       await collection.getByRole("button", { name: /Close/ }).click();
       await openMenuItem(page, /Stats/);
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();

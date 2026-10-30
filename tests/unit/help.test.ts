@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import * as CC from "../../src/core/cityCards";
+import * as Collection from "../../src/core/collection";
 import { RARITY, SLOTS } from "../../src/core/items";
 import { CRAWLS } from "../../src/core/keepsakes";
 import { ATTRS, METERS } from "../../src/core/stats";
@@ -111,8 +112,13 @@ describe("the real help", () => {
     expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
   });
 
+  it("lists every feat with its tiers and title", () => {
+    for (const f of Collection.FEATS) expect(page("badges").body, f.id).toContain(`${f.icon} ${f.name}: `);
+    expect(page("badges").body).toMatch(/^- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter,$/m);
+  });
+
   it("words every crawl's kinds", () => {
-    for (const c of CRAWLS) expect(Help.CRAWL_KINDS[c.id], c.id).toBeTruthy();
+    for (const c of CRAWLS) expect(c.about, c.id).toBeTruthy();
   });
 
   it("has a page for every screen button", () => {
