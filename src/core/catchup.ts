@@ -221,6 +221,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       // A made-up place here ("a park in Lyon") is no real park to build at.
       stats.bricksAt(city.places ? place : { ...place, made: true });
+      stats.meetAt(place);
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);

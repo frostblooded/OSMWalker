@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { tileBbox, type Tile } from "../../src/core/geo";
 import { cellKey, StreetGraph } from "../../src/core/graph";
-import { decode, fromLayers, fromPbf, nodeId, posOf, type Feature, type Layer, type Layers } from "../../src/core/ofm";
+import { BRIDGE, BRIDGE_RANK, decode, fromLayers, fromPbf, nodeId, posOf, type Feature, type Layer, type Layers } from "../../src/core/ofm";
 
 // Real tiles from Sofia (only the two street layers kept), side by side.
 const WEST: Tile = { x: 9253, y: 6039 };
@@ -72,6 +72,31 @@ describe("ofm streets", () => {
     expect(ways[0]!.name).toBe("Vitosha");
     expect(ways[1]!.name).toBe("");
     expect(ways[0]!.ids.at(-1)).toBe(ways[1]!.ids[0]);
+  });
+
+  it("makes a place of each named walkable bridge, at its middle", () => {
+    const bridge = (cls: string, line: number[]): Feature => ({ tags: { class: cls, brunnel: "bridge" }, lines: [line] });
+    const named = (name: string, line: number[]): Feature => ({ tags: { name, class: "minor" }, lines: [line] });
+    const cell = fromLayers(
+      {
+        transportation: { extent: 4096, features: [bridge("minor", [100, 100, 200, 100, 300, 100]), bridge("path", [100, 500, 200, 500]), bridge("motorway", [100, 900, 200, 900]), bridge("minor", [100, 1300, 200, 1300]), bridge("path", [100, 1700, 200, 1700])] },
+        transportation_name: { extent: 4096, features: [named("Vitosha", [100, 100, 200, 100, 300, 100]), named("Lavov most", [100, 500, 200, 500]), named("Ring", [100, 900, 200, 900])] },
+      },
+      WEST,
+    );
+    const b = cell.places.filter((p) => p.class === BRIDGE);
+    // The motorway and the unnamed street bridge are left out; a name that says bridge is kept as it is.
+    expect(b.map((p) => p.name)).toEqual(["Bridge on Vitosha", "Lavov most", "Footbridge"]);
+    expect(b[0]).toMatchObject({ subclass: BRIDGE, rank: BRIDGE_RANK });
+    const mid = coordsOf(cell, nodeId(WEST.x * 4096 + 200, WEST.y * 4096 + 100))!;
+    expect(b[0]!.lat).toBeCloseTo(mid[0]!, 9);
+    expect(b[0]!.lon).toBeCloseTo(mid[1]!, 9);
+  });
+
+  it("finds the bridges in a real tile", () => {
+    const b = fromPbf(pbf(EAST), EAST).places.filter((p) => p.class === BRIDGE);
+    expect(b.map((p) => p.name)).toContain("Bridge on Черковна");
+    expect(b.some((p) => p.name === "Footbridge")).toBe(true);
   });
 
   it("joins a side street ending mid-segment", () => {

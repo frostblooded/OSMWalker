@@ -291,6 +291,8 @@ export class Game {
     this.stats.care.open(this.stats);
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
+    // Until the timed choices can ask you, he takes his own pick.
+    this.stats.meetAt(place);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
