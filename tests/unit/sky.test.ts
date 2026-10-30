@@ -124,6 +124,7 @@ describe("what the sky does", () => {
     expect(Sky.meets("snow", at(0, 0, 0, rain))).toBe(false);
     expect(Sky.meets("sunny", at(0, 0, 0, { kind: "clear", tempC: 20 }))).toBe(true);
     expect(Sky.meets("sunny", at(0, 0, 0, hot))).toBe(false);
+    expect(Sky.meets("sunny", at(0, 0, 0, { kind: "clear", tempC: 20 }, Date.UTC(2026, 5, 21, 0)))).toBe(false);
     expect(Sky.meets("cold", at(0, 0, 0, { kind: "snow", tempC: -1 }))).toBe(true);
     expect(Sky.meets("hot", null)).toBe(false);
   });

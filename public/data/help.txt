@@ -217,7 +217,7 @@ What the weather does to him:
 - Snow: on foot or by bike he goes at {SNOW_SPEED_PCT} of his speed.
 - Hot ({HOT_C}°C or more): he gets thirsty {HOT_THIRST} times as fast, and ice cream, fountains and pools pull his goal {HOT_COOL} times as much.
 - Freezing ({COLD_C}°C or less): he loses {COLD_ENERGY_PER_H} energy more an hour.
-- Sunny (clear, {SUNNY_MIN_C}°C to below {HOT_C}°C): his mood rises {SUNNY_MOOD_PER_H} an hour, which makes up for its usual drop.
+- Sunny (clear, {SUNNY_MIN_C}°C to below {HOT_C}°C, while the sky isn't yet dark): his mood gets {SUNNY_MOOD_PER_H} back an hour.
 
 Some actions only happen in the right weather, such as hot chocolate while it pours, a snowman in the park or watching the sunset (see Requirements). The top card and the Stats sheet show the weather now.
 ## Seasons {seasons}
