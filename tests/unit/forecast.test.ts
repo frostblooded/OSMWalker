@@ -7,6 +7,7 @@ import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
+import * as S from "../../src/core/stats";
 import { FIRST_VISIT_XP, Stats } from "../../src/core/stats";
 
 const LIST = JSON.parse(dataFile("forecasts.json")) as F.Forecast[];
@@ -65,6 +66,14 @@ describe("daily forecast", () => {
     expect(statsOn("wage").wageMult(job)).toBeCloseTo(1.1);
     const s = statsOn("visit");
     expect(s.visit({ name: "A", lat: 1, lon: 1 })).toBe(FIRST_VISIT_XP * 1.5);
+    const lucky = statsOn("find");
+    lucky.attrs.luck = 5;
+    const plain = new Stats();
+    plain.attrs.luck = 5;
+    plain.now = lucky.now;
+    lucky.walkFor(2000, new Rng(3));
+    plain.walkFor(2000, new Rng(3));
+    expect(lucky.cents - S.START_CENTS).toBeGreaterThan(1.5 * (plain.cents - S.START_CENTS));
     const tired = statsOn("effort");
     tired.passTime(0, 1000);
     expect(100 - tired.meters.energy).toBeCloseTo(2 * 0.75);
