@@ -159,6 +159,17 @@ describe("game", () => {
     expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
   });
 
+  it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], contests: JSON.parse(dataFile("rival.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.contests.length).toBeGreaterThan(0);
+    const meet = vi.spyOn(g.stats.rival, "meet");
+    run(g, 400);
+    // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+  });
+
   it("shows Viktor beside him for a while after they meet, only in that city", async () => {
     const { g } = game({ places: [CAFE], clock: () => 2_000_000_000_000 });
     await g.startCity("Sofia, Bulgaria", ...START, null);

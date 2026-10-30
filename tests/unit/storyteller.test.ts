@@ -202,6 +202,20 @@ describe("incidents in his life", () => {
     expect(s.incidentLatest()).toBe(false);
   });
 
+  it("brings a meeting with Viktor at a stop with no incident, only while the deck is loaded", () => {
+    const s = new Stats();
+    s.where.city = "Sofia, Bulgaria";
+    s.contests = JSON.parse(dataFile("rival.json"));
+    Object.assign(s.rival, { town: "Sofia, Bulgaria", inTown: true });
+    // The storyteller's roll (no tension, nothing), then a meeting, a contest, won.
+    expect(s.happen(cafe, 12, fixed(0.5, 0, 0.99, 0))).toBe("");
+    s.incidents = [card({})];
+    const line = s.happen(cafe, 12, fixed(0.5, 0, 0.99, 0));
+    expect(line).toMatch(/^🎩 Viktor .* at Cafe\./);
+    expect(s.incidentLatest()).toBe(true);
+    expect(s.rival.wins).toBe(1);
+  });
+
   it("keeps the storyteller in the save, and an old save starts on Classic", () => {
     const s = new Stats();
     s.story.style = "calm";
