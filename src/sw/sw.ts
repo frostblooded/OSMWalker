@@ -1,7 +1,7 @@
 // The service worker: keeps the game and the map tiles it has shown, so a
 // returning player starts without waiting on the network and can play offline.
 /// <reference lib="webworker" />
-import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, strategyFor } from "./strategy";
+import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, replaced, strategyFor } from "./strategy";
 
 declare const self: ServiceWorkerGlobalScope;
 const VERSION = "v1";
@@ -52,6 +52,9 @@ async function store(name: string, req: Request, res: Response): Promise<void> {
   const cache = await caches.open(name);
   await cache.put(req, res);
   const assets = `${self.registration.scope}assets/`;
+  if (req.url.startsWith(`${self.registration.scope}data/`) && req.url.includes("?")) {
+    for (const k of replaced((await cache.keys()).map((k) => k.url), req.url)) await cache.delete(k);
+  }
   if (name === CACHES.map ? ++puts % 100 === 0 : req.url.startsWith(assets)) {
     const keys = (await cache.keys()).map((k) => k.url);
     const old = name === CACHES.map ? overflow(keys, MAP_CACHE_MAX, () => true) : overflow(keys, APP_ASSETS_MAX, (u) => u.startsWith(assets));

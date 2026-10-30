@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, strategyFor } from "../../src/sw/strategy";
+import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, replaced, strategyFor } from "../../src/sw/strategy";
 
 const here = "https://frostblooded.github.io/OSMWalker/";
 const s = (url: string, mode: RequestMode = "cors") => strategyFor(new URL(url, here), here, mode);
@@ -16,6 +16,16 @@ describe("service worker strategy", () => {
 
   it("refreshes game data in the background", () => {
     expect(s(`${here}data/actions.json`)).toEqual({ kind: "stale-while-revalidate", cache: "app" });
+  });
+
+  it("serves a data file with a version in its address from the cache", () => {
+    expect(s(`${here}data/help.txt?v=1a2b3c4d`)).toEqual({ kind: "cache-first", cache: "app" });
+  });
+
+  it("drops older versions of a data file when a new one is stored", () => {
+    const keys = [`${here}data/help.txt?v=old1`, `${here}data/help.txt?v=new2`, `${here}data/actions.json`, `${here}data/help.txt`];
+    expect(replaced(keys, `${here}data/help.txt?v=new2`)).toEqual([`${here}data/help.txt?v=old1`, `${here}data/help.txt`]);
+    expect(replaced(keys, `${here}data/actions.json`)).toEqual([]);
   });
 
   it("keeps map tiles, which never change at a versioned address", () => {
