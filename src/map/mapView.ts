@@ -22,7 +22,6 @@ const ROUTE_COLOR = "#ff7a3d";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
-
 type Ml = typeof import("maplibre-gl");
 
 /** How far from the middle of the view he may walk (a share of its width and height, each way) before the camera glides after him. */

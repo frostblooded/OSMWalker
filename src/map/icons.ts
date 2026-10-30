@@ -21,7 +21,7 @@ const MAGIC = "#3d2a8a";
 const badge = (color: string, body: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="${color}" stroke="#fff" stroke-width="4"/><g fill="#fff" stroke="none">${body.replaceAll("BADGE", color)}</g></svg>`;
 
-/** Pictures by icon name (see core/poiGen.ts ICON_OF and core/mapIcons.ts). */
+/** Pictures by icon name (see ICON_OF in core/mapIcons.ts). */
 export const ICONS: Record<string, string> = {
   bus: badge(TRAVEL, `<rect x="19" y="17" width="26" height="25" rx="4"/><rect x="22" y="21" width="20" height="9" fill="BADGE"/><circle cx="25" cy="44" r="3.5"/><circle cx="39" cy="44" r="3.5"/>`),
   plane: badge(TRAVEL, `<path d="M32 14c2 0 3 2 3 5v8l12 7v4l-12-4v8l4 3v3l-7-2-7 2v-3l4-3v-8l-12 4v-4l12-7v-8c0-3 1-5 3-5z"/>`),

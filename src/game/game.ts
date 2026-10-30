@@ -129,6 +129,7 @@ export class Game {
   private severeOf = "";
   private madeOf = "";
   private madeIn: StreetGraph | null = null;
+  private madePending = false;
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
   /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
@@ -747,7 +748,7 @@ export class Game {
       this.citySummary = null;
     }
     if (!this.areaLoaded() || !w.bounds) return;
-    void this.makePlaces(w, w.bounds);
+    if (!this.placesMade(w, w.bounds)) return;
     const sm = CityCheck.summary(w.graph.placesIn(w.bounds), this.activities, this.country);
     this.citySummary = sm;
     this.severeNow = CityCheck.problems(sm, this.city);
@@ -762,20 +763,36 @@ export class Game {
   }
 
   /**
-   * Once per city, when the streets around him are loaded: puts the city's
-   * made-up places on the map, made now (from what the real ones lack) or
-   * the ones it got before. The maker (core/poiGen.ts) loads as its own
-   * chunk, off the startup path.
+   * True once the city's made-up places are on the map. Until then (once per
+   * city, when the streets around him are loaded) it starts putting them
+   * there, so the city check never runs without them.
+   */
+  private placesMade(w: Walker, bounds: BBox): boolean {
+    if (this.madeOf === this.city && this.madeIn === w.graph) return true;
+    if (!this.madePending) {
+      this.madePending = true;
+      void this.makePlaces(w, bounds).finally(() => (this.madePending = false));
+    }
+    return false;
+  }
+
+  /**
+   * Puts the city's made-up places on the map: made now (from what the real
+   * ones lack) or the ones it got before. The maker (core/poiGen.ts) loads as
+   * its own chunk, off the startup path; if it can't load (offline before it
+   * was cached) the next city check tries again.
    */
   private async makePlaces(w: Walker, bounds: BBox): Promise<void> {
-    if (this.madeOf === this.city && this.madeIn === w.graph) return;
     const city = this.city;
-    this.madeOf = city;
-    this.madeIn = w.graph;
     let list = this.made[city];
     if (!list) {
       w.graph.made = [];
-      const { generate } = await import("../core/poiGen");
+      let Gen: typeof import("../core/poiGen");
+      try {
+        Gen = await import("../core/poiGen");
+      } catch {
+        return;
+      }
       if (this.city !== city || this.walker !== w) return;
       const real = w.graph.placesIn(bounds);
       const missing = CityCheck.missing(CityCheck.summary(real, this.activities, this.country));
@@ -784,12 +801,16 @@ export class Game {
         const id = w.graph.nearestNode(lat, lon);
         return id === null ? null : w.graph.nodes.get(id)!;
       };
-      list = generate({ name: city, center: this.origin, pop: near?.pop ?? 0 }, real, missing, snap);
-      const keys = Object.keys(this.made);
-      if (keys.length >= MADE_CITIES) delete this.made[keys[0]!];
-      this.made[city] = list;
+      list = Gen.generate({ name: city, center: this.origin, pop: near?.pop ?? 0 }, real, missing, snap);
     }
+    // The city he was in last goes to the end, so the save drops the one he has been away from longest.
+    delete this.made[city];
+    const keys = Object.keys(this.made);
+    if (keys.length >= MADE_CITIES) delete this.made[keys[0]!];
+    this.made[city] = list;
     w.graph.made = list;
+    this.madeOf = city;
+    this.madeIn = w.graph;
     this.changed();
   }
 
