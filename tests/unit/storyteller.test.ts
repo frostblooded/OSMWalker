@@ -92,11 +92,13 @@ describe("the storyteller", () => {
 });
 
 describe("the incident deck", () => {
-  it("holds 40 to 60 sound cards of every tone", () => {
+  it("holds 40 to 60 sound cards of every tone, and night legends", () => {
     const classes = new Set(Object.keys(ACTIONS).map((k) => k.split("/")[0]!));
     expect(Inc.check(DECK, classes, ATTRS)).toEqual([]);
-    expect(DECK.length).toBeGreaterThanOrEqual(40);
-    expect(DECK.length).toBeLessThanOrEqual(60);
+    const plain = DECK.filter((c) => !c.legend);
+    expect(plain.length).toBeGreaterThanOrEqual(40);
+    expect(plain.length).toBeLessThanOrEqual(60);
+    expect(DECK.filter((c) => c.legend).length).toBeGreaterThanOrEqual(8);
     for (const tone of ["good", "bad", "odd"]) expect(DECK.filter((c) => c.tone === tone).length).toBeGreaterThanOrEqual(10);
   });
 
@@ -113,6 +115,16 @@ describe("the incident deck", () => {
     expect(Inc.pick(deck, "odd", CAFE, inTime, fixed())).toBeNull();
     expect(Inc.pick(deck, "bad", CAFE, inTime, fixed(), ["any"])!.id).toBe("any");
     expect(Inc.pick([card({ id: "a" }), card({ id: "b" })], "bad", CAFE, inTime, fixed(), ["a"])!.id).toBe("b");
+  });
+
+  it("tells night legends at their places at night, likelier than other cards", () => {
+    const deck = [card({ id: "plain" }), card({ id: "ghost", legend: true, at: ["castle"], time: "night" })];
+    const castle = { ...CAFE, kind: "castle", hour: 23 };
+    expect(Inc.pick(deck, "bad", { ...castle, hour: 12 }, inTime, fixed(0.99))!.id).toBe("plain");
+    // Weights 1 and LEGEND_WEIGHT: the legend takes all but the first 1 / (1 + LEGEND_WEIGHT).
+    expect(Inc.pick(deck, "bad", castle, inTime, fixed(0.99 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("plain");
+    expect(Inc.pick(deck, "bad", castle, inTime, fixed(1.01 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("ghost");
+    expect(Inc.check([card({ id: "x", legend: true })], new Set(), ATTRS)).toEqual(["x: a legend needs night and places"]);
   });
 
   it("plays a card out: money, meters and a feed line with the place", () => {

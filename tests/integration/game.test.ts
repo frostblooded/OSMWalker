@@ -15,7 +15,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
-import { Game, MADE_CITIES, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
@@ -157,6 +157,17 @@ describe("game", () => {
     expect(texts.some((t) => /^(🐕 A dog|🤡 A mime) at Cafe Near/.test(t))).toBe(true);
     // His walk is the same as without incidents.
     expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
+  });
+
+  it("shows Viktor beside him for a while after they meet, only in that city", async () => {
+    const { g } = game({ places: [CAFE], clock: () => 2_000_000_000_000 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.rivalAt()).toBeNull();
+    const r = g.stats.rival;
+    Object.assign(r, { town: g.stats.where.city, inTown: true, seenUntil: 2_000_000_000 + 60, seenAt: [42.7, 23.3] });
+    expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
+    r.seenUntil = 2_000_000_000;
+    expect(g.rivalAt()).toBeNull();
   });
 
   it("switches the storyteller from the menu and keeps it in the save", async () => {
