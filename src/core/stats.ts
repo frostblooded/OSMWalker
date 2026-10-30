@@ -4,6 +4,7 @@
 // storyteller that paces the incidents that happen to him.
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
+import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as F from "./forecast";
@@ -15,6 +16,7 @@ import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
+import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
@@ -151,6 +153,8 @@ export class Stats {
   cityPool: CC.Pool | null = null;
   /** Deadpan jokes from data/jokes.json; not saved, the game sets it. */
   jokes: Jokes = {};
+  /** Border words and quips from data/borders.json; not saved, the game sets it. */
+  borders: Borders | null = null;
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
@@ -165,6 +169,8 @@ export class Stats {
   chronicle = new Chronicle();
   /** This week in numbers, and last week's recap. */
   week = new Week();
+  /** His bests and lifetime totals. */
+  records = new Records();
   /** Paces the incidents. */
   story = new Storyteller();
   /** Viktor, his rival. */
@@ -429,6 +435,7 @@ export class Stats {
     this.story.pass(minutes, this.cents);
     this.applyFx(fx);
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
+    this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -537,6 +544,7 @@ export class Stats {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
+      this.records.mishap();
     }
     const earn = action.earn ?? 0;
     const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
@@ -566,15 +574,21 @@ export class Stats {
     return xp;
   }
 
-  /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
+  /** He is now in `city` (`code`, `country`): worn items count the country in their story, and a new country gets the border lines. */
   arrive(city: string, code: string, country: string): void {
     const was = this.where;
     this.where = { city, code, country };
+    this.records.arrived(city, code);
     if (city) this.milestone("start", `Set out from ${city}`);
     if (was.city && was.city !== city) this.milestone("trip", `First trip away: to ${city}`);
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
+    if (was.code && was.code !== code) {
+      const first = !seen.includes(code);
+      const stamps = seen.filter((c) => !c.includes(":")).length + (first ? 1 : 0);
+      for (const line of crossing(this.borders, code, country, stamps, first)) this.say(line);
+    }
     for (const s of [code, `${code}:${city}`]) {
       if (seen.includes(s)) continue;
       seen.push(s);
@@ -750,6 +764,7 @@ export class Stats {
   /** Notes a stop at a place, for the weekly recap. */
   stop(place: { class: string; subclass: string }): void {
     this.week.stop(place.class);
+    this.sayIf(this.records.stopped(dayOf(this.now() * 1000)));
   }
 
   fainted(): boolean {
@@ -760,6 +775,7 @@ export class Stats {
   wakeInHospital(hospital: string): string {
     const fee = Math.min(HOSPITAL_FEE, Math.floor(this.cents * HOSPITAL_MAX_SHARE));
     this.cents -= fee;
+    this.records.fainted(this.now());
     this.meters.health = WAKE_HEALTH;
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
@@ -775,11 +791,16 @@ export class Stats {
     return line;
   }
 
+  /** Says `line` unless it is empty. */
+  private sayIf(line: string): void {
+    if (line) this.say(line);
+  }
+
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
     };
   }
 
@@ -807,6 +828,7 @@ export class Stats {
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
+    s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
     // A save from before Viktor: he hasn't met him yet.

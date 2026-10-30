@@ -214,6 +214,18 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before records, with fresh ones", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.records;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.records.best.stretchM).toBe(0);
+    expect(back.records.countries).toEqual([]);
+  });
+
   it("loads saves from before golden bricks and the life story, with the old firsts skipped", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

@@ -315,6 +315,16 @@ Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} 
 Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
+## Records {records}
+The Stats sheet ends with his records over his whole life. Each best only goes up:
+- Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
+- Most walked, and most places stopped at, in one day
+- Most money he has held at once
+- Longest he has gone without fainting
+
+It also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
+
+When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH_KM} km without a stop, {REC_DAY_KM} km in a day, {REC_STOPS} places in a day, {REC_CENTS} held, or {REC_NOFAINT} without fainting.
 ## Fainting and hospital {fainting}
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
@@ -396,6 +406,14 @@ Fares are in euros and never free (though a rascal may skip a bus ticket: see Ki
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+## Crossing a border {borders}
+Each time he arrives in a different country than the one he left, by any kind of trip, the feed and History get a few border lines:
+- a passport stamp, with how many countries he has been to (the Collection's countries list shows them all),
+- some euros swapped for the local money, just to hold: prices in the game stay in euros,
+- on his first visit to that country, the first word he learns there, such as "Zdravey" (hello) in Bulgaria,
+- a dry remark about the border guard.
+
+{BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 

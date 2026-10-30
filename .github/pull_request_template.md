@@ -5,7 +5,6 @@
 | Measure | Before | After |
 | --- | --- | --- |
 | Transfer (KB) | | |
-| App JS (KB) | | |
 | First paint (ms) | | |
 | Ready (ms) | | |
 | Main thread busy (%) | | |
