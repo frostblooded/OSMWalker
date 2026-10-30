@@ -134,7 +134,12 @@ describe("planTrip", () => {
   });
 
   it("says why there is no way out", () => {
-    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100, false, 0.5)).toEqual({ error: "no bus station or airport within reach" });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100_000, false, 0.5)).toEqual({ error: "no bus station or airport within reach" });
+  });
+
+  it("hitchhikes when broke even with no station, but not past the roads", () => {
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100, false, 0.5)).toMatchObject({ mode: "hitch" });
+    expect(trips().planTrip(city("Overseas", 40, 0), [0, 0], [CAFE], 100, false, 0.5)).toMatchObject({ error: expect.stringContaining("too far") });
   });
 
   it("says how much is needed", () => {
@@ -164,6 +169,17 @@ describe("planTrip", () => {
     const plan = trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE - 0.01);
     expect(plan).toMatchObject({ mode: "ferry", distance_m: distanceM(0, 0, 1, 0) });
     expect(trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE)).toMatchObject({ mode: "bus" });
+  });
+
+  it("gives the ferry the same odds where planes come into it", () => {
+    const ferry: Place = { ...BUS_STATION, name: "Harbour", class: "ferry_terminal", subclass: "ferry_terminal" };
+    const c = city("Midtown", 4, 0);
+    const p = T.planeChance(distanceM(0, 0, 4, 0));
+    expect(p).toBeGreaterThan(0.2);
+    // No airports here, so every trip goes by road; the ferry still gets FERRY_CHANCE of the rolls.
+    const ferries = Array.from({ length: 100 }, (_, i) => trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, i / 100)).filter((x) => "mode" in x && x.mode === "ferry");
+    expect(ferries.length).toBeGreaterThanOrEqual(28);
+    expect(ferries.length).toBeLessThanOrEqual(32);
   });
 
   it("cycles to a near town on his bike, for free", () => {

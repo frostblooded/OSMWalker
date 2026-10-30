@@ -7,7 +7,7 @@
 // train from a railway station instead of the bus, now and then a ferry from
 // a ferry terminal, and cycles to a near town on his bike. Broke, he
 // hitchhikes for free. A long flight leaves him jet-lagged.
-import { isBusStation, isGasStation } from "./cityCheck";
+import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from "./cityCheck";
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
@@ -30,12 +30,12 @@ export const FERRY_PER_KM = 0.1;
 export const TRAIN_FROM_M = 100_000;
 /** A train ride this long is a night train: he sleeps in a berth and arrives rested. */
 export const SLEEPER_FROM_M = 400_000;
-/** With a ferry terminal loaded, a road trip up to FERRY_MAX_M goes by ferry this share of the time, in a straight line over the water. */
+/** With a ferry terminal loaded, a trip by road to a city up to FERRY_MAX_M away in a straight line goes by ferry this share of the time, straight over the water. */
 export const FERRY_CHANCE = 0.3;
 export const FERRY_MAX_M = 600_000;
 /** On his bike he cycles to towns closer than this. */
 export const CYCLE_MAX_M = 30_000;
-/** With less than this many cents and no fare he can pay, he hitchhikes instead of saving up. */
+/** With less than this many cents and no fare he can pay (or no station), he hitchhikes instead, if a road reaches. */
 export const HITCH_BELOW = 2000;
 /** A hitched ride goes badly this share of the time, and is a great story HITCH_GOOD of the time. */
 export const HITCH_BAD = 0.15;
@@ -128,8 +128,7 @@ export const MODES: Record<Mode, { icon: string; by: string }> = {
 };
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
 export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
-export const isRailwayStation = (p: Place) => p.class === "railway" && p.subclass === "station";
-export const isFerryTerminal = (p: Place) => p.class === "ferry_terminal";
+
 
 /** Seconds a ride of `distanceM` takes. */
 export function rideS(mode: Mode, distanceM: number): number {
@@ -214,14 +213,17 @@ export class Trips {
         const g = at(isGasStation);
         return g && ["car", g];
       }
-      const ferry = straight <= FERRY_MAX_M && r < FERRY_CHANCE ? at(isFerryTerminal) : null;
+      const ferry = straight <= FERRY_MAX_M && rr < FERRY_CHANCE ? at(isFerryTerminal) : null;
       if (ferry) return ["ferry", ferry];
       const rail = roadM >= TRAIN_FROM_M ? at(isRailwayStation) : null;
       if (rail) return ["train", rail];
       const bus = at(isBusStation);
       return bus && ["bus", bus];
     };
-    const order: ("plane" | "road")[] = r < planeChance(straight) ? ["plane", "road"] : ["road", "plane"];
+    const p = planeChance(straight);
+    const order: ("plane" | "road")[] = r < p ? ["plane", "road"] : ["road", "plane"];
+    // The part of r the plane didn't use, spread over [0, 1) again, so the ferry odds don't depend on the plane's.
+    const rr = r < p ? r / p : (r - p) / (1 - p);
     for (const way of order) {
       let mode: Mode = "plane";
       let station: Place | null;
@@ -248,6 +250,7 @@ export class Trips {
       return { city, mode, station, fare: cost, arrive, distance_m: dist };
     }
     if (straight > MAX_ROAD_M) return { error: "too far to go by road, and no airport within reach" };
+    if (cents < HITCH_BELOW) return setOff("hitch", roadM);
     return { error: `no ${hasCar ? "gas station" : "bus station"} or airport within reach` };
   }
 

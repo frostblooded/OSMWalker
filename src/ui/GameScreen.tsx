@@ -312,7 +312,6 @@ function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: strin
 /** The phrase box: a new GitHub issue with a form for a line he might say, which ships credited if accepted (see Help). */
 export const PHRASE_URL = `https://github.com/frostblooded/OSMWalker/issues/new?title=${encodeURIComponent("Line: ")}&body=${encodeURIComponent("Kind of place (cafe, park, museum...):\n\nThe line (a dry second sentence after what he did there):\n\nYour name for the credit (or leave empty):\n")}`;
 
-
 function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   if (!goal) return null;
   if (goal.kind === "resting") {

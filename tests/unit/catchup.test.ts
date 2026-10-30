@@ -289,6 +289,18 @@ describe("catch-up", () => {
     expect(stats.savingFor).toBeGreaterThan(HITCH_BELOW);
   });
 
+  it("cycles to a near town on his bike, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.equip(Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS[0]!, []));
+    let rolls = 0;
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ trips: near, roll: () => (rolls++ ? 0.99 : 0.1) }));
+    const lines = s.lines.map((l) => l.text);
+    expect(lines).toContain("Setting off on his bike for Neartown");
+    expect(lines).toContain("Cycled off to Neartown, A-land");
+    expect(lines.some((l) => /^Tired legs after cycling \d+ km$/.test(l))).toBe(true);
+  });
+
   it("hitchhikes when broke, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 0;

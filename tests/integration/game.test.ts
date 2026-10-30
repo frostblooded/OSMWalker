@@ -322,6 +322,20 @@ describe("game", () => {
     expect(g.stats.buffNames()).toContain("Jet-lagged");
   });
 
+  it("rides a night train with a berth and lands rested, shown as a train ride", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.energy = 20;
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "train");
+    g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "train", to: "Paris" } });
+    expect(doing(g)).toMatch(/^travelling to Paris by train, \d+ km left$/);
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
+    expect(g.stats.meters.energy).toBeGreaterThan(99);
+  });
+
   it("lands fresh after a bus across the same time zones", async () => {
     const { g } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
