@@ -1,4 +1,5 @@
 // The game loop with real Sofia streets, fake servers and fixed dice.
+import { getCrawler, setCrawler } from "../../src/core/ruins";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -641,6 +642,18 @@ describe("game", () => {
       old.load();
       await old.wake();
       expect(old.away).toBeNull();
+    });
+
+    it("a reopen loads the ruin crawls before the catch-up", async () => {
+      setCrawler(null);
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(getCrawler()).not.toBeNull();
+      setCrawler(null);
     });
 
     it("catches up after the tab was hidden, and the card can be closed", async () => {

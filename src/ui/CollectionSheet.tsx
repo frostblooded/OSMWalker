@@ -173,14 +173,14 @@ function Ruins({ stats: s }: { stats: Stats }) {
           <Collapsible key={i} title={r.name} right={`${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}>
             <div class="zebra">
               {r.rooms.map((m, j) => (
-                <KV key={j} k={`${m.won ? "✔" : "✖"} ${m.text}`} v={m.how} tone={m.won ? undefined : "warning"} />
+                <KV key={j} k={`${m.won ? "✔" : "⚠"} ${m.text}`} v={m.how} tone={m.won ? undefined : "warning"} />
               ))}
               <KV k="🎁 Found" v={r.found ? <span style={{ color: RARITY_COLOR[r.found.rarity] }}>{r.found.name}</span> : <span class="dim">nothing</span>} />
             </div>
           </Collapsible>
         ))
       ) : (
-        <p class="dim small">None yet. He crawls a castle or ruin when he reaches one, once a week each.</p>
+        <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>
       )}
     </Card>
   );

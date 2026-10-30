@@ -1,6 +1,8 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
+import * as C from "../../src/core/crawl";
+import { setCrawler } from "../../src/core/ruins";
 import { catchUp, legM, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
 import { bboxAround, distanceM } from "../../src/core/geo";
 import { BRICKS_PER_DAY } from "../../src/core/bricks";
@@ -188,6 +190,20 @@ describe("catch-up", () => {
     const away = new Stats();
     catchUp(away, { ...HOME, places: null }, [0, 0], 2 * 3600, START_MS, deps());
     expect(away.keepsakes.cards.size + away.keepsakes.dex.size).toBe(0);
+  });
+
+  it("crawls a real ruin on the way, as the watched game does", () => {
+    setCrawler(C.explore);
+    try {
+      const stats = new Stats();
+      const ruin = place("Old Keep", "castle", "ruins", 0.0015, 0.0015);
+      catchUp(stats, { ...HOME, places: [ruin] }, [0, 0], 2 * 3600, START_MS, deps());
+      expect(stats.ruins.count).toBe(1);
+      expect(stats.ruins.logs[0]!.name).toBe("Old Keep");
+      expect(stats.history.entries.some((e) => e.text.startsWith("Found a way into Old Keep"))).toBe(true);
+    } finally {
+      setCrawler(null);
+    }
   });
 
   it("tells his stats and worn gear where he lands, and cuts fares for souvenirs", () => {

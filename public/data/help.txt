@@ -462,11 +462,11 @@ With enough bricks he builds it at the next real park he reaches (not a made-up 
 ## His life {chronicle}
 History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Ruin crawls {ruins}
-Castles and ruins on the map hide a few rooms. When he reaches one he hasn't crawled this week, he crawls it: {MIN_ROOMS} to {MAX_ROOMS} rooms, each a stuck door, a riddle, a grumpy caretaker or, now and then, something out of a legend, such as a ghost or a sleeping stone dragon. Nothing is ever fought.
+Castles and ruins on the map hide a few rooms. When he reaches one he hasn't crawled in the last {CRAWL_DAYS} days, he crawls it: {MIN_ROOMS} to {MAX_ROOMS} rooms, each a stuck door, a riddle, a grumpy caretaker or, now and then, something out of a legend, such as a ghost or a sleeping stone dragon. Nothing is ever fought.
 
 Each room is passed with one attribute (Strength, Wits, Charm or Luck). The chance is {ROOM_BASE_PCT}, plus {ROOM_PER_POINT_PCT} per point of that attribute, minus {ROOM_DEPTH_PCT} for every room he has already passed, and always between {ROOM_MIN_PCT} and {ROOM_MAX_PCT}.
 - A passed room: +{ROOM_XP} XP and -{ROOM_ENERGY} energy, then on to the next.
-- A failed room: -{FAIL_ENERGY} energy, and he turns back with what he found so far. Nothing worse happens.
+- A failed room: -{FAIL_ROOM_ENERGY} energy, and he turns back with what he found so far. Nothing worse happens.
 
 If he passed at least one room, he finds a trinket or a weapon at the end. Each room passed lifts its rarity roll by {DEPTH_RARITY_PCT}, on top of his Luck (see Modifiers and rarity). He wears it if it beats his gear, or puts it in the bag. Each room shows in his History, and the Collection's Places tab keeps the logs of his last {RUIN_LOGS} crawls. A crawl takes no extra time, and happens the same way while you are away.
 ## Item stories {stories}

@@ -7,8 +7,8 @@ import type { Place, Stats } from "./stats";
 
 /** He crawls the same place at most once in this long. */
 export const CRAWL_EVERY_S = 7 * 86400;
-/** Crawl logs kept for the Collection sheet. */
-export const LOG_SIZE = 10;
+/** Crawl logs kept for the Collection sheet, few enough for one card. */
+export const LOG_SIZE = 5;
 
 export const isRuin = (p: Pick<Place, "class">) => p.class === "castle";
 
