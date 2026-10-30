@@ -624,7 +624,8 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
-- Vitals: a coloured bar and the value for each of his six meters.
+- Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic).
+- Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts.
+// The Stats sheet's speed and saving goal for fantasy mounts, and his Magic and spells.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -8,6 +8,8 @@ import { Rng } from "../../src/core/rng";
 import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
+import type { Spell } from "../../src/core/magic";
+import { readFileSync } from "node:fs";
 
 const shown = (stats: Stats, afoot = false) => {
   const root = document.createElement("div");
@@ -45,5 +47,21 @@ describe("Stats sheet", () => {
     const card = [...root.querySelectorAll(".card")].find((c) => c.textContent?.includes("Saving for"))!;
     expect(card.textContent!.endsWith(euro(stats.vehicleSaving()))).toBe(true);
     expect(stats.vehicleSaving()).toBe(Items.cheapest("dragons").price + KEEP_CENTS + DRAGON_UPKEEP);
+  });
+
+  it("shows his Magic in Vitals and the spells he knows, with their cost and casts", () => {
+    const spells = JSON.parse(readFileSync("public/data/spells.json", "utf8")) as Spell[];
+    const stats = Object.assign(new Stats(), { spellKinds: spells });
+    stats.magic = 42;
+    let text = shown(stats);
+    expect(text).toContain("🔮 Magic42");
+    expect(text).toContain(`Spells0 / ${spells.length}`);
+    expect(text).toContain("Knownnone yet");
+    stats.lore.known = ["soup"];
+    stats.lore.casts = { soup: 3 };
+    text = shown(stats);
+    expect(text).toContain(`Spells1 / ${spells.length}`);
+    expect(text).toContain("🍲 Warm soup20 Magic · cast 3×");
+    expect(text).not.toContain("none yet");
   });
 });
