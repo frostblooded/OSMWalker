@@ -413,7 +413,7 @@ describe("saves", () => {
 
   it("measure a ride from a save without road_m by the straight line", () => {
     walker.startAt(n(3));
-    walker.startTravel(TRIP, "train");
+    walker.startTravel({ name: "Fartown", code: "XXX", country: "X-land", lat: 43, lon: 24, pop: 50_000, bounds: [42.99, 23.99, 43.01, 24.01] }, "train");
     const d = JSON.parse(JSON.stringify(walker));
     delete d.travel.road_m;
     const t = Walker.fromJSON(d).travel!;
