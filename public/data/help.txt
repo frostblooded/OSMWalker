@@ -426,7 +426,7 @@ A car owner drives rather than taking the train or a ferry, unless he can't pay 
 ## Long walks {walks}
 Now and then, when he has no vehicle, a trip to a town {LONG_WALK_MIN_KM} to {LONG_WALK_MAX_KM} km away (in a straight line) becomes a long walk instead: {LONG_WALK_PCT} of the time, if he can pay the hostels. {WALK_ICON} He sets off on foot from where he stands, along the road the bus would take.
 
-A walk is far slower than any ride: it lasts {LONG_WALK_MAX_H} hours of the game being open. The map stays zoomed out with the red line, as on a ride, and no streets download on the way, so it costs the phone no more than a ride.
+A walk is far slower than any ride: it lasts {LONG_WALK_MAX_H} hours, and time away counts towards it (if you leave mid-walk he keeps walking, and is still on his way if you come back before it ends). The map stays zoomed out with the red line, as on a ride, and no streets download on the way, so it costs the phone no more than a ride.
 
 He sleeps in a hostel every {HOSTEL_KM} km of road, at {HOSTEL_PRICE} a night, paid as he sets off. The hostels' meals and showers keep his food, drink and hygiene where they were while he walks (the On the trail buff). At the end he gets {LONG_WALK_XP_PER_KM} XP per km and +{LONG_WALK_MOOD} mood. While you are away he walks too, if the walk fits in the time you were gone; otherwise it waits until you are back to watch.
 ## Packing for a trip {packing}
