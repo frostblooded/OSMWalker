@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { URGENT_AT } from "../../src/core/activities";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, type LatLon, type Plan } from "../../src/core/trips";
@@ -27,6 +28,15 @@ describe("journey", () => {
     expect(j.skipRoll).toBe(false);
     expect(j.takeLog()).toEqual({ skipped: "first pick in a new city" });
     expect(j.takeLog()).toEqual({});
+  });
+
+  it("stays put while a need is urgent", () => {
+    const { j, stats } = journey(0.1);
+    stats.meters.energy = URGENT_AT - 1;
+    expect(j.consider(where(), stats)).toBeNull();
+    expect(j.takeLog()).toEqual({ skipped: "an urgent need comes first" });
+    stats.meters.energy = URGENT_AT;
+    expect(j.consider(where(), stats)).not.toBeNull();
   });
 
   it("stays on a high roll and notes the roll", () => {

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needWeight, restMinutes, SAVING_EARN_WEIGHT, weight, type ActionTable } from "../../src/core/activities";
+import * as A from "../../src/core/activities";
+import { URGENT_SLIP } from "../../src/core/goals";
+import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needOf, restMinutes, URGENT_AT, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
 import * as Jokes from "../../src/core/jokes";
@@ -283,10 +285,10 @@ describe("gear", () => {
 
   it("resale shops pull him like a need while his bag is full", () => {
     const resale = { name: "Sell his loot", min: 10, sell: true, resale: true };
-    expect(needWeight([resale], stats)).toBe(1);
+    expect(needOf([resale], stats, 12).pull).toBe(1);
     for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5));
-    expect(needWeight([resale], stats)).toBe(1 + NEED_BOOST);
-    expect(needWeight([{ name: "Sell", min: 10, sell: true }], stats)).toBe(1);
+    expect(needOf([resale], stats, 12)).toMatchObject({ pull: 1 + NEED_BOOST, why: "bag" });
+    expect(needOf([{ name: "Sell", min: 10, sell: true }], stats, 12).pull).toBe(1);
   });
 
   it("jokes are keyed by place classes the actions know", () => {
@@ -530,24 +532,75 @@ describe("mood, hygiene and luck", () => {
 describe("need-driven goals", () => {
   const eat: Action = { name: "Eat", min: 1, cost: 5, fx: { fullness: 40 } };
   const work: Action = { name: "Wash dishes", min: 1, earn: 10 };
-  it("weigh 1 when nothing he needs is there", () => {
-    expect(needWeight([eat], stats)).toBe(1);
-    expect(needWeight([], stats)).toBe(1);
+  const pull = (acts: Action[]) => needOf(acts, stats, 12).pull;
+  it("pull 1 when nothing he needs is there", () => {
+    expect(pull([eat])).toBe(1);
+    expect(pull([])).toBe(1);
   });
-  it("weigh more the lower the meter the place refills", () => {
+  it("pull steeply harder the lower the meter the place refills", () => {
     stats.meters.fullness = NEED_AT / 2;
-    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST / 2, 6);
+    expect(pull([eat])).toBeCloseTo(1 + NEED_BOOST / 4, 6);
     stats.meters.fullness = 0;
-    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
-    expect(needWeight([work], stats)).toBe(1);
+    expect(pull([eat])).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(pull([work])).toBe(1);
+  });
+  it("small refills meet a need only in part", () => {
+    stats.meters.fullness = 0;
+    expect(pull([{ name: "Nibble", min: 1, fx: { fullness: A.FULL_FIX / 2 } }])).toBeCloseTo(1 + NEED_BOOST / 2, 6);
+  });
+  it("add up every need an action meets, and name the biggest", () => {
+    stats.meters.fullness = 0;
+    stats.meters.thirst = NEED_AT / 2;
+    const meal: Action = { name: "Meal and a drink", min: 1, fx: { fullness: 40, thirst: 40 } };
+    expect(pull([meal])).toBeCloseTo(1 + NEED_BOOST * 1.25, 6);
+    expect(needOf([meal], stats, 12).why).toBe("fullness");
+  });
+  it("only count what he can do", () => {
+    stats.meters.fullness = 0;
+    stats.cents = 0;
+    expect(pull([eat])).toBe(1);
+    expect(needOf([eat], stats, 12).urgent).toBe(false);
+  });
+  it("mark a place urgent when it fixes a meter under URGENT_AT", () => {
+    stats.meters.fullness = URGENT_AT;
+    expect(needOf([eat], stats, 12).urgent).toBe(false);
+    stats.meters.fullness = URGENT_AT - 1;
+    expect(needOf([eat], stats, 12)).toMatchObject({ urgent: true, bottom: false });
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    expect(needOf([eat], stats, 12).bottom).toBe(true);
   });
   it("send him to paid work when he is broke or saving up", () => {
     stats.gear.vehicle = vehicle("car");
     stats.cents = 0;
-    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
-    stats.cents = 500;
-    stats.savingFor = 1000;
-    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(pull([work])).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(needOf([work], stats, 12).why).toBe("money");
+    stats.cents = A.SKINT;
+    expect(pull([work])).toBe(1);
+    stats.savingFor = 2 * A.SKINT;
+    expect(pull([work])).toBeCloseTo(1 + NEED_BOOST * A.SAVING_URGE, 6);
+  });
+  it("name a strong need in the feed, and stay quiet about a mild one", () => {
+    expect(A.needLine("fullness", 1 + NEED_BOOST * A.SAY_URGE, false, "Bakery", 0)).toBe("Hungry, heading for Bakery");
+    expect(A.needLine("fullness", 2, false, "Bakery", 0)).toBe("");
+    expect(A.needLine("money", 2, true, "Docks", 0)).toBe("Short of money, heading for Docks");
+    expect(A.needLine("", 50, true, "Docks", 0)).toBe("");
+    // Saving up with money in his pocket is not being short of it.
+    expect(A.needLine("money", 1 + NEED_BOOST * A.SAVING_URGE, false, "Docks", A.SKINT)).toBe("");
+  });
+  it("a place pulls as hard as its best action, not a mix of two", () => {
+    const meal: Action = { name: "Meal", min: 1, fx: { fullness: 40 } };
+    const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
+    stats.meters.fullness = 0;
+    stats.attrs.str = 4;
+    expect(pull([meal, lift])).toBeCloseTo(1 + NEED_BOOST, 6);
+  });
+  it("pull towards places that suit his best attribute", () => {
+    const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
+    expect(pull([lift])).toBe(1);
+    stats.attrs.str = 4;
+    expect(pull([lift])).toBeCloseTo(A.STRENGTH_MAX, 6);
+    stats.attrs.str = 2;
+    expect(pull([lift])).toBeCloseTo(2 / 1.25, 6);
   });
   it("peek at a place's actions without counting it as unknown", () => {
     const acts = new Activities({ _generic: [{ name: "Look", min: 1 }] });
@@ -583,10 +636,47 @@ describe("activities", () => {
   it("needs steer the choice", () => {
     const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
     const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
-    stats.meters.fullness = 10;
-    expect(weight(eat, stats)).toBeGreaterThan(weight(look, stats));
+    stats.meters.fullness = 20;
+    expect(weight(eat, stats)).toBeCloseTo((1 + NEED_BOOST / 4) * weight(look, stats), 6);
     stats.cents = 0;
-    expect(weight({ name: "Wash dishes", min: 60, earn: 20 }, stats)).toBeGreaterThan(weight(look, stats));
+    expect(weight({ name: "Wash dishes", min: 60, earn: 20 }, stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+  });
+
+  it("an urgent need leaves only what fixes it", () => {
+    const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
+    const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
+    stats.meters.fullness = URGENT_AT - 1;
+    for (const r of [URGENT_SLIP, 0.5, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    // Not yet at rock bottom: URGENT_SLIP of the time he picks from everything.
+    expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    for (const r of [0, 0.05, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    stats.meters.fullness = URGENT_AT;
+    expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+  });
+
+  it("a need at rock bottom beats another urgent one", () => {
+    const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
+    const fun: Action = { name: "Fun", min: 10, fx: { mood: 30 } };
+    stats.meters.fullness = A.BOTTOM_AT - 2;
+    stats.meters.mood = URGENT_AT - 5;
+    for (let i = 0; i < 20; i++) expect(choose([fun, eat], stats, 12, i / 20)!.name).toBe("Eat");
+  });
+
+  it("he shuns actions that drain a meter he needs", () => {
+    const jog: Action = { name: "Jog", min: 10, fx: { energy: -20, str: 0.1 } };
+    const w = weight(jog, stats);
+    stats.meters.energy = NEED_AT / 2;
+    expect(weight(jog, stats)).toBeCloseTo(0.75 * w, 6);
+    stats.meters.energy = 0;
+    expect(weight(jog, stats)).toBeCloseTo(A.HARM_FLOOR * w, 6);
+  });
+
+  it("he leans towards what he is good at", () => {
+    const chat: Action = { name: "Chat", min: 10, needs: { cha: 2 } };
+    const w = weight(chat, stats);
+    stats.attrs.cha = 3;
+    expect(weight(chat, stats)).toBeCloseTo(A.STRENGTH_MAX * w, 6);
   });
 
   it("saving for a trip favours paid work and cuts spending", () => {
@@ -596,11 +686,18 @@ describe("activities", () => {
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };
     const jobW = weight(job, stats);
     const dinnerW = weight(dinner, stats);
+    stats.cents = A.SKINT;
+    const jobW2 = weight(job, stats);
+    stats.savingFor = 3 * A.SKINT;
+    expect(weight(job, stats)).toBeCloseTo(jobW2 * (1 + NEED_BOOST * A.SAVING_URGE), 6);
+    stats.cents = 100;
     stats.savingFor = 150;
-    expect(weight(job, stats)).toBeGreaterThan(jobW + 3);
     expect(weight(dinner, stats)).toBeLessThan(dinnerW);
     stats.cents = 150;
-    expect(weight(job, stats)).toBeCloseTo(jobW);
+    const done = weight(job, stats);
+    stats.savingFor = 0;
+    expect(done).toBeCloseTo(weight(job, stats), 6);
+    expect(jobW).toBeGreaterThan(done);
   });
 
   it("saving for a vehicle favours paid work too", () => {
@@ -608,19 +705,20 @@ describe("activities", () => {
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const jobW = weight(job, stats);
     stats.gear.vehicle = vehicle("bike");
-    expect(weight(job, stats)).toBeCloseTo(jobW + SAVING_EARN_WEIGHT, 6);
+    expect(weight(job, stats)).toBeCloseTo(jobW * (1 + NEED_BOOST * A.SAVING_URGE), 6);
   });
 
   it("once he can afford his next vehicle, its shop pulls him and he browses", () => {
+    const pull = (acts: Action[]) => needOf(acts, stats, 12).pull;
     const browse: Action = { name: "Browse the scooters", min: 15, item: "motorcycles" };
     const bikes: Action = { name: "Browse the bikes", min: 15, item: "bicycles" };
     stats.gear.vehicle = vehicle("bike");
     stats.cents = stats.savingTarget() - 1;
-    expect(needWeight([browse], stats)).toBeCloseTo(1, 6);
+    expect(pull([browse])).toBeCloseTo(1, 6);
     const saving = weight(browse, stats);
     stats.cents = stats.savingTarget();
-    expect(needWeight([browse], stats)).toBe(GOAL_SHOP_PULL);
-    expect(needWeight([bikes], stats)).toBeCloseTo(1, 6);
+    expect(pull([browse])).toBe(GOAL_SHOP_PULL);
+    expect(pull([bikes])).toBeCloseTo(1, 6);
     expect(weight(browse, stats)).toBeGreaterThan(saving + GOAL_SHOP_WEIGHT - 1);
     expect(weight(browse, stats) - weight(bikes, stats)).toBeCloseTo(GOAL_SHOP_WEIGHT, 6);
   });
