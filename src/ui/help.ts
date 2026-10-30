@@ -18,6 +18,7 @@ import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
 import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
+import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as S from "../core/stats";
 import * as Trips from "../core/trips";
@@ -235,6 +236,11 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
+    REC_STRETCH: `${Rec.BRAG_FROM.stretchM / 1000} km`,
+    REC_DAY: `${Rec.BRAG_FROM.dayM / 1000} km`,
+    REC_STOPS: String(Rec.BRAG_FROM.dayStops),
+    REC_CENTS: euro(Rec.BRAG_FROM.cents),
+    REC_NOFAINT: Rec.span(Rec.BRAG_FROM.noFaintS),
     HOSPITAL_FEE: euro(S.HOSPITAL_FEE),
     WAKE_HEALTH: num(S.WAKE_HEALTH),
     BAG_SIZE: String(S.BAG_SIZE),

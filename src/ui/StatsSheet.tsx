@@ -1,8 +1,9 @@
 // His character sheet: level and XP, what he saves up for, six meters as
 // bars, four attributes with what his gear adds, every gear slot, the bag
-// and his buffs. Items with a story open to show it.
+// and his buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
+import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
@@ -74,6 +75,28 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
       <KV k={name} v={`${has >= needs ? "✔ " : ""}${euro(Math.min(has, needs))} / ${euro(needs)}`} tone={has >= needs ? "ok" : undefined} />
       <Bar share={has / needs} color="var(--coin)" />
     </>
+  );
+}
+
+const km = (m: number) => `${n1(m / 1000)} km`;
+
+/** His bests and lifetime totals. */
+function Records({ stats: s }: { stats: Stats }) {
+  const r = s.records;
+  return (
+    <Card icon="🏆" title="Records">
+      <div class="zebra">
+        <KV k="🚶 Longest walk without a stop" v={km(r.best.stretchM)} />
+        <KV k="📏 Most walked in a day" v={km(r.best.dayM)} />
+        <KV k="📍 Most places in a day" v={r.best.dayStops} />
+        <KV k="💰 Most money held" v={euro(r.best.cents)} />
+        <KV k="❤ Longest without fainting" v={span(r.best.noFaintS)} />
+        <KV k="🌍 Countries" v={r.countries.length} />
+        <KV k="🏙 Cities" v={r.cities.length} />
+        <KV k="💥 Mishaps" v={r.mishaps} />
+        <KV k="🏥 Faints" v={r.faints} />
+      </div>
+    </Card>
   );
 }
 
@@ -170,6 +193,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           <p class="dim small">None right now.</p>
         )}
       </Card>
+      <Records stats={s} />
     </>
   );
 }

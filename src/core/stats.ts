@@ -8,6 +8,7 @@ import { History } from "./history";
 import * as Items from "./items";
 import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
+import { Records } from "./records";
 import type { Rng } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
@@ -125,6 +126,8 @@ export class Stats {
   stops: Stop[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
+  /** His bests and lifetime totals. */
+  records = new Records();
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -288,6 +291,7 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.applyFx(fx);
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
+    this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -376,6 +380,7 @@ export class Stats {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
+      this.records.mishap();
     }
     const earn = action.earn ?? 0;
     const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
@@ -402,6 +407,7 @@ export class Stats {
   /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
   arrive(city: string, code: string, country: string): void {
     this.where = { city, code, country };
+    this.records.arrived(city, code);
     if (!code) return;
     for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
   }
@@ -463,6 +469,7 @@ export class Stats {
   stop(place: { class: string; subclass: string }): void {
     addStop(this.stops, place, this.now());
     this.week.stop(place.class);
+    this.sayIf(this.records.stopped(dayOf(this.now() * 1000)));
   }
 
   /** Notes that he arrived in a city, for the weekly recap. */
@@ -478,6 +485,7 @@ export class Stats {
   wakeInHospital(hospital: string): string {
     const fee = Math.min(HOSPITAL_FEE, Math.floor(this.cents * HOSPITAL_MAX_SHARE));
     this.cents -= fee;
+    this.records.fainted(this.now());
     this.meters.health = WAKE_HEALTH;
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
@@ -492,11 +500,17 @@ export class Stats {
     return line;
   }
 
+  /** Says `line` unless it is empty. */
+  private sayIf(line: string): void {
+    if (line) this.say(line);
+  }
+
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
+      records: this.records.toJSON(),
     };
   }
 
@@ -519,6 +533,7 @@ export class Stats {
     s.care = Care.fromJSON(d.care);
     s.stops = d.stops ?? [];
     s.week = Week.fromJSON(d.week);
+    s.records = Records.fromJSON(d.records);
     return s;
   }
 }
