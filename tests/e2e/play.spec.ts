@@ -249,8 +249,8 @@ test("the city rolls a quest board, the Stats sheet shows it, and he goes on que
   const stats = page.getByRole("dialog", { name: /Stats/ });
   await expect(stats).toContainText("On the board");
   await stats.getByRole("button", { name: /Close/ }).click();
-  // Six hours away, ready for his next quest: he takes one on and walks it.
-  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.quests.since = 9;");
+  // Six hours away, ready for his next quest: he takes one on and walks it (no trip dice before that first stop, or a trip may take him off first).
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.quests.since = 9; d.skip_roll = true;");
   const away = page.getByRole("dialog", { name: /While you were away/ });
   await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
   const lines = await away.locator(".away-log li").allTextContents();
