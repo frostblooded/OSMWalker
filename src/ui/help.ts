@@ -13,6 +13,7 @@ import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Day from "../core/day";
+import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
@@ -307,10 +308,24 @@ export function values(data: GameData): Record<string, string> {
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
     ACTION_COUNT: String(sum(data.actions)),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
+    CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
+    UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
+    PACK_SIZE: String(CC.PACK_SIZE),
+    CARD_SHOPS: CC.CARD_SHOP_NAMES,
+    PACK_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.pack)?.cost ?? 0)),
+    PULL_RARE_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Rare")![1]),
+    PULL_UNCOMMON_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Uncommon")![1]),
+    PULL_COMMON_PCT: pct(CC.PULL_ODDS.find(([r]) => r === "Common")![1]),
+    SPARE_COMMON: euro(CC.SPARE_CENTS.Common ?? 0),
+    SPARE_UNCOMMON: euro(CC.SPARE_CENTS.Uncommon ?? 0),
+    SPARE_RARE: euro(CC.SPARE_CENTS.Rare ?? 0),
+    FOIL_MULT: String(CC.FOIL_MULT),
+    GOLD_MULT: String(CC.GOLD_MULT),
+    SET_CHARM: String(CC.SET_CHARM),
     LANDMARK_KINDS: K.LANDMARK_CLASSES.map((c) => K.kindLabel(c).toLowerCase()).join(", "),
     GOLD_PCT: pct(K.GOLD_CHANCE),
     FOIL_PCT: pct(K.FOIL_CHANCE),
-    UPGRADE_PCT: pct(K.UPGRADE_CHANCE),
     DEX_XP_COMMON: String(K.DEX_XP.Common),
     DEX_XP_UNCOMMON: String(K.DEX_XP.Uncommon),
     DEX_XP_RARE: String(K.DEX_XP.Rare),
@@ -321,13 +336,12 @@ export function values(data: GameData): Record<string, string> {
     CARD_RARE_RANK: String(K.RARE_RANK),
     CARD_UNCOMMON_RANK: String(K.UNCOMMON_RANK),
     DEX_KINDS: String(Object.keys(data.dex ?? {}).length),
-    SOUVENIR_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.souvenir)?.cost ?? 0)),
-    SOUVENIR_WEIGHT: num(Activities.SOUVENIR_WEIGHT),
+    SOUVENIR_PCT: pct(K.SOUVENIR_CHANCE),
     SOUVENIR_COUNTRIES: String(Object.keys(K.SOUVENIRS).length),
     SOUVENIRS_PER_CUT: String(K.SOUVENIRS_PER_CUT),
     FARE_CUT_PCT: pct(K.FARE_CUT),
     FARE_CUT_MAX_PCT: pct(K.FARE_CUT_MAX),
-    CRAWL_LIST: K.CRAWLS.map((c) => `- ${c.icon} ${c.name}: ${c.need} different ${crawlKinds(c)} ${c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all"}, +${c.xp} XP and ${euro(c.cents)},`)
+    CRAWL_LIST: K.CRAWLS.map((c) => `- ${c.icon} ${c.name}: ${c.need} different ${crawlKinds(c)} ${c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all"}, then ${K.perkText(c.perk)} at each one he visits,`)
       .join("\n")
       .replace(/,$/, "."),
     TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),

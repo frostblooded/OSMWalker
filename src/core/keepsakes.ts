@@ -2,9 +2,10 @@
 // map's rank, sometimes foil or gold), the Placedex of place kinds he has
 // seen (rarer the less common the kind is in the POI sweep), a souvenir from
 // each country, and crawls, little sets he finishes by visiting places of a
-// kind. Pure data and rules; Stats.collect() and the souvenir action use them.
+// kind. Pure data and rules; Stats.collect() uses them.
+import type * as CC from "./cityCards";
 import type { Rarity } from "./items";
-import type { Place } from "./stats";
+import type { Fx, Place } from "./stats";
 
 /** Map classes that count as landmarks; art shops (art_gallery/art) don't. */
 export const LANDMARK_CLASSES = ["attraction", "museum", "art_gallery", "castle", "monument", "memorial", "zoo", "aquarium", "theatre", "stadium", "place_of_worship", "theme_park"];
@@ -13,13 +14,12 @@ const isArtShop = (p: Pick<Place, "class" | "subclass">) => p.class === "art_gal
 export const isLandmark = (p: Pick<Place, "class" | "subclass">) => LANDMARK_CLASSES.includes(p.class) && !isArtShop(p);
 
 export type Finish = "" | "foil" | "gold";
-/** Each new card or upgrade roll is gold this often, else foil this often. */
+/** Each new card is gold this often, else foil this often. */
 export const GOLD_CHANCE = 0.005;
 export const FOIL_CHANCE = 0.05;
-/** A revisit to a landmark he has a card for rolls for a better finish this often. */
-export const UPGRADE_CHANCE = 0.25;
-export const FINISH_ORDER: Record<Finish, number> = { "": 0, foil: 1, gold: 2 };
 export const FINISH_NAME: Record<Finish, string> = { "": "", foil: "Foil", gold: "Gold" };
+/** Plain, then Foil, then Gold. */
+export const FINISH_RANK: Record<Finish, number> = { "": 0, foil: 1, gold: 2 };
 
 /** A landmark card's rarity from the place's map rank: 1 is the most important in its area. */
 export const RARE_RANK = 1;
@@ -61,6 +61,8 @@ export const SOUVENIRS: Record<string, string> = {
   FIN: "Moomin mug", IRL: "shamrock pin", HUN: "paprika pouch", ROU: "Dracula mug", SRB: "šajkača cap",
   HRV: "Licitar heart", EGY: "papyrus scroll", MAR: "brass lantern", AUS: "boomerang", NZL: "kiwi plush", ZAF: "beaded giraffe",
 };
+/** A landmark in a country he has no souvenir from gives him one this often. */
+export const SOUVENIR_CHANCE = 0.3;
 export const souvenirName = (code: string, country: string) => SOUVENIRS[code] ?? `${country || "local"} fridge magnet`;
 /** Every SOUVENIRS_PER_CUT souvenirs cut his fares by FARE_CUT, up to FARE_CUT_MAX. */
 export const SOUVENIRS_PER_CUT = 5;
@@ -69,19 +71,24 @@ export const FARE_CUT_MAX = 0.1;
 export const fareCut = (souvenirs: number) => Math.min(Math.floor(souvenirs / SOUVENIRS_PER_CUT) * FARE_CUT, FARE_CUT_MAX);
 export type Souvenir = { name: string; country: string; city: string; t: number };
 
-/** A crawl: `need` different places of `kinds` (a class, or class/subclass) in one day, in one city, or ever. Done once; pays xp and cents. */
-export type Crawl = { id: string; name: string; icon: string; kinds: string[]; need: number; per: "day" | "city" | "ever"; xp: number; cents: number };
+/** A crawl: `need` different places of `kinds` (a class, or class/subclass) in one day, in one city, or ever. Done once; from then on every visit to one of its places gives `perk`. */
+export type Crawl = { id: string; name: string; icon: string; kinds: string[]; need: number; per: "day" | "city" | "ever"; perk: Fx };
 export const CRAWLS: Crawl[] = [
-  { id: "coffee", name: "Coffee crawl", icon: "☕", kinds: ["cafe", "shop/coffee"], need: 4, per: "day", xp: 100, cents: 1000 },
-  { id: "pub", name: "Pub crawl", icon: "🍺", kinds: ["bar", "beer"], need: 4, per: "day", xp: 100, cents: 1000 },
-  { id: "sweet", name: "Sweet tooth", icon: "🍦", kinds: ["ice_cream", "bakery", "shop/confectionery", "shop/chocolate"], need: 3, per: "day", xp: 80, cents: 800 },
-  { id: "parks", name: "Park life", icon: "🌳", kinds: ["park", "garden"], need: 5, per: "day", xp: 100, cents: 1000 },
-  { id: "shops", name: "Window shopping", icon: "🛍", kinds: ["shop", "clothing_store"], need: 6, per: "day", xp: 80, cents: 800 },
-  { id: "museums", name: "Museum marathon", icon: "🏛", kinds: ["museum"], need: 3, per: "day", xp: 150, cents: 1500 },
-  { id: "pilgrim", name: "Pilgrim", icon: "⛪", kinds: ["place_of_worship"], need: 5, per: "city", xp: 150, cents: 1500 },
-  { id: "culture", name: "Culture vulture", icon: "🎭", kinds: ["museum", "art_gallery", "theatre"], need: 15, per: "ever", xp: 300, cents: 3000 },
-  { id: "sights", name: "Sightseer", icon: "🃏", kinds: LANDMARK_CLASSES, need: 25, per: "ever", xp: 300, cents: 3000 },
+  { id: "coffee", name: "Coffee crawl", icon: "☕", kinds: ["cafe", "shop/coffee"], need: 4, per: "day", perk: { energy: 2 } },
+  { id: "pub", name: "Pub crawl", icon: "🍺", kinds: ["bar", "beer"], need: 4, per: "day", perk: { mood: 2 } },
+  { id: "sweet", name: "Sweet tooth", icon: "🍦", kinds: ["ice_cream", "bakery", "shop/confectionery", "shop/chocolate"], need: 3, per: "day", perk: { fullness: 2 } },
+  { id: "parks", name: "Park life", icon: "🌳", kinds: ["park", "garden"], need: 5, per: "day", perk: { health: 1 } },
+  { id: "shops", name: "Window shopping", icon: "🛍", kinds: ["shop", "clothing_store"], need: 6, per: "day", perk: { mood: 1 } },
+  { id: "museums", name: "Museum marathon", icon: "🏛", kinds: ["museum"], need: 3, per: "day", perk: { xp: 5 } },
+  { id: "pilgrim", name: "Pilgrim", icon: "⛪", kinds: ["place_of_worship"], need: 5, per: "city", perk: { mood: 2 } },
+  { id: "culture", name: "Culture vulture", icon: "🎭", kinds: ["museum", "art_gallery", "theatre"], need: 15, per: "ever", perk: { xp: 5 } },
+  { id: "sights", name: "Sightseer", icon: "🃏", kinds: LANDMARK_CLASSES, need: 25, per: "ever", perk: { xp: 5 } },
 ];
+/** "+2 energy", "+5 XP". */
+export const perkText = (perk: Fx) =>
+  Object.entries(perk)
+    .map(([k, v]) => `+${v} ${k === "xp" ? "XP" : k}`)
+    .join(", ");
 export const crawlMatches = (c: Crawl, p: Pick<Place, "class" | "subclass">) => !isArtShop(p) && (c.kinds.includes(p.class) || c.kinds.includes(kindOf(p)));
 
 /** Everything he has collected, as saved. */
@@ -98,6 +105,16 @@ export class Keepsakes {
   progress: Record<string, string[]> = {};
   day = "";
   city = "";
+  /** City cards he owns, by card key (see cityCards.ts), with their best finish. */
+  cityCards = new Map<string, CC.Owned>();
+  /** City cards he pulled twice, waiting to be sold at a card shop. */
+  spares: CC.Spare[] = [];
+  /** Free packs he has earned (level-ups, new cities and countries) and opens at his next stop. */
+  freePacks = 0;
+  /** Cities ("code:name") and countries ("code") he has been to, for the free packs. */
+  seen: string[] = [];
+  /** Countries whose whole city card set he has; not saved, worked out again from his cards when the game sets the pool. */
+  sets: string[] = [];
 
   /** Starts each day's and city's crawls over when the day or city changed. */
   roll(day: string, city: string): void {
@@ -117,6 +134,10 @@ export class Keepsakes {
       progress: this.progress,
       day: this.day,
       city: this.city,
+      cityCards: [...this.cityCards],
+      spares: this.spares,
+      freePacks: this.freePacks,
+      seen: this.seen,
     };
   }
 
@@ -130,6 +151,10 @@ export class Keepsakes {
     k.progress = d.progress ?? {};
     k.day = d.day ?? "";
     k.city = d.city ?? "";
+    k.cityCards = new Map(d.cityCards ?? []);
+    k.spares = d.spares ?? [];
+    k.freePacks = d.freePacks ?? 0;
+    k.seen = d.seen ?? [];
     return k;
   }
 }

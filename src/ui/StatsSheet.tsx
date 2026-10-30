@@ -1,14 +1,14 @@
 // His character sheet: level and XP, what he saves up for, six meters as
 // bars, the sky over him, four attributes with what his gear adds, every
 // gear slot, the bag and his buffs. Items with a story open to show it.
-import { isTreasured, SLOTS, type Item, type Rarity, type Slot } from "../core/items";
+import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { speed } from "./format";
-import { Bar, Card, Collapsible, KV } from "./kit";
+import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
   health: ["❤", "Health", "#c01c28"],
@@ -29,7 +29,6 @@ const SLOT: Record<Slot, [string, string]> = {
   trinket: ["💍", "Trinket"],
   vehicle: ["🚲", "Vehicle"],
 };
-export const RARITY_COLOR: Record<Rarity, string> = { Common: "#6b7280", Uncommon: "#2e9e44", Rare: "#1a5fb4", Legendary: "#e8730c" };
 
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString();
 /** Hours as a 24-hour clock time. */

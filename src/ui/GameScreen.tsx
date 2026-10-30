@@ -83,6 +83,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         }, SHEETS_AFTER_MS);
       })
       .catch((e: Error) => {
+        game.woken();
         game.problems.error(`The map couldn't start: ${e.message}`);
         setMapError("The map couldn't load. Check your connection and reload.");
       });
@@ -90,7 +91,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     return () => {
       gone = true;
       unsub();
-      loop?.pause();
+      loop?.stop();
       view?.destroy();
       scene.current = null;
     };
@@ -277,7 +278,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={lazySheets.failed} />}
         </SheetBox>
       )}
-      {received && sheet === null && !game.away && (
+      {received && sheet === null && game.woke && !game.away && (
         <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
           {sheets ? (
             <sheets.ReceivedSheet

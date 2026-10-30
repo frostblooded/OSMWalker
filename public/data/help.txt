@@ -30,7 +30,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 
 The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count. On a trip to another city by bus, plane or car the weather doesn't reach him.
 
-In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, Placedex entries or crawl progress. He leaves such a city from its bus station or a gas station in the middle.
+In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle.
 
 If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby, and in the same time for the city's weather (see Weather).
 
@@ -265,7 +265,7 @@ Strength unlocks physical actions: for example hauling for the butcher needs 3, 
 
 The number counted for requirements is his own strength plus every strength bonus on his gear.
 ## Charm {cha}
-Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments.
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards).
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
@@ -288,7 +288,7 @@ He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the f
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
-Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. On a tie, strength comes first, then charm, wits and luck.
+Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
 ## Fainting and hospital {fainting}
@@ -356,7 +356,7 @@ How he goes depends on the distance in a straight line:
 - from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
 - over {PLANE_ALWAYS_KM} km he always flies.
 
-By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead, fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
 To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 
@@ -387,7 +387,18 @@ A card's rarity comes from the place's rank on the map (see Places of note):
 - rank {CARD_UNCOMMON_RANK}: Uncommon,
 - any other: Common.
 
-On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card. When he goes back to a landmark he has a card for, there is a {UPGRADE_PCT} chance he rolls its finish again, and he keeps it only if it is better (plain, then Foil, then Gold). The feed says "New card" or "Card upgraded", and the Collection sheet shows them all.
+On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card, given on his first visit; going back gives nothing more, and a card's finish never changes. The feed says "New card", and the Collection sheet shows them all.
+## City cards {citycards}
+City cards are trading cards of the world's cities: the {CITY_CARDS_PER_COUNTRY} biggest cities of every country, {CITY_CARD_TOTAL} cards in all. A card's rarity is fixed by how big its city is in its country:
+- the biggest: Rare,
+- the next {UNCOMMON_CITY_COUNT}: Uncommon,
+- the rest: Common.
+
+Cards come in packs of {PACK_SIZE}. He gets a free pack each time he levels up, and for each new city and each new country he reaches, and opens them at his next stop. He also buys packs at {CARD_SHOPS}: "Buy a city card pack" costs {PACK_PRICE}. Each card in a pack is Rare {PULL_RARE_PCT} of the time, Uncommon {PULL_UNCOMMON_PCT} and Common {PULL_COMMON_PCT}, then a random city of that rarity. Like landmark cards, a card can be Foil or Gold.
+
+A card he already has is a spare, unless it has a better finish: then it takes the old card's place and the old one is the spare. He sells his spares the next time he reaches one of those shops: {SPARE_COMMON} for a Common, {SPARE_UNCOMMON} for an Uncommon and {SPARE_RARE} for a Rare, {FOIL_MULT} times that if Foil and {GOLD_MULT} times if Gold.
+
+When he has every card of a country, its set is done: he gets Charm +{SET_CHARM} while he is in that country. At made-up places (see While you were away) he doesn't sell spares or open free packs; those wait for his next real stop.
 ## Placedex {placedex}
 The Placedex counts every kind of place he has been to, such as a cafe, a Christian place of worship or a viewpoint. The first time he reaches a kind he has never seen, he gets bonus XP by how rare that kind is:
 - Common: +{DEX_XP_COMMON} XP,
@@ -397,11 +408,11 @@ The Placedex counts every kind of place he has been to, such as a cafe, a Christ
 
 Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
 ## Souvenirs {souvenirs}
-In every country he can buy one souvenir. "Buy a souvenir" costs {SOUVENIR_PRICE} and is an action at gift shops, kiosks, newsagents, sights and museums, but only while he has no souvenir from the country he is in. It weighs +{SOUVENIR_WEIGHT} in How he chooses. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else he buys a fridge magnet.
+Every country has one souvenir for him, and it costs nothing. Each time he reaches a landmark (see Landmark cards) in a country he has no souvenir from, there is a {SOUVENIR_PCT} chance he finds it there. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else it is a fridge magnet.
 
 Souvenirs make him a seasoned traveller: every {SOUVENIRS_PER_CUT} souvenirs make his fares {FARE_CUT_PCT} cheaper, up to {FARE_CUT_MAX_PCT} (see Fares).
 ## Crawls {crawls}
-A crawl is a little set he finishes by visiting different places of a kind. Each is done once and pays XP and money:
+A crawl is a little set he finishes by visiting different places of a kind. Each is done once, and from then on it gives a small lasting perk every time he reaches one of its places, on top of whatever he does there:
 {CRAWL_LIST}
 
 "A day" is a day on your device's clock, so a crawl he hasn't finished by midnight starts over. "In one city" starts over when he travels to another city. Visiting the same place twice counts once.
@@ -464,13 +475,14 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
-- Attributes: a tile for each, with the part his gear adds in green.
+- Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
 - Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
+- City cards: how many of each rarity he has out of all, foil and gold, spares waiting to be sold and free packs waiting to be opened, then a row per country he has cards from (tap Countries), with ✔ for a finished set.
 - Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
 - Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
 - Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.

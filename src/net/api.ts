@@ -5,8 +5,8 @@
 // is easy to test.
 import * as CityFacts from "../core/cityFacts";
 import type { BBox, Tile } from "../core/geo";
-import type { Cell, OverpassData } from "../core/graph";
-import { fromPbf, TILE_ZOOM } from "../core/ofm";
+import type { OverpassData } from "../core/graph";
+import { TILE_ZOOM } from "../core/ofm";
 import { parseForecast, weatherUrl, type Forecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 
@@ -198,7 +198,7 @@ export class Api {
     this.serverStats.set(host, st);
   }
 
-  /** The raw pbf of one z14 street tile from OpenFreeMap, or null. */
+  /** The raw pbf of one z14 street tile from OpenFreeMap, or null. The streets worker decodes it (core/ofm.ts), so the decoder stays out of the page's code. */
   async streetTileBytes(tile: Tile): Promise<Uint8Array | null> {
     // Loads that start together share one TileJSON request.
     this.tileUrl ??= this.getJson(OFM_TILEJSON, TILE_TIMEOUT_S).then((tj) => (tj as { tiles?: string[] } | null)?.tiles?.[0] ?? "");
@@ -216,12 +216,6 @@ export class Api {
     }
     this.serverResult(url, "");
     return gunzipIfNeeded(body);
-  }
-
-  /** Walkable streets of one z14 tile from OpenFreeMap, or null. */
-  async streetTile(tile: Tile): Promise<Cell | null> {
-    const bytes = await this.streetTileBytes(tile);
-    return bytes ? fromPbf(bytes, tile) : null;
   }
 
   /** True while the tile server is resting after a failure. */

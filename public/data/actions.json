@@ -905,16 +905,6 @@
    }
   },
   {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
-  },
-  {
    "name": "Wait out the rain in the galleries",
    "min": 45,
    "fx": {
@@ -1073,16 +1063,6 @@
    "needs": {
     "cha": 4
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "castle": [
@@ -2742,14 +2722,13 @@
    }
   },
   {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
    "fx": {
-    "mood": 8,
-    "xp": 5
+    "mood": 4
    },
-   "souvenir": true
+   "pack": true
   }
  ],
  "shop/convenience": [
@@ -3267,14 +3246,13 @@
    }
   },
   {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
    "fx": {
-    "mood": 8,
-    "xp": 5
+    "mood": 4
    },
-   "souvenir": true
+   "pack": true
   }
  ],
  "shop/second_hand": [
@@ -4704,14 +4682,13 @@
    }
   },
   {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
    "fx": {
-    "mood": 8,
-    "xp": 5
+    "mood": 4
    },
-   "souvenir": true
+   "pack": true
   }
  ],
  "shop/mobile_phone": [
