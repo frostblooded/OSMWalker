@@ -3,13 +3,16 @@
 // often while his city has no places of note. Cities come from a bundled list
 // and are picked weighted by population. He gets there by bus from a bus
 // station, by plane from an airport, or in his own car after filling up at a
-// gas station, and pays for the ride. A long flight leaves him jet-lagged.
-import { isBusStation, isGasStation } from "./cityCheck";
+// gas station, and pays for the ride. Where the places allow it he takes the
+// train from a railway station instead of the bus, now and then a ferry from
+// a ferry terminal, and cycles to a near town on his bike. Broke, he
+// hitchhikes for free. A long flight leaves him jet-lagged.
+import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from "./cityCheck";
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
-import { BUS, CAR_ROAD, PLANE } from "./speeds";
-import type { Action, Place } from "./stats";
+import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, HITCH, PLANE, TRAIN } from "./speeds";
+import type { Action, Fx, Place } from "./stats";
 
 export const COUNTRY_CHANCE = 0.025;
 export const CITY_CHANCE = 0.1;
@@ -20,6 +23,25 @@ export const BUS_PER_KM = 0.08;
 export const PLANE_BASE = 50;
 export const PLANE_PER_KM = 0.03;
 export const FUEL_PER_KM = 0.12;
+/** Trains 0.07 a km, ferries 0.10 a km; cycling and hitchhiking are free. */
+export const TRAIN_PER_KM = 0.07;
+export const FERRY_PER_KM = 0.1;
+/** He takes the train instead of the bus from this far, when a railway station is loaded. */
+export const TRAIN_FROM_M = 100_000;
+/** A train ride this long is a night train: he sleeps in a berth and arrives rested. */
+export const SLEEPER_FROM_M = 400_000;
+/** With a ferry terminal loaded, a trip by road to a city up to FERRY_MAX_M away in a straight line goes by ferry this share of the time, straight over the water. */
+export const FERRY_CHANCE = 0.3;
+export const FERRY_MAX_M = 600_000;
+/** On his bike he cycles to towns closer than this. */
+export const CYCLE_MAX_M = 30_000;
+/** With less than this many cents and no fare he can pay (or no station), he hitchhikes instead, if a road reaches. */
+export const HITCH_BELOW = 2000;
+/** A hitched ride goes badly this share of the time, and is a great story HITCH_GOOD of the time. */
+export const HITCH_BAD = 0.15;
+export const HITCH_GOOD = 0.25;
+export const HITCH_BAD_FX: Fx = { mood: -10, energy: -15 };
+export const HITCH_GOOD_FX: Fx = { mood: 15, xp: 20 };
 /** Rides go this many times faster than the real speeds, and never take longer than RIDE_MAX_S. */
 export const RIDE_SPEEDUP = 10;
 export const RIDE_MAX_S = 15 * 60;
@@ -52,7 +74,7 @@ export const JET_LAG_ENERGY_PER_H = 4;
 export const JET_LAG_XP = 0.9;
 
 export type Kind = "stay" | "city" | "country";
-export type Mode = "bus" | "plane" | "car";
+export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch";
 export type City = { name: string; code: string; country: string; lat: number; lon: number; pop: number; bounds?: BBox };
 export type Airport = Place & { iata: string; code: string };
 export type LatLon = [number, number];
@@ -92,18 +114,32 @@ export function roll(r: number, boost = 1): Kind {
   return "stay";
 }
 
-const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD };
+const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH };
+const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0 };
+/** How each way of travelling looks on screen and in the feed. */
+export const MODES: Record<Mode, { icon: string; by: string }> = {
+  bus: { icon: "🚌", by: "bus" },
+  plane: { icon: "✈", by: "plane" },
+  car: { icon: "🚗", by: "car" },
+  train: { icon: "🚆", by: "train" },
+  ferry: { icon: "⛴", by: "ferry" },
+  bike: { icon: "🚲", by: "bike" },
+  hitch: { icon: "👍", by: "a hitched lift" },
+};
+/** Ways that cost nothing and need no station: he sets off from where he stands. */
+export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
 
 /** Seconds a ride of `distanceM` takes. */
 export function rideS(mode: Mode, distanceM: number): number {
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
 }
 
-/** Cents for a ride of `distanceM`, rounded up to a cent and never free. */
+/** Cents for a ride of `distanceM`, rounded up to a cent and never free, but for cycling and hitchhiking. */
 export function fare(mode: Mode, distanceM: number): number {
   const km = distanceM / 1000;
   if (mode === "plane") return Math.ceil(toCents(PLANE_BASE) + 100 * PLANE_PER_KM * km);
-  return Math.max(Math.ceil(100 * (mode === "car" ? FUEL_PER_KM : BUS_PER_KM) * km), 1);
+  if (FREE.has(mode)) return 0;
+  return Math.max(Math.ceil(100 * PER_KM[mode] * km), 1);
 }
 
 /** How likely he flies rather than goes by road: 0 below 200 km, 1 above 1000 km. */
@@ -160,18 +196,40 @@ export class Trips {
 
   /**
    * How he gets from `here` to `city`, or why he can't. `places` are the
-   * places loaded around him, `r` in [0, 1) decides plane or road, and
-   * `fareMult` scales the fare (his souvenirs make it cheaper).
+   * places loaded around him, `r` in [0, 1) decides plane or road (and a
+   * ferry), `fareMult` scales the fare (his souvenirs make it cheaper), and
+   * `hasBike` lets him cycle to a near town.
    */
-  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number, fareMult = 1): Plan | NoPlan {
+  planTrip(city: City, here: LatLon, places: Place[], cents: number, hasCar: boolean, r: number, fareMult = 1, hasBike = false): Plan | NoPlan {
     const straight = distanceM(here[0], here[1], city.lat, city.lon);
-    const road: Mode = hasCar ? "car" : "bus";
-    const order: Mode[] = r < planeChance(straight) ? ["plane", road] : [road, "plane"];
-    for (const mode of order) {
+    const at = (test: (p: Place) => boolean) => nearest(places, here[0], here[1], Infinity, test);
+    const roadM = straight * ROAD_FACTOR;
+    const setOff = (mode: Mode, distance_m: number): Plan => ({ city, mode, station: roadOut(here), fare: 0, arrive: [city.lat, city.lon], distance_m });
+    if (hasBike && straight < CYCLE_MAX_M) return setOff("bike", roadM);
+    /** The road way out: his car, else a ferry now and then, a train for long trips, or the bus. */
+    const road = (): [Mode, Place] | null => {
+      if (hasCar) {
+        const g = at(isGasStation);
+        return g && ["car", g];
+      }
+      const ferry = straight <= FERRY_MAX_M && rr < FERRY_CHANCE ? at(isFerryTerminal) : null;
+      if (ferry) return ["ferry", ferry];
+      const rail = roadM >= TRAIN_FROM_M ? at(isRailwayStation) : null;
+      if (rail) return ["train", rail];
+      const bus = at(isBusStation);
+      return bus && ["bus", bus];
+    };
+    const p = planeChance(straight);
+    const order: ("plane" | "road")[] = r < p ? ["plane", "road"] : ["road", "plane"];
+    // The part of r the plane didn't use, spread over [0, 1) again, so the ferry odds don't depend on the plane's.
+    const rr = r < p ? r / p : (r - p) / (1 - p);
+    let short: NoPlan | null = null;
+    for (const way of order) {
+      let mode: Mode = "plane";
       let station: Place | null;
       let arrive: LatLon = [city.lat, city.lon];
-      let dist = straight * ROAD_FACTOR;
-      if (mode === "plane") {
+      let dist = roadM;
+      if (way === "plane") {
         station = this.nearestAirport(here[0], here[1]);
         const there = this.nearestAirport(city.lat, city.lon);
         if (!station || !there || there.name === station.name) continue;
@@ -179,13 +237,21 @@ export class Trips {
         dist = distanceM(station.lat, station.lon, there.lat, there.lon);
       } else {
         if (straight > MAX_ROAD_M) continue;
-        station = nearest(places, here[0], here[1], Infinity, mode === "car" ? isGasStation : isBusStation);
-        if (!station) continue;
+        const found = road();
+        if (!found) continue;
+        [mode, station] = found;
+        if (mode === "ferry") dist = straight;
       }
       const cost = Math.max(Math.ceil(fare(mode, dist) * fareMult), 1);
-      if (cost > cents) return { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
+      // Can't pay the first way: the other may be cheaper.
+      if (cost > cents) {
+        short ??= { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
+        continue;
+      }
       return { city, mode, station, fare: cost, arrive, distance_m: dist };
     }
+    if (cents < HITCH_BELOW && straight <= MAX_ROAD_M) return setOff("hitch", roadM);
+    if (short) return short;
     if (straight > MAX_ROAD_M) return { error: "too far to go by road, and no airport within reach" };
     return { error: `no ${hasCar ? "gas station" : "bus station"} or airport within reach` };
   }
@@ -217,6 +283,16 @@ export class Trips {
     }
     return opts[opts.length - 1]!;
   }
+}
+
+/** Where he sets off from on his bike or with his thumb out: right where he stands. */
+export const roadOut = (here: LatLon): Place => ({ name: "the road out of town", class: "road", subclass: "", rank: 0, lat: here[0], lon: here[1] });
+
+/** "Heading to X for the bus to Y (€5)", or how he sets off on his bike or hitchhiking. */
+export function heading(plan: Plan, to: string): string {
+  if (plan.mode === "bike") return `Setting off on his bike for ${to}`;
+  if (plan.mode === "hitch") return `Broke, so he sticks his thumb out to hitchhike to ${to}`;
+  return `Heading to ${plan.station.name} for the ${plan.mode} to ${to} (${euro(plan.fare)})`;
 }
 
 export const isPlan = (p: Plan | NoPlan): p is Plan => !("error" in p);

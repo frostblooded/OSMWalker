@@ -22,3 +22,8 @@ export const FLYERS: ReadonlySet<Vehicle> = new Set(["broom", "carpet", "dragon"
 export const BUS = 80 / 3.6;
 export const PLANE = 800 / 3.6;
 export const CAR_ROAD = 90 / 3.6;
+export const TRAIN = 100 / 3.6;
+export const FERRY = 30 / 3.6;
+/** On his bike on country roads, and hitching (counting the wait by the road). */
+export const BIKE_ROAD = 18 / 3.6;
+export const HITCH = 50 / 3.6;
