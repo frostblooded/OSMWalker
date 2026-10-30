@@ -31,6 +31,7 @@ import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
 import * as Sky from "../core/sky";
+import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
@@ -332,6 +333,11 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
+    REC_STRETCH_KM: km(Rec.BRAG_FROM.stretchM),
+    REC_DAY_KM: km(Rec.BRAG_FROM.dayM),
+    REC_STOPS: String(Rec.BRAG_FROM.dayStops),
+    REC_CENTS: euro(Rec.BRAG_FROM.cents),
+    REC_NOFAINT: Rec.span(Rec.BRAG_FROM.noFaintS),
     HOSPITAL_FEE: euro(S.HOSPITAL_FEE),
     WAKE_HEALTH: num(S.WAKE_HEALTH),
     BAG_SIZE: String(S.BAG_SIZE),
@@ -405,6 +411,7 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
