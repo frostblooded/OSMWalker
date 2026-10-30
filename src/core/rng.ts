@@ -1,5 +1,12 @@
 // Seedable random numbers (mulberry32), so game logic is testable.
 
+/** A seed made from `text` (FNV-1a), so the same text always gives the same dice. */
+export function seedOf(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
 export class Rng {
   private s: number;
 

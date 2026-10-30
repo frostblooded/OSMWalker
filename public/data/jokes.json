@@ -1,0 +1,80 @@
+{
+ "_generic": [
+  "Nobody clapped. Fair enough.",
+  "It happened, and then it was over.",
+  "History will not record this. The History tab will.",
+  "He felt this was a good use of a minute.",
+  "Somewhere, a dragon did the same thing, but bigger."
+ ],
+ "museum": [
+  "The museum did not visit back.",
+  "Several statues ignored him.",
+  "He understood at least one painting."
+ ],
+ "art_gallery": [
+  "He nodded at a painting. It did not nod back.",
+  "One picture was clearly about him. It was not."
+ ],
+ "cafe": [
+  "The coffee had opinions.",
+  "He drank it slowly, like a person with nowhere to be.",
+  "The foam looked like a duck. He thought."
+ ],
+ "bakery": [
+  "The bread asked no questions.",
+  "He was not the only one who loved the croissant. He was the only one who said so."
+ ],
+ "park": [
+  "The trees did not comment.",
+  "A pigeon judged him and moved on.",
+  "Grass: still green."
+ ],
+ "garden": [
+  "A bee was busier than him. Fair.",
+  "He smelled a flower. The flower did nothing."
+ ],
+ "library": [
+  "He was quiet. So was everyone. It worked.",
+  "A book looked at him. He looked away first."
+ ],
+ "bar": [
+  "The bartender had heard that one before.",
+  "He ordered with confidence. The confidence left early."
+ ],
+ "restaurant": [
+  "The waiter called him 'sir'. He felt tall.",
+  "He left one pea. On purpose."
+ ],
+ "fast_food": [
+  "Fast, yes. Food, mostly.",
+  "The tray was the best part."
+ ],
+ "shop": [
+  "The shop had things. He looked at them.",
+  "A shopkeeper smiled. He smiled harder."
+ ],
+ "place_of_worship": [
+  "It was very quiet. Even his shoes agreed.",
+  "He lit a candle for his feet."
+ ],
+ "monument": [
+  "It stood there. So did he. A draw.",
+  "The monument has been here longer. It showed."
+ ],
+ "castle": [
+  "No dragons today. He checked twice.",
+  "The walls were thick. So was the guidebook."
+ ],
+ "fountain": [
+  "He made a wish. The fountain kept the coin.",
+  "Water went up. Then down. Riveting."
+ ],
+ "railway": [
+  "The trains were on time. He was not going anywhere.",
+  "He waved at a train. Nobody waved back."
+ ],
+ "zoo": [
+  "A goat stared at him for a full minute.",
+  "The penguins were unimpressed."
+ ]
+}

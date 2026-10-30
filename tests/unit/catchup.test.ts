@@ -96,6 +96,15 @@ describe("catch-up", () => {
     expect(a.lines.map((l) => l.text)).toEqual(b.lines.map((l) => l.text));
   });
 
+  it("jokes fit the kind of place he is at", () => {
+    const stats = new Stats();
+    stats.jokes = { cafe: ["Cafe joke."], restaurant: ["Diner joke."], _generic: ["Other joke."] };
+    const s = catchUp(stats, HOME, [0, 0], 12 * 3600, START_MS, deps());
+    const texts = s.lines.map((l) => l.text);
+    expect(texts.some((t) => / at Cafe (One|Two).* Cafe joke\.$/.test(t))).toBe(true);
+    expect(texts.some((t) => / at Cafe (One|Two).* (Diner|Other) joke\.$/.test(t))).toBe(false);
+  });
+
   it("uses made-up places of the usual kinds where none are loaded", () => {
     const stats = new Stats();
     const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 2 * 3600, START_MS, deps());
