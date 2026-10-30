@@ -91,6 +91,15 @@ Old books in real libraries and bookshops hide little spells. Each time he reach
 {SPELL_LIST}
 
 A spell that tops up a meter is cast as soon as that meter is under {SPELL_AT}. A spell that gives a buff is cast only when he has at least {SPARE_MAGIC} Magic and the buff isn't on, so some Magic is always left for the others. The Stats sheet lists the spells he knows and how often he cast each, and each one gets a tile in the Collection (Gear tab).
+## The shop after midnight {midnight_shop}
+In the small hours ({TIME_MIDNIGHT}) some real shops open for those who knock: {MIDNIGHT_SHOPS}. When he knocks, {ENCHANTED_PCT} of the time the shelf holds an enchanted item, and otherwise a trinket.
+
+An enchanted item is ordinary gear (a weapon, clothes or a trinket) with one enchantment on top of at most {ENCHANTED_MODS_MAX} other modifiers, so it is never Common: {ENCHANT_LIST}. It costs {ENCHANTED_PRICE}× the usual price plus {ENCHANTED_MAGIC} Magic, and he buys it only if it is an upgrade, like any gear. Magic from enchanted gear fills his Magic meter for every km he walks, shown on the Stats sheet.
+
+A trinket is used on the spot:
+{TRINKET_LIST}
+
+He pays only when he has the euros (keeping his reserve) and the Magic. Everything he finds there gets a tile in the Collection (Gear tab, Midnight finds).
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations, bridges and many more. A street bridge is named after its street ("Bridge on Main Street") and an unnamed footbridge is just "Footbridge"; bridges rank low, so he heads for one only now and then. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
@@ -219,7 +228,7 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Level: some need a minimum level.
-- Time of day, by your device's clock: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}. Bars serve rakia only in the evening, for example.
+- Time of day, by your device's clock: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}. Bars serve rakia only in the evening, for example.
 - Low meters: some only happen when a meter is low, such as napping under a tree when his energy is under 40, or the soup kitchen when his fullness is under 30.
 ## Money {coins}
 His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
@@ -299,7 +308,7 @@ When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 ## Magic {magic}
-Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), and so do a few fantasy quests and night events, such as The Ley Hunter and humming stones; his spells spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
+Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), enchanted gear as he walks (see The shop after midnight), and a few fantasy quests and night events, such as The Ley Hunter and humming stones; his spells and the shop after midnight spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
@@ -379,7 +388,7 @@ Those are the odds at luck 0. Each point of luck lifts the roll by {LUCK_RARITY_
 
 The first modifier is always a suffix: of the Bear (strength +2), of the Fox (wits +2), of the Peacock (charm +2), of Fortune (luck +2) or of the Owl (wits +1, luck +1). The others are prefixes, never the same one twice: Mighty (strength +2), Charming (charm +2), Clever (wits +2), Lucky (luck +2), Sharp (strength +1, wits +1) or Gleaming (charm +1, luck +1).
 
-Each modifier adds {MOD_PRICE_PCT} of the price.
+Each modifier adds {MOD_PRICE_PCT} of the price. Enchantments are modifiers too, sold only by the shop after midnight (see The shop after midnight).
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
@@ -664,7 +673,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
-- Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic).
+- Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
@@ -679,7 +688,7 @@ At the top, Completion counts every tile he has found and every badge tier he ho
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures) and the crawls.
 - 🌍 World: every country, how many cities he has been to, the souvenirs, and his monuments with his golden bricks (see Golden bricks).
-- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, and the spells he knows (see Spells).
+- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 
 Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.

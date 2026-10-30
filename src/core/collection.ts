@@ -9,6 +9,7 @@ import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
 
@@ -201,6 +202,16 @@ export const SETS: CSet[] = [
         const got = s.lore.known.includes(k.id);
         return { id: k.id, icon: k.icon, name: k.name, got, info: got ? `Cast ${s.lore.casts[k.id] ?? 0}×` : "Found in an old book at a library or bookshop" };
       }),
+  },
+  {
+    id: "midnight",
+    tab: "gear",
+    icon: "🌙",
+    title: "Midnight finds",
+    entries: (s) => [
+      ...Items.ENCHANTMENTS.map((e) => ({ id: e.name, icon: "🌙", name: e.name, got: s.finds.got.includes(e.name), info: s.finds.got.includes(e.name) ? "Bought on enchanted gear" : "Enchanted gear from the shop after midnight" })),
+      ...TRINKETS.map((t) => ({ id: t.id, icon: t.icon, name: t.name, got: s.finds.got.includes(t.id), info: s.finds.got.includes(t.id) ? "Bought after midnight" : "A trinket from the shop after midnight" })),
+    ],
   },
   {
     id: "crawls",

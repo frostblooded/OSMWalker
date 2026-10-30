@@ -11,6 +11,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
+import * as Midnight from "../core/midnight";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -223,6 +224,16 @@ export function values(data: GameData): Record<string, string> {
     SPELL_AT: num(Magic.SPELL_AT),
     SPARE_MAGIC: num(Magic.SPARE_MAGIC),
     SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
+    MIDNIGHT_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.midnight))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    ENCHANTED_MODS_MAX: num(Items.ENCHANTED_MODS_MAX),
+    ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
+    ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
+    ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
+    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
+    TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),

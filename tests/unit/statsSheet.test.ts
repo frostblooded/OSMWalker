@@ -71,4 +71,11 @@ describe("Stats sheet", () => {
     stats.clubs.list = [{ kind: "chess", host: "x", city: "Sofia, Bulgaria", place: { name: "Café Rila", lat: 0, lon: 0 }, day: 2, hour: 19, joined: 0, last: "", nights: 0 }];
     expect(shown(stats)).toContain("♟ Chess clubSofia · Tue 19:00");
   });
+
+  it("shows what his enchanted gear adds to Magic a km", () => {
+    const stats = new Stats();
+    expect(shown(stats)).not.toContain("From enchanted gear");
+    stats.equip(Items.build(Items.KINDS.trinkets[0]!, Items.MATERIALS[0]!, [Items.ENCHANTMENTS.find((e) => e.name === "of the Moon")!]));
+    expect(shown(stats)).toContain("🌙 From enchanted gear+2 a km");
+  });
 });

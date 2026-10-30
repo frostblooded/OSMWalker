@@ -30,7 +30,8 @@ export const TIER: Partial<Record<Vehicle, Vehicle>> = { tortoise: "bike", broom
 export const MOUNT_STOCK = 0.1;
 export const RARE_STOCK: ReadonlySet<string> = new Set(["tortoises", "brooms", "carpets"]);
 
-export type Stats = Partial<Record<"str" | "cha" | "wit" | "luck" | "speed", number>>;
+/** What an item adds: attributes, speed in percent, and Magic per km he walks (enchanted items, see ENCHANTMENTS). */
+export type Stats = Partial<Record<"str" | "cha" | "wit" | "luck" | "speed" | "magic", number>>;
 /** Where an item came from and what it has been through with him. */
 export type Story = { from: string; t: number; countries: string[]; km: number };
 export type Item = { name: string; slot: Slot; stats: Stats; rarity: Rarity; price: number; vehicle?: Exclude<Vehicle, "">; story?: Story };
@@ -103,6 +104,14 @@ export const SUFFIXES: Modifier[] = [
   { name: "of Fortune", stats: { luck: 2 } }, { name: "of the Owl", stats: { wit: 1, luck: 1 } }, { name: "of the Hare", stats: { speed: 4 } },
 ];
 
+/** Enchantments, sold only by the shop after midnight (midnight.ts): one goes on top of an item's other modifiers. */
+export const ENCHANTMENTS: Modifier[] = [
+  { name: "Moonlit", stats: { magic: 2 } }, { name: "Starlit", stats: { magic: 1, luck: 1 } },
+  { name: "of the Moon", stats: { magic: 2 } }, { name: "of the Ley", stats: { magic: 1, wit: 1 } },
+];
+/** An enchanted item has at most this many other modifiers, so with its enchantment it is at most Legendary. */
+export const ENCHANTED_MODS_MAX = RARITY.length - 2;
+
 /** How many modifiers a roll r in [0, 1) gives. */
 export function modifierCount(r: number): number {
   return MOD_ROLLS.filter((t) => r >= t).length;
@@ -110,15 +119,30 @@ export function modifierCount(r: number): number {
 
 /** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost). */
 export function make(kind: Kind, level: number, rng: Rng, luck = 0): Item {
+  const [base, mat, mods] = roll(kind, level, rng, luck, MOD_ROLLS.length);
+  return build(base, mat, mods);
+}
+
+/** Like make, plus an enchantment: a prefix, or the suffix when the item has none (see ENCHANTMENTS). */
+export function makeEnchanted(kind: Kind, level: number, rng: Rng, luck = 0): Item {
+  const [base, mat, mods] = roll(kind, level, rng, luck, ENCHANTED_MODS_MAX);
+  const hasSuffix = mods.some((m) => m.name.startsWith("of "));
+  const fits = ENCHANTMENTS.filter((e) => e.name.startsWith("of ") !== hasSuffix);
+  mods.push(rng.pick(fits));
+  return build(base, mat, mods);
+}
+
+/** A base, a material and up to `most` modifiers for a shop of `kind`. */
+function roll(kind: Kind, level: number, rng: Rng, luck: number, most: number): [Base, Material, Modifier[]] {
   const base = rng.pick(KINDS[kind]);
   const mat = rng.pick(MATERIALS.filter((m) => m.level <= level));
-  const n = modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999));
+  const n = Math.min(modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999)), most);
   const mods: Modifier[] = [];
   // At most one suffix; the rest are prefixes, never the same one twice.
   if (n > 0) mods.push(rng.pick(SUFFIXES));
   const prefixes = [...PREFIXES];
   for (let i = 0; i < n - 1; i++) mods.unshift(prefixes.splice(rng.randiRange(0, prefixes.length - 1), 1)[0]!);
-  return build(base, mat, mods);
+  return [base, mat, mods];
 }
 
 /** The item made of `base`, material `mat` and modifiers `mods` (prefixes first, then the suffix). */

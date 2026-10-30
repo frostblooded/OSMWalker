@@ -69,6 +69,12 @@ describe("the real help", () => {
     expect(body).toContain("- 💡 Bright mind, 25 Magic: ×1.2 XP for 1 h");
   });
 
+  it("names the shops that open after midnight from the data, and the enchanted item's modifier cap", () => {
+    const body = page("midnight_shop").body;
+    expect(body).toContain("those who knock: antiques, second hand.");
+    expect(body).toContain("at most 2 other modifiers");
+  });
+
   it("takes the nap threshold from the data", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });

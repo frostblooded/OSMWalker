@@ -165,6 +165,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <div class="meter">
             <KV k="🔮 Magic" v={Math.round(s.magic)} />
             <Bar share={s.magic / MAGIC_MAX} color="var(--magic)" />
+            {s.gearMagic() > 0 && <KV k="🌙 From enchanted gear" v={`+${n1(s.gearMagic())} a km`} />}
           </div>
         </div>
       </Card>

@@ -520,6 +520,17 @@
       "good": ["{GIVER} waives the fine and lets him read a page; a little Magic sticks to his fingers.", "The book purrs on its shelf; {GIVER} gives him a library card for life."],
       "worse": ["He pays the fine himself. It is a lot of five-cent days.", "The book bit him, gently."],
       "reward": { "eur": [-5, 5], "xp": 50, "fx": { "magic": 15, "wit": 0.3 } } },
+    { "id": "night_shopkeeper", "icon": "🌙", "title": "The Night Shopkeeper", "lean": "cha", "fantasy": true, "time": "night",
+      "items": ["a key that hums", "a teacup that is always warm", "a mirror that shows tomorrow's weather", "a music box with no tune"],
+      "steps": [
+        { "at": ["shop/antiques", "shop/second_hand"], "say": ["The shop at {PLACE} is still open, deep in the night. {GIVER} behind the counter asks him to find the owner of {ITEM}.", "At {PLACE}, long after closing time, {GIVER} pushes {ITEM} across the counter: it wants to go home."] },
+        { "at": ["place_of_worship", "memorial", "monument"], "say": ["{ITEM} goes quiet near {PLACE}, as if it knows the way.", "At {PLACE} an old caretaker recognises {ITEM} and points down the street."] },
+        { "at": ["shop/antiques", "shop/second_hand", "cafe"], "say": ["He brings word back to {PLACE}; {GIVER} smiles like a cat."] }
+      ],
+      "twists": ["The shop is not on any map in daylight.", "{GIVER} has the same face as a portrait on the wall, dated 1820."],
+      "good": ["{GIVER} pays him in moonlight: a little Magic, and a discount next time.", "The owner turns up to thank him with a bottled star."],
+      "worse": ["By morning the shop is a launderette again, and {ITEM} is gone.", "He falls asleep on the shop's sofa and wakes on a bench outside."],
+      "reward": { "eur": [0, 15], "xp": 60, "fx": { "magic": 15, "cha": 0.3 } } },
     { "id": "wizard_apprentice", "icon": "🧙", "title": "The Wizard's Errand", "lean": "wit", "fantasy": true,
       "items": ["a dragon's sneeze", "moonflower petals", "a cat's dream", "dust from a very old book"],
       "steps": [
@@ -657,6 +668,7 @@
       "reward": { "eur": [0, 10], "xp": 40, "fx": { "wit": 0.2, "mood": 10 } } }
   ],
   "events": [
+    { "id": "lamp_in_the_window", "icon": "🌙", "title": "A lamp in the window", "at": ["shop/antiques", "shop/second_hand"], "time": "midnight", "min": [10, 20], "lean": "luck", "text": ["A lamp is lit in the window of {PLACE}, long after closing.", "The door of {PLACE} stands ajar after midnight, and something inside glitters."], "win": { "say": "The owner lets him try a ring that tingles; a little Magic stays on his finger.", "xp": 15, "fx": { "magic": 10, "luck": 0.2 } }, "lose": { "say": "By the time he gets there the lamp is out and the door locked.", "xp": 5 }, "missed": "Someone saw a lamp in the window of {PLACE} after midnight." },
     { "id": "humming_stones", "icon": "✨", "title": "Humming stones", "at": ["monument", "memorial", "place_of_worship"], "time": "night", "min": [10, 20], "lean": "wit", "text": ["The old stones of {PLACE} are humming tonight.", "A faint glow runs along the ground at {PLACE}, where the ley lines meet."], "win": { "say": "He stands still and listens until the hum fills him up.", "xp": 20, "fx": { "magic": 15, "mood": 5 } }, "lose": { "say": "A bus goes past and the hum is gone.", "xp": 5 }, "missed": "People say the stones at {PLACE} hummed all night." },
     { "id": "bakery_oven", "icon": "🔥", "title": "Oven trouble", "at": ["bakery"], "time": "morning", "min": [20, 50], "lean": "str",
       "text": ["The oven at {PLACE} broke down before the morning rush.", "Smoke and shouting at {PLACE}: the oven is dead."],
