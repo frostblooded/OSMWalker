@@ -174,7 +174,7 @@ function Ruins({ stats: s }: { stats: Stats }) {
             <Entry
               key={i}
               title={`🏰 ${r.name} · ${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}
-              lines={[...r.rooms.map((m) => `${m.won ? "✔" : "⚠"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
+              lines={[...r.rooms.map((m) => `${m.won ? "✔" : "↩"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
             />
           ))}
         </div>
