@@ -80,5 +80,23 @@ describe("anniversaries in his stats", () => {
     t = at(2027, 1, 31);
     s.passTime(1, 0);
     expect(said).toContain("🎂 His first birthday on the road: a quiet one alone in Sofia");
+    expect(s.meters.mood).toBeCloseTo(50 + A.ALONE_MOOD, 0);
+  });
+
+  it("gives a month mark's mood, and a great party's glow, through the day's first minute", () => {
+    const s = new Stats();
+    s.anniversaries = born();
+    s.where.city = "Sofia, Bulgaria";
+    s.friends.list = [local()];
+    s.meters.mood = 50;
+    let t = at(2026, 2, 28);
+    s.now = () => t;
+    s.passTime(1, 0);
+    expect(s.meters.mood).toBeCloseTo(50 + A.MONTH_MOOD, 0);
+    // Mood 100 makes the party great for sure.
+    s.meters.mood = 100;
+    t = at(2027, 1, 31);
+    s.passTime(1, 0);
+    expect(s.buffNames()).toContain("Great birthday");
   });
 });

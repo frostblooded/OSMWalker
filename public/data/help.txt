@@ -595,7 +595,7 @@ His friends live their own lives, also while you are away. Each day there is a {
 
 A friend may move to another city he has been to. From then on that is their city: he may run into them there, at the same kind of place.
 ## Anniversaries {anniversaries}
-The day he set out is his birthday. Each year on it he has a party in the city he is in, with his partner and the friends there with {PARTY_AT} hearts or more ({PARTY_MAX} at most), for {PARTY_MOOD} mood. With his mood out of 100 as the chance (at least {GREAT_MIN_PCT}), it is a great one, and he glows for {GLOW_H} hours: {GLOW_PER_H} mood an hour. With no friends there it is a quiet one alone, {ALONE_MOOD} mood.
+The day he set out is his birthday (in a game begun before his life story was kept, the first day after anniversaries came to the game). Each year on it he has a party in the city he is in, with his partner and the friends there with {PARTY_AT} hearts or more ({PARTY_MAX} at most), for {PARTY_MOOD} mood. With his mood out of 100 as the chance (at least {GREAT_MIN_PCT}), it is a great one, and he glows for {GLOW_H} hours: {GLOW_PER_H} mood an hour. With no friends there it is a quiet one alone, {ALONE_MOOD} mood.
 
 On the same day of each of the other months (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
 # 📱 Screens and buttons
