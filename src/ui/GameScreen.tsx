@@ -413,7 +413,7 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
     const d = drag.current;
     const el = box.current;
     drag.current = null;
-    if (!d || !el || !el.style.height) return;
+    if (!d || !el?.style.height) return;
     const next = e.type === "pointercancel" ? (share ?? "keep") : settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
     // Only a drag down closes it; a short sheet dragged up stays as it was.
     if (next === "close" && d.dy > 0) return onClose();
