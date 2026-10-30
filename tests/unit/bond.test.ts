@@ -1,7 +1,7 @@
 // His bond with you: trust, letters, whispers, praise or scold, and what his lean changes.
 import { describe, expect, it } from "vitest";
 import * as B from "../../src/core/bond";
-import { needWeight, NEED_BOOST, exploreWeight, EXPLORE_PULL, weight } from "../../src/core/activities";
+import { needOf, exploreWeight, EXPLORE_PULL, weight } from "../../src/core/activities";
 import { GIFTS } from "../../src/core/gifts";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
@@ -115,9 +115,11 @@ describe("whispers", () => {
   it("eat and rest make that need feel empty, save makes him save, explore pulls to new places", () => {
     const s = new Stats();
     const food = [{ name: "Eat", min: 5, fx: { fullness: 30 } }];
-    expect(needWeight(food, s)).toBe(1);
+    const before = needOf(food, s, 12);
+    expect(before.bottom).toBe(false);
     s.bond.whisper("eat", "d", fixed(0));
-    expect(needWeight(food, s)).toBe(1 + NEED_BOOST);
+    expect(needOf(food, s, 12)).toMatchObject({ urgent: true, bottom: true });
+    expect(needOf(food, s, 12).pull).toBeGreaterThan(before.pull);
     s.bond.nudge = "rest";
     expect(s.felt("energy")).toBe(0);
     expect(s.felt("fullness")).toBe(s.meters.fullness);
