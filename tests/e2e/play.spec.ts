@@ -63,6 +63,25 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
   await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
 });
 
+test("you can whisper to him three times a day, and praise his latest line once", async ({ page }) => {
+  await startInSofia(page);
+  // A reopen gives him a day of deeds to praise, and trust from the check-in.
+  await reopenAfter(page, 3);
+  await page.getByRole("dialog", { name: /While you were away/ }).getByRole("button", { name: "Carry on" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Care package/ }).click();
+  const care = page.getByRole("dialog", { name: /Care package/ });
+  await expect(care).toContainText("His trust in you");
+  await expect(care).toContainText("3 left today");
+  for (let i = 0; i < 3; i++) await care.getByRole("button", { name: "Whisper eat" }).click();
+  await expect(care).toContainText("0 left today");
+  await expect(care.getByRole("button", { name: "Whisper rest" })).toBeDisabled();
+  await expect(care).not.toContainText("Heard a whisper");
+  await care.getByRole("button", { name: /Praise/ }).click();
+  await expect(care.getByRole("button", { name: /Scold/ })).toBeDisabled();
+  await expect(care).toContainText(/\(\+\d+ of ±100\)/);
+});
+
 test("a long reopen may hold one choice, which a tap settles", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

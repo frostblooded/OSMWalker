@@ -5,7 +5,7 @@
 // bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. No DOM here: the
 // app calls step() and the screens read the state.
-import { Activities, choose, needWeight, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, exploreWeight, needWeight, restMinutes, type ActionTable } from "../core/activities";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
@@ -19,6 +19,7 @@ import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
+import type { Letters, Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
@@ -47,7 +48,7 @@ export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -217,7 +218,7 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
-    w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats);
+    w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats) * exploreWeight(p, this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
       arrived: (p) => this.onArrived(p),
@@ -417,6 +418,7 @@ export class Game {
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.forecasts = this.deps.data.forecasts ?? [];
+    this.stats.letters = this.deps.data.letters ?? null;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -509,6 +511,7 @@ export class Game {
       const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
+      this.stats.wrote(this.stats.bond.checkIn(this.stats.now(), this.awayClover));
       this.dilemma =
         D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
@@ -635,6 +638,29 @@ export class Game {
     this.stats.care.guess = null;
     this.stats.history.breakTrail();
     w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
+  }
+
+  /** You whisper `word`: he follows it for a while by his trust in you, or shrugs it off. Rolls on the card dice, so his walk stays the same. */
+  whisper(word: Whisper): void {
+    const heeded = this.stats.bond.whisper(word, dayOf(this.now()), this.cardRng);
+    if (heeded === null) return;
+    const w = word[0]!.toUpperCase() + word.slice(1);
+    this.stats.say(heeded ? `Heard a whisper: "${w}". He nods and does just that for a while` : `Heard a whisper: "${w}". He shrugs it off`);
+    this.save();
+    this.changed();
+  }
+
+  /** His latest line about something he did: not a whisper you sent or a letter to you. */
+  lastDeed(): { text: string; t: number } | null {
+    return this.stats.history.entries.findLast((e) => !e.text.startsWith("Heard a whisper") && !e.text.startsWith("✉")) ?? null;
+  }
+
+  /** You praise (+1) or scold (-1) his latest deed, which leans him kind or rascal. */
+  judge(sign: 1 | -1): void {
+    const last = this.lastDeed();
+    if (!last || !this.stats.bond.judge(sign, last.t)) return;
+    this.save();
+    this.changed();
   }
 
   /** Sends him a care package; he opens it at his next stop. */

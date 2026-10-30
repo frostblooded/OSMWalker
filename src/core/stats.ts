@@ -2,6 +2,7 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
+import * as B from "./bond";
 import { addStop, type Stop } from "./day";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
@@ -11,7 +12,7 @@ import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import type { Item, Slot } from "./items";
-import type { Rng } from "./rng";
+import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
 import type { Vehicle } from "./speeds";
@@ -106,6 +107,8 @@ export type Action = {
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
   resale?: boolean;
   flavour?: boolean;
+  /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
+  deed?: number;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -138,6 +141,10 @@ export class Stats {
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
   care = new Care();
+  /** His trust in you, his lean and your whispers. */
+  bond = new B.Bond();
+  /** His letters to you from data/letters.json; not saved, the game sets it. */
+  letters: B.Letters | null = null;
   /** The places he stopped at lately, for the day ribbon. */
   stops: Stop[] = [];
   /** This week in numbers, and last week's recap. */
@@ -197,7 +204,14 @@ export class Stats {
 
   /** True while he has less than he saves up to. */
   saving(): boolean {
-    return this.cents < this.savingTarget();
+    return this.cents < this.savingTarget() || this.bond.nudge === "save";
+  }
+
+  /** How full meter `m` feels when he picks what to do: empty while he follows a whisper to eat (fullness, thirst) or rest (energy). */
+  felt(m: Meter): number {
+    const n = this.bond.nudge;
+    if ((n === "eat" && (m === "fullness" || m === "thirst")) || (n === "rest" && m === "energy")) return 0;
+    return this.meters[m];
   }
 
   /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_LEVEL a level and WAGE_PER_ATTR per point of the attributes it needs. */
@@ -263,7 +277,29 @@ export class Stats {
   }
 
   sellPrice(item: Item): number {
-    return Math.round(item.price * SELL_SHARE * (1 + SELL_PER_CHA * this.attr("cha")) * F.mult(this.forecast(), "sell"));
+    const rascal = this.bond.leaning() === "rascal" ? B.RASCAL_SELL : 1;
+    return Math.round(item.price * SELL_SHARE * (1 + SELL_PER_CHA * this.attr("cha")) * F.mult(this.forecast(), "sell") * rascal);
+  }
+
+  /**
+   * Pays `fare` for a ride by `mode`; a rascal on a bus may dodge it
+   * (DODGE_CHANCE) and, if caught (CAUGHT_CHANCE), is fined FINE_MULT times
+   * the fare, as much as he has. Rolls its own dice from `key`, so the walk's
+   * stay the same. Returns what he paid and how the ride went, for the line.
+   */
+  payFare(fare: number, mode: string, key: string): { paid: number; how: string } {
+    let paid = fare;
+    let how = "";
+    if (mode === "bus" && this.bond.leaning() === "rascal") {
+      const rng = new Rng(seedOf(key));
+      if (rng.randf() < B.DODGE_CHANCE) {
+        const caught = rng.randf() < B.CAUGHT_CHANCE;
+        paid = caught ? Math.min(fare * B.FINE_MULT, this.cents) : 0;
+        how = caught ? " without a ticket, got caught and was fined" : " without a ticket";
+      }
+    }
+    this.cents -= paid;
+    return { paid, how };
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
@@ -325,6 +361,7 @@ export class Stats {
       b.left -= minutes;
     }
     this.buffs = this.buffs.filter((b) => b.left > 0);
+    this.bond.pass(minutes);
     this.applyFx(fx);
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
   }
@@ -438,6 +475,7 @@ export class Stats {
     if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
     if (action.buff) this.addBuff(action.buff);
+    if (action.deed) this.bond.deed(action.deed);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     const jokes = jokesFor(this.jokes, kind);
@@ -568,6 +606,21 @@ export class Stats {
     if (n % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(n) > K.fareCut(n - 1)) this.say(`Seasoned traveller: fares are now ${Math.round(K.fareCut(n) * 100)}% cheaper`);
   }
 
+  /** Trust rose to cross letter step `step` (see bond.ts): he writes to you. */
+  wrote(step: number): void {
+    if (step < 0) return;
+    const line = B.letter(this.letters, step, new Rng(seedOf(`letter${this.now()}`)).randf());
+    if (line) this.say(line);
+  }
+
+  /** He opened your care package `id`: more trust, and maybe a thank-you letter. */
+  gifted(id: string): void {
+    const step = this.bond.addTrust(B.TRUST_PER_GIFT);
+    if (step >= 0) return this.wrote(step);
+    const thanks = this.letters?.thanks[id];
+    if (thanks && new Rng(seedOf(`thanks${this.now()}`)).randf() < B.THANKS_CHANCE) this.say(`✉ ${thanks}`);
+  }
+
   /** Notes a stop at a place, for the day ribbon. */
   stop(place: { class: string; subclass: string }): void {
     addStop(this.stops, place, this.now());
@@ -600,7 +653,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
     };
   }
 
@@ -621,6 +674,7 @@ export class Stats {
     s.keepsakes = K.Keepsakes.fromJSON(d.keepsakes);
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
+    s.bond = B.Bond.fromJSON(d.bond);
     s.stops = d.stops ?? [];
     s.week = Week.fromJSON(d.week);
     return s;

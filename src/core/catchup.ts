@@ -5,7 +5,7 @@
 // rides like he would. In a city whose places aren't loaded he visits
 // made-up places of the usual kinds ("a cafe in Lyon"). Pure: the game
 // applies where he ends up.
-import { choose, needWeight, restMinutes, type Activities } from "./activities";
+import { choose, exploreWeight, needWeight, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, pickIndex, randomSpot, rankWeight, type Vec } from "./goals";
 import { euro, signed } from "./money";
@@ -241,9 +241,9 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    stats.cents -= plan.fare;
+    const { paid, how: dodged } = stats.payFare(plan.fare, plan.mode, `${plan.station.name}${stats.now()}`);
     const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name}${dodged}${paid ? ` (${signed(-paid)})` : ""}`);
     pass(rideMin, 0);
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
@@ -271,7 +271,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
+      return flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]! * exploreWeight(real[i]!, stats);
     });
     if (any) return real[pickIndex(weights, rng.randf())]!;
     const made = madeUp();

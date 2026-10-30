@@ -73,9 +73,9 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    stats.cents -= plan.fare;
+    const { paid, how: dodged } = stats.payFare(plan.fare, plan.mode, `${plan.station.name}${stats.now()}`);
     const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    setOff(stats, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    setOff(stats, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name}${dodged}${paid ? ` (${signed(-paid)})` : ""}`);
     return "";
   }
 

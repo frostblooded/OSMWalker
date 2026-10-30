@@ -231,7 +231,15 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+          <CareSheet
+            care={s.care}
+            bond={s.bond}
+            last={game.lastDeed()}
+            now={game.now()}
+            onSend={(id) => game.sendGift(id)}
+            onWhisper={(w) => game.whisper(w)}
+            onJudge={(sign) => game.judge(sign)}
+          />
         </SheetBox>
       )}
       {sheet === "postcard" && (

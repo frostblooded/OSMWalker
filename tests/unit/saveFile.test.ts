@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
@@ -119,6 +120,19 @@ describe("save file", () => {
     delete d.saved_at;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect((f.read() as Saved).savedAt).toBe(0);
+  });
+
+  it("loads saves from before the bond, with starting trust and no lean", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.bond;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.bond.trust).toBe(TRUST_START);
+    expect(back.bond.leaning()).toBe("");
+    expect(back.bond.nudge).toBe("");
   });
 
   it("loads saves from before keepsakes, with none collected yet", () => {

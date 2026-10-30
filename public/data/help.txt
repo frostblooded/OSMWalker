@@ -299,7 +299,7 @@ Each modifier adds {MOD_PRICE_PCT} of the price.
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
-At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus {SELL_PER_CHA_PCT} of that for every point of charm. For example an item worth €100 sells for {SELL_100_CHA0} with charm 0, or {SELL_100_CHA5} with charm 5. The daily forecast can raise it for a day (see Daily forecast).
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus {SELL_PER_CHA_PCT} of that for every point of charm. For example an item worth €100 sells for {SELL_100_CHA0} with charm 0, or {SELL_100_CHA5} with charm 5. The daily forecast can raise it for a day (see Daily forecast), and a rascal gets more (see Kind or rascal).
 
 While his bag is full he goes on a selling run: resale shops ({RESALE_SHOPS}) pull his next goal like an empty need (see Picking the next goal). There "Sell his loot" sells his cheapest things one after another until {SELL_RUN_LEFT} are left, with a line for each sale. Other shops still buy just one thing at a time.
 
@@ -334,7 +334,7 @@ To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open. So 100 km by bus takes about {BUS_100_MIN} minutes, and 300 km by bus about {BUS_300_MIN}. While he rides, the map zooms out and a red line marks the way. A bus or car arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
-Fares are in euros and never free:
+Fares are in euros and never free (though a rascal may skip a bus ticket: see Kind or rascal):
 - bus: {BUS_PER_KM} per km of road,
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
 - car: fuel at {FUEL_PER_KM} per km of road.
@@ -402,7 +402,27 @@ You never steer him, but you can leave him a small gift. Gifts cost clovers, and
 ☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:
 {GIFT_LIST}
 
-A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip).
+A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip). Each package he opens adds to his trust in you (see His trust in you).
+## His trust in you {trust}
+He doesn't know who you are, but he can tell someone is looking out for him. His trust in you runs from 0 to 100 and starts at {TRUST_START}. The Care package sheet shows it.
+- A check-in that earns a clover adds {TRUST_PER_CHECKIN}, and each care package he opens adds {TRUST_PER_GIFT}.
+- Staying away fades it by {TRUST_FADE_PER_DAY} for each whole day after the first, but never by more than {TRUST_FADE_MAX} at once, so it never drops sharply.
+
+Each time his trust passes {LETTER_AT}, he writes you a letter in his History (it starts with ✉). After opening a package he sometimes writes a thank-you too, about {THANKS_PCT} of the time. The more he trusts you, the more likely he listens to a whisper (see Whispers).
+## Whispers {whisper}
+Up to {WHISPERS_PER_DAY} times a day (by your device's date) you can whisper one word to him from the Care package sheet. He listens with a chance of {HEED_MIN_PCT}, plus {HEED_PER_TRUST_PCT} for each point of trust, so {HEED_FULL_PCT} at full trust. Otherwise he shrugs it off. Either way his History says so. When he listens, he follows the whisper for {NUDGE_MIN} minutes:
+- 🍞 Eat: he acts as if he is starving and thirsty, so food and drink pull him hardest.
+- 💤 Rest: he acts as if he has no energy left, so coffee, benches and naps pull him.
+- 🧭 Explore: places he has never been to pull him {EXPLORE_PULL} times as hard.
+- 💰 Save: he saves as if for a trip: paid work counts more and spending less (see How he chooses).
+
+Whispers are always optional, and they never use up clovers. His dice for whether he listens are separate from his walk's, so a whisper changes only what he would have done next.
+## Kind or rascal {lean}
+He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting at 0. The Care package sheet shows his lean and his latest line (not counting whispers and letters), with 👍 Praise and 👎 Scold buttons. Praise moves him {JUDGE_STEP} towards kind and scold {JUDGE_STEP} towards rascal, once per line. Left alone he drifts by his own deeds: each kind deed (a big tip, helping out, volunteering, picking up litter, donating) moves him {DEED_STEP} towards kind, and each rascal deed (haggling, sneaking out without paying) {DEED_STEP} towards rascal.
+
+From {LEAN_AT} either way it shows:
+- Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.
+- Rascal: things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has).
 ## Guess the next trip {guess}
 When the trip dice send him to another city, the top card shows "🎲 Where to?" with up to {GUESS_CHOICES} choices while he walks to the station:
 - for a trip in his country, the right city and other cities of the country,

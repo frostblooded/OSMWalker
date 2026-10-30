@@ -4,8 +4,9 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Picks an action he can do, leaning towards what he needs.
+import { KIND_DEED_WEIGHT } from "./bond";
 import { toCents } from "./money";
-import type { Action, Place, Stats } from "./stats";
+import { visitKey, type Action, type Place, type Stats } from "./stats";
 
 export type ActionTable = Record<string, Action[]>;
 
@@ -75,10 +76,11 @@ function local(place: Partial<Place> | null, table: ActionTable): Action[] {
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   for (const [m, v] of Object.entries(action.fx ?? {})) {
-    if (m in stats.meters && v > 0) w += ((Math.max(60 - stats.meters[m as keyof Stats["meters"]], 0) / 20) * Math.min(v, 50)) / 20;
+    if (m in stats.meters && v > 0) w += ((Math.max(60 - stats.felt(m as keyof Stats["meters"]), 0) / 20) * Math.min(v, 50)) / 20;
   }
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
+  if (action.deed && action.deed > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.earn !== undefined) w += stats.cents < SKINT ? 3 : 0.5;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
@@ -106,7 +108,7 @@ export function needWeight(actions: Action[], stats: Stats): number {
     if (full && a.resale) need = 1;
     if (broke && a.earn !== undefined) need = 1;
     for (const [m, v] of Object.entries(a.fx ?? {})) {
-      if (v > 0 && m in stats.meters) need = Math.max(need, Math.max(NEED_AT - stats.meters[m as keyof Stats["meters"]], 0) / NEED_AT);
+      if (v > 0 && m in stats.meters) need = Math.max(need, Math.max(NEED_AT - stats.felt(m as keyof Stats["meters"]), 0) / NEED_AT);
     }
   }
   return 1 + NEED_BOOST * need;
@@ -122,6 +124,12 @@ export function choose(actions: Action[], stats: Stats, hour: number, r: number)
     if (r < 0) return options[i]!;
   }
   return options.at(-1) ?? null;
+}
+
+/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. */
+export const EXPLORE_PULL = 3;
+export function exploreWeight(p: Place, stats: Stats): number {
+  return stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
 }
 
 export function restMinutes(_action: Action): number {

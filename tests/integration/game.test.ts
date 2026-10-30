@@ -132,6 +132,23 @@ describe("game", () => {
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
 
+  it("takes whispers and praise from you without touching his walk dice", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 400);
+    expect(g.lastDeed()).not.toBeNull();
+    const walkDice = (g as unknown as { rng: Rng }).rng;
+    const next = new Rng(0);
+    Object.assign(next, walkDice);
+    for (let i = 0; i < 4; i++) g.whisper("eat");
+    const whispers = g.stats.history.entries.filter((e) => e.text.startsWith("Heard a whisper"));
+    expect(whispers).toHaveLength(3);
+    expect(walkDice.randf()).toBe(next.randf());
+    g.judge(1);
+    g.judge(1);
+    expect(g.stats.bond.lean).toBe(10);
+  });
+
   it("walks to a place, does something there and rests", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);

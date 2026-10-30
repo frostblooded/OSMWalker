@@ -279,7 +279,8 @@
     "attrs": {
      "luck": 3
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Sneak out without paying",
@@ -300,7 +301,8 @@
     "fx": {
      "mood": -20
     }
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Order the oysters",
@@ -863,7 +865,8 @@
    },
    "needs": {
     "wit": 6
-   }
+   },
+   "deed": 1
   }
  ],
  "art_gallery": [
@@ -937,7 +940,8 @@
    },
    "needs": {
     "wit": 6
-   }
+   },
+   "deed": 1
   }
  ],
  "attraction": [
@@ -1167,7 +1171,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Community soup kitchen",
@@ -1227,7 +1232,8 @@
    "fx": {
     "str": 0.2,
     "xp": 15
-   }
+   },
+   "deed": 1
   }
  ],
  "cinema": [
@@ -1431,7 +1437,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Search the grass",
@@ -1539,7 +1546,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Search the grass",
@@ -1601,7 +1609,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "deed": 1
   }
  ],
  "dog_park": [
@@ -2025,7 +2034,8 @@
     "per_h": {
      "mood": 1
     }
-   }
+   },
+   "deed": 1
   }
  ],
  "doctors": [
@@ -2226,7 +2236,8 @@
    "fx": {
     "wit": 0.5,
     "xp": 30
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Student cafeteria",
@@ -2608,7 +2619,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/hunting": [
@@ -2638,7 +2650,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/knives": [
@@ -2668,7 +2681,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/antiques": [
@@ -2699,7 +2713,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/hardware": [
@@ -2729,7 +2744,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Odd repair job",
@@ -2768,7 +2784,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Odd repair job",
@@ -2807,7 +2824,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2846,7 +2864,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2885,7 +2904,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2924,7 +2944,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try on everything, buy nothing",
@@ -2963,7 +2984,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/watches": [
@@ -2993,7 +3015,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/gift": [
@@ -3023,7 +3046,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Buy a city card pack",
@@ -3063,7 +3087,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/charity": [
@@ -3094,7 +3119,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "shop/pawnbroker": [
@@ -3125,7 +3151,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   }
  ],
  "music": [
@@ -3155,7 +3182,8 @@
    },
    "needs": {
     "cha": 3
-   }
+   },
+   "deed": -1
   },
   {
    "name": "Try a guitar",
@@ -3431,7 +3459,8 @@
    },
    "needs": {
     "time": "day"
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Sit in on an evening class",
@@ -3784,7 +3813,8 @@
    "fx": {
     "cha": 0.1,
     "xp": 5
-   }
+   },
+   "deed": 1
   },
   {
    "name": "Wash cars for coins",
@@ -3954,7 +3984,8 @@
     "energy": -15,
     "str": 0.3,
     "xp": 15
-   }
+   },
+   "deed": 1
   }
  ],
  "swimming_pool": [
