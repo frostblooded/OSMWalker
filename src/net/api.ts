@@ -216,7 +216,6 @@ export class Api {
     return gunzipIfNeeded(body);
   }
 
-
   /** True while the tile server is resting after a failure. */
   tilesResting(): boolean {
     return this.now() < (this.serverStats.get(hostOf(OFM_TILEJSON))?.rest_until_ms ?? 0);
