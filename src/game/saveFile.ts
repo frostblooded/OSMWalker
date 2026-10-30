@@ -110,8 +110,8 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      // Saves from before care packages have no clovers and nothing on its way; from before the day ribbon and weekly recap, no stops and no week yet.
-      stats: Stats.fromJSON({ ...d.stats, care: d.stats.care ?? new Care().toJSON(), stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
+      // Saves from before care packages have no clovers, nothing on its way and no guess; from before the day ribbon and weekly recap, no stops and no week yet.
+      stats: Stats.fromJSON({ ...d.stats, care: { ...new Care().toJSON(), ...d.stats.care }, stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };

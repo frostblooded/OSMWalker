@@ -1,6 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
-import { mockServices, reopenAfter } from "./mock";
+import { mockServices, reopenAfter, reopenDeparting } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -70,6 +70,16 @@ test("the day ribbon shows the places he stopped at today", async ({ page }) => 
   await reopenAfter(page, 1);
   await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
   await expect(page.locator(".hud .ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops$/);
+});
+
+test("while he walks to a station you can guess where he is going, once", async ({ page }) => {
+  await startInSofia(page);
+  await reopenDeparting(page);
+  const guess = page.getByRole("group", { name: "Guess where he is going" });
+  await expect(guess).toContainText("Where to?", { timeout: 20000 });
+  await guess.getByRole("button", { name: "Plovdiv" }).click();
+  await expect(page.locator(".hud")).toContainText("Your guess: Plovdiv");
+  await expect(guess).toBeHidden();
 });
 
 test("New city asks for RESET first", async ({ page }) => {

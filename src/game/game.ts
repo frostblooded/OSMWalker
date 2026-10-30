@@ -13,6 +13,7 @@ import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
+import { makeGuess } from "../core/guess";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
@@ -189,7 +190,7 @@ export class Game {
   private attach(w: Walker): void {
     this.walker = w;
     w.rng = this.rng;
-    w.tripPlanner = () => this.journey.consider(this.where(), this.stats);
+    w.tripPlanner = () => this.planTrip();
     w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
@@ -216,6 +217,8 @@ export class Game {
     this.stats.passTime(s / 60, w.totalM - before);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.track();
+    // A trip called off before boarding (a faint, a new goal) takes its guess with it.
+    if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
@@ -309,13 +312,29 @@ export class Game {
     return { here: w.position(), city: this.city, country: this.country, places: w.bounds ? w.graph.placesIn(w.bounds) : [], noPlaces: this.noPlaces() };
   }
 
+  /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
+  private planTrip(): Plan | null {
+    const plan = this.journey.consider(this.where(), this.stats);
+    this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
+    return plan;
+  }
+
+  /** The player's guess about where he is going; settled when he boards. */
+  pickGuess(choice: string): void {
+    if (!this.stats.care.pickGuess(choice)) return;
+    this.save();
+    this.changed();
+  }
+
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */
   private onBoarding(plan: Plan): boolean {
     const why = this.journey.board(plan, this.stats);
     if (why) {
       this.debugLog.add({ no_trip: why });
+      this.stats.care.guess = null;
       return false;
     }
+    this.stats.care.reveal(this.stats);
     this.changed();
     return true;
   }
