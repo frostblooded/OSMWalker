@@ -130,6 +130,7 @@ export class Game {
   private madeOf = "";
   private madeIn: StreetGraph | null = null;
   private madePending = false;
+  private madeFailed = "";
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
   /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
@@ -763,9 +764,9 @@ export class Game {
   }
 
   /**
-   * True once the city's made-up places are on the map. Until then (once per
-   * city, when the streets around him are loaded) it starts putting them
-   * there, so the city check never runs without them.
+   * True once the city's made-up places are on the map, or they can't be made
+   * now. Until then (once per city, when the streets around him are loaded)
+   * it starts putting them there, so the city check doesn't run before them.
    */
   private placesMade(w: Walker, bounds: BBox): boolean {
     if (this.madeOf === this.city && this.madeIn === w.graph) return true;
@@ -773,7 +774,8 @@ export class Game {
       this.madePending = true;
       void this.makePlaces(w, bounds).finally(() => (this.madePending = false));
     }
-    return false;
+    // If the maker couldn't load, the check runs without them while it keeps trying.
+    return this.madeFailed === this.city;
   }
 
   /**
@@ -791,6 +793,7 @@ export class Game {
       try {
         Gen = await import("../core/poiGen");
       } catch {
+        this.madeFailed = city;
         return;
       }
       if (this.city !== city || this.walker !== w) return;

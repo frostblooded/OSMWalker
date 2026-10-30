@@ -367,6 +367,25 @@ describe("game", () => {
     }
   });
 
+  it("still checks the city when its made-up places can't load", async () => {
+    vi.resetModules();
+    vi.doMock("../../src/core/poiGen", () => {
+      throw new Error("offline");
+    });
+    try {
+      const { g } = game({ places: [CAFE] });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 10; i++) {
+        run(g, 1);
+        await tick();
+      }
+      expect(g.made).toEqual({});
+      expect(g.severeNow.map((p) => p.title)).toContain("Can't leave Sofia, Bulgaria");
+    } finally {
+      vi.doUnmock("../../src/core/poiGen");
+    }
+  });
+
   it("flags a city with no way out once the area is loaded", async () => {
     const { g } = game({ places: [CAFE] });
     g.made["Sofia, Bulgaria"] = [];
