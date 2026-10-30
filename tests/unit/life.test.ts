@@ -103,9 +103,14 @@ describe("stats", () => {
   });
 
   it("jobs earn euros in a range, to the cent", () => {
+    let card = false;
+    stats.onSay = (l) => (card ||= l.includes(" At work: "));
     for (let s = 0; s < 20; s++) {
       const before = stats.cents;
+      card = false;
       stats.do({ name: "Busk", min: 15, earn: [5, 30] }, "Park", new Rng(s));
+      // A chance card at work (workCards.ts) may change the pay; those don't count here.
+      if (card) continue;
       expect(stats.cents - before).toBeGreaterThanOrEqual(500);
       expect(stats.cents - before).toBeLessThanOrEqual(3000);
     }

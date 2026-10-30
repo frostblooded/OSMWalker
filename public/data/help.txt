@@ -76,8 +76,13 @@ The tortoise, broomstick and carpet sit beside the bike, scooter and car: each r
 Flyers (the broomstick, the carpet and the dragon) don't follow the streets. When his goal is at least {FLY_MIN_M} m away and a park or garden is loaded near it (at most {LAND_MAX_M} m from the goal, and at most {LAND_SHARE_PCT} as far from it as he is), he flies there in a straight line, lands, and walks the rest on foot, at walking speed. Otherwise he goes by the streets like anyone else. While you're away the same rules decide when he flies, except that any such park will do, even one far from a street. On the map his mount shows at his side, except a sulking dragon, which stays behind.
 
 A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly (if it starts to sulk in the air, he comes down at the nearest corner), and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
+## Place creatures {creatures}
+A little folklore lives in the city. When he reaches a place where a creature lives (a real one or one the game made up, such as an old well), it shows up {CREATURE_PCT} of the time, but he meets at most one creature a day (also while you're away). Each one offers him a choice:
+{CREATURE_LIST}
+
+The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for each point of Wits above 1, up to {RIDDLE_CAP_PCT}. The cleverer he is, the more often he tries it on his own. He only pays what he has. For now he always makes his own pick; soon you'll be able to tap one before a timer runs out. Each creature he meets gets a tile in the Collection (Places tab).
 ## Places of note {places}
-His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
+His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations, bridges and many more. A street bridge is named after its street ("Bridge on Main Street") and an unnamed footbridge is just "Footbridge"; bridges rank low, so he heads for one only now and then. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
 Each place has a rank from the map, where 1 is the most important in its area, so big sights and busy shops come up more often than small ones. How far away a place is and which way it lies count too (see Picking the next goal).
 
@@ -460,7 +465,7 @@ The Placedex counts every kind of place he has been to, such as a cafe, a Christ
 - Rare: +{DEX_XP_RARE} XP,
 - Legendary: +{DEX_XP_LEGENDARY} XP.
 
-Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
+Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. It knows {DEX_KINDS} kinds, bridges among them: the game takes bridges from the streets rather than the sweep and counts them as Common. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
 ## Souvenirs {souvenirs}
 Every country has one souvenir for him, and it costs nothing. Each time he reaches a landmark (see Landmark cards) in a country he has no souvenir from, there is a {SOUVENIR_PCT} chance he finds it there. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else it is a fridge magnet.
 
@@ -625,7 +630,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
-- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
+- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures) and the crawls.
 - 🌍 World: every country, how many cities he has been to, the souvenirs, and his monuments with his golden bricks (see Golden bricks).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
