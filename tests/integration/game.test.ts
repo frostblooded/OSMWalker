@@ -11,6 +11,7 @@ import { decode, encode } from "../../src/core/postcard";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
+import { EXTRAS } from "../../src/core/poiGen";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -328,8 +329,29 @@ describe("game", () => {
     expect(g.stats.vehicleGoal()!.name).toBe("Scooter");
   });
 
+  it("makes up the must-haves a city lacks once the area is loaded, and keeps them in the save", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.severeNow).toEqual([]);
+    const made = g.walker!.graph.placesIn(g.walker!.bounds!).filter((p) => p.made);
+    // The cafe feeds him and pays; Sofia is capital-sized, so it gets the most extras.
+    expect(made.filter((p) => p.must).map((p) => p.subclass)).toEqual(["bus_station", "fuel", "guest_house"]);
+    expect(made.filter((p) => p.extra)).toHaveLength(EXTRAS.capital);
+    g.save();
+    const back = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    back.problems.quiet = true;
+    expect(back.load()).toBe(true);
+    expect(back.made["Sofia, Bulgaria"]).toEqual(g.made["Sofia, Bulgaria"]);
+  });
+
   it("flags a city with no way out once the area is loaded", async () => {
     const { g } = game({ places: [CAFE] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     await tick();
     for (let i = 0; i < 5; i++) {
@@ -343,6 +365,7 @@ describe("game", () => {
 
   it("lists what looks wrong with the city for Debug", async () => {
     const { g } = game({ places: [] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     for (let i = 0; i < 5; i++) {
       run(g, 1);

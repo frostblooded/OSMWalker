@@ -268,3 +268,12 @@ test("City area switch is remembered", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("switch", { name: /City area/ })).toHaveAttribute("aria-checked", "true");
 });
+
+test("A city gets its made-up places, saved, and the game's icons load for the map", async ({ page }) => {
+  const icons = page.waitForResponse(/\/icons-[\w-]+\.js$/, { timeout: 30000 });
+  await startInSofia(page);
+  await expect
+    .poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").made_places ?? {}).flat().length), { timeout: 30000 })
+    .toBeGreaterThan(0);
+  expect((await icons).ok()).toBe(true);
+});

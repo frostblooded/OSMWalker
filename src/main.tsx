@@ -32,11 +32,13 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       const send = (urls: string[]) => urls.length && reg.active?.postMessage({ cache: urls });
       send([new URL("./", location.href).href, ...missed(performance.getEntriesByType("resource"))]);
       new PerformanceObserver((list) => send(missed(list.getEntries()))).observe({ type: "resource" });
-      // The code that loads only when needed (Help, a reopen's dilemma, the Collection) is fetched now
+      // The code that loads only when needed (Help, a reopen's dilemma, the Collection, the map icons and the made-up places) is fetched now
       // too, so the worker keeps it for offline play after every deploy.
       void import("./ui/help").catch(() => undefined);
       void import("./core/dilemmas").catch(() => undefined);
       void import("./ui/CollectionSheet").catch(() => undefined);
+      void import("./map/icons").catch(() => undefined);
+      void import("./core/poiGen").catch(() => undefined);
     });
   };
   const later = () => whenIdle(register);

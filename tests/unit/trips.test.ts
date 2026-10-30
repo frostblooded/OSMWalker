@@ -79,6 +79,11 @@ describe("airports", () => {
     expect(trips(true).nearestAirport(0, 0)!.name).toBe("Big Intl");
     expect(trips(true).nearestAirport(5, 5)).toBeNull();
   });
+
+  it("are made up for a big city with none in reach", () => {
+    const t = new T.Trips([{ name: "Bigtown", code: "XX", country: "X", lat: 30, lon: 30, pop: 2_000_000 }], []);
+    expect(t.nearestAirport(30, 30)!.name).toBe("Bigtown Airport");
+  });
 });
 
 describe("planTrip", () => {

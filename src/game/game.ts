@@ -17,11 +17,12 @@ import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
+import { placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, NO_PLACES_BOOST, SAME_CITY_M, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -44,6 +45,8 @@ export const CATCHUP_WAIT_MS = 3000;
 export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
+/** Cities whose made-up places the save keeps; the oldest is dropped first. */
+export const MADE_CITIES = 20;
 
 export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex };
 export type Alert = { level: "error" | "warning"; text: string };
@@ -98,6 +101,8 @@ export class Game {
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
+  /** Made-up places by city (core/poiGen.ts), saved so a city keeps its own. */
+  made: Record<string, Place[]> = {};
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
   /** True once the first wake has run, so screens know whether an away card is coming. */
@@ -122,6 +127,8 @@ export class Game {
   private factsOf = "";
   private noPlacesWarned = "";
   private severeOf = "";
+  private madeOf = "";
+  private madeIn: StreetGraph | null = null;
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
   /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
@@ -449,7 +456,7 @@ export class Game {
     if (!w) return;
     if (this.waking) return;
     this.savedAt = this.now();
-    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt });
+    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt, made: this.made });
     if (err) this.problems.error(err);
   }
 
@@ -473,6 +480,7 @@ export class Game {
     this.placeStats();
     this.skipRoll = d.skipRoll;
     this.savedAt = d.savedAt;
+    this.made = d.made;
     void this.learnCity(d.origin[0], d.origin[1]);
     this.changed();
     return true;
@@ -739,6 +747,7 @@ export class Game {
       this.citySummary = null;
     }
     if (!this.areaLoaded() || !w.bounds) return;
+    void this.makePlaces(w, w.bounds);
     const sm = CityCheck.summary(w.graph.placesIn(w.bounds), this.activities, this.country);
     this.citySummary = sm;
     this.severeNow = CityCheck.problems(sm, this.city);
@@ -750,6 +759,47 @@ export class Game {
         `Loaded in the city box: ${sm.bus} bus stations, ${sm.airport} airports, ${sm.gas} gas stations, ${sm.dealer} car dealers, ${sm.earn} places that pay.`,
       ]);
     }
+  }
+
+  /**
+   * Once per city, when the streets around him are loaded: puts the city's
+   * made-up places on the map, made now (from what the real ones lack) or
+   * the ones it got before. The maker (core/poiGen.ts) loads as its own
+   * chunk, off the startup path.
+   */
+  private async makePlaces(w: Walker, bounds: BBox): Promise<void> {
+    if (this.madeOf === this.city && this.madeIn === w.graph) return;
+    const city = this.city;
+    this.madeOf = city;
+    this.madeIn = w.graph;
+    let list = this.made[city];
+    if (!list) {
+      w.graph.made = [];
+      const { generate } = await import("../core/poiGen");
+      if (this.city !== city || this.walker !== w) return;
+      const real = w.graph.placesIn(bounds);
+      const missing = CityCheck.missing(CityCheck.summary(real, this.activities, this.country));
+      const near = this.trips.cities.find((c) => distanceM(c.lat, c.lon, this.origin[0], this.origin[1]) < SAME_CITY_M);
+      const snap = (lat: number, lon: number): LatLon | null => {
+        const id = w.graph.nearestNode(lat, lon);
+        return id === null ? null : w.graph.nodes.get(id)!;
+      };
+      list = generate({ name: city, center: this.origin, pop: near?.pop ?? 0 }, real, missing, snap);
+      const keys = Object.keys(this.made);
+      if (keys.length >= MADE_CITIES) delete this.made[keys[0]!];
+      this.made[city] = list;
+    }
+    w.graph.made = list;
+    this.changed();
+  }
+
+  /** The game icons around him (core/mapIcons.ts): made-up places and travel hubs, none on a ride. */
+  placeIcons(): MapIcon[] {
+    const w = this.walker;
+    if (!w?.bounds || w.isTraveling()) return [];
+    const here = w.position();
+    const air = this.trips.nearestAirport(here[0], here[1]);
+    return placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here);
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

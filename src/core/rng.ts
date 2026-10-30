@@ -30,9 +30,26 @@ export class Rng {
     return list[Math.floor(this.randf() * list.length)]!;
   }
 
+  /** [east, north] meters in a random direction, `m[0]` to `m[1]` away. */
+  polar(m: [number, number]): [number, number] {
+    const a = this.randf() * 2 * Math.PI;
+    const r = this.randfRange(m[0], m[1]);
+    return [Math.cos(a) * r, Math.sin(a) * r];
+  }
+
   /** Standard normal (Box-Muller). */
   randfn(): number {
     const u = 1 - this.randf();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * this.randf());
   }
 }
+
+/** A seed from text (FNV-1a), so the same name always rolls the same. */
+export function seedOf(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return h >>> 0;
+}
+
+/** Lower-case letters, digits and "_" only, for ids. */
+export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "x";
