@@ -14,6 +14,7 @@ import * as Cr from "./creatures";
 import * as Mg from "./magic";
 import * as Mn from "./midnight";
 import * as Po from "./portals";
+import * as Gi from "./giants";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -199,6 +200,7 @@ export class Stats {
   /** The enchantments and trinkets he found at the shop after midnight. */
   finds = new Mn.Finds();
   portals = new Po.Portals();
+  giants = new Gi.Sightings();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -929,6 +931,16 @@ export class Stats {
     if (this.lore.known.length === 1) this.milestone("spell", `Learned his first spell, ${s.name}, at ${place.name}`);
   }
 
+  /** Right after reaching `place`: now and then (once a day at most) a giant shows far off and he stops to watch (see giants.ts). Its own dice, so his walk stays the same. */
+  giantAt(place: Place): void {
+    const t = this.now();
+    const g = this.giants.roll(place, dayOf(t * 1000), new Rng(seedOf(`giant${t}${place.name}`)).randf());
+    if (!g) return;
+    this.applyFx(Gi.GIANT_FX);
+    this.say(`${g.icon} ${g.say.replace("{PLACE}", place.name)}. He stopped to watch and took a photo`);
+    if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
+  }
+
   /** Right after reaching `place`: a portal place may open (see portals.ts) unless he is on a quest. Returns the city it takes him to, never one he has been to, or null. Its own dice, so his walk stays the same. */
   portalAt(place: Place, trips: T.Trips): T.City | null {
     const t = this.now();
@@ -1068,7 +1080,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
@@ -1104,6 +1116,7 @@ export class Stats {
     // A save from before the shop after midnight: nothing found there yet.
     s.finds = Mn.Finds.fromJSON(d.finds);
     s.portals = Po.Portals.fromJSON(d.portals);
+    s.giants = Gi.Sightings.fromJSON(d.giants);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);

@@ -13,6 +13,7 @@ import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
 import * as Portals from "../core/portals";
+import * as Giants from "../core/giants";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -235,6 +236,9 @@ export function values(data: GameData): Record<string, string> {
     ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
     PORTAL_PCT: pct(Portals.PORTAL_CHANCE),
     PORTAL_GAP_DAYS: num(Portals.PORTAL_GAP_DAYS),
+    GIANT_PCT: pct(Giants.GIANT_CHANCE),
+    GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
+    GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),
     ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
     TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),

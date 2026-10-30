@@ -315,6 +315,7 @@ export class Game {
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
+    this.stats.giantAt(place);
     const door = this.stats.portalAt(place, this.trips);
     if (door) {
       this.doing = null;

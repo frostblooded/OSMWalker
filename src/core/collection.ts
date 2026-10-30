@@ -5,6 +5,7 @@
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
 import { dayOf } from "./gifts";
+import { GIANTS } from "./giants";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
@@ -193,6 +194,19 @@ export const SETS: CSet[] = [
       }),
   },
   {
+    id: "giants",
+    tab: "places",
+    icon: "🐍",
+    title: "Giants",
+    entries: (s) =>
+      GIANTS.map((g) => {
+        const photo = s.giants.photos[g.id];
+        const n = s.giants.seen[g.id] ?? 0;
+        // Every photo of a giant is a legendary card.
+        return { id: g.id, icon: g.icon, name: g.name, got: !!photo, rarity: "Legendary", info: photo ? `Photo from ${photo.place}${photo.city ? `, ${photo.city}` : ""}${n > 1 ? `; seen ${n} times` : ""}` : `Seen ${g.where}, very rarely` };
+      }),
+  },
+  {
     id: "spells",
     tab: "gear",
     icon: "🪄",
@@ -332,6 +346,7 @@ export const FEATS: Feat[] = [
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
+  { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
