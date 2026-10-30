@@ -20,7 +20,7 @@ export function AwaySheet({
   dilemma,
   onChoose,
   onDone,
-}: { summary: Summary; clover: boolean; week: Week; dilemma?: Dilemma | null; onChoose?: (pick: number) => void; onDone: () => void }) {
+}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; onChoose: (pick: number) => void; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -32,7 +32,7 @@ export function AwaySheet({
         {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
-      {dilemma && <DilemmaCard d={dilemma} onChoose={(i) => onChoose?.(i)} />}
+      {dilemma && <DilemmaCard d={dilemma} onChoose={onChoose} />}
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
         <KV k="✨ New places" v={s.firstVisits} />
