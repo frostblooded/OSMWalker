@@ -191,7 +191,7 @@ export function anyUrgent(stats: Stats): boolean {
   return Object.values(stats.meters).some((v) => v < URGENT_AT);
 }
 
-/** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
+/** One of `actions` he can do at `hour`, picked by weight with `roll` in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
 export function choose(actions: Action[], stats: Stats, hour: number, roll: number): Action | null {
   let options = actions.filter((a) => stats.canDo(a, hour));
   const needs = options.map((a) => ({ urgent: fixesUrgent(a, stats), bottom: fixesUrgent(a, stats, BOTTOM_AT) }));
