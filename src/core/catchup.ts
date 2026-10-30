@@ -7,7 +7,7 @@
 // applies where he ends up.
 import { choose, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
-import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, weigh, type Vec } from "./goals";
+import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { euro, signed } from "./money";
 import type { Rng } from "./rng";
 import type { Action, Place, Stats } from "./stats";
@@ -265,7 +265,9 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const hour = deps.hourAt(startMs + elapsed * 1000);
     const need = flat.kinds.map((p) => needOf(activities.peek(p, city.code), stats, hour));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
-    const urgent = real.some((_, i) => need[flat.kind[i]!]!.urgent);
+    let r = rng.randf();
+    let urgent: boolean;
+    [urgent, r] = urgentRules(need.some((n) => n.urgent), need.some((n) => n.bottom), r);
     let any = false;
     const weights = real.map((_, i) => {
       const n = need[flat.kind[i]!]!;
@@ -276,11 +278,11 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       any = true;
       return urgent ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull;
     });
-    if (any) return real[pickIndex(weights, rng.randf())]!;
+    if (any) return real[pickIndex(weights, r)]!;
     const made = madeUp();
     const madeNeed = made.map((p) => needOf(activities.peek(p, city.code), stats, hour));
-    const madeUrgent = madeNeed.some((n) => n.urgent);
-    return made[pickIndex(made.map((p, i) => weigh(p, here, heading, madeNeed[i]!.pull, madeNeed[i]!.urgent).weight * (madeUrgent && !madeNeed[i]!.urgent ? 0 : 1)), rng.randf())]!;
+    [urgent, r] = urgentRules(madeNeed.some((n) => n.urgent), madeNeed.some((n) => n.bottom), rng.randf());
+    return made[pickIndex(made.map((p, i) => (urgent && !madeNeed[i]!.urgent ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, urgent).weight)), r)]!;
   }
 
   function madeUp(): Place[] {

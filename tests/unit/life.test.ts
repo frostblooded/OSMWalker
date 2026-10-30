@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as A from "../../src/core/activities";
+import { URGENT_SLIP } from "../../src/core/goals";
 import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needOf, restMinutes, URGENT_AT, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
@@ -511,7 +512,9 @@ describe("need-driven goals", () => {
     stats.meters.fullness = URGENT_AT;
     expect(needOf([eat], stats, 12).urgent).toBe(false);
     stats.meters.fullness = URGENT_AT - 1;
-    expect(needOf([eat], stats, 12).urgent).toBe(true);
+    expect(needOf([eat], stats, 12)).toMatchObject({ urgent: true, bottom: false });
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    expect(needOf([eat], stats, 12).bottom).toBe(true);
   });
   it("send him to paid work when he is broke or saving up", () => {
     stats.gear.vehicle = vehicle("car");
@@ -575,7 +578,11 @@ describe("activities", () => {
     const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
     const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
     stats.meters.fullness = URGENT_AT - 1;
-    for (const r of [0, 0.5, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    for (const r of [URGENT_SLIP, 0.5, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    // Not yet at rock bottom: URGENT_SLIP of the time he picks from everything.
+    expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    for (const r of [0, 0.05, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
     stats.meters.fullness = URGENT_AT;
     expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
   });

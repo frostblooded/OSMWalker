@@ -20,9 +20,26 @@ export const URGENT_NEAR_M = 100;
 
 export type Vec = [number, number];
 export type NeedKey = Meter | "money";
-/** How a place meets his needs (see activities.ts needOf): its pull (1 = not at all), whether it fixes an urgent need, and the need it meets most. */
-export type Need = { pull: number; urgent: boolean; why: NeedKey | "" };
-export const NO_NEED: Need = { pull: 1, urgent: false, why: "" };
+/**
+ * How a place meets his needs (see activities.ts needOf): its pull (1 = not at
+ * all), whether it fixes an urgent need, or one at rock bottom, and the need it
+ * meets most.
+ */
+export type Need = { pull: number; urgent: boolean; bottom: boolean; why: NeedKey | "" };
+export const NO_NEED: Need = { pull: 1, urgent: false, bottom: false, why: "" };
+/** With an urgent need that isn't at rock bottom, the odds he does as he likes anyway. */
+export const URGENT_SLIP = 0.1;
+
+/**
+ * Whether an urgent need rules this pick, given `r` uniform in [0, 1), and `r`
+ * stretched back to [0, 1) for the pick itself. At rock bottom it always rules;
+ * otherwise it does but for URGENT_SLIP of the time.
+ */
+export function urgentRules(urgent: boolean, bottom: boolean, r: number): [boolean, number] {
+  if (!urgent) return [false, r];
+  if (bottom) return [true, r];
+  return r < URGENT_SLIP ? [false, r / URGENT_SLIP] : [true, (r - URGENT_SLIP) / (1 - URGENT_SLIP)];
+}
 export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number; urgent?: true };
 
 export const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);

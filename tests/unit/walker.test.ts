@@ -481,7 +481,7 @@ describe("goal weights", () => {
     expect(parts.heading_w).toBeCloseTo(G.headingWeight([0, 1], [0, 500]), 3);
     expect(parts.need_w).toBe(1);
     expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
-    w.need = (q) => ({ pull: q.name === "Ahead" ? 4 : 1, urgent: false, why: "" });
+    w.need = (q) => ({ pull: q.name === "Ahead" ? 4 : 1, urgent: false, bottom: false, why: "" });
     const needy = w.weigh(p);
     expect(needy.need_w).toBe(4);
     expect(needy.weight).toBeCloseTo(4 * parts.weight, 6);
@@ -523,7 +523,7 @@ describe("goal weights", () => {
     const a = moved(42, 23, [500, 0]);
     const b = moved(42, 23, [-500, 0]);
     setPlaces(w.graph, [{ ...cafe("Food", a[0], a[1]), subclass: "food" }, cafe("Other", b[0], b[1])]);
-    w.need = (q) => ({ pull: q.subclass === "food" ? 5 : 1, urgent: false, why: "" });
+    w.need = (q) => ({ pull: q.subclass === "food" ? 5 : 1, urgent: false, bottom: false, why: "" });
     let food = 0;
     for (let s = 0; s < 300; s++) {
       w.rng = new Rng(s);
@@ -534,31 +534,44 @@ describe("goal weights", () => {
     expect(food).toBeGreaterThan(220);
   });
 
-  it("with an urgent need, head only for a fix, mostly the nearest", () => {
+  const urgentPicks = (bottom: boolean) => {
     const w = atCross();
     const specs: [string, number][] = [["Near food", 150], ["Far food", 600], ["Museum", 500]];
     setPlaces(w.graph, specs.map(([name, east]) => {
       const ll = moved(42, 23, [east, 0]);
       return { ...cafe(name, ll[0], ll[1]), subclass: name.endsWith("food") ? "food" : "museum" };
     }));
-    w.need = (q) => (q.subclass === "food" ? { pull: 30, urgent: true, why: "fullness" } : { pull: 1, urgent: false, why: "" });
+    w.need = (q) => (q.subclass === "food" ? { pull: 30, urgent: true, bottom, why: "fullness" } : { pull: 1, urgent: false, bottom: false, why: "" });
     const counts: Record<string, number> = {};
-    for (let s = 0; s < 300; s++) {
+    for (let s = 0; s < 1000; s++) {
       w.rng = new Rng(s);
       w.startAt(n(1));
       w.legFrom = moved(42, 23, [500, 0]);
       w.pickGoal();
       counts[w.place!.name] = (counts[w.place!.name] ?? 0) + 1;
     }
-    expect(counts["Museum"] ?? 0).toBe(0);
-    expect(counts["Near food"]!).toBeGreaterThan(5 * (counts["Far food"] ?? 0));
+    return (k: string) => counts[k] ?? 0;
+  };
+
+  it("at rock bottom, head only for a fix, mostly the nearest", () => {
+    const c = urgentPicks(true);
+    expect(c("Museum")).toBe(0);
+    expect(c("Near food")).toBeGreaterThan(5 * c("Far food"));
+  });
+
+  it("with an urgent need, now and then do as he likes anyway", () => {
+    const c = urgentPicks(false);
+    // The museum can only win in the URGENT_SLIP share of picks, and even then food pulls 30x.
+    expect(c("Museum")).toBeGreaterThan(0);
+    expect(c("Museum")).toBeLessThan(1000 * G.URGENT_SLIP);
+    expect(c("Near food")).toBeGreaterThan(800);
   });
 
   it("weigh an urgent fix by nearness alone", () => {
     const w = atCross();
     w.legFrom = moved(42, 23, [0, -500]);
     const ll = moved(42, 23, [0, -200]);
-    const parts = w.weigh(cafe("Behind", ll[0], ll[1], 4), { pull: 10, urgent: true, why: "thirst" });
+    const parts = w.weigh(cafe("Behind", ll[0], ll[1], 4), { pull: 10, urgent: true, bottom: false, why: "thirst" });
     expect(parts.rank_w).toBe(1);
     expect(parts.heading_w).toBe(1);
     expect(parts.dist_w).toBeCloseTo(G.nearWeight(parts.dist_m), 6);

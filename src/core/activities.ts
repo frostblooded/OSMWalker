@@ -4,7 +4,7 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Picks an action he can do, leaning towards what he needs.
-import type { Need, NeedKey } from "./goals";
+import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
 import { ATTRS, type Action, type Attr, type Meter, type Place, type Stats } from "./stats";
 
@@ -23,8 +23,10 @@ export const GOAL_SHOP_PULL = 200;
 export const FLAVOUR_WEIGHT = 2;
 /** Below this a meter is a need. Its urge is the square of how far below it is, so it is mild at first and steep near empty. */
 export const NEED_AT = 40;
-/** Below this a meter is urgent: if anything he can do nearby fixes it, he heads for that and does it, and nothing else. */
+/** Below this a meter is urgent: if anything he can do nearby fixes it, he heads for that and does it, but for URGENT_SLIP of the time (see goals.ts). */
 export const URGENT_AT = 15;
+/** Below this a meter is at rock bottom: fixing it beats everything, every time. */
+export const BOTTOM_AT = 5;
 /** An empty need makes a place or action that meets it in full weigh 1 + NEED_BOOST times as much. */
 export const NEED_BOOST = 49;
 /** Raising a meter by this much or more meets its need in full; less meets it in part. */
@@ -66,9 +68,9 @@ export function needScore(action: Action, stats: Stats): { score: number; why: N
   return { score, why };
 }
 
-/** True when `action` raises a meter that is under URGENT_AT. */
-export function fixesUrgent(action: Action, stats: Stats): boolean {
-  for (const [m, v] of Object.entries(action.fx ?? {})) if (v > 0 && m in stats.meters && stats.meters[m as Meter] < URGENT_AT) return true;
+/** True when `action` raises a meter that is under `below` (URGENT_AT by default). */
+export function fixesUrgent(action: Action, stats: Stats, below = URGENT_AT): boolean {
+  for (const [m, v] of Object.entries(action.fx ?? {})) if (v > 0 && m in stats.meters && stats.meters[m as Meter] < below) return true;
   return false;
 }
 
@@ -159,6 +161,7 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   let why: NeedKey | "" = "";
   let lean = 1;
   let urgent = false;
+  let bottom = false;
   let goalShop = false;
   for (const a of actions) {
     if (!stats.canDo(a, hour)) continue;
@@ -167,16 +170,19 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
     if (s.score > best) [best, why] = [s.score, s.why];
     lean = Math.max(lean, strengthLean(a, stats));
     urgent ||= fixesUrgent(a, stats);
+    bottom ||= fixesUrgent(a, stats, BOTTOM_AT);
   }
-  if (goalShop) return { pull: GOAL_SHOP_PULL, urgent, why };
-  return { pull: (1 + NEED_BOOST * best) * lean, urgent, why };
+  if (goalShop) return { pull: GOAL_SHOP_PULL, urgent, bottom, why };
+  return { pull: (1 + NEED_BOOST * best) * lean, urgent, bottom, why };
 }
 
-/** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. With an urgent need, only what fixes one. */
+/** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
 export function choose(actions: Action[], stats: Stats, hour: number, r: number): Action | null {
   let options = actions.filter((a) => stats.canDo(a, hour));
   const fixes = options.filter((a) => fixesUrgent(a, stats));
-  if (fixes.length) options = fixes;
+  let rules: boolean;
+  [rules, r] = urgentRules(fixes.length > 0, fixes.some((a) => fixesUrgent(a, stats, BOTTOM_AT)), r);
+  if (rules) options = fixes;
   const weights = options.map((a) => weight(a, stats));
   r *= weights.reduce((s, w) => s + w, 0);
   for (let i = 0; i < options.length; i++) {

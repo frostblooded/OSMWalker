@@ -9,7 +9,7 @@
 // walks to a bus station, airport or gas station, then rides there.
 // Pure logic: no DOM, no networking, so it is easy to test.
 import { bboxAround, distanceM, latToPx, lonToPx, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
-import { NO_NEED, pickIndex, randomSpot, weigh, type Need, type Vec, type Weights } from "./goals";
+import { NO_NEED, pickIndex, randomSpot, urgentRules, weigh, type Need, type Vec, type Weights } from "./goals";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
@@ -176,14 +176,15 @@ export class Walker {
         if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
         return v;
       });
-      const urgent = needs.some((v) => v.urgent);
+      let r = this.rng.randf();
+      let urgent: boolean;
+      [urgent, r] = urgentRules(needs.some((v) => v.urgent), needs.some((v) => v.bottom), r);
       if (urgent) {
         options = options.filter((_, i) => needs[i]!.urgent);
         info.urgent_fixes = options.length;
       }
-      const parts = options.map((q) => this.weigh(q, kinds.get(kindOf(q))));
+      const parts = options.map((q) => this.weigh(q, urgent ? kinds.get(kindOf(q)) : { ...kinds.get(kindOf(q))!, urgent: false }));
       const weights = parts.map((w) => w.weight);
-      const r = this.rng.randf();
       const i = pickIndex(weights, r);
       const pl = options[i]!;
       this.setGoal(pl.lat, pl.lon);

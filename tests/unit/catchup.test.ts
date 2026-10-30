@@ -142,7 +142,8 @@ describe("catch-up", () => {
       stats.cents = 3000; // enough for the bus, not for new gear
       stats.gear.head = { name: "Cap", slot: "head", stats: {}, rarity: "Common", price: 100, story: { from: "Old", t: 0, countries: ["ZZZ"], km: 0 } };
       for (let i = 0; i < souvenirs; i++) stats.keepsakes.souvenirs.set(`C${i}`, { name: "magnet", country: "", city: "", t: 0 });
-      const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1 }));
+      let rolls = 0;
+      const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
       return { stats, bus: s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text };
     };
     const { stats, bus } = run(0);
