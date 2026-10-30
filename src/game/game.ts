@@ -14,6 +14,7 @@ import { distanceM, type BBox } from "../core/geo";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
+import { NAME_MAX, type Postcard } from "../core/postcard";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, type Action, type Place } from "../core/stats";
@@ -81,6 +82,8 @@ export class Game {
   showRoute = false;
   /** The camera keeps him in view by itself (the menu switch); off, the map stays where the player leaves it. */
   cameraFollows = true;
+  /** The name you sign postcards with; "" signs them "a friend". */
+  postcardName = "";
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
@@ -550,11 +553,12 @@ export class Game {
     this.showCityArea = s.showCityArea;
     this.showRoute = s.showRoute;
     this.cameraFollows = s.cameraFollows;
+    this.postcardName = s.postcardName;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, problems: this.problems });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, problems: this.problems, postcardName: this.postcardName });
   }
 
   setShowCityArea(on: boolean): void {
@@ -566,6 +570,19 @@ export class Game {
 
   setShowRoute(on: boolean): void {
     this.showRoute = on;
+    this.saveSettings();
+    this.changed();
+  }
+
+  /** A postcard of where he is now, signed with `postcardName`. */
+  postcard(): Postcard {
+    const w = this.walker;
+    const place = w?.isTraveling() ? "" : (w?.place?.name ?? w?.streetName() ?? "");
+    return { from: this.postcardName, city: this.city, place, level: this.stats.level, line: this.stats.history.latest(), t: Math.floor(this.now() / 1000) };
+  }
+
+  setPostcardName(name: string): void {
+    this.postcardName = name.slice(0, NAME_MAX);
     this.saveSettings();
     this.changed();
   }

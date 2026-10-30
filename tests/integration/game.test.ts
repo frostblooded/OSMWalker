@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
+import { decode, encode } from "../../src/core/postcard";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
@@ -95,6 +96,19 @@ describe("game", () => {
     const reached = texts.findIndex((t) => t.startsWith("Reached Cafe Near"));
     expect(texts[reached + 1]).toBe("Opened your care package: 📖 City guide! Thank you! (+2 Wits for 4 h)");
     expect(g.stats.buffNames()).toContain("City guide");
+  });
+
+  it("writes a postcard of where he is, signed with a name that is remembered", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 400);
+    g.setPostcardName("Ivan");
+    const card = g.postcard();
+    expect(card).toMatchObject({ from: "Ivan", city: "Sofia, Bulgaria", level: g.stats.level, line: g.stats.history.latest() });
+    expect(card.place).toBe(g.walker!.place?.name ?? g.walker!.streetName());
+    expect(decode(encode(card))).toEqual(card);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    expect(again.postcardName).toBe("Ivan");
   });
 
   it("says when the streets can't load", async () => {

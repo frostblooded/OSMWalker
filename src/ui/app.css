@@ -134,6 +134,10 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .guess-choices .btn { flex: 1 1 auto; }
 .notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
 .notice.error { color: var(--error); }
+.notice.ok { color: var(--ok); }
+.field { width: 100%; box-sizing: border-box; min-height: var(--tap); padding: 0 var(--s3); font-size: 16px; border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--paper); color: var(--ink); }
+.field:focus { outline: none; box-shadow: 0 0 0 3px var(--accent); }
+.postcard-line { font-style: italic; }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 

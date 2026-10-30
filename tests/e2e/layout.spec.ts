@@ -2,6 +2,7 @@
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Page } from "@playwright/test";
+import { encode } from "../../src/core/postcard";
 import { mockServices, reopenAfter, reopenDeparting } from "./mock";
 
 test.beforeEach(async ({ context }) => {
@@ -102,7 +103,10 @@ for (const width of [360, 412]) {
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
       // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
       test.setTimeout(90_000);
-      await page.goto("./");
+      await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)", t: 0 })}`);
+      await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
+      await check(page, "postcard-received");
+      await page.getByRole("button", { name: "Start my own walk" }).click();
       await expect(page.getByLabel("City name")).toBeVisible();
       await check(page, "picker");
       await page.getByLabel("City name").fill("Sofia");
@@ -151,6 +155,10 @@ for (const width of [360, 412]) {
       await away.getByRole("button", { name: /events, newest first/ }).click();
       await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();
+
+      await openMenuItem(page, /Send a postcard/);
+      await check(page, "postcard");
+      await page.getByRole("dialog", { name: /Send a postcard/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Care package/);
       const care = page.getByRole("dialog", { name: /Care package/ });
