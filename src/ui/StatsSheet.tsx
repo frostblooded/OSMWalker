@@ -4,7 +4,7 @@
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
-import { isCold, isHot, isSunny, isWet, SNOW_SPEED, speedShare, type Sky } from "../core/sky";
+import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { speed } from "./format";
@@ -41,23 +41,20 @@ const cap = (t: string) => t[0]!.toUpperCase() + t.slice(1);
 
 function SkyCard({ sky, vehicle }: { sky: Sky; vehicle: Vehicle }) {
   const w = sky.weather;
-  const notes: [string, "warning" | "ok"][] = [];
-  if (speedShare(sky, vehicle) < 1) notes.push([`🌨 Snow: he goes at ${Math.round(SNOW_SPEED * 100)}% of his speed.`, "warning"]);
-  if (isWet(sky)) notes.push(["🌧 Wet: he heads indoors and his mood drops.", "warning"]);
-  if (isHot(sky)) notes.push(["🥵 Hot: he gets thirsty faster and looks for ways to cool off.", "warning"]);
-  if (isCold(sky)) notes.push(["🥶 Freezing: he tires faster.", "warning"]);
-  if (isSunny(sky)) notes.push(["😎 Sunny: his mood rises.", "ok"]);
+  // What the weather does to him now, in short: speed, indoors, thirst, energy, mood.
+  const fx = [
+    speedShare(sky, vehicle) < 1 && `speed ${Math.round(SNOW_SPEED * 100)}%`,
+    isWet(sky) && `indoors, mood −${WET_MOOD_PER_H}/h`,
+    isHot(sky) && `thirst ×${HOT_THIRST}`,
+    isCold(sky) && `energy −${COLD_ENERGY_PER_H}/h`,
+    isSunny(sky) && `mood +${SUNNY_MOOD_PER_H}/h`,
+  ].filter(Boolean);
   return (
     <Card icon="🌦" title="Sky" right={`${SEASON_ICON[sky.season]} ${cap(sky.season)}`}>
       <KV k="Weather" v={w ? `${skyIcon(sky)} ${cap(w.kind)}, ${Math.round(w.tempC)}°C` : <span class="dim">Unknown yet</span>} />
       <KV k="🕒 City time" v={hhmm(sky.clock)} />
-      <KV k="🌅 Sunrise" v={hhmm(sky.rise)} />
-      <KV k="🌇 Sunset" v={hhmm(sky.set)} />
-      {notes.map(([text, tone]) => (
-        <p key={text} class={`small tone-${tone}`}>
-          {text}
-        </p>
-      ))}
+      <KV k="🌅 Sunrise · sunset" v={`${hhmm(sky.rise)} · ${hhmm(sky.set)}`} />
+      {fx.length > 0 && <KV k="✨ Weather does" v={fx.join(" · ")} tone={isSunny(sky) ? "ok" : "warning"} />}
     </Card>
   );
 }

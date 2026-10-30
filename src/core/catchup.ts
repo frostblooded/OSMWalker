@@ -191,7 +191,6 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
       moveTo(place, [place.lat, place.lon]);
-      s.stops++;
       const sky = skyNow();
       if (!isOpen(place, sky.clock, sky.holiday)) {
         stats.say(`Found ${place.name} closed`);
@@ -199,6 +198,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
+      s.stops++;
       if (city.places) {
         const bonus = stats.visit(place);
         if (bonus > 0) s.firstVisits++;

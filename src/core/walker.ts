@@ -22,6 +22,8 @@ export const SPEED_MPS = 200 / 60;
 export const REST_M = SPEED_MPS * 60;
 /** Close enough to a destination to call it reached. */
 export const ARRIVE_M = 30;
+/** Why he walks to a random spot when every place near him is closed: normal at night, not a warning. */
+export const ALL_CLOSED = "every place near enough is closed";
 /** Destinations come from the searched place's box, kept between these sizes. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
@@ -191,7 +193,7 @@ export class Walker {
     const spot = this.randomSpot();
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? "every place near enough is closed" : `every loaded place is within ${ARRIVE_M} m of him`;
+    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? ALL_CLOSED : `every loaded place is within ${ARRIVE_M} m of him`;
     // Night closures are normal, not a problem worth a warning.
     if (!near) this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);

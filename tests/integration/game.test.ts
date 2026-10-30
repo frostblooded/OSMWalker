@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import * as DebugLog from "../../src/core/debugLog";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
@@ -464,6 +465,10 @@ describe("game", () => {
       g.debugNewGoal();
       expect(g.walker!.place).toBeNull();
       expect(g.debugLog.entries.at(-1)?.fallback).toBe("every place near enough is closed");
+      // Closed at night is normal: no warning in Problems, and the pick isn't one either.
+      expect(g.problems.warnings.filter((w) => w.text.startsWith("Picked a random spot"))).toEqual([]);
+      expect(DebugLog.isWarning(g.debugLog.entries.at(-1)!)).toBe(false);
+      expect(DebugLog.title(g.debugLog.entries.at(-1)!)).toBe("🌙 Random spot: everything near is closed (button)");
     });
   });
 });

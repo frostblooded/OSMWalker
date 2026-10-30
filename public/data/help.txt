@@ -370,7 +370,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
-- Sky: the season, the weather, the city's time, and today's sunrise and sunset, with a line for each thing the weather does to him right now (see Weather).
+- Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Attributes: a tile for each, with the part his gear adds in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.

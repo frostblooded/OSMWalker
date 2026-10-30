@@ -1137,6 +1137,18 @@
      "luck": 3
     }
    }
+  },
+  {
+   "name": "Watch the sunset",
+   "min": 15,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   },
+   "needs": {
+    "time": "evening",
+    "weather": "sunny"
+   }
   }
  ],
  "memorial": [
@@ -1569,6 +1581,35 @@
     "season": "summer",
     "weather": "sunny"
    }
+  },
+  {
+   "name": "Tiptoe over the ice",
+   "min": 5,
+   "fx": {
+    "xp": 5
+   },
+   "needs": {
+    "weather": "cold"
+   },
+   "risk": {
+    "p": 0.3,
+    "text": "and slipped",
+    "fx": {
+     "health": -5,
+     "mood": -5
+    }
+   }
+  },
+  {
+   "name": "Stroll under the street lamps",
+   "min": 15,
+   "fx": {
+    "mood": 6,
+    "xp": 5
+   },
+   "needs": {
+    "time": "night"
+   }
   }
  ],
  "garden": [
@@ -1709,6 +1750,18 @@
     "per_h": {
      "mood": 2
     }
+   }
+  },
+  {
+   "name": "Jump in the puddles",
+   "min": 5,
+   "fx": {
+    "mood": 8,
+    "hygiene": -10,
+    "xp": 5
+   },
+   "needs": {
+    "weather": "wet"
    }
   }
  ],
@@ -2015,6 +2068,18 @@
    },
    "needs": {
     "str": 5
+   }
+  },
+  {
+   "name": "Watch the sunset",
+   "min": 15,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   },
+   "needs": {
+    "time": "evening",
+    "weather": "sunny"
    }
   }
  ],
@@ -3363,70 +3428,6 @@
     "p": 0.1,
     "text": "worth 3c",
     "cost": -3
-   }
-  },
-  {
-   "name": "Shelter under an awning",
-   "min": 10,
-   "fx": {
-    "energy": 5,
-    "xp": 2
-   },
-   "needs": {
-    "weather": "wet"
-   }
-  },
-  {
-   "name": "Jump in the puddles",
-   "min": 5,
-   "fx": {
-    "mood": 8,
-    "hygiene": -10,
-    "xp": 5
-   },
-   "needs": {
-    "weather": "wet"
-   }
-  },
-  {
-   "name": "Tiptoe over the ice",
-   "min": 5,
-   "fx": {
-    "xp": 5
-   },
-   "needs": {
-    "weather": "cold"
-   },
-   "risk": {
-    "p": 0.3,
-    "text": "and slipped",
-    "fx": {
-     "health": -5,
-     "mood": -5
-    }
-   }
-  },
-  {
-   "name": "Watch the sunset",
-   "min": 15,
-   "fx": {
-    "mood": 10,
-    "xp": 5
-   },
-   "needs": {
-    "time": "evening",
-    "weather": "sunny"
-   }
-  },
-  {
-   "name": "Stroll under the street lamps",
-   "min": 15,
-   "fx": {
-    "mood": 6,
-    "xp": 5
-   },
-   "needs": {
-    "time": "night"
    }
   }
  ],

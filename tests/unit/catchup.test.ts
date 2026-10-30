@@ -157,4 +157,14 @@ describe("catch-up", () => {
     expect(s.lines.filter((l) => l.text.startsWith("Reached"))).toEqual([]);
     expect(Math.max(...seen)).toBeGreaterThan(night + 3 * 3600_000);
   });
+
+  it("finds a shop closed when it shuts while he walks there, and it isn't a stop", () => {
+    const shop: AwayCity = { ...HOME, places: [place("Shoe Shop", "shop", "shoes", 0.003, 0)] };
+    // Picked open at 19:59, reached after 20:00.
+    const s = catchUp(new Stats(), shop, [0, 0], 30 * 60, Date.UTC(2026, 9, 29, 19, 59), deps({ skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null) }));
+    expect(s.lines.map((l) => l.text)).toContain("Found Shoe Shop closed");
+    expect(s.lines.some((l) => l.text.startsWith("Reached Shoe Shop"))).toBe(false);
+    // Stops count only the places he reached.
+    expect(s.stops).toBe(s.lines.filter((l) => l.text.startsWith("Reached")).length);
+  });
 });
