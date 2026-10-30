@@ -59,6 +59,8 @@ const EXTRA: Kind[] = [
 /** Landmarks a wizard tower may rise at, grandest first. */
 const TOWER_AT = ["castle/castle", "attraction/viewpoint", "castle", "attraction", "monument", "museum"];
 
+/** The made-up kinds no real place has (extras and wizard's towers), for the Collection. */
+export const ODD_KINDS = [...EXTRA.map((k) => k.class), TOWER_KIND];
 /** Every kind of place this file makes (and trips.ts's made airports), for icons and actions. */
 export const MADE_KINDS = [...MUST.map((m) => m.subclass), ...EXTRA.map((k) => k.class), TOWER_KIND, "airport"];
 
