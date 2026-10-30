@@ -1,3 +1,4 @@
+import { isAirport } from "../../src/core/cityCheck";
 import { euro } from "../../src/core/money";
 import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
@@ -64,13 +65,6 @@ describe("rides", () => {
     expect(T.fare("bus", 1000)).toBe(8);
     expect(T.fare("bus", 1)).toBe(1);
   });
-
-  it("know stations", () => {
-    expect(T.isBusStation(BUS_STATION)).toBe(true);
-    expect(T.isBusStation({ ...BUS_STATION, subclass: "bus_stop" })).toBe(false);
-    expect(T.isGasStation(FUEL)).toBe(true);
-    expect(T.isGasStation(CAFE)).toBe(false);
-  });
 });
 
 describe("airports", () => {
@@ -78,7 +72,7 @@ describe("airports", () => {
     const a = trips(true).airports;
     expect(a).toHaveLength(2);
     expect(a[0]!.name).toBe("Big Intl");
-    expect(T.isAirport(a[0]!)).toBe(true);
+    expect(isAirport(a[0]!)).toBe(true);
   });
 
   it("are found within reach only", () => {
@@ -116,6 +110,12 @@ describe("planTrip", () => {
   it("fills up and drives with a car", () => {
     const p = plan(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION, FUEL], 10_000, true, 0.99));
     expect(p.mode).toBe("car");
+    expect(p.station.name).toBe("Fuel Stop");
+  });
+
+  it("never fills up at an EV charger, which the map files under fuel too", () => {
+    const charger: Place = { ...FUEL, name: "Charger", subclass: "charging_station", lon: 0.001 };
+    const p = plan(trips().planTrip(city("Smallton", 1, 0), [0, 0], [charger, FUEL], 10_000, true, 0.99));
     expect(p.station.name).toBe("Fuel Stop");
   });
 

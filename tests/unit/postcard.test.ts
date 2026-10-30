@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { clean, decode, encode, NAME_MAX, POSTCARD_KEY, TEXT_MAX, title, type Postcard } from "../../src/core/postcard";
 
-const card: Postcard = { from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)", t: 1_800_000_000 };
+const card: Postcard = { from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" };
 
 describe("postcards", () => {
   it("go into a link and come back the same", () => {
@@ -11,6 +11,11 @@ describe("postcards", () => {
     expect(hash).toMatch(/^postcard=[A-Za-z0-9_-]+$/);
     expect(decode(`#${hash}`)).toEqual(card);
     expect(decode(hash)).toEqual(card);
+  });
+
+  it("read links sent before a field was dropped", () => {
+    const old = { ...card, line: "Tea in Kyoto" };
+    expect(decode(`#postcard=${btoa(JSON.stringify({ ...old, t: 1_800_000_000 }))}`)).toEqual(old);
   });
 
   it("keep accents and other scripts", () => {
@@ -33,7 +38,7 @@ describe("postcards", () => {
 
   it("are cleaned: text cut, odd numbers fixed, unknown fields dropped", () => {
     const c = clean({ from: `  ${"n".repeat(50)} `, city: "Rome", place: 5, level: -3, line: "a\n\nb", t: "x", evil: "<script>" })!;
-    expect(c).toEqual({ from: "n".repeat(NAME_MAX), city: "Rome", place: "", level: 1, line: "a b", t: 0 });
+    expect(c).toEqual({ from: "n".repeat(NAME_MAX), city: "Rome", place: "", level: 1, line: "a b" });
     expect(clean({ city: "x".repeat(500) })!.city).toHaveLength(TEXT_MAX);
     expect(clean(null)).toBeNull();
   });

@@ -52,7 +52,7 @@ export class Sound {
     noise.start();
     document.addEventListener("visibilitychange", this.onVisibility);
     // Browsers keep sound off until a tap when the game opens with the switch already on.
-    if (this.ctx.state === "suspended") addEventListener("pointerdown", () => void this.ctx.resume(), { once: true });
+    if (this.ctx.state === "suspended") addEventListener("pointerdown", () => this.ctx.state === "suspended" && void this.ctx.resume(), { once: true });
   }
 
   /** Fades over to `scene`; does nothing when it is already playing. */
@@ -69,7 +69,8 @@ export class Sound {
 
   /** A cup's clink in a cafe, a short bird call in a park, then the next one a few seconds later. */
   private blip(scene: "cafe" | "park"): void {
-    if (!document.hidden) {
+    // Only while it plays: tones made while suspended (hidden, or before the first tap) would all sound at once on resume.
+    if (this.ctx.state === "running") {
       if (scene === "cafe") this.tone(this.rng.randfRange(2400, 3200), 2600, 0.12, 0.05);
       else for (let i = 0, n = this.rng.randiRange(2, 4); i < n; i++) this.tone(this.rng.randfRange(2800, 3400), 4000, 0.08, 0.04, i * 0.13);
     }

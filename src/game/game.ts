@@ -12,6 +12,7 @@ import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
 import { distanceM, type BBox } from "../core/geo";
+import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
@@ -99,6 +100,8 @@ export class Game {
   citySummary: CityCheck.Summary | null = null;
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
+  /** True once the first wake has run, so screens know whether an away card is coming. */
+  woke = false;
   /** True when this reopen earned a clover, for the summary card. */
   awayClover = false;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
@@ -273,7 +276,8 @@ export class Game {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
     }
-    this.stats.do(action, place.name, this.rng);
+    // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
+    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng);
     this.walker!.restFor(restMinutes(action));
     this.changed();
   }
@@ -375,7 +379,7 @@ export class Game {
     this.origin = [dest.lat, dest.lon];
     this.placeStats();
     this.track();
-    this.stats.enterCity(this.city);
+    this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
@@ -408,6 +412,7 @@ export class Game {
   /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
+    this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -481,10 +486,10 @@ export class Game {
    */
   async wake(): Promise<void> {
     const w = this.walker;
-    if (!w || this.waking || !this.savedAt) return;
+    if (!w || this.waking) return;
     const from = this.savedAt;
     const awayS = (this.now() - from) / 1000;
-    if (awayS < MIN_AWAY_S) return;
+    if (!from || awayS < MIN_AWAY_S) return this.woken();
     this.leaveDilemma();
     this.waking = true;
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
@@ -509,8 +514,14 @@ export class Game {
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
+      this.woken();
     }
     this.save();
+  }
+
+  /** The first wake has decided whether there is an away card (or never will: no map, so no loop), so a postcard from a link may show. */
+  woken(): void {
+    this.woke = true;
     this.changed();
   }
 
@@ -613,7 +624,7 @@ export class Game {
   private settleDilemma(d: Dilemma, pick: number, by: "you" | "him"): void {
     const w = this.walker;
     // He boarded a paid ride while the card was open: that goes first, so he turns the free one down himself.
-    if (d.city && w?.isTraveling()) [pick, by] = [1, "him"];
+    if (d.city && pick === 0 && w?.isTraveling()) [pick, by] = [1, "him"];
     const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     if (!o.trip || !d.city || !w) return;
     // A free ride replaces a trip he is still walking to the station for, and its guess.
@@ -669,7 +680,7 @@ export class Game {
   postcard(): Postcard {
     const w = this.walker;
     const place = w?.isTraveling() ? "" : (w?.place?.name ?? w?.streetName() ?? "");
-    return { from: this.postcardName, city: this.city, place, level: this.stats.level, line: this.stats.history.latest(), t: Math.floor(this.now() / 1000) };
+    return { from: this.postcardName, city: this.city, place, level: this.stats.level, line: this.stats.history.latest() };
   }
 
   setPostcardName(name: string): void {

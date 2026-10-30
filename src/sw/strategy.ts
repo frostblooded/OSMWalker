@@ -6,6 +6,8 @@ export type Strategy = { kind: "network-first" | "cache-first" | "stale-while-re
 
 /** Map tiles, fonts and icons kept at most; the oldest go first. */
 export const MAP_CACHE_MAX = 3000;
+/** Build files kept at most. Each deploy renames them (about 25 now), so this holds a few builds. */
+export const APP_ASSETS_MAX = 80;
 const OFM = "tiles.openfreemap.org";
 
 export function strategyFor(url: URL, scope: string, mode: RequestMode): Strategy {
@@ -20,4 +22,10 @@ export function strategyFor(url: URL, scope: string, mode: RequestMode): Strateg
   if (path.startsWith("assets/")) return { kind: "cache-first", cache: "app" };
   if (path.startsWith("data/")) return { kind: "stale-while-revalidate", cache: "app" };
   return null;
+}
+
+/** The oldest of `keys` (cache order) that pass `trimmed`, past the newest `max`: what a trim deletes. */
+export function overflow(keys: string[], max: number, trimmed: (url: string) => boolean): string[] {
+  const own = keys.filter(trimmed);
+  return own.slice(0, Math.max(own.length - max, 0));
 }

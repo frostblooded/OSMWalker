@@ -105,7 +105,7 @@ test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Collection/ }).click();
   const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Landmark cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
+  for (const t of ["Landmark cards", "City cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("button", { name: /Countries/ }).click();
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Today/ }).click();
