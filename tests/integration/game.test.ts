@@ -67,6 +67,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     cities: parseCities(CITIES),
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
     creatures: JSON.parse(dataFile("creatures.json")),
+    spells: JSON.parse(dataFile("spells.json")),
   };
   const storage = new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -238,6 +239,30 @@ describe("game", () => {
     run(g, 400);
     expect(g.stats.creatures.met).toEqual({ dryad: 1 });
     expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
+  });
+
+  it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {
+    const CHURCH: Place = { ...CAFE, name: "Church Near", class: "place_of_worship", subclass: "christian" };
+    const STONE: Place = { ...BUS, name: "Old Monument", class: "monument", subclass: "monument" };
+    const { g } = game({ places: [CHURCH, STONE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const walked: number[] = [];
+    const leyWalk = g.stats.leyWalk.bind(g.stats);
+    g.stats.leyWalk = (m) => {
+      walked.push(m);
+      leyWalk(m);
+    };
+    run(g, 1200);
+    expect(g.leys).toEqual([
+      [
+        [STONE.lat, STONE.lon],
+        [CHURCH.lat, CHURCH.lon],
+      ],
+    ]);
+    expect(walked.length).toBeGreaterThan(0);
+    expect(walked.every((m) => m > 0 && m < 10)).toBe(true);
+    expect(g.stats.magic).toBeGreaterThan(0);
+    expect(g.stats.buffNames()).toContain("Ley-charmed");
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {

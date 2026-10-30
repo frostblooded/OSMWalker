@@ -20,6 +20,7 @@ const data = {
   forecasts: JSON.parse(dataFile("forecasts.json")),
   incidents: JSON.parse(dataFile("incidents.json")),
   creatures: JSON.parse(dataFile("creatures.json")),
+  spells: JSON.parse(dataFile("spells.json")),
   borders: JSON.parse(dataFile("borders.json")),
 };
 const raw = dataFile("help.txt");

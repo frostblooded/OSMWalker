@@ -284,6 +284,16 @@ describe("catch-up", () => {
     expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
   });
 
+  it("draws Magic from the places on ley lines and learns spells from library books while away", () => {
+    const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    const sights = [place("St Mary", "place_of_worship", "christian", 0.003, 0), place("City Library", "library", "library", 0, 0.004), place("Old Monument", "monument", "monument", -0.003, 0)];
+    catchUp(stats, { ...HOME, places: [...PLACES, ...sights] }, [0, 0], 24 * 3600, START_MS, deps());
+    // His feed keeps only the last lines, so the places he drew from today tell.
+    expect(stats.lore.tapped).toEqual(expect.arrayContaining([visitKey(sights[0]!), visitKey(sights[2]!)]));
+    expect(stats.magic).toBeGreaterThan(0);
+    expect(stats.lore.known.length).toBeGreaterThan(0);
+  });
+
   it("builds no monument at made-up places, which are no real parks", () => {
     const stats = new Stats();
     stats.bricks.count = 10_000;

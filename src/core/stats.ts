@@ -8,6 +8,7 @@ import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
+import * as Mg from "./magic";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -176,6 +177,12 @@ export class Stats {
   creatures = new Cr.Creatures();
   /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
   creatureKinds: readonly Cr.Creature[] = [];
+  /** His Magic meter, 0 to Mg.MAGIC_MAX: ley lines fill it, spells spend it (magic.ts). */
+  magic = 0;
+  /** The spells he knows and the ley places he drew from today. */
+  lore = new Mg.Magic();
+  /** What the spells are, from data/spells.json; not saved, the game sets it. */
+  spellKinds: readonly Mg.Spell[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -506,6 +513,7 @@ export class Stats {
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
     this.applyFx(fx);
+    this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
   }
@@ -827,6 +835,38 @@ export class Stats {
     if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
   }
 
+  /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
+  leyWalk(m: number): void {
+    this.magic = Math.min(this.magic + (Mg.LEY_PER_KM * m) / 1000, Mg.MAGIC_MAX);
+    this.addBuff(Mg.LEY_CHARM);
+  }
+
+  /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
+  magicAt(place: Pick<Place, "class" | "name" | "lat" | "lon">): void {
+    const t = this.now();
+    if (Mg.isLeyPlace(place) && this.lore.tap(visitKey(place), dayOf(t * 1000))) {
+      const got = Math.min(Mg.LEY_BURST, Mg.MAGIC_MAX - this.magic);
+      this.magic += got;
+      this.say(`✨ Felt the ley lines meet at ${place.name}${got ? ` (Magic +${Math.round(got)})` : ""}`);
+    }
+    if (!Mg.BOOK_CLASSES.includes(place.class)) return;
+    const s = this.lore.learn(this.spellKinds, new Rng(seedOf(`spell${t}${place.name}`)).randf());
+    if (!s) return;
+    this.say(`📖 Learned a spell from an old book at ${place.name}: ${s.icon} ${s.name}`);
+    if (this.lore.known.length === 1) this.milestone("spell", `Learned his first spell, ${s.name}, at ${place.name}`);
+  }
+
+  /** Casts the spell that helps now, if he has the Magic (magic.ts toCast). */
+  private castIfNeeded(): void {
+    const s = Mg.toCast(this.spellKinds, this.lore.known, this.magic, this.meters, this.buffNames());
+    if (!s) return;
+    this.magic -= s.cost;
+    this.lore.casts[s.id] = (this.lore.casts[s.id] ?? 0) + 1;
+    if (s.fx) this.applyFx(s.fx);
+    if (s.buff) this.addBuff(s.buff);
+    this.say(`${s.icon} ${s.say} (Magic −${s.cost})`);
+  }
+
   /** Writes milestone `key` in his chronicle, once. */
   milestone(key: string, text: string): void {
     this.chronicle.note(key, text, this.now());
@@ -897,7 +937,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
     };
   }
 
@@ -926,6 +966,9 @@ export class Stats {
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
     s.creatures = Cr.Creatures.fromJSON(d.creatures);
+    // A save from before magic: no Magic and no spells yet.
+    s.magic = d.magic ?? 0;
+    s.lore = Mg.Magic.fromJSON(d.lore);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);

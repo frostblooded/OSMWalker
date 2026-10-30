@@ -3,7 +3,8 @@
 // and the city area on the map, sending a layer to MapLibre only when it
 // changed. The camera follows him; a tap on the goal chip shows him and his
 // goal until he picks a new one; a trip zooms out to the whole ride until he
-// lands; History fits his trail above its sheet. The map itself sits behind
+// lands; History fits his trail above its sheet; the Stats sheet shows the
+// ley lines. The map itself sits behind
 // MapPort, so tests use a fake.
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
@@ -34,6 +35,8 @@ export interface MapPort {
   setRoute(key: string, route: () => RouteLine): void;
   setArea(box: BBox | null, outline: LatLon[][]): void;
   setEvents(markers: EventMarker[]): void;
+  /** The ley lines while the Stats sheet is open, sent on only when `key` changes; "" hides them. */
+  setLeys(key: string, lines: () => [LatLon, LatLon][]): void;
   /** The game's icons, sent on only when `key` changes. */
   setMapIcons(key: string, icons: () => MapIcon[]): void;
   follow(zoom?: number): void;
@@ -61,6 +64,7 @@ export class MapScene {
   private goalView = "";
   private tripView = "";
   private history = false;
+  private leys = false;
   private eventsKey = "";
 
   /** `panels`: the room the top card and bottom bar take over the map. */
@@ -94,6 +98,7 @@ export class MapScene {
     v.setArea(g.showCityArea && !w.travel ? w.bounds : null, g.cityOutline);
     // Icons change with the city's places, his monuments, and as he moves about 500 m (the nearest ones show).
     v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
+    v.setLeys(this.leys && !w.travel ? `${g.city}:${g.leys.length}` : "", () => g.leys);
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);
@@ -120,6 +125,11 @@ export class MapScene {
     const box = this.game.stats.history.bounds();
     if (box) v.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
     this.onFollowing(false);
+  }
+
+  /** The Stats sheet opens or closes: the ley lines show while it is open. */
+  showLeys(on: boolean): void {
+    this.leys = on;
   }
 
   /** The goal chip: shows him and his goal together, or follows him again when they already show. */

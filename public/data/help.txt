@@ -81,6 +81,15 @@ A little folklore lives in the city. When he reaches a place where a creature li
 {CREATURE_LIST}
 
 The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for each point of Wits above 1, up to {RIDDLE_CAP_PCT}. The cleverer he is, the more often he tries it on his own. He only pays what he has. For now he always makes his own pick; soon you'll be able to tap one before a timer runs out. Each creature he meets gets a tile in the Collection (Places tab).
+## Ley lines {ley_lines}
+Old lines of power run between the real churches and other places of worship, monuments, memorials and castles of his city: each one is joined to the nearest other one the game has loaded. Open the Stats sheet to see them on the map as dotted indigo lines.
+
+Walking within {LEY_NEAR_M} m of a line fills his Magic by {LEY_PER_KM} for every km, and charms him: {LEY_CHARM_LUCK} luck for {LEY_CHARM_MIN} minutes after he last walked along one. Reaching a place a line joins gives {LEY_BURST} Magic at once, once a day for each place. While you're away there is no map to walk along, but the places he reaches still give their burst.
+## Spells {spells}
+Old books in real libraries and bookshops hide little spells. Each time he reaches one there is a {LEARN_PCT} chance he learns a spell he doesn't know yet (also while you're away). He casts them himself, at most one at a time, paying in Magic:
+{SPELL_LIST}
+
+A spell that tops up a meter is cast as soon as that meter is under {SPELL_AT}. A spell that gives a buff is cast only when he has at least {SPARE_MAGIC} Magic and the buff isn't on, so some Magic is always left for the others. The Stats sheet lists the spells he knows and how often he cast each, and each one gets a tile in the Collection (Gear tab).
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations, bridges and many more. A street bridge is named after its street ("Bridge on Main Street") and an unnamed footbridge is just "Footbridge"; bridges rank low, so he heads for one only now and then. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 
@@ -285,6 +294,8 @@ It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hote
 When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
+## Magic {magic}
+Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines); his spells spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
@@ -627,7 +638,7 @@ At the top, Completion counts every tile he has found and every badge tier he ho
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures) and the crawls.
 - 🌍 World: every country, how many cities he has been to, the souvenirs, and his monuments with his golden bricks (see Golden bricks).
-- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
+- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, and the spells he knows (see Spells).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 
 Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.

@@ -24,6 +24,7 @@ import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
+import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { Incident } from "../core/incidents";
 import type { Contest } from "../core/rival";
 import type { Borders } from "../core/border";
@@ -61,7 +62,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; spells?: Spell[] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -112,6 +113,11 @@ export class Game {
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
+  /** The ley lines between the loaded places (core/magic.ts), worked out again as streets load. */
+  leys: Ley[] = [];
+  private leysOf = "";
+  /** Meters walked since the last check for a ley line under him. */
+  private leyM = 0;
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
   /** Made-up places by city (core/poiGen.ts), saved so a city keeps its own. */
@@ -268,6 +274,7 @@ export class Game {
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before, w.afoot);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
+    if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
@@ -276,6 +283,7 @@ export class Game {
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
       this.checkCity();
+      this.checkLey();
     }
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
@@ -301,6 +309,7 @@ export class Game {
     this.stats.collect(place, this.cardRng);
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
+    this.stats.magicAt(place);
     // Incidents roll on the card dice, so they leave his walk the same.
     this.stats.happen(place, this.hour(), this.cardRng);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
@@ -450,7 +459,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -460,6 +469,7 @@ export class Game {
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.creatureKinds = this.deps.data.creatures ?? [];
+    this.stats.spellKinds = this.deps.data.spells ?? [];
     this.stats.contests = this.deps.data.contests ?? [];
     this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
@@ -811,6 +821,19 @@ export class Game {
    * no places of note, and once the streets all around him are loaded checks
    * that the city has a way out and a way to earn money (severe if not).
    */
+  /** Once a second: the ley lines again if more places loaded, and Magic for what he walked along one. */
+  private checkLey(): void {
+    const w = this.walker;
+    if (!w) return;
+    const key = `${this.city}:${w.graph.cells.size}:${w.graph.made.length}`;
+    if (key !== this.leysOf) {
+      this.leysOf = key;
+      this.leys = leyLines(w.bounds ? w.graph.placesIn(w.bounds) : []);
+    }
+    if (this.leyM > 0 && onLey(this.leys, w.position())) this.stats.leyWalk(this.leyM);
+    this.leyM = 0;
+  }
+
   private checkCity(): void {
     const w = this.walker;
     if (!w || w.isTraveling()) {

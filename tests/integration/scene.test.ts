@@ -39,6 +39,7 @@ class FakeMap implements MapPort {
   }
   setTrail() {}
   setRoute() {}
+  setLeys() {}
   setArea() {}
   setEvents() {
     this.calls.push("events");
