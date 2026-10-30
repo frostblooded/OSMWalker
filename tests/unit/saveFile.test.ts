@@ -75,6 +75,16 @@ describe("save file", () => {
     expect(back.stats.cents).toBe(4321);
   });
 
+  it("loads saves with clovers from before guesses with no guess open", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.care = { clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "2026-10-30", today: 1, parcel: "snack", guess: null });
+  });
+
   it("fills in what old saves lack: zoom and the city box", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

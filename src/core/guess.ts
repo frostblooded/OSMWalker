@@ -7,6 +7,7 @@ import type { City } from "./trips";
 
 /** Clovers a right guess earns. */
 export const GUESS_CLOVERS = 1;
+/** Choices offered, the right one among them, when there are enough cities. */
 export const GUESS_CHOICES = 3;
 
 export type Guess = { abroad: boolean; choices: string[]; answer: string; pick: string };
