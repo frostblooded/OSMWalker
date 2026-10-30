@@ -15,6 +15,22 @@ const OPEN_UP_TO = 30;
 /** The tab he looked at last, kept while the page is open. */
 let lastTab: C.Tab = "cards";
 
+/**
+ * Every set's entries and Completion. The game redraws an open sheet a few
+ * times a second, so they are worked out again only when his feed gets a new
+ * line (anything he collects says so) or his bag changes.
+ */
+let memo: { stats: Stats; key: string; entries: Map<string, C.Entry[]>; done: { got: number; total: number } } | null = null;
+export function collected(s: Stats) {
+  const last = s.history.entries.at(-1);
+  const key = `${s.history.entries.length}|${last?.t}|${last?.text}|${s.bag.length}`;
+  if (memo?.stats !== s || memo.key !== key) {
+    const entries = new Map(C.SETS.map((x) => [x.id, x.entries(s)]));
+    memo = { stats: s, key, entries, done: C.completion(s, (x) => entries.get(x.id)!) };
+  }
+  return memo;
+}
+
 /** "0.4" or "37": a tenth below 10%, so early finds still move it. */
 const pct = (got: number, total: number) => {
   const p = total ? (got / total) * 100 : 0;
@@ -49,9 +65,8 @@ function Tiles({ entries, picked, onPick }: { entries: C.Entry[]; picked: C.Entr
   );
 }
 
-function SetCard({ set, stats }: { set: C.CSet; stats: Stats }) {
+function SetCard({ set, entries, stats }: { set: C.CSet; entries: C.Entry[]; stats: Stats }) {
   const [picked, setPicked] = useState<C.Entry | null>(null);
-  const entries = set.entries(stats);
   const got = entries.filter((e) => e.got);
   const groups = [...new Set(entries.map((e) => e.group ?? ""))];
   const byGroup = (g: string) => entries.filter((e) => (e.group ?? "") === g);
@@ -116,7 +131,8 @@ function Feats({ stats: s }: { stats: Stats }) {
 export function CollectionSheet({ stats: s }: { stats: Stats }) {
   const [tab, setTab] = useState<C.Tab>(lastTab);
   const pick = (t: C.Tab) => setTab((lastTab = t));
-  const { got, total } = C.completion(s);
+  const all = collected(s);
+  const { got, total } = all.done;
   const tiers = [3, 2, 1].map((t) => C.FEATS.filter((f) => C.tierHeld(f, s) === t).length);
   return (
     <>
@@ -133,7 +149,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           </button>
         ))}
       </div>
-      {tab === "feats" ? <Feats stats={s} /> : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} stats={s} />)}
+      {tab === "feats" ? <Feats stats={s} /> : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)}
     </>
   );
 }

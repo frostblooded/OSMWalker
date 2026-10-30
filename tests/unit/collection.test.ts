@@ -8,6 +8,7 @@ import { TOWER_KIND } from "../../src/core/poiGen";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 import { parseCities } from "../../src/core/trips";
+import { collected } from "../../src/ui/CollectionSheet";
 import { dataFile } from "../support/data";
 
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
@@ -147,5 +148,17 @@ describe("completion", () => {
     const after = C.completion(stats);
     expect(after.total).toBe(empty.total);
     expect(after.got).toBe(1);
+  });
+});
+
+describe("the sheet's numbers", () => {
+  it("are worked out once, and again only after a new feed line", () => {
+    const first = collected(stats);
+    expect(collected(stats)).toBe(first);
+    stats.arrive("Sofia", "BGR", "Bulgaria");
+    stats.say("Reached Sofia");
+    const next = collected(stats);
+    expect(next).not.toBe(first);
+    expect(next.entries.get("countries")!.filter((e) => e.got).map((e) => e.id)).toEqual(["BGR"]);
   });
 });

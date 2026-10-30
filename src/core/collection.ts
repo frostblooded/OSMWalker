@@ -301,13 +301,13 @@ export function award(s: Stats): string[] {
   return lines;
 }
 
-/** Found entries and tiers out of all of them, for the overall %. Open sets don't count. */
-export function completion(s: Stats): { got: number; total: number } {
+/** Found entries and tiers out of all of them, for the overall %. Open sets don't count. `entriesOf` can hand in entries already worked out. */
+export function completion(s: Stats, entriesOf = (set: CSet) => set.entries(s)): { got: number; total: number } {
   let got = 0;
   let total = 0;
   for (const set of SETS) {
     if (set.open) continue;
-    const e = set.entries(s);
+    const e = entriesOf(set);
     got += e.filter((x) => x.got).length;
     total += e.length;
   }
