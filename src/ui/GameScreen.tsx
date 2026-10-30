@@ -11,6 +11,7 @@ import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
+import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
@@ -25,21 +26,22 @@ const DARK_STEP = 0.05;
 const SHEETS_AFTER_MS = 3000;
 /** The menu's sheets, loaded after startup (or when the menu opens first), so their code stays off the startup path. */
 const loadSheets = async () => {
-  const [help, debug, history, stats, collection, care] = await Promise.all([
+  const [help, debug, history, stats, collection, care, postcard] = await Promise.all([
     import("./HelpSheet"),
     import("./DebugSheet"),
     import("./HistorySheet"),
     import("./StatsSheet"),
     import("./CollectionSheet"),
     import("./CareSheet"),
+    import("./PostcardSheet"),
   ]);
-  return { ...help, ...debug, ...history, ...stats, ...collection, ...care };
+  return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard };
 };
 type Sheets = Awaited<ReturnType<typeof loadSheets>>;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
 
-export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
+export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
   const scene = useRef<MapScene | null>(null);
@@ -131,8 +133,8 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   }, [sheets]);
 
   useEffect(() => {
-    if (sheet && !sheets) fetchSheets();
-  }, [sheet, sheets]);
+    if ((sheet || received) && !sheets) fetchSheets();
+  }, [sheet, sheets, received]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -221,6 +223,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("care")}>
               🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
             </button>
+            <button class="btn" onClick={() => setSheet("postcard")}>
+              📮 Send a postcard
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -269,6 +274,27 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
           {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading failed={sheetsFailed} />}
+        </SheetBox>
+      )}
+      {sheet === "postcard" && (
+        <SheetBox title="📮 Send a postcard" onClose={close} full>
+          {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={sheetsFailed} />}
+        </SheetBox>
+      )}
+      {received && sheet === null && !game.away && (
+        <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
+          {sheets ? (
+            <sheets.ReceivedSheet
+              card={received}
+              onReply={() => {
+                onReceivedDone?.();
+                setSheet("postcard");
+              }}
+              onDone={() => onReceivedDone?.()}
+            />
+          ) : (
+            <Loading failed={sheetsFailed} />
+          )}
         </SheetBox>
       )}
       {sheet === "help" && (

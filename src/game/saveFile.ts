@@ -1,8 +1,8 @@
 // The saved game and the settings on the device: what gets written, how old
 // saves are repaired on the way back in, and why one can't be read. The game
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
-// apart under SETTINGS_KEY, so New city keeps them, and the last weather
-// forecast under WEATHER_KEY.
+// apart under SETTINGS_KEY, so New city keeps them; so does the name you
+// sign postcards with. The last weather forecast is kept under WEATHER_KEY.
 import { DebugLog, type Entry } from "../core/debugLog";
 import { Care } from "../core/gifts";
 import { Problems } from "../core/problems";
@@ -36,7 +36,7 @@ export type Saved = {
   savedAt: number;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string };
 
 /** The stored form; its keys never change, so older saves still load. */
 type Stored = {
@@ -50,7 +50,7 @@ type Stored = {
   debug_log: Entry[];
   saved_at?: number;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string };
 
 export function safeStorage(): KV | null {
   try {
@@ -133,7 +133,7 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems) };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "" };
     } catch {
       return "Settings were unreadable; using defaults";
     }
@@ -159,7 +159,7 @@ export class SaveFile {
 
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.
