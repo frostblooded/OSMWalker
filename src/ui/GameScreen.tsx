@@ -1,12 +1,12 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for), zoom
-// on the right edge and the main buttons in a bar at the bottom, in reach of
-// the thumb.
+// is, where he goes, a guess about his next trip, what he waits for, the
+// day's stops), zoom on the right edge and the main buttons in a bar at the
+// bottom, in reach of the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
-import { hud, type Goal, type Hud } from "../game/hud";
+import { hud, ribbon, type Goal, type Hud } from "../game/hud";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import type { Postcard } from "../core/postcard";
@@ -15,7 +15,7 @@ import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
-import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
@@ -114,6 +114,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
+          <DayRibbon day={ribbon(game, biasMin())} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
           {game.severeNow.length > 0 && (
@@ -232,7 +233,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} onDone={() => game.dismissAway()} />
+          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} onDone={() => game.dismissAway()} />
         </SheetBox>
       )}
     </div>
@@ -301,6 +302,20 @@ function Waiting({ hud: h }: { hud: Hud }) {
     );
   }
   return null;
+}
+
+/** Today's stops as small icons, newest on the right. */
+function DayRibbon({ day }: { day: { icons: string[]; more: number } }) {
+  if (!day.icons.length) return null;
+  return (
+    <div class="ribbon" role="img" aria-label={`Today: ${day.icons.length + day.more} stops`}>
+      <span class="dim">Today</span>
+      {day.more > 0 && <span class="dim">+{day.more}</span>}
+      {day.icons.map((icon, i) => (
+        <span key={i}>{icon}</span>
+      ))}
+    </div>
+  );
 }
 
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {

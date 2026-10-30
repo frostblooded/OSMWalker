@@ -63,6 +63,15 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
   await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
 });
 
+test("the day ribbon shows the places he stopped at today", async ({ page }) => {
+  // The hour he was away must fall on today.
+  test.skip(new Date().getHours() < 1, "too close to midnight");
+  await startInSofia(page);
+  await reopenAfter(page, 1);
+  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
+  await expect(page.locator(".hud .ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops$/);
+});
+
 test("while he walks to a station you can guess where he is going, once", async ({ page }) => {
   await startInSofia(page);
   await reopenDeparting(page);
@@ -124,4 +133,21 @@ test("every tap target is at least 48 px", async ({ page }) => {
       .filter(([, w, h]) => w < 48 || h < 48),
   );
   expect(small).toEqual([]);
+});
+
+test("after a week turns over, the away sheet opens with his week", async ({ page }) => {
+  await startInSofia(page);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
+  // His week started 8 days ago, with a few stops in it.
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("old-week")) return;
+    sessionStorage.setItem("old-week", "1");
+    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
+    d.stats.week = { tally: { start: Math.floor(Date.now() / 1000) - 8 * 86400, walkedM: 4200, stops: 9, newPlaces: 4, kinds: { cafe: 5, park: 4 }, cities: [], cents: 20000, level: 1 }, last: null, shown: true };
+    localStorage.setItem("osmwalker.save", JSON.stringify(d));
+  });
+  await reopenAfter(page, 1);
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await expect(away).toContainText("His week", { timeout: 20000 });
+  await expect(away).toContainText("cafe ×5");
 });

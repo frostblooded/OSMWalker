@@ -245,6 +245,7 @@ export class Game {
   private onArrived(place: Place): void {
     this.track();
     const bonus = this.stats.visit(place);
+    this.stats.stop(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
     this.stats.care.open(this.stats);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
@@ -354,6 +355,7 @@ export class Game {
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
     this.track();
+    this.stats.enterCity(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
@@ -536,6 +538,7 @@ export class Game {
   dismissAway(): void {
     this.away = null;
     this.awayClover = false;
+    this.stats.week.seen();
     this.changed();
   }
 
