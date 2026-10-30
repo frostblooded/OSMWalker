@@ -78,7 +78,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
             </div>
           </Collapsible>
         ) : (
-          <p class="dim small">None yet. He buys one in each country (see Souvenirs in Help).</p>
+          <p class="dim small">None yet. He may find one at a sight in each country (see Souvenirs in Help).</p>
         )}
       </Card>
       <Card icon="🏁" title="Crawls" right={`${k.done.size} / ${K.CRAWLS.length}`}>

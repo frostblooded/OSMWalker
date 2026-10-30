@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { ActionTable } from "../../src/core/activities";
 import { RARITY, SLOTS } from "../../src/core/items";
 import { CRAWLS } from "../../src/core/keepsakes";
-import { euro, toCents } from "../../src/core/money";
 import { ATTRS, METERS } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import * as Help from "../../src/ui/help";
@@ -83,9 +82,9 @@ describe("the real help", () => {
     expect(page("cards").body).toContain("0.5% of cards are Gold and 5% are Foil");
     expect(page("placedex").body).toContain("Legendary: +200 XP");
     expect(page("placedex").body).toContain("The sweep knows 329 kinds.");
-    expect(page("souvenirs").body).toContain('"Buy a souvenir" costs €8');
+    expect(page("souvenirs").body).toContain("there is a 30% chance he finds it there");
     expect(page("souvenirs").body).toContain("every 5 souvenirs make his fares 2% cheaper, up to 10%");
-    expect(page("crawls").body).toMatch(/^- ☕ Coffee crawl: 4 different cafes or coffee shops in a day, \+100 XP and €10,$/m);
+    expect(page("crawls").body).toMatch(/^- ☕ Coffee crawl: 4 different cafes or coffee shops in a day, then \+2 energy at each one he visits,$/m);
     expect(page("stories").body).toContain("worn through 3 or more countries");
     expect(page("saving").body).toContain("on a scooter or motorbike, a Hatchback for €7,500");
     expect(page("modifiers").body).toContain("Common, no modifiers: 60% of items");
@@ -102,12 +101,8 @@ describe("the real help", () => {
     expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
   });
 
-  it("words every crawl's kinds, and gives the one price all souvenir actions share", () => {
+  it("words every crawl's kinds", () => {
     for (const c of CRAWLS) expect(Help.CRAWL_KINDS[c.id], c.id).toBeTruthy();
-    const actions = JSON.parse(dataFile("actions.json")) as ActionTable;
-    const prices = new Set(Object.values(actions).flatMap((list) => (Array.isArray(list) ? list.filter((a) => a.souvenir).map((a) => a.cost) : [])));
-    expect([...prices]).toHaveLength(1);
-    expect(Help.values(data).SOUVENIR_PRICE).toBe(euro(toCents([...prices][0]!)));
   });
 
   it("has a page for every screen button", () => {

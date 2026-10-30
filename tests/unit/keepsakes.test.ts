@@ -1,18 +1,17 @@
 // Keepsakes: landmark cards and their finishes, the Placedex, crawls,
 // souvenirs and fare cuts, item stories, and saving them all.
 import { beforeEach, describe, expect, it } from "vitest";
-import { weight } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as K from "../../src/core/keepsakes";
 import { NOT_A_PLACE_SUBCLASS } from "../../src/core/ofm";
 import { Rng } from "../../src/core/rng";
-import { BAG_SIZE, moodXpMult, Stats, type Action, type Place } from "../../src/core/stats";
+import { BAG_SIZE, Stats, type Place } from "../../src/core/stats";
 import { Trips, type City } from "../../src/core/trips";
 import { readFileSync } from "node:fs";
 import { dataFile } from "../support/data";
 
 const place = (name: string, cls: string, subclass = cls, rank = 3, lat = 42, lon = 23): Place => ({ name, class: cls, subclass, rank, lat, lon });
-const souvenir: Action = { name: "Buy a souvenir", min: 5, cost: 8, fx: { mood: 8 }, souvenir: true };
+const sight = (name: string, lat = 42.5) => place(name, "attraction", "attraction", 3, lat);
 /** An Rng whose rolls come from a list. */
 const rolls = (...r: number[]) => Object.assign(new Rng(1), { randf: () => r.shift() ?? 0.99 });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
@@ -51,16 +50,12 @@ describe("landmark cards", () => {
     expect(stats.history.entries.some((e) => e.text === "New card: Castle (Common, Gold)")).toBe(true);
   });
 
-  it("can upgrade a card on a revisit, never downgrade it", () => {
+  it("gives a card on the first visit only; revisits leave it as it is", () => {
     const castle = place("Castle", "castle");
     stats.collect(castle, rolls(0.9));
-    stats.collect(castle, rolls(K.UPGRADE_CHANCE + 0.01, 0.01)); // no upgrade roll
-    expect(stats.keepsakes.cards.values().next().value!.finish).toBe("");
-    stats.collect(castle, rolls(0.1, 0.01)); // upgrade roll, foil
-    expect(stats.keepsakes.cards.values().next().value!.finish).toBe("foil");
-    stats.collect(castle, rolls(0.1, 0.9)); // upgrade roll, plain: kept foil
-    expect(stats.keepsakes.cards.values().next().value!.finish).toBe("foil");
-    expect(stats.keepsakes.cards.size).toBe(1);
+    stats.collect(castle, rolls(0.001));
+    expect([...stats.keepsakes.cards.values()]).toMatchObject([{ name: "Castle", finish: "" }]);
+    expect(stats.history.entries.filter((e) => e.text.startsWith("New card"))).toHaveLength(1);
   });
 });
 
@@ -106,13 +101,15 @@ describe("crawls", () => {
   const coffee = K.CRAWLS.find((c) => c.id === "coffee")!;
   const cafes = (n: number, from = 0) => Array.from({ length: n }, (_, i) => place(`Cafe ${from + i}`, "cafe", "cafe", 3, 42 + (from + i) / 100));
 
-  it("finishes once with enough different places in a day, and pays", () => {
-    const cents = stats.cents;
+  it("finishes once with enough different places in a day, then gives its perk at every one of its places", () => {
     for (const c of cafes(coffee.need)) stats.collect(c, rolls());
     expect(stats.keepsakes.done.has("coffee")).toBe(true);
-    expect(stats.cents).toBe(cents + coffee.cents);
-    for (const c of cafes(coffee.need, 10)) stats.collect(c, rolls());
-    expect(stats.cents).toBe(cents + coffee.cents);
+    expect(stats.history.latest()).toBe("Finished the Coffee crawl! From now on +2 energy at each such place");
+    stats.meters.energy = 50;
+    stats.collect(cafes(1)[0]!, rolls()); // a cafe he has been to: the perk still counts
+    expect(stats.meters.energy).toBe(50 + coffee.perk.energy!);
+    stats.collect(place("Bar", "bar"), rolls());
+    expect(stats.meters.energy).toBe(50 + coffee.perk.energy!);
   });
 
   it("doesn't count the same place twice", () => {
@@ -143,34 +140,26 @@ describe("crawls", () => {
 });
 
 describe("souvenirs", () => {
-  it("buys one per country, only where he has none yet", () => {
-    expect(stats.canDo(souvenir, 12)).toBe(true);
-    const cents = stats.cents;
-    expect(stats.do(souvenir, "Gift Shop", new Rng(1))).toBe("Bought a souvenir from Bulgaria: a bottle of rose oil at Gift Shop (-€8)");
-    expect(stats.cents).toBe(cents - 800);
-    expect(stats.canDo(souvenir, 12)).toBe(false);
+  it("are found at a landmark by chance, one per country", () => {
+    stats.collect(sight("Tower"), rolls(0.9, K.SOUVENIR_CHANCE + 0.01));
+    expect(stats.keepsakes.souvenirs.size).toBe(0);
+    stats.collect(sight("Gate", 42.6), rolls(0.9, K.SOUVENIR_CHANCE - 0.01));
+    expect(stats.keepsakes.souvenirs.get("BGR")).toMatchObject({ name: "bottle of rose oil", city: "Sofia" });
+    expect(stats.history.entries.some((e) => e.text === "Found a souvenir from Bulgaria at Gate: a bottle of rose oil")).toBe(true);
+    stats.collect(sight("Bridge", 42.7), rolls(0.9, 0));
+    expect(stats.keepsakes.souvenirs.size).toBe(1);
     stats.arrive("Reykjavik", "ISL", "Iceland");
-    expect(stats.canDo(souvenir, 12)).toBe(true);
-    stats.do(souvenir, "", new Rng(1));
+    stats.collect(place("Cafe", "cafe"), rolls(0.9, 0)); // not a landmark
+    expect(stats.keepsakes.souvenirs.has("ISL")).toBe(false);
+    stats.collect(sight("Church", 64), rolls(0.9, 0));
     expect(stats.keepsakes.souvenirs.get("ISL")!.name).toBe("Iceland fridge magnet");
-  });
-
-  it("scales the souvenir's XP by mood, like any action", () => {
-    const xp = { ...souvenir, fx: { xp: 10 } };
-    stats.meters.mood = 100;
-    stats.do(xp, "", new Rng(1));
-    expect(stats.xp).toBe(Math.round(10 * moodXpMult(100)));
-  });
-
-  it("weighs up the souvenir action", () => {
-    expect(weight(souvenir, stats)).toBeGreaterThan(weight({ name: "x", min: 1, cost: 8 }, stats));
   });
 
   it("makes fares cheaper for every five", () => {
     expect(stats.fareMult()).toBe(1);
     for (const c of ["A", "B", "C", "D", "E"]) {
       stats.arrive(c, c, c);
-      stats.do(souvenir, "", new Rng(1));
+      stats.collect(sight(`Sight ${c}`), rolls(0.9, 0));
     }
     expect(stats.fareMult()).toBeCloseTo(1 - K.FARE_CUT);
     expect(stats.history.latest()).toBe("Seasoned traveller: fares are now 2% cheaper");
@@ -218,8 +207,7 @@ describe("item stories", () => {
   });
 
   it("saves and loads everything, and loads old saves without keepsakes", () => {
-    stats.collect(place("Castle", "castle"), rolls(0.01));
-    stats.do(souvenir, "", new Rng(1));
+    stats.collect(place("Castle", "castle"), rolls(0.01, 0));
     stats.buy(hat(), "");
     const back = roundTrip(stats);
     expect(back.keepsakes.cards.size).toBe(1);
