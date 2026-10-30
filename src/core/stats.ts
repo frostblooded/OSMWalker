@@ -561,7 +561,7 @@ export class Stats {
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
     // Enchanted gear gathers Magic as he walks.
-    fx.magic = (this.gearMagic() * walkedM) / 1000;
+    fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;

@@ -226,6 +226,11 @@ export function values(data: GameData): Record<string, string> {
     SPELL_AT: num(Magic.SPELL_AT),
     SPARE_MAGIC: num(Magic.SPARE_MAGIC),
     SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
+    MIDNIGHT_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.midnight))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    ENCHANTED_MODS_MAX: num(Items.ENCHANTED_MODS_MAX),
     ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
     ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
     ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),

@@ -92,9 +92,9 @@ Old books in real libraries and bookshops hide little spells. Each time he reach
 
 A spell that tops up a meter is cast as soon as that meter is under {SPELL_AT}. A spell that gives a buff is cast only when he has at least {SPARE_MAGIC} Magic and the buff isn't on, so some Magic is always left for the others. The Stats sheet lists the spells he knows and how often he cast each, and each one gets a tile in the Collection (Gear tab).
 ## The shop after midnight {midnight_shop}
-In the small hours ({TIME_MIDNIGHT}) the real antique and second-hand shops open for those who knock. When he knocks, {ENCHANTED_PCT} of the time the shelf holds an enchanted item, and otherwise a trinket.
+In the small hours ({TIME_MIDNIGHT}) some real shops open for those who knock: {MIDNIGHT_SHOPS}. When he knocks, {ENCHANTED_PCT} of the time the shelf holds an enchanted item, and otherwise a trinket.
 
-An enchanted item is ordinary gear (a weapon, clothes or a trinket) with one enchantment on top of its other modifiers: {ENCHANT_LIST}. It costs {ENCHANTED_PRICE}× the usual price plus {ENCHANTED_MAGIC} Magic, and he buys it only if it is an upgrade, like any gear. Magic from enchanted gear fills his Magic meter for every km he walks, shown on the Stats sheet.
+An enchanted item is ordinary gear (a weapon, clothes or a trinket) with one enchantment on top of at most {ENCHANTED_MODS_MAX} other modifiers, so it is never Common: {ENCHANT_LIST}. It costs {ENCHANTED_PRICE}× the usual price plus {ENCHANTED_MAGIC} Magic, and he buys it only if it is an upgrade, like any gear. Magic from enchanted gear fills his Magic meter for every km he walks, shown on the Stats sheet.
 
 A trinket is used on the spot:
 {TRINKET_LIST}
