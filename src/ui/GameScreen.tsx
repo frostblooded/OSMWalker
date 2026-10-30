@@ -1,11 +1,13 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, what he waits for), zoom on the right edge and the main
-// buttons in a bar at the bottom, in reach of the thumb.
+// is, where he goes, a guess about his next trip, what he waits for), zoom
+// on the right edge and the main buttons in a bar at the bottom, in reach of
+// the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import { hud, type Goal, type Hud } from "../game/hud";
+import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
@@ -104,6 +106,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
+          {s.care.guess && h.goal?.kind === "going" && h.goal.departing && <GuessRow guess={s.care.guess} onPick={(c) => game.pickGuess(c)} />}
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
@@ -236,6 +239,25 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
         {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
       </span>
     </button>
+  );
+}
+
+/** While he walks to the station: guess where he is going, or the guess you made. */
+function GuessRow({ guess: g, onPick }: { guess: Guess; onPick: (choice: string) => void }) {
+  if (g.pick) return <div class="notice">🎲 Your guess: {g.pick}. He reveals it when he boards.</div>;
+  return (
+    <div class="guess" role="group" aria-label="Guess where he is going">
+      <div class="small dim">
+        🎲 Where to? {g.abroad ? "Which country" : "Which city"}, for +{GUESS_CLOVERS} ☘
+      </div>
+      <div class="guess-choices">
+        {g.choices.map((c) => (
+          <button key={c} class="btn" onClick={() => onPick(c)}>
+            {c}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

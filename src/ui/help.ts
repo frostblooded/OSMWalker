@@ -8,6 +8,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
+import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Looks from "../core/look";
@@ -137,6 +138,8 @@ export function values(data: GameData): Record<string, string> {
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
     CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
+    GUESS_CHOICES: num(Guess.GUESS_CHOICES),
+    GUESS_CLOVERS: num(Guess.GUESS_CLOVERS),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),

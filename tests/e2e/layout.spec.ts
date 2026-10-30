@@ -2,7 +2,7 @@
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Page } from "@playwright/test";
-import { mockServices, reopenAfter } from "./mock";
+import { mockServices, reopenAfter, reopenDeparting } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -157,6 +157,11 @@ for (const width of [360, 412]) {
       await check(page, "care");
       await care.getByRole("button", { name: /Send Snack/ }).click();
       await check(page, "care-sent");
+      await care.getByRole("button", { name: /Close/ }).click();
+
+      await reopenDeparting(page);
+      await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
+      await check(page, "guess");
     });
   });
 }

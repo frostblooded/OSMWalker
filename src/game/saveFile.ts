@@ -109,8 +109,8 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      // Saves from before care packages have no clovers and nothing on its way.
-      stats: Stats.fromJSON({ ...d.stats, care: d.stats.care ?? new Care().toJSON() }),
+      // Saves from before care packages have no clovers, nothing on its way and no guess.
+      stats: Stats.fromJSON({ ...d.stats, care: { ...new Care().toJSON(), ...d.stats.care } }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };

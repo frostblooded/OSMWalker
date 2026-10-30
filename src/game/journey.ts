@@ -57,7 +57,8 @@ export class Journey {
       return null;
     }
     stats.savingFor = 0;
-    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
+    // Where to stays a surprise until he boards, so it can be guessed (core/guess.ts).
+    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${kind === "country" ? "somewhere abroad" : `somewhere in ${dest.country}`} (${euro(plan.fare)})`);
     this.pending = plan;
     if (plan.mode !== "plane") void this.fetchRoad(plan);
     return plan;
