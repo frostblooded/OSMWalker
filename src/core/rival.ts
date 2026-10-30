@@ -25,6 +25,8 @@ export const HIS_PER_LEVEL = 0.2;
 /** Feeling runs from -FEELING_MAX (a grudge) to FEELING_MAX (friends); at FEELING_AT either way it has a name. */
 export const FEELING_MAX = 10;
 export const FEELING_AT = 5;
+/** How much one contest cools, and one chat warms, his feelings. */
+export const FEELING_STEP = 1;
 /** Minutes Viktor shows on the map after a meeting. */
 export const SEEN_MIN = 20;
 /** Meetings Viktor brings up again. */
@@ -86,7 +88,7 @@ export class Rival {
     const recall = this.recall(city);
     if (!here.length || rng.randf() < friendly) {
       this.chats++;
-      this.feeling = Math.min(this.feeling + 1, FEELING_MAX);
+      this.feeling = Math.min(this.feeling + FEELING_STEP, FEELING_MAX);
       stats.applyFx(FRIENDLY_FX);
       this.remember({ t, city, contest: "chat", won: null });
       return stats.say(`${RIVAL_ICON} Ran into ${RIVAL_NAME} at ${place}; they share a coffee and swap stories.${recall}`);
@@ -98,7 +100,7 @@ export class Rival {
       this.losses++;
       this.level++;
     }
-    this.feeling = Math.max(this.feeling - 1, -FEELING_MAX);
+    this.feeling = Math.max(this.feeling - FEELING_STEP, -FEELING_MAX);
     stats.applyFx(won ? WIN_FX : LOSE_FX);
     this.remember({ t, city, contest: c.id, won });
     return stats.say(`${RIVAL_ICON} ${RIVAL_NAME} ${c.text.replaceAll("{PLACE}", place)}. ${won ? c.won : c.lost}${recall}`);

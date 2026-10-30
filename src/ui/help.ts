@@ -477,6 +477,7 @@ export function values(data: GameData): Record<string, string> {
     FRIENDLY_CAP_PCT: pct(Rival.FRIENDLY_CAP),
     FEELING_MAX: num(Rival.FEELING_MAX),
     FEELING_AT: num(Rival.FEELING_AT),
+    FEELING_STEP: num(Rival.FEELING_STEP),
     SEEN_MIN: num(Rival.SEEN_MIN),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),

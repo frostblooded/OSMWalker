@@ -168,7 +168,7 @@ a.btn { color: inherit; text-decoration: none; }
 .marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 0 rgba(61, 42, 28, 0.5)); pointer-events: none; }
 /* He glides between game ticks; the loop sets --glide to the time until the next one. */
 .marker.him.glide { transition: transform var(--glide, 0ms) linear; will-change: transform; }
-.marker.rival { width: 32px; height: 32px; display: grid; place-items: center; background: var(--lilac); border: 3px solid var(--ink); border-radius: 50%; font-size: 18px; }
+.marker.rival { width: 32px; height: 32px; display: grid; place-items: center; background: var(--paper); border: 3px solid var(--ink); border-radius: 50%; font-size: 18px; }
 .marker.him { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; font-size: 22px; }
 /* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
 .him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
