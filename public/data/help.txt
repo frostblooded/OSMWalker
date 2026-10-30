@@ -30,7 +30,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle, on his bike to a near town, hitchhiking when broke (see Other ways to travel), or on a long walk (see Long walks).
 
-If he was on any ride to another city when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
+If he was on any ride to another city when you left, the ride goes on first. If it isn't over by the time you are back (a long walk, say), he is still on his way when you return. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
@@ -388,7 +388,7 @@ The first goal after you choose a city never rolls the dice. The country he is i
 
 While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
 
-He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Only cycling and hitchhiking are free (see Other ways to travel). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
+He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
 ## Stations and getting there {stations}
@@ -414,7 +414,7 @@ Fares are in euros, and only cycling, hitchhiking and a long walk under {HOSTEL_
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
-He pays at the station. If the dice send him on a trip he can't pay for, he hitchhikes when he has less than {HITCH_BELOW}; otherwise he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+He pays at the station, or as he sets off on a long walk. If the dice send him on a trip he can't pay for, he hitchhikes when he has less than {HITCH_BELOW}; otherwise he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Other ways to travel {modes}
 Besides the bus, the plane and his own car, he picks other ways on his own when the places around him allow it (and now and then walks: see Long walks):
 - {BIKE_ICON} Bike: on a bike, he cycles to a town under {CYCLE_MAX_KM} km away instead of taking a station, for free, at {BIKE_ROAD_KMH} km/h. He arrives tired: {BIKE_EFFORT_KM} energy per km.
@@ -644,7 +644,7 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
-While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
+While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 

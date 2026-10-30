@@ -797,6 +797,29 @@ describe("game", () => {
       expect(again.city).toBe(s.end.city.name);
     });
 
+    it("a long walk that outlasts the time away goes on when you are back, and lands with its reward", async () => {
+      const walk = (g: Game) => {
+        const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+        g.stats.ride(0, "walk", "the road out of town", "Vidin, Bulgaria");
+        g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
+      };
+      const { again } = await reopen(HOUR, {}, walk);
+      expect(again.away!.coveredS).toBe(HOUR / 1000);
+      expect(again.walker!.isTraveling()).toBe(true);
+      expect(again.walker!.travel!.mode).toBe("walk");
+      expect(again.city).toBe("Sofia, Bulgaria");
+      again.dismissAway();
+      for (let i = 0; i < LONG_WALK_MAX_S && again.walker!.isTraveling(); i++) again.step(1);
+      expect(again.city).toBe("Vidin, Bulgaria");
+      expect(again.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
+
+      // Away for longer than the walk: he lands first, then lives in the new town.
+      const long = (await reopen(5 * HOUR, {}, walk)).again;
+      expect(long.walker!.isTraveling()).toBe(false);
+      expect(long.away!.cities[0]).toBe("Vidin, Bulgaria");
+      expect(long.away!.lines.some((l) => /^Walked \d+ km to Vidin, Bulgaria/.test(l.text))).toBe(true);
+    });
+
     it("a reopen that earns a clover adds trust, and he writes when it passes a letter step", async () => {
       const { again } = await reopen(
         2 * HOUR,

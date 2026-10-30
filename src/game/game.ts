@@ -607,9 +607,11 @@ export class Game {
       if (this.stats.fainted()) this.faint();
     }
     w.departing = null;
+    // A ride longer than the time away (a long walk, say) goes on when you are back.
+    const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
     const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null };
-    const steps = catchUpSteps(this.stats, city, w.position(), coverS - rideS, fromMs + rideS * 1000, {
+    const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
       rng: this.rng,
@@ -641,10 +643,12 @@ export class Game {
       this.placeStats();
       void this.learnCity(...this.origin);
     }
-    w.relocate(s.end.at, s.end.city.bounds, moved);
-    this.loader.setGraph(w.graph);
-    this.skipRoll = s.end.skipRoll;
-    this.track();
+    if (!onRide) {
+      w.relocate(s.end.at, s.end.city.bounds, moved);
+      this.loader.setGraph(w.graph);
+      this.skipRoll = s.end.skipRoll;
+      this.track();
+    }
     this.away = s;
   }
 
