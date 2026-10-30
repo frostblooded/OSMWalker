@@ -93,11 +93,13 @@ describe("the storyteller", () => {
 });
 
 describe("the incident deck", () => {
-  it("holds 40 to 60 sound cards of every tone", () => {
+  it("holds 40 to 60 sound cards of every tone, and night legends", () => {
     const classes = new Set(Object.keys(ACTIONS).map((k) => k.split("/")[0]!));
     expect(Inc.check(DECK, classes, ATTRS)).toEqual([]);
-    expect(DECK.length).toBeGreaterThanOrEqual(40);
-    expect(DECK.length).toBeLessThanOrEqual(60);
+    const plain = DECK.filter((c) => !c.legend);
+    expect(plain.length).toBeGreaterThanOrEqual(40);
+    expect(plain.length).toBeLessThanOrEqual(60);
+    expect(DECK.filter((c) => c.legend).length).toBeGreaterThanOrEqual(8);
     for (const tone of ["good", "bad", "odd"]) expect(DECK.filter((c) => c.tone === tone).length).toBeGreaterThanOrEqual(10);
   });
 
@@ -114,6 +116,16 @@ describe("the incident deck", () => {
     expect(Inc.pick(deck, "odd", CAFE, inTime, fixed())).toBeNull();
     expect(Inc.pick(deck, "bad", CAFE, inTime, fixed(), ["any"])!.id).toBe("any");
     expect(Inc.pick([card({ id: "a" }), card({ id: "b" })], "bad", CAFE, inTime, fixed(), ["a"])!.id).toBe("b");
+  });
+
+  it("tells night legends at their places at night, likelier than other cards", () => {
+    const deck = [card({ id: "plain" }), card({ id: "ghost", legend: true, at: ["castle"], time: "night" })];
+    const castle = { ...CAFE, kind: "castle", hour: 23 };
+    expect(Inc.pick(deck, "bad", { ...castle, hour: 12 }, inTime, fixed(0.99))!.id).toBe("plain");
+    // Weights 1 and LEGEND_WEIGHT: the legend takes all but the first 1 / (1 + LEGEND_WEIGHT).
+    expect(Inc.pick(deck, "bad", castle, inTime, fixed(0.99 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("plain");
+    expect(Inc.pick(deck, "bad", castle, inTime, fixed(1.01 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("ghost");
+    expect(Inc.check([card({ id: "x", legend: true })], new Set(), ATTRS)).toEqual(["x: a legend needs night and places"]);
   });
 
   it("plays a card out: money, meters and a feed line with the place", () => {
@@ -189,6 +201,20 @@ describe("incidents in his life", () => {
     expect(s.story.tension).toBe(0);
     s.say("Reached Park");
     expect(s.incidentLatest()).toBe(false);
+  });
+
+  it("brings a meeting with Viktor at a stop with no incident, only while the deck is loaded", () => {
+    const s = new Stats();
+    s.where.city = "Sofia, Bulgaria";
+    s.contests = JSON.parse(dataFile("rival.json"));
+    Object.assign(s.rival, { town: "Sofia, Bulgaria", inTown: true });
+    // The storyteller's roll (no tension, nothing), then a meeting, a contest, won.
+    expect(s.happen(cafe, 12, fixed(0.5, 0, 0.99, 0))).toBe("");
+    s.incidents = [card({})];
+    const line = s.happen(cafe, 12, fixed(0.5, 0, 0.99, 0));
+    expect(line).toMatch(/^🎩 Viktor .* at Cafe\./);
+    expect(s.incidentLatest()).toBe(true);
+    expect(s.rival.wins).toBe(1);
   });
 
   it("keeps the storyteller in the save, and an old save starts on Classic", () => {

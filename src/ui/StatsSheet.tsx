@@ -6,6 +6,7 @@ import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
@@ -213,6 +214,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">Empty. Gear he takes off goes here.</p>
         )}
       </Card>
+      <RivalCard s={s} />
       <Card icon="✨" title="Effects">
         {s.buffs.length ? (
           <div class="zebra">
@@ -232,5 +234,27 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <Records stats={s} />
     </>
+  );
+}
+
+const STANDING = { nemesis: "Nemesis", rival: "Rival", friend: "Friendly rival" } as const;
+
+/** Viktor: his level, their record, and what they are to each other. */
+function RivalCard({ s }: { s: Stats }) {
+  const r = s.rival;
+  const last = r.memory.at(-1);
+  return (
+    <Card icon={RIVAL_ICON} title={RIVAL_NAME} right={last ? STANDING[r.standing()] : undefined}>
+      {last ? (
+        <>
+          <KV k="Level" v={r.level} />
+          <KV k="Contests" v={`${r.wins} won · ${r.losses} lost`} />
+          <KV k="Chats" v={r.chats} />
+          <KV k="Last met" v={last.city.split(",")[0]} />
+        </>
+      ) : (
+        <p class="dim small">Not met yet. He travels too.</p>
+      )}
+    </Card>
   );
 }
