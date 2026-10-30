@@ -151,8 +151,10 @@ describe("catch-up", () => {
     const night = Date.UTC(2026, 9, 29, 22);
     const seen: number[] = [];
     const s = catchUp(new Stats(), shops, [0, 0], 4 * 3600, night, deps({ skyAt: (ms, c) => (seen.push(ms), skyAt(ms, c.center[0], c.center[1], 0, { kind: "snow", tempC: -3 })) }));
-    expect(s.stops).toBeGreaterThan(0);
-    expect(s.lines.some((l) => l.text.startsWith("Reached Shoe Shop"))).toBe(false);
+    expect(s.walkedM).toBeGreaterThan(0);
+    // Every place is closed, so he walks to random spots: no stops, no made-up places.
+    expect(s.stops).toBe(0);
+    expect(s.lines.filter((l) => l.text.startsWith("Reached"))).toEqual([]);
     expect(Math.max(...seen)).toBeGreaterThan(night + 3 * 3600_000);
   });
 });

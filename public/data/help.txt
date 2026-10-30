@@ -28,7 +28,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
-The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed, and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count.
+The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
 
@@ -131,7 +131,7 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Level: some need a minimum level.
-- Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, where 06:00 is sunrise and 18:00 is sunset (see Day and night). Bars serve rakia only in the evening, for example.
+- Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
 - Season: some only happen in one season, such as mulled wine in winter (see Seasons).
 - Weather: some need wet weather (rain, snow or a storm), snow, heat, frost or sunshine, such as building a snowman (see Weather).
 - Low meters: some only happen when a meter is low, such as napping under a tree when his energy is under 40, or the soup kitchen when his fullness is under 30.
@@ -210,7 +210,7 @@ When hygiene is under 60 he leans towards actions that clean him up.
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 # 🌦 Weather and sky
 ## Weather {weather}
-The weather in his city is the real weather there, from Open-Meteo. The game asks for it once every {WEATHER_TTL_MIN} minutes while it is open, and gets the hours from a day ago to the end of tomorrow in one small request, so the catch-up knows what the sky did while you were away. The last forecast is kept on the device. Until it arrives, or if it can't be reached, the weather is unknown and changes nothing.
+The weather in his city is the real weather there, from Open-Meteo. The game asks for it once every {WEATHER_TTL_MIN} minutes while it is open, and gets the hours from a day ago to the end of tomorrow in one small request, so the catch-up knows what the sky did while you were away. The last forecast is kept on the device. Until the first forecast arrives the weather is unknown and changes nothing. If Open-Meteo can't be reached later, he goes on by the last forecast until it runs out at the end of its tomorrow.
 
 What the weather does to him:
 - Wet (rain, snow or a storm): outdoor places such as parks, gardens and sports pitches pull his goal {WET_OUTDOOR} times as much, and shelters such as museums, cafes, libraries and cinemas {WET_SHELTER} times. His mood drops {WET_MOOD_PER_H} more an hour.
@@ -227,7 +227,7 @@ Some actions only happen in one season, such as mulled wine by a bar's heater in
 ## Day and night {day_night}
 Day and night follow the real sun over his city, worked out on your device from the date and where he is, with no download. Times go by the city's own clock, not your phone's: when it is night in Tokyo it is night for him in Tokyo. The clock comes with the weather, and until then from the city's longitude.
 
-For actions, sunrise counts as 06:00 and sunset as 18:00, with the day and the night each stretched or squeezed to 12 hours in between, so "evening" starts around sunset in every season. In the far north and south, where the sun may not rise or set, a day counts as at least {MIN_DAY_H} and at most {MAX_DAY_H} hours.
+For actions, sunrise counts as {SUNRISE_AT} and sunset as {SUNSET_AT}, with the day stretched or squeezed to the {HALF_DAY_H} hours between them and the night to the rest, so "evening" starts around sunset in every season. In the far north and south, where the sun may not rise or set, a day counts as at least {MIN_DAY_H} and at most {MAX_DAY_H} hours.
 
 After sunset the map darkens under a blue shade as the sun sinks, until it is {NIGHT_SHADE_PCT} dark once the sun is {NIGHT_DEG}° below the horizon, and lightens again at dawn. At night he may stroll under the street lamps.
 ## Opening hours {opening}
@@ -386,7 +386,7 @@ Severe problems are ones that could leave him stuck. Once the streets all around
 
 At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
 
-Then come three logs, closed at first: the city's trivia, Problems (the last {MAX_SEVERE} severe problems, {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: every dice roll, the odds and why. A random spot always counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
+Then come three logs, closed at first: the city's trivia, Problems (the last {MAX_SEVERE} severe problems, {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: every dice roll, the odds and why. A random spot counts as a warning, unless it is only because every place near enough is closed. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
 
 City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
 

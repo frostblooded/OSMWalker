@@ -6,6 +6,7 @@ import { dataFile } from "../support/data";
 import { CLOSE_H, isOpen, OPEN_H } from "../../src/core/opening";
 import * as Sky from "../../src/core/sky";
 import { Stats, type Action } from "../../src/core/stats";
+import { skyIcon } from "../../src/game/hud";
 import { kindOf, parseForecast, weatherAt, weatherUrl, type Weather } from "../../src/core/weather";
 
 const at = (lat: number, lon: number, offsetH: number, weather: Weather | null = null, ms = Date.UTC(2026, 5, 21, 12)) =>
@@ -197,5 +198,16 @@ describe("the game data", () => {
           if (a.needs?.season) expect(Sky.SEASONS, `${key}: ${a.name}`).toContain(a.needs.season);
           if (a.needs?.weather) expect(Sky.WEATHER_NEEDS, `${key}: ${a.name}`).toContain(a.needs.weather);
         }
+  });
+});
+
+describe("the sky's icon", () => {
+  it("shows the weather, a moon on clear nights, and the season while the weather is unknown", () => {
+    const day = Date.UTC(2026, 0, 15, 12);
+    const night = Date.UTC(2026, 0, 15, 0);
+    expect(skyIcon(Sky.skyAt(day, 48, 0, 0, { kind: "rain", tempC: 5 }))).toBe("🌧");
+    expect(skyIcon(Sky.skyAt(day, 48, 0, 0, { kind: "clear", tempC: 5 }))).toBe("☀");
+    expect(skyIcon(Sky.skyAt(night, 48, 0, 0, { kind: "clear", tempC: 5 }))).toBe("🌙");
+    expect(skyIcon(Sky.skyAt(day, 48, 0, 0, null))).toBe("❄");
   });
 });

@@ -1,5 +1,6 @@
 // When places are open: shops, offices, museums and other day businesses
-// close at night by the city's own clock (and all day on a holiday); bars,
+// close at night by the city's own clock (and all day when the sky says it is
+// a holiday; nothing sets that yet); bars,
 // fast food, hotels, kiosks, parks and the rest stay open. Pure.
 import type { Place } from "./stats";
 
@@ -14,7 +15,7 @@ export const DAY_ONLY = new Set([
   "bicycle_rental", "car", "veterinary", "theme_park", "water_park", "ice_cream", "cafe", "yoga", "escape_game", "karting",
 ]);
 /** Kinds that stay open although their class closes. */
-export const ALL_NIGHT = new Set(["shop/kiosk", "shop/convenience"]);
+export const ALL_NIGHT = new Set(["shop/kiosk", "shop/convenience", "art_gallery/artwork"]);
 
 /** True when a place of `place`'s kind closes at night. */
 export function dayOnly(place: Pick<Place, "class" | "subclass">): boolean {

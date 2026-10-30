@@ -33,6 +33,15 @@ test("shows the weather in his city on the top card and the Stats sheet", async 
   await expect(page.locator(".card", { hasText: "Sky" })).toContainText("Rain, 9°C");
 });
 
+test("shades the map after dark and not by day", async ({ page }) => {
+  // 22:30 in Sofia, long after sunset.
+  await page.clock.setFixedTime(new Date("2026-10-29T20:30:00Z"));
+  await startInSofia(page);
+  await expect(page.locator(".night")).toHaveCSS("opacity", "0.45");
+  await page.clock.setFixedTime(new Date("2026-10-29T10:00:00Z"));
+  await expect(page.locator(".night")).toHaveCount(0, { timeout: 5000 });
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();

@@ -4,7 +4,8 @@
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
-import { isCold, isHot, isSunny, isWet, SNOW_SPEED, type Sky } from "../core/sky";
+import { isCold, isHot, isSunny, isWet, SNOW_SPEED, speedShare, type Sky } from "../core/sky";
+import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
@@ -38,24 +39,23 @@ const hhmm = (h: number) => {
 };
 const cap = (t: string) => t[0]!.toUpperCase() + t.slice(1);
 
-function SkyCard({ sky }: { sky: Sky }) {
+function SkyCard({ sky, vehicle }: { sky: Sky; vehicle: Vehicle }) {
   const w = sky.weather;
-  const notes = [
-    w?.kind === "snow" && `🌨 Snow: he walks at ${Math.round(SNOW_SPEED * 100)}% of his speed.`,
-    isWet(sky) && "🌧 Wet: he heads indoors and his mood drops.",
-    isHot(sky) && "🥵 Hot: he gets thirsty faster and looks for ways to cool off.",
-    isCold(sky) && "🥶 Freezing: he tires faster.",
-    isSunny(sky) && "😎 Sunny: his mood rises.",
-  ].filter(Boolean);
+  const notes: [string, "warning" | "ok"][] = [];
+  if (speedShare(sky, vehicle) < 1) notes.push([`🌨 Snow: he goes at ${Math.round(SNOW_SPEED * 100)}% of his speed.`, "warning"]);
+  if (isWet(sky)) notes.push(["🌧 Wet: he heads indoors and his mood drops.", "warning"]);
+  if (isHot(sky)) notes.push(["🥵 Hot: he gets thirsty faster and looks for ways to cool off.", "warning"]);
+  if (isCold(sky)) notes.push(["🥶 Freezing: he tires faster.", "warning"]);
+  if (isSunny(sky)) notes.push(["😎 Sunny: his mood rises.", "ok"]);
   return (
     <Card icon="🌦" title="Sky" right={`${SEASON_ICON[sky.season]} ${cap(sky.season)}`}>
       <KV k="Weather" v={w ? `${skyIcon(sky)} ${cap(w.kind)}, ${Math.round(w.tempC)}°C` : <span class="dim">Unknown yet</span>} />
       <KV k="🕒 City time" v={hhmm(sky.clock)} />
       <KV k="🌅 Sunrise" v={hhmm(sky.rise)} />
       <KV k="🌇 Sunset" v={hhmm(sky.set)} />
-      {notes.map((n) => (
-        <p key={n as string} class="small tone-warning">
-          {n}
+      {notes.map(([text, tone]) => (
+        <p key={text} class={`small tone-${tone}`}>
+          {text}
         </p>
       ))}
     </Card>
@@ -111,7 +111,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           })}
         </div>
       </Card>
-      {s.sky && <SkyCard sky={s.sky} />}
+      {s.sky && <SkyCard sky={s.sky} vehicle={s.vehicle()} />}
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {

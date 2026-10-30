@@ -181,6 +181,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       const place = pickPlace();
+      if (!place) {
+        // Everything near is closed: like the walker, he heads for a random spot and walks on.
+        const spot = randomSpot(rng, city.bounds, here, heading);
+        if (!walk(distanceM(here[0], here[1], spot[0], spot[1]) * ROAD_FACTOR)) break;
+        moveTo(null, spot);
+        yield;
+        continue;
+      }
       if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
       moveTo(place, [place.lat, place.lon]);
       s.stops++;
@@ -260,8 +268,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     return true;
   }
 
-  /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded. */
-  function pickPlace(): Place {
+  /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded; null when every one is closed. */
+  function pickPlace(): Place | null {
     const real = city.places ?? [];
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
@@ -269,18 +277,18 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const needOf = (p: Place) => needWeight(activities.peek(p, city.code), stats) * placeWeight(p, sky);
     const need = flat.kinds.map(needOf);
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
-    let any = false;
+    let far = false;
     const weights = real.map((_, i) => {
       const v: Vec = [flat.x[i]! - hx, flat.y[i]! - hy];
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
-      const w = flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
-      if (w > 0) any = true;
-      return w;
+      far = true;
+      return flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
     });
-    if (any) return real[pickIndex(weights, rng.randf())]!;
+    const pick = (places: Place[], w: number[]) => (w.some((x) => x > 0) ? places[pickIndex(w, rng.randf())]! : null);
+    if (far) return pick(real, weights);
     const made = madeUp();
-    return made[pickIndex(made.map((p) => rankWeight(p) * distanceWeight(distanceM(here[0], here[1], p.lat, p.lon)) * headingWeight(heading, offsetM(here[0], here[1], p.lat, p.lon)) * needOf(p)), rng.randf())]!;
+    return pick(made, made.map((p) => rankWeight(p) * distanceWeight(distanceM(here[0], here[1], p.lat, p.lon)) * headingWeight(heading, offsetM(here[0], here[1], p.lat, p.lon)) * needOf(p)));
   }
 
   function madeUp(): Place[] {

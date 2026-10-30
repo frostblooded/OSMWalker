@@ -14,6 +14,9 @@ export type Season = (typeof SEASONS)[number];
 export const WEATHER_NEEDS = ["wet", "snow", "hot", "cold", "sunny"] as const;
 export type WeatherNeed = (typeof WEATHER_NEEDS)[number];
 
+/** For times of day sunrise counts as SUNRISE_H and sunset as SUNSET_H, the day and the night each stretched to fill their half. */
+export const SUNRISE_H = 6;
+export const SUNSET_H = 18;
 /** Nearer the equator than this it is summer all year. */
 export const TROPICS_LAT = 23.44;
 /** The day counts as at least MIN_DAY_H and at most MAX_DAY_H long, even where the sun doesn't set or rise. */
@@ -43,7 +46,7 @@ export const HOT_COOL = 3;
 
 export const OUTDOOR = new Set([
   "park", "garden", "playground", "dog_park", "pitch", "stadium", "golf", "campsite", "harbor", "cemetery", "monument", "memorial",
-  "fountain", "picnic_site", "zoo", "theme_park", "water_park", "tennis", "swimming", "drinking_water", "aerialway", "attraction",
+  "fountain", "picnic_site", "zoo", "theme_park", "water_park", "tennis", "swimming", "drinking_water", "aerialway", "attraction", "art_gallery/artwork",
 ]);
 export const SHELTER = new Set([
   "museum", "art_gallery", "cafe", "library", "cinema", "theatre", "aquarium", "escape_game", "billiards", "climbing", "ice_rink",
@@ -117,11 +120,12 @@ export function sunTimes(ms: number, lat: number, lon: number, offsetS: number):
   return { rise: mod(noon - dayH / 2, 24), set: mod(noon + dayH / 2, 24) };
 }
 
-/** The sun's hour for clock hour `clock`: sunrise maps to 6 and sunset to 18, the day and the night each stretched to 12 hours. */
+/** The sun's hour for clock hour `clock`: sunrise maps to SUNRISE_H and sunset to SUNSET_H, the day and the night each stretched to fill the hours between. */
 export function sunHour(clock: number, rise: number, set: number): number {
   const day = mod(set - rise, 24);
   const t = mod(clock - rise, 24);
-  return t < day ? 6 + (12 * t) / day : mod(18 + (12 * (t - day)) / (24 - day), 24);
+  const light = SUNSET_H - SUNRISE_H;
+  return t < day ? SUNRISE_H + (light * t) / day : mod(SUNSET_H + ((24 - light) * (t - day)) / (24 - day), 24);
 }
 
 /** 0 while the sun is above DUSK_DEG, rising to 1 at NIGHT_DEG. */
