@@ -168,18 +168,25 @@ describe("kind or rascal", () => {
     let fined = 0;
     for (let i = 0; i < 400; i++) {
       s.cents = 10_000;
-      const r = s.payFare(500, "bus", `Central${i}`);
-      if (r.paid === 0) dodged++;
-      if (r.paid === 1000) fined++;
-      expect([0, 500, 1000]).toContain(r.paid);
-      expect(s.cents).toBe(10_000 - r.paid);
+      s.now = () => i;
+      s.ride(500, "bus", "Central", "Plovdiv");
+      const paid = 10_000 - s.cents;
+      if (paid === 0) dodged++;
+      if (paid === 1000) fined++;
+      expect([0, 500, 1000]).toContain(paid);
     }
     expect(dodged / 400).toBeGreaterThan(B.DODGE_CHANCE * (1 - B.CAUGHT_CHANCE) - 0.07);
     expect(fined).toBeGreaterThan(0);
     // Never on a plane, and never when he isn't a rascal.
-    for (let i = 0; i < 50; i++) expect(s.payFare(500, "plane", `x${i}`).paid).toBe(500);
+    const paid = (mode: string, i: number) => {
+      s.cents = 10_000;
+      s.now = () => i;
+      s.ride(500, mode, "x", "y");
+      return 10_000 - s.cents;
+    };
+    for (let i = 0; i < 50; i++) expect(paid("plane", i)).toBe(500);
     s.bond.lean = 0;
-    for (let i = 0; i < 50; i++) expect(s.payFare(500, "bus", `x${i}`).paid).toBe(500);
+    for (let i = 0; i < 50; i++) expect(paid("bus", i)).toBe(500);
   });
 
   it("says in the ride line when he skipped the ticket or was fined", () => {
@@ -202,9 +209,9 @@ describe("kind or rascal", () => {
     s.bond.lean = -B.LEAN_MAX;
     for (let i = 0; i < 400; i++) {
       s.cents = 600;
-      const r = s.payFare(500, "bus", `k${i}`);
+      s.now = () => i;
+      s.ride(500, "bus", "k", "y");
       expect(s.cents).toBeGreaterThanOrEqual(0);
-      expect(r.paid).toBeLessThanOrEqual(600);
     }
   });
 

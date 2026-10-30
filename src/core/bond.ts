@@ -75,6 +75,14 @@ export class Bond {
   /** The time of the last line you praised or scolded, so each line counts once. */
   judged = 0;
 
+  /** What the Care sheet shows, read from the bond so the sheet needs no runtime import of this module (one less startup chunk). */
+  get share(): number {
+    return this.trust / TRUST_MAX;
+  }
+  get leanText(): string {
+    return `${this.lean > 0 ? "+" : ""}${this.lean} of ±${LEAN_MAX}`;
+  }
+
   leaning(): Lean {
     return this.lean >= LEAN_AT ? "kind" : this.lean <= -LEAN_AT ? "rascal" : "";
   }
@@ -128,8 +136,9 @@ export class Bond {
     this.lean = clamp(this.lean + Math.sign(sign) * DEED_STEP, -LEAN_MAX, LEAN_MAX);
   }
 
+  /** Every field above is saved; the getters live on the prototype, so they stay out. */
   toJSON() {
-    return { trust: this.trust, lean: this.lean, day: this.day, whispered: this.whispered, nudge: this.nudge, nudgeLeft: this.nudgeLeft, judged: this.judged };
+    return { ...this };
   }
 
   /** Old saves have no bond: he starts at TRUST_START and leans neither way. */

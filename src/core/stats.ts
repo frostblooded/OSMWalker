@@ -279,16 +279,17 @@ export class Stats {
   }
 
   /**
-   * Pays `fare` for a ride by `mode`; a rascal on a bus may dodge it
-   * (DODGE_CHANCE) and, if caught (CAUGHT_CHANCE), is fined FINE_MULT times
-   * the fare, as much as he has. Rolls its own dice from `key`, so the walk's
-   * stay the same. Returns what he paid and how the ride went, for the line.
+   * Pays `fare` for a ride by `mode` from `station` to `to` ("Plovdiv,
+   * Bulgaria") and returns its History line, the same while he plays and in
+   * the catch-up. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if
+   * caught (CAUGHT_CHANCE), is fined FINE_MULT times the fare, as much as he
+   * has. Rolls its own dice from the station and time, so the walk's stay the same.
    */
-  payFare(fare: number, mode: string, key: string): { paid: number; how: string } {
+  ride(fare: number, mode: string, station: string, to: string): string {
     let paid = fare;
     let how = "";
     if (mode === "bus" && this.bond.leaning() === "rascal") {
-      const rng = new Rng(seedOf(key));
+      const rng = new Rng(seedOf(`${station}${this.now()}`));
       if (rng.randf() < B.DODGE_CHANCE) {
         const caught = rng.randf() < B.CAUGHT_CHANCE;
         paid = caught ? Math.min(fare * B.FINE_MULT, this.cents) : 0;
@@ -296,14 +297,7 @@ export class Stats {
       }
     }
     this.cents -= paid;
-    return { paid, how };
-  }
-
-  /** Pays for a ride by `mode` from `station` to `to` ("Plovdiv, Bulgaria") and returns its History line, the same while he plays and in the catch-up. */
-  ride(fare: number, mode: string, station: string, to: string): string {
-    const { paid, how } = this.payFare(fare, mode, `${station}${this.now()}`);
-    const took = mode === "car" ? "Filled up and drove" : `Took the ${mode}`;
-    return `${took} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
+    return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */

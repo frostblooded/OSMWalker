@@ -154,7 +154,7 @@ export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
-  if (action.deed && action.deed > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
+  if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;

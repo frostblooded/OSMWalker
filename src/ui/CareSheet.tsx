@@ -1,10 +1,11 @@
 // Care packages and the bond: your clovers, the gift on its way to him, the
 // gifts clovers buy, his trust and lean, whispers, and praise or scold for
 // his latest line. Everything here is optional; he lives the same without it.
-import { LEAN_MAX, TRUST_MAX, WHISPERS, type Bond, type Whisper } from "../core/bond";
+import type { Bond, Whisper } from "../core/bond";
 import { CLOVER_AWAY_S, CLOVERS_PER_DAY, dayOf, effect, GIFTS, type Care } from "../core/gifts";
 import { Bar, Card, KV } from "./kit";
 
+/** One per whisper in bond.ts WHISPERS, in its order (the Record type checks every word is here). */
 const WHISPER_ICON: Record<Whisper, string> = { eat: "🍞", rest: "💤", explore: "🧭", save: "💰" };
 const LEAN_NAME = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
 
@@ -59,13 +60,13 @@ export function CareSheet({ care, bond, last, now, onSend, onWhisper, onJudge }:
         </ol>
       </Card>
       <Card icon="🤝" title="His trust in you" right={Math.round(bond.trust)}>
-        <Bar share={bond.trust / TRUST_MAX} color="var(--accent)" />
-        <KV k="He leans" v={`${LEAN_NAME[bond.leaning()]} (${bond.lean > 0 ? "+" : ""}${bond.lean} of ±${LEAN_MAX})`} />
+        <Bar share={bond.share} color="var(--accent)" />
+        <KV k="He leans" v={`${LEAN_NAME[bond.leaning()]} (${bond.leanText})`} />
         <KV k="Following a whisper" v={bond.nudge ? `${WHISPER_ICON[bond.nudge]} ${bond.nudge}, ${Math.ceil(bond.nudgeLeft)} min` : "No"} />
       </Card>
       <Card icon="🤫" title="Whisper to him" right={`${left} left today`}>
         <div class="buttons">
-          {WHISPERS.map((w) => (
+          {(Object.keys(WHISPER_ICON) as Whisper[]).map((w) => (
             <button key={w} class="btn" disabled={left <= 0} aria-label={`Whisper ${w}`} onClick={() => onWhisper(w)}>
               {WHISPER_ICON[w]} {w[0]!.toUpperCase() + w.slice(1)}
             </button>

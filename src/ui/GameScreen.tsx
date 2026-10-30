@@ -2,7 +2,7 @@
 // is, where he goes, a guess about his next trip, what he waits for), zoom on
 // the right edge and the main buttons in a bar at the bottom, in reach of the
 // thumb.
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
@@ -15,7 +15,6 @@ import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
-import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
@@ -227,20 +226,26 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          <LazyCollection stats={game.stats} />
+          <Lazy load={() => import("./CollectionSheet")} what="the Collection">
+            {(m) => <m.CollectionSheet stats={game.stats} />}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          <CareSheet
-            care={s.care}
-            bond={s.bond}
-            last={game.lastDeed()}
-            now={game.now()}
-            onSend={(id) => game.sendGift(id)}
-            onWhisper={(w) => game.whisper(w)}
-            onJudge={(sign) => game.judge(sign)}
-          />
+          <Lazy load={() => import("./CareSheet")} what="the Care package sheet">
+            {(m) => (
+              <m.CareSheet
+                care={s.care}
+                bond={s.bond}
+                last={game.lastDeed()}
+                now={game.now()}
+                onSend={(id) => game.sendGift(id)}
+                onWhisper={(w) => game.whisper(w)}
+                onJudge={(sign) => game.judge(sign)}
+              />
+            )}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "postcard" && (
@@ -280,19 +285,18 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   );
 }
 
-type CollectionModule = typeof import("./CollectionSheet");
-/** The Collection sheet, loaded the first time it opens to keep it out of startup JS. */
-function LazyCollection({ stats }: { stats: Game["stats"] }) {
-  const [mod, setMod] = useState<CollectionModule | null>(null);
+/** A sheet's module, loaded the first time it opens to keep it out of startup JS (the Collection, the Care package sheet). */
+function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
+  const [mod, setMod] = useState<M | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    void import("./CollectionSheet").then(
+    void load().then(
       (m) => setMod(() => m),
       () => setFailed(true),
     );
   }, []);
-  if (failed) return <p class="tone-error">Couldn't load the Collection. Check your connection and try again.</p>;
-  return mod ? <mod.CollectionSheet stats={stats} /> : <p class="dim">Loading…</p>;
+  if (failed) return <p class="tone-error">Couldn't load {what}. Check your connection and try again.</p>;
+  return mod ? children(mod) : <p class="dim">Loading…</p>;
 }
 
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
