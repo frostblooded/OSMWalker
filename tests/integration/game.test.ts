@@ -211,6 +211,23 @@ describe("game", () => {
     expect(g.stats.care.guess).toBeNull();
   });
 
+  it("drops the guess, with no clover, when he can't pay at the station", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    g.pickGuess("Plovdiv");
+    expect(g.stats.care.guess!.pick).toBe("Plovdiv");
+    g.stats.cents = 0;
+    for (let i = 0; i < 600 && g.walker!.isDeparting(); i++) g.step(1);
+    expect(g.walker!.isTraveling()).toBe(false);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
+    expect(g.stats.care.guess).toBeNull();
+    expect(g.stats.care.clovers).toBe(0);
+    expect(g.stats.history.entries.some((e) => /guessed it|^Not /.test(e.text))).toBe(false);
+  });
+
   it("saves up when he can't afford a trip", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);

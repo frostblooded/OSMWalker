@@ -333,9 +333,11 @@ You never steer him, but you can leave him a small gift. Gifts cost clovers, and
 
 A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip).
 ## Guess the next trip {guess}
-When the trip dice send him to another city, the top card shows "🎲 Where to?" with {GUESS_CHOICES} choices while he walks to the station:
+When the trip dice send him to another city, the top card shows "🎲 Where to?" with up to {GUESS_CHOICES} choices while he walks to the station:
 - for a trip in his country, the right city and other cities of the country,
 - for a trip abroad, the right country and other countries.
+
+The city he is in is never a choice. When the bundled city list has no other city to offer, there are fewer choices, or no guess for that trip.
 
 Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
 
