@@ -93,10 +93,10 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
-      {(goal || feed || s.savingFor > 0) && (
+      {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
           {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
-          {feed && <Goal name="🐉 Dragon's gold" has={s.cents} needs={feed} />}
+          {feed > 0 && <Goal name="🐉 Dragon's gold" has={s.cents} needs={feed} />}
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}
