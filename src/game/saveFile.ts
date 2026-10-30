@@ -150,8 +150,11 @@ export class SaveFile {
   /** The holiday lists, empty when there are none or they can't be read. */
   readHolidays(): HolidayBook {
     try {
-      const d = JSON.parse(this.kv?.getItem(HOLIDAYS_KEY) ?? "{}") as Partial<HolidayBook>;
-      return { lists: d.lists ?? {}, said: d.said ?? "" };
+      const d = JSON.parse(this.kv?.getItem(HOLIDAYS_KEY) ?? "{}") as Partial<HolidayBook> | null;
+      // A book of another shape (or from a later version) is dropped: the lists are fetched again.
+      const lists = d?.lists && typeof d.lists === "object" && !Array.isArray(d.lists) ? d.lists : {};
+      for (const [k, v] of Object.entries(lists)) if (!Array.isArray(v)) delete lists[k];
+      return { lists, said: typeof d?.said === "string" ? d.said : "" };
     } catch {
       return { lists: {}, said: "" };
     }

@@ -4,9 +4,9 @@
 
 export type Holiday = { date: string; name: string; localName: string };
 
-export const URL = "https://date.nager.at/api/v3/PublicHolidays/";
+export const NAGER_URL = "https://date.nager.at/api/v3/PublicHolidays/";
 
-export const url = (year: number, cc2: string) => `${URL}${year}/${cc2}`;
+export const url = (year: number, cc2: string) => `${NAGER_URL}${year}/${cc2}`;
 
 /** Country-wide public holidays from a Nager.Date answer, or null if it isn't one. */
 export function parse(data: unknown): Holiday[] | null {

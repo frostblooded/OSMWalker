@@ -102,10 +102,10 @@ export class Game {
   private severeLogged = new Set<string>();
   /** Holiday lists by "CC:year" (from the device, then Nager.Date), and lists being fetched. */
   private holidayBook: HolidayBook;
-  private holidayAsked = new Set<string>();
+  private holidayFetches = new Map<string, Promise<void>>();
   /** Two-letter country codes, loaded on first use so the code table stays out of the startup script. */
   private iso2: ((code: string) => string) | null = null;
-  private iso2Asked = false;
+  private iso2Load: Promise<void> | null = null;
   private readonly rng: Rng;
   private readonly file: SaveFile;
 
@@ -438,7 +438,10 @@ export class Game {
     this.waking = true;
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
-      while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
+      // The holidays where he is, so the catch-up knows them; at most as long as the streets.
+      let holidays = false;
+      void this.holidaysReady(this.country, from).then(() => (holidays = true));
+      while (((!w.isTraveling() && !this.areaLoaded()) || !holidays) && performance.now() < until) {
         const here = w.position();
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
@@ -605,10 +608,7 @@ export class Game {
   /** The holiday on the day of unix ms in the country with `code`, or null; fetches that year's list the first time it is missing. */
   private holidayOn(ms: number, code: string): Holidays.Holiday | null {
     if (!this.iso2) {
-      if (!this.iso2Asked) {
-        this.iso2Asked = true;
-        void import("../core/iso2").then((m) => (this.iso2 = m.iso2));
-      }
+      void this.loadIso2();
       return null;
     }
     const cc = this.iso2(code);
@@ -617,15 +617,29 @@ export class Game {
     const key = `${cc}:${day.slice(0, 4)}`;
     const list = this.holidayBook.lists[key];
     if (list) return Holidays.on(list, ms);
-    if (!this.holidayAsked.has(key)) {
-      this.holidayAsked.add(key);
-      void this.deps.api.holidays(Number(day.slice(0, 4)), cc).then((got) => {
+    if (!this.holidayFetches.has(key)) {
+      const fetching = this.deps.api.holidays(Number(day.slice(0, 4)), cc).then((got) => {
         if (!got) return; // failed: asked again next session
         this.holidayBook.lists[key] = got;
         this.file.writeHolidays(this.holidayBook, new Date(this.now()).getFullYear());
       });
+      this.holidayFetches.set(key, fetching);
     }
     return null;
+  }
+
+  private loadIso2(): Promise<void> {
+    this.iso2Load ??= import("../core/iso2").then((m) => {
+      this.iso2 = m.iso2;
+    });
+    return this.iso2Load;
+  }
+
+  /** Resolves once the holiday list for `code` on the day of unix ms is known, or its fetch has failed. */
+  private async holidaysReady(code: string, ms: number): Promise<void> {
+    await this.loadIso2();
+    if (this.holidayOn(ms, code)) return;
+    await Promise.all(this.holidayFetches.values());
   }
 
   /** Once a second: today's holiday where he is, told in the feed once a day. */

@@ -322,7 +322,7 @@ Each fact becomes a quick action he can do at any place in that city, for exampl
 ## Public holidays {holidays}
 The game knows the public holidays of the country he is in, from Nager.Date (a free holiday calendar). It asks once per country per year and keeps the list on your phone, so it costs one small download a year. Only holidays for the whole country count, not regional ones.
 
-On a holiday the feed says so once, with the holiday's local name, for example "It's Liberation Day (Ден на Освобождението) here, a public holiday". All day, holiday actions join what he can do at every place: watching a parade, a family picnic, a toast with strangers, the bells and speeches, and fireworks at night. They follow the same requirements and weights as every other action, and they happen during time away too.
+On a holiday the feed says so once, with the holiday's local name, for example "It's Liberation Day (Ден на Освобождението) here, a public holiday". All day, holiday actions join what he can do at every place: watching a parade, a family picnic, a toast with strangers, the bells and speeches, and fireworks at night. They follow the same requirements and weights as every other action, and they happen during time away too (on reopen the game waits a moment for the list, as it does for the streets).
 
 Countries Nager.Date doesn't cover simply have no holidays. If it can't be reached, the game tries again next time you open it.
 # 📱 Screens and buttons

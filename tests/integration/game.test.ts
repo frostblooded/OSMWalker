@@ -365,6 +365,17 @@ describe("game", () => {
       expect(again.walker!.totalM).toBeGreaterThan(0);
     });
 
+    it("on reopen waits for the holiday list, so time away on a holiday has holiday actions", async () => {
+      const api = new Api(async (url) => {
+        if (!url.includes("nager")) return new Response("", { status: 503 });
+        return new Response(JSON.stringify([{ date: "2026-10-29", name: "Test Day", localName: "", global: true, types: ["Public"] }]));
+      });
+      // Saved before anything was fetched, so the reopened game has neither the code table's answer nor the list.
+      const { again } = await reopen(6 * HOUR, { api, places: [CAFE] });
+      const names = new Set(JSON.parse(dataFile("actions.json"))._holiday.map((a: { name: string }) => a.name));
+      expect(again.away!.lines.some((l) => [...names].some((n) => l.text.includes(n as string)))).toBe(true);
+    });
+
     it("has nothing to catch up after a short break or from an old save", async () => {
       expect((await reopen(30_000)).again.away).toBeNull();
       const { g, storage } = game();
