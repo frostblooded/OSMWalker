@@ -7,7 +7,7 @@ import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
-import { HITCH_BELOW, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import { HITCH_BELOW, HOSTEL_CENTS, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
@@ -309,6 +309,25 @@ describe("catch-up", () => {
     expect(lines).toContain("Setting off on his bike for Neartown");
     expect(lines).toContain("Cycled off to Neartown, A-land");
     expect(lines.some((l) => /^Tired legs after cycling \d+ km$/.test(l))).toBe(true);
+  });
+
+  it("goes on a long walk to a near town now and then, as in a watched trip", () => {
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    const away = (seed: number, s: number) => {
+      const stats = new Stats();
+      stats.cents = 100_000;
+      let rolls = 0;
+      return { stats, lines: catchUp(stats, HOME, [0, 0], s, START_MS, deps({ trips: near, rng: new Rng(seed), roll: () => (rolls++ ? 0.99 : 0.1) })).lines.map((l) => l.text) };
+    };
+    let seed = 1;
+    while (seed < 60 && !away(seed, 6 * 3600).lines.some((l) => l.startsWith("Setting off on foot"))) seed++;
+    const { stats, lines } = away(seed, 6 * 3600);
+    expect(lines.some((l) => l.startsWith("Setting off on foot for Neartown"))).toBe(true);
+    expect(lines.some((l) => /^Walked out of town towards Neartown, A-land \(-€20 for hostels\)$/.test(l))).toBe(true);
+    expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land, sleeping in 1 hostel on the way$/.test(l))).toBe(true);
+    expect(stats.cents).toBeLessThanOrEqual(100_000 - HOSTEL_CENTS);
+    // The same dice with too little time left: the walk waits until you are back.
+    expect(away(seed, LONG_WALK_MAX_S - 60).lines.some((l) => l.startsWith("Walked out of town"))).toBe(false);
   });
 
   it("hitchhikes when broke, as in a watched trip", () => {

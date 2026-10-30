@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { URGENT_AT } from "../../src/core/activities";
 import { Rng } from "../../src/core/rng";
 import * as Items from "../../src/core/items";
-import { Stats, type Place } from "../../src/core/stats";
+import { ON_THE_TRAIL, Stats, type Place } from "../../src/core/stats";
 import { HITCH_BELOW, parseAirports, parseCities, type LatLon, type Plan } from "../../src/core/trips";
 import { Trips } from "../../src/core/trips";
 import { Journey, type Where } from "../../src/game/journey";
@@ -78,6 +78,24 @@ describe("journey", () => {
     expect(stats.history.latest()).toBe("Setting off on his bike for somewhere in A-land");
     await Promise.resolve();
     expect(asked).toHaveLength(1);
+  });
+
+  it("on foot, now and then sets off on a long walk to a near town", () => {
+    let plan: Plan | null = null;
+    let stats = new Stats();
+    let j: Journey | null = null;
+    for (let seed = 1; seed < 60 && plan?.mode !== "walk"; seed++) {
+      stats = new Stats();
+      j = new Journey({ trips: new Trips(parseCities(NEAR), parseAirports(AIRPORTS)), rng: new Rng(seed), roll: () => 0.1, route: async () => [], problem: () => {} });
+      plan = j.consider(where(), stats);
+    }
+    expect(plan?.mode).toBe("walk");
+    expect(stats.history.latest()).toMatch(/^Setting off on foot for somewhere in A-land: a long walk/);
+    const cents = stats.cents;
+    expect(j!.board(plan!, stats)).toBe("");
+    expect(stats.cents).toBeLessThanOrEqual(cents - plan!.fare);
+    expect(plan!.fare).toBeGreaterThan(0);
+    expect(stats.buffNames()).toContain(ON_THE_TRAIL);
   });
 
   it("asks for no road for a ferry, which sails straight", async () => {
