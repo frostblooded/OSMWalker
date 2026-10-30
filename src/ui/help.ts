@@ -147,8 +147,6 @@ export const fill = (text: string, vals: Record<string, string>) => text.replace
 
 export const build = (text: string, data: GameData) => parse(fill(text, values(data)));
 
-/** Stat names in the enchantment list. */
-const ENCHANT_STAT: Record<string, string> = { str: "strength", cha: "charm", wit: "wits", luck: "luck", speed: "speed", magic: "Magic" };
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
@@ -234,7 +232,7 @@ export function values(data: GameData): Record<string, string> {
     ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
     ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
     ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
-    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => `${ENCHANT_STAT[k]} +${v}${k === "magic" ? " a km" : ""}`).join(", ")})`).join(", "),
+    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
     TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
