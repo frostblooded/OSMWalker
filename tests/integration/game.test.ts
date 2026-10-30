@@ -8,6 +8,7 @@ import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
+import { getCrawler, setCrawler } from "../../src/core/ruins";
 import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
@@ -665,6 +666,18 @@ describe("game", () => {
       old.load();
       await old.wake();
       expect(old.away).toBeNull();
+    });
+
+    it("a reopen loads the ruin crawls before the catch-up", async () => {
+      setCrawler(null);
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(getCrawler()).not.toBeNull();
+      setCrawler(null);
     });
 
     it("catches up after the tab was hidden, and the card can be closed", async () => {

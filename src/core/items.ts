@@ -108,11 +108,11 @@ export function modifierCount(r: number): number {
   return MOD_ROLLS.filter((t) => r >= t).length;
 }
 
-/** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost). */
-export function make(kind: Kind, level: number, rng: Rng, luck = 0): Item {
+/** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost), and so does `boost`. */
+export function make(kind: Kind, level: number, rng: Rng, luck = 0, boost = 0): Item {
   const base = rng.pick(KINDS[kind]);
   const mat = rng.pick(MATERIALS.filter((m) => m.level <= level));
-  const n = modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999));
+  const n = modifierCount(Math.min(rng.randf() + rarityBoost(luck) + boost, 0.999999));
   const mods: Modifier[] = [];
   // At most one suffix; the rest are prefixes, never the same one twice.
   if (n > 0) mods.push(rng.pick(SUFFIXES));

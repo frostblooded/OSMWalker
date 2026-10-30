@@ -12,6 +12,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
+import { getCrawler, setCrawler } from "../core/ruins";
 import { distanceM, type BBox } from "../core/geo";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
@@ -542,6 +543,8 @@ export class Game {
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
     // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
+    // Ruin crawls during the time away need core/crawl.ts too; without it ruins are just castles this time.
+    const crawl = getCrawler() ? null : import("../core/crawl").then((m) => setCrawler(m.explore), () => undefined);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
@@ -550,6 +553,7 @@ export class Game {
         await new Promise((r) => setTimeout(r, 50));
       }
       const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
+      if (crawl) await Promise.race([crawl, new Promise((r) => setTimeout(r, DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));

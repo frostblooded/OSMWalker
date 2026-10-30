@@ -1,7 +1,7 @@
 // The Collection: his overall %, badges and title on top, then a tab per
 // topic. Each set is a card with a progress bar and a grid of tiles, like a
 // dex: found entries show their name, the rest are ? tiles; tapping a tile
-// shows its detail or hint. The Feats tab lists badges, then his life story. Everything comes from
+// shows its detail or hint. The Places tab ends with his last ruin crawls. The Feats tab lists badges, then his life story. Everything comes from
 // core/collection.ts. Loaded only when the sheet first opens.
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
@@ -9,7 +9,7 @@ import * as C from "../core/collection";
 import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
 import type { Stats } from "../core/stats";
-import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
+import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 /** Sets with more entries than this, and no groups, start closed. */
 const OPEN_UP_TO = 30;
@@ -155,8 +155,33 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           <Feats stats={s} />
           <Life stats={s} />
         </>
-      ) : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)}
+      ) : (
+        C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)
+      )}
+      {tab === "places" && <Ruins stats={s} />}
     </>
+  );
+}
+
+/** The logs of his last ruin crawls (core/ruins.ts), newest first, each opening into a line per room. */
+function Ruins({ stats: s }: { stats: Stats }) {
+  const logs = [...s.ruins.logs].reverse();
+  return (
+    <Card icon="🏰" title="Ruin crawls" right={s.ruins.count}>
+      {logs.length ? (
+        <div class="zebra">
+          {logs.map((r, i) => (
+            <Entry
+              key={i}
+              title={`🏰 ${r.name} · ${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}
+              lines={[...r.rooms.map((m) => `${m.won ? "✔" : "↩"} ${m.text}: ${m.how}`), `🎁 ${r.found ? `${r.found.rarity} ${r.found.name}` : "nothing found"}`]}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>
+      )}
+    </Card>
   );
 }
 
