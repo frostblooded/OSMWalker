@@ -21,8 +21,6 @@ export type Postcard = {
   level: number;
   /** What he just did. */
   line: string;
-  /** Unix seconds when it was written. */
-  t: number;
 };
 
 const cut = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -34,8 +32,7 @@ export function clean(d: unknown): Postcard | null {
   const city = cut(o.city, TEXT_MAX);
   if (!city) return null;
   const level = typeof o.level === "number" && Number.isFinite(o.level) ? Math.min(Math.max(Math.floor(o.level), 1), 9999) : 1;
-  const t = typeof o.t === "number" && Number.isFinite(o.t) ? Math.max(Math.floor(o.t), 0) : 0;
-  return { from: cut(o.from, NAME_MAX), city, place: cut(o.place, TEXT_MAX), level, line: cut(o.line, TEXT_MAX), t };
+  return { from: cut(o.from, NAME_MAX), city, place: cut(o.place, TEXT_MAX), level, line: cut(o.line, TEXT_MAX) };
 }
 
 /** The link's fragment for `card`, base64url of its JSON (UTF-8). */

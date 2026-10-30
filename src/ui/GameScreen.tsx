@@ -237,7 +237,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
         </SheetBox>
       )}
-      {received && sheet === null && !game.away && (
+      {received && sheet === null && game.woke && !game.away && (
         <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
           <ReceivedSheet
             card={received}

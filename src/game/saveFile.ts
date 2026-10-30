@@ -4,7 +4,6 @@
 // apart under SETTINGS_KEY, so New city keeps them; so does the name you
 // sign postcards with.
 import { DebugLog, type Entry } from "../core/debugLog";
-import { Care } from "../core/gifts";
 import { Problems } from "../core/problems";
 import { Stats } from "../core/stats";
 import type { LatLon } from "../core/trips";
@@ -111,9 +110,9 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      // Saves from before care packages have no clovers, nothing on its way and no guess; from before the day ribbon and weekly recap,
-      // no stops and no week yet. Stats.fromJSON repairs the rest old saves lack: keepsakes, where he is and item stories.
-      stats: Stats.fromJSON({ ...d.stats, care: { ...new Care().toJSON(), ...d.stats.care }, stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
+      // Saves from before the day ribbon and weekly recap have no stops and no week yet. Stats.fromJSON repairs the rest
+      // old saves lack: care packages (Care.fromJSON), keepsakes, where he is and item stories.
+      stats: Stats.fromJSON({ ...d.stats, stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };
