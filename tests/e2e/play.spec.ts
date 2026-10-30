@@ -90,7 +90,7 @@ test("his friends and partner show on the Stats sheet", async ({ page }) => {
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
   await expect(sheet).toContainText("Mira (partner)");
-  await expect(sheet).toContainText("♥♥♥ · Sofia");
+  await expect(sheet).toContainText("💗💗💗 · Sofia");
 });
 
 test("sums up what he did while the game was closed", async ({ page }) => {

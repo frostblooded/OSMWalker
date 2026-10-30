@@ -25,7 +25,7 @@ describe("friends", () => {
   it("meets a new local now and then where he knows no one who hangs out there", () => {
     const f = new F.Friends();
     expect(f.stop(at(), DATA, fixed(F.NEW_CHANCE))).toBe("");
-    expect(f.stop(at(), DATA, fixed(0))).toBe(`🧑 Got talking with Ana at Cafe (♥)`);
+    expect(f.stop(at(), DATA, fixed(0))).toBe(`🧑 Got talking with Ana at Cafe (💗)`);
     expect(f.list[0]).toMatchObject({ name: "Ana", city: "Sofia, Bulgaria", kind: "cafe", hearts: 1, met: 1000, place: { name: "Cafe", lat: 42.7, lon: 23.3 } });
     expect(f.list[0]!.id).toBe("Sofia, Bulgaria|Cafe|1000");
   });
@@ -34,7 +34,7 @@ describe("friends", () => {
     const f = new F.Friends();
     f.list = [local()];
     expect(f.stop(at({ t: 2000 }), DATA, fixed(F.SEE_CHANCE))).toBe("");
-    expect(f.stop(at({ place: "Other Cafe", t: 2000 }), DATA, fixed(0))).toBe("👩 Ran into Ana again at Other Cafe (♥♥)");
+    expect(f.stop(at({ place: "Other Cafe", t: 2000 }), DATA, fixed(0))).toBe("👩 Ran into Ana again at Other Cafe (💗💗)");
     expect(f.list[0]).toMatchObject({ hearts: 2, seen: 2000 });
     // Not in another city.
     expect(f.stop(at({ city: "Plovdiv, Bulgaria" }), DATA, fixed(1))).toBe("");
@@ -127,7 +127,7 @@ describe("friends in his stats", () => {
     s.incidents = [{ id: "t", tone: "good", text: "x", options: [] } as never];
     // The storyteller's roll (nothing), Viktor not in town, then a new local.
     const line = s.happen(cafe, 12, fixed(0.5, 0.99, 0));
-    expect(line).toBe("🧑 Got talking with Ana at Cafe (♥)");
+    expect(line).toBe("🧑 Got talking with Ana at Cafe (💗)");
     expect(s.incidentLatest()).toBe(true);
     expect(s.friends.list).toHaveLength(1);
   });

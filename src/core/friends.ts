@@ -38,7 +38,7 @@ export type Friend = {
   /** The city they live in, and the kind of place (map class) they hang out at. */
   city: string;
   kind: string;
-  /** Where they first met. */
+  /** Where they first met. This, met and seen are kept for the townies work, which builds on them. */
   place: { name: string; lat: number; lon: number };
   hearts: number;
   /** Unix seconds of the first meeting and the last. */
@@ -147,5 +147,5 @@ export class Friends {
   }
 }
 
-/** "♥♥♥" for 3 hearts. */
-export const hearts = (n: number) => "♥".repeat(n);
+/** "💗💗💗" for 3 hearts. */
+export const hearts = (n: number) => "💗".repeat(n);

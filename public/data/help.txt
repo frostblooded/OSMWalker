@@ -567,7 +567,7 @@ Viktor remembers. He brings up where they last met in another city, and every co
 
 For {SEEN_MIN} minutes after a meeting he shows on the map beside him, as a smaller round {RIVAL_ICON} on a cream badge. His card on the Stats sheet keeps the score.
 ## Friends and a partner {friends}
-He makes friends by himself. At a kind of place where he knows no one who hangs out there, each stop has a {FRIEND_NEW_PCT} chance he gets talking with a local, who then hangs out at that kind of place in that city. Back at such a place, a stop has a {FRIEND_SEE_PCT} chance he runs into one of them again, and each meeting adds a heart ♥, up to {HEARTS_MAX}. Friends only come at a stop where no incident happens and Viktor doesn't turn up.
+He makes friends by himself. At a kind of place where he knows no one who hangs out there, each stop has a {FRIEND_NEW_PCT} chance he gets talking with a local, who then hangs out at that kind of place in that city. Back at such a place, a stop has a {FRIEND_SEE_PCT} chance he runs into one of them again, and each meeting adds a heart 💗, up to {HEARTS_MAX}. Friends only come at a stop where no incident happens and Viktor doesn't turn up.
 
 From {MEET_UP_AT} hearts a friend also meets up with him on purpose anywhere in their city: a {MEET_UP_PCT} chance at each stop. He keeps up to {FRIENDS_PER_CITY} friends in each city; a new one takes the place of the one with the fewest hearts.
 
