@@ -397,8 +397,9 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
-  /** As he boards for another city: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
-  packForTrip(abroad: boolean): string {
+  /** As he boards for a city in country `code`: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
+  packForTrip(code: string): string {
+    const abroad = this.where.code !== "" && code !== this.where.code;
     const kit = Kit.choose(this.meters, this.cents, abroad, KEEP_CENTS);
     if (!kit.length) return "";
     let cost = 0;

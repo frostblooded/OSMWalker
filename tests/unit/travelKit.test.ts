@@ -29,9 +29,10 @@ describe("choose", () => {
 describe("Stats.packForTrip", () => {
   it("pays for the kit, starts its buffs and says what he packed", () => {
     const s = new Stats();
+    s.arrive("Sofia", "BGR", "Bulgaria");
     s.meters.fullness = 10;
     const before = s.cents;
-    const line = s.packForTrip(true);
+    const line = s.packForTrip("FRA");
     expect(line).toMatch(/^Packed snacks and a phrasebook for the trip \(-€12\)$/);
     expect(s.cents).toBe(before - 1200);
     expect(s.buffNames()).toEqual(expect.arrayContaining(["Packed snacks", "Phrasebook"]));
@@ -41,6 +42,8 @@ describe("Stats.packForTrip", () => {
     const s = new Stats();
     s.meters.fullness = 100;
     s.meters.thirst = 100;
-    expect(s.packForTrip(false)).toBe("");
+    expect(s.packForTrip("FRA")).toBe("");
+    s.arrive("Sofia", "BGR", "Bulgaria");
+    expect(s.packForTrip("BGR")).toBe("");
   });
 });
