@@ -129,7 +129,6 @@ export const MODES: Record<Mode, { icon: string; by: string }> = {
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
 export const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
 
-
 /** Seconds a ride of `distanceM` takes. */
 export function rideS(mode: Mode, distanceM: number): number {
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
@@ -224,6 +223,7 @@ export class Trips {
     const order: ("plane" | "road")[] = r < p ? ["plane", "road"] : ["road", "plane"];
     // The part of r the plane didn't use, spread over [0, 1) again, so the ferry odds don't depend on the plane's.
     const rr = r < p ? r / p : (r - p) / (1 - p);
+    let short: NoPlan | null = null;
     for (const way of order) {
       let mode: Mode = "plane";
       let station: Place | null;
@@ -243,14 +243,16 @@ export class Trips {
         if (mode === "ferry") dist = straight;
       }
       const cost = Math.max(Math.ceil(fare(mode, dist) * fareMult), 1);
+      // Can't pay the first way: the other may be cheaper.
       if (cost > cents) {
-        if (cents < HITCH_BELOW && straight <= MAX_ROAD_M) return setOff("hitch", roadM);
-        return { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
+        short ??= { error: `can't afford the ${mode} to ${city.name}: needs ${euro(cost)}, has ${euro(cents)}`, short_of: cost };
+        continue;
       }
       return { city, mode, station, fare: cost, arrive, distance_m: dist };
     }
+    if (cents < HITCH_BELOW && straight <= MAX_ROAD_M) return setOff("hitch", roadM);
+    if (short) return short;
     if (straight > MAX_ROAD_M) return { error: "too far to go by road, and no airport within reach" };
-    if (cents < HITCH_BELOW) return setOff("hitch", roadM);
     return { error: `no ${hasCar ? "gas station" : "bus station"} or airport within reach` };
   }
 

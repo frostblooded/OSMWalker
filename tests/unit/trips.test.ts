@@ -152,6 +152,15 @@ describe("planTrip", () => {
     });
   });
 
+  it("takes the road when he can't pay the plane but can pay the road", () => {
+    const rail: Place = { ...BUS_STATION, name: "Central Station", class: "railway", subclass: "station" };
+    const c = city("Midtown", 2.5, 0);
+    expect(T.planeChance(distanceM(0, 0, 2.5, 0))).toBeGreaterThan(0);
+    const withMid = new T.Trips(T.parseCities(LIST), T.parseAirports(`${AIRPORTS}Mid Field\tMID\tAA\t2.5\t0\n`));
+    expect(withMid.planTrip(c, [0, 0], [rail], 2600, false, 0)).toMatchObject({ mode: "train" });
+    expect(withMid.planTrip(c, [0, 0], [rail], 100_000, false, 0)).toMatchObject({ mode: "plane" });
+  });
+
   it("hitchhikes for free when broke instead of saving up", () => {
     const plan = trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99);
     expect(plan).toMatchObject({ mode: "hitch", fare: 0, station: { name: "the road out of town" } });
@@ -190,6 +199,7 @@ describe("planTrip", () => {
 
   it("has a ride time and an icon for every way of travelling", () => {
     for (const m of Object.keys(T.MODES) as T.Mode[]) expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
+    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍"]);
     expect(T.fare("bike", 50_000)).toBe(0);
     expect(T.fare("hitch", 50_000)).toBe(0);
     expect(T.fare("train", 100_000)).toBe(Math.ceil(100 * T.TRAIN_PER_KM * 100));
