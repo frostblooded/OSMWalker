@@ -154,11 +154,13 @@ describe("save file", () => {
     delete d.stats.dragonFed;
     delete d.stats.dragonSulked;
     delete d.walker.flight;
+    delete d.walker.afoot;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = f.read() as Saved;
     expect(back.stats.dragonFed).toBe("");
     expect(back.stats.dragonSulked).toBe("");
     expect(back.walker.flight).toBeNull();
+    expect(back.walker.afoot).toBe(false);
   });
 
   it("loads saves from before the bond, with starting trust and no lean", () => {

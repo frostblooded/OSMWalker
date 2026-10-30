@@ -935,6 +935,21 @@ describe("flying mounts", () => {
     expect(foot.flight).toBeNull();
   });
 
+  it("mid-flight, his route line is the straight line to the goal, with no streets", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.routeLine()).toEqual({ streets: [], rest: [w.position(), [far.lat, far.lon]] });
+  });
+
+  it("a new goal from Debug mid-flight lands him where he was headed first", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.forceNewGoal();
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.afoot).toBe(false);
+  });
+
   it("comes down at the nearest corner when his mount stops flying mid-air", () => {
     const w = flyer([park, far]);
     w.advance(100);

@@ -225,9 +225,10 @@ export class Walker {
     this.events.picked?.(info);
   }
 
-  /** Debug: drops any rest or trip (landing where he was headed) and picks the next goal right away. */
+  /** Debug: drops any rest, trip or flight (landing where he was headed) and picks the next goal right away. */
   forceNewGoal(): void {
     this.landNow();
+    if (this.flight) this.startAt(this.flight.node);
     this.departing = null;
     this.restM = 0;
     this.restTotalM = 0;
