@@ -108,6 +108,13 @@ describe("what the sky does", () => {
     expect(Sky.placeWeight(park, null)).toBe(1);
   });
 
+  it("takes a closed place out of his needs, urgent ones too, and scales the rest", () => {
+    const hungry = { pull: 3, urgent: true, bottom: true, why: "fullness" as const };
+    expect(Sky.skyNeed(hungry, shop, at(0, 0, 0, null, Date.UTC(2026, 5, 21, 23)))).toEqual({ ...hungry, pull: 0, urgent: false, bottom: false });
+    expect(Sky.skyNeed(hungry, park, at(0, 0, 0, rain, Date.UTC(2026, 5, 21, 12)))).toEqual({ ...hungry, pull: 3 * Sky.WET_OUTDOOR });
+    expect(Sky.skyNeed(hungry, park, null)).toBe(hungry);
+  });
+
   it("changes his meters and speed", () => {
     expect(Sky.weatherPerH(at(0, 0, 0, hot)).thirstMult).toBe(Sky.HOT_THIRST);
     expect(Sky.weatherPerH(at(0, 0, 0, { kind: "cloudy", tempC: -5 })).energy).toBe(-Sky.COLD_ENERGY_PER_H);

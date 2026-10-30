@@ -315,6 +315,16 @@ describe("catch-up", () => {
     expect(s.stops).toBe(s.lines.filter((l) => /^Reached (?!level )/.test(l.text)).length);
   });
 
+  it("doesn't let a closed fix for an urgent need hold him: he goes where it's open", () => {
+    const stats = new Stats();
+    stats.meters.fullness = 0;
+    // Hungry at 23:00, and the only food is a bakery shut for the night.
+    const town: AwayCity = { ...HOME, places: [place("Night Bakery", "bakery", "bakery", 0.003, 0), place("Duck Park", "park", "park", 0, 0.003)] };
+    const s = catchUp(stats, town, [0, 0], 2 * 3600, Date.UTC(2026, 9, 29, 23), deps());
+    expect(s.lines.some((l) => l.text.startsWith("Reached Duck Park"))).toBe(true);
+    expect(s.lines.some((l) => l.text.startsWith("Reached Night Bakery"))).toBe(false);
+  });
+
   it("keeps the weather off him on a trip's ride", () => {
     const seen: { riding: boolean; weather: boolean }[] = [];
     let riding = false;

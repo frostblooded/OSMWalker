@@ -143,7 +143,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           })}
         </div>
       </Card>
-      {s.sky && <SkyCard sky={s.sky} vehicle={s.vehicle()} />}
+      {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {
