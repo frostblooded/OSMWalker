@@ -11,6 +11,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
+import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
@@ -82,6 +83,8 @@ export class Game {
   citySummary: CityCheck.Summary | null = null;
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
+  /** True when this reopen earned a clover, for the summary card. */
+  awayClover = false;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -133,7 +136,8 @@ export class Game {
     return this.deps.hour?.() ?? new Date(ms).getHours();
   }
 
-  private now(): number {
+  /** Unix ms now, by the game's clock. */
+  now(): number {
     return this.deps.clock?.() ?? Date.now();
   }
 
@@ -234,6 +238,7 @@ export class Game {
     this.track();
     const bonus = this.stats.visit(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
+    this.stats.care.open(this.stats);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -434,6 +439,7 @@ export class Game {
         await new Promise((r) => setTimeout(r, 50));
       }
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
+      this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
     } finally {
       this.waking = false;
     }
@@ -503,6 +509,14 @@ export class Game {
   /** Closes the summary card. */
   dismissAway(): void {
     this.away = null;
+    this.awayClover = false;
+    this.changed();
+  }
+
+  /** Sends him a care package; he opens it at his next stop. */
+  sendGift(id: string): void {
+    if (!this.stats.care.send(id)) return;
+    this.save();
     this.changed();
   }
 

@@ -182,6 +182,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
       } else stats.say(`Reached ${place.name}`);
+      stats.care.open(stats);
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
       if (action) stats.do(action, place.name, rng);

@@ -3,6 +3,7 @@
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
 // apart under SETTINGS_KEY, so New city keeps them.
 import { DebugLog, type Entry } from "../core/debugLog";
+import { Care } from "../core/gifts";
 import { Problems } from "../core/problems";
 import { Stats } from "../core/stats";
 import type { LatLon } from "../core/trips";
@@ -108,7 +109,8 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      stats: Stats.fromJSON(d.stats),
+      // Saves from before care packages have no clovers and nothing on its way.
+      stats: Stats.fromJSON({ ...d.stats, care: d.stats.care ?? new Care().toJSON() }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };

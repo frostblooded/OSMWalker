@@ -150,6 +150,13 @@ for (const width of [360, 412]) {
       await check(page, "away");
       await away.getByRole("button", { name: /events, newest first/ }).click();
       await check(page, "away-events");
+      await away.getByRole("button", { name: "Carry on" }).click();
+
+      await openMenuItem(page, /Care package/);
+      const care = page.getByRole("dialog", { name: /Care package/ });
+      await check(page, "care");
+      await care.getByRole("button", { name: /Send Snack/ }).click();
+      await check(page, "care-sent");
     });
   });
 }

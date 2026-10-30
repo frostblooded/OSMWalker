@@ -84,6 +84,19 @@ describe("game", () => {
     expect(g.walker!.totalM).toBeCloseTo(30 * (5 / 3.6), 3); // 5 km/h on foot
   });
 
+  it("opens a care package at the place he reaches next", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.care.clovers = 2;
+    g.sendGift("guide");
+    expect(g.stats.care.clovers).toBe(0);
+    run(g, 400);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    const reached = texts.findIndex((t) => t.startsWith("Reached Cafe Near"));
+    expect(texts[reached + 1]).toBe("Opened your care package: 📖 City guide! Thank you! (+2 Wits for 4 h)");
+    expect(g.stats.buffNames()).toContain("City guide");
+  });
+
   it("says when the streets can't load", async () => {
     const { g } = game({ fail: true });
     expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("Couldn't load streets. Check your connection and try again.");
@@ -376,6 +389,20 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
+      const { again } = await reopen(2 * HOUR, {}, (g) => {
+        g.stats.care.clovers = 1;
+        g.sendGift("snack");
+      });
+      expect(again.awayClover).toBe(true);
+      expect(again.stats.care.clovers).toBe(1);
+      expect(again.stats.care.parcel).toBe("");
+      expect(again.away!.lines.some((l) => l.text.startsWith("Opened your care package: 🥪 Snack"))).toBe(true);
+      again.dismissAway();
+      expect(again.awayClover).toBe(false);
+      expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
     });
 
     it("goes on trips while away and lands him in the new city", async () => {

@@ -1,6 +1,7 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, and his history.
 // Time passes in game minutes, which are real minutes while the app is open.
+import { Care } from "./gifts";
 import { History } from "./history";
 import * as Items from "./items";
 import type { Item, Slot } from "./items";
@@ -107,6 +108,8 @@ export class Stats {
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
+  /** Clovers and the care package on its way to him. */
+  care = new Care();
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -230,6 +233,12 @@ export class Stats {
     this.bag.push(item);
   }
 
+  /** Starts a timed effect, replacing one of the same name. */
+  addBuff(buff: NonNullable<Action["buff"]>): void {
+    this.buffs = this.buffs.filter((b) => b.name !== buff.name);
+    this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
+  }
+
   buffNames(): string[] {
     return this.buffs.map((b) => b.name);
   }
@@ -347,11 +356,7 @@ export class Stats {
     this.cents = Math.max(this.cents - spent + earned, 0);
     if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
-    const buff = action.buff;
-    if (buff) {
-      this.buffs = this.buffs.filter((b) => b.name !== buff.name);
-      this.buffs.push({ name: buff.name, left: buff.min, per_h: buff.per_h ?? {}, xp_mult: buff.xp_mult ?? 1, ...(buff.attrs ? { attrs: buff.attrs } : {}) });
-    }
+    if (action.buff) this.addBuff(action.buff);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     return this.say(text + (where ? ` at ${where}` : "") + money);
@@ -391,7 +396,7 @@ export class Stats {
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
-      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag, care: this.care.toJSON(),
     };
   }
 
@@ -409,6 +414,7 @@ export class Stats {
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
+    s.care = Care.fromJSON(d.care);
     return s;
   }
 }

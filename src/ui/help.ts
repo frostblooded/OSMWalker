@@ -6,6 +6,7 @@ import * as Activities from "../core/activities";
 import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
+import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as History from "../core/history";
 import * as Items from "../core/items";
@@ -132,6 +133,10 @@ export function values(data: GameData): Record<string, string> {
     SAVE_EVERY_S: num(G.SAVE_EVERY_S),
     MIN_AWAY_MIN: num(CatchUp.MIN_AWAY_S / 60),
     MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
+    CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
+    CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
+    CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
+    GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
