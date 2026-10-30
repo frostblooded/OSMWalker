@@ -1,9 +1,10 @@
 // While you were away: the summary card that opens when the game comes back
 // after a while, with how long it covered, what he did and where, his money
-// and level before and after, the clover this check-in earned, and
-// everything he did folded away below. After a week turns over, last
-// week's recap leads it, once.
+// and level before and after, the clover this check-in earned, now and then
+// one small choice, and everything he did folded away below. After a week
+// turns over, last week's recap leads it, once.
 import type { Summary } from "../core/catchup";
+import { kindOf, labels, question, type Dilemma } from "../core/dilemmas";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
 import { timeText } from "../core/history";
 import { placeIcon } from "../core/look";
@@ -12,7 +13,14 @@ import type { Recap, Week } from "../core/week";
 import { biasMin, dist, duration } from "./format";
 import { Card, Collapsible, KV } from "./kit";
 
-export function AwaySheet({ summary: s, clover, week, onDone }: { summary: Summary; clover: boolean; week: Week; onDone: () => void }) {
+export function AwaySheet({
+  summary: s,
+  clover,
+  week,
+  dilemma,
+  onChoose,
+  onDone,
+}: { summary: Summary; clover: boolean; week: Week; dilemma?: Dilemma | null; onChoose?: (pick: number) => void; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -24,6 +32,7 @@ export function AwaySheet({ summary: s, clover, week, onDone }: { summary: Summa
         {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
+      {dilemma && <DilemmaCard d={dilemma} onChoose={(i) => onChoose?.(i)} />}
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
         <KV k="✨ New places" v={s.firstVisits} />
@@ -92,4 +101,31 @@ function WeekRecap({ recap: r, favourite }: { recap: Recap; favourite: [string, 
 function weekText(start: number): string {
   const f = (t: number) => new Date(t * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   return `${f(start + 3600)} – ${f(start + 6 * 86400 + 3600)}`;
+}
+
+/** The one choice this reopen offers: tap an option, or carry on and he decides by himself. */
+function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => void }) {
+  const names = labels(d);
+  return (
+    <Card icon={kindOf(d).icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
+      <p>{question(d)}</p>
+      {d.picked === null ? (
+        <>
+          <div class="choices dilemma">
+            {names.map((n, i) => (
+              <button key={n} class="btn" onClick={() => onChoose(i)}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <p class="dim small">Or carry on, and he decides by himself.</p>
+        </>
+      ) : (
+        <>
+          <KV k="✔ You chose" v={names[d.picked]} tone="ok" />
+          <p class="dim small">{d.said}</p>
+        </>
+      )}
+    </Card>
+  );
 }

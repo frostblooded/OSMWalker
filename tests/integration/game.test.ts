@@ -501,6 +501,34 @@ describe("game", () => {
       expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
     });
 
+    it("settles a dilemma by your tap, or by himself when the card closes", async () => {
+      const { again } = await reopen(5 * HOUR);
+      again.dilemma = { id: "wallet", city: null, picked: null, by: null, said: "" };
+      const cents = again.stats.cents;
+      again.chooseDilemma(1);
+      again.chooseDilemma(0);
+      expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
+      expect(again.stats.cents).toBe(cents + 4000);
+      again.dismissAway();
+      expect(again.dilemma).toBeNull();
+
+      const other = (await reopen(5 * HOUR)).again;
+      other.dilemma = { id: "musician", city: null, picked: null, by: null, said: "" };
+      other.dismissAway();
+      expect(other.stats.history.latest()).toMatch(/^Decided by himself: /);
+    });
+
+    it("takes him to the offered city when he hops on a free ride", async () => {
+      const { again } = await reopen(5 * HOUR);
+      const plovdiv = again.trips.cities.find((c) => c.name === "Plovdiv")!;
+      again.dilemma = { id: "trucker", city: plovdiv, picked: null, by: null, said: "" };
+      const cents = again.stats.cents;
+      again.chooseDilemma(0);
+      expect(again.city).toBe("Plovdiv, Bulgaria");
+      expect(again.stats.cents).toBe(cents);
+      expect(again.stats.history.entries.some((e) => e.text === "Hopped on a trucker's free ride to Plovdiv")).toBe(true);
+    });
+
     it("goes on trips while away and lands him in the new city", async () => {
       const { again } = await reopen(24 * HOUR, { roll: 0.1 }, (g) => {
         g.stats.cents = 500_000;
