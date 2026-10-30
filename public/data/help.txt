@@ -236,7 +236,7 @@ A fantasy mount counts as the vehicle it sits beside: on a tortoise he saves for
 
 Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for, and with a dragon, its gold on a day it hasn't eaten yet.
 ## Buffs and debuffs {buffs}
-Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, so they only run down while the game is open.
+Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, while the game is open and through the time away it catches up (see While you were away).
 
 A buff can change a meter every hour it lasts (Caffeinated: +5 energy per hour; Healthy: +1 health per hour; Hungover: -3 energy and -2 mood per hour), or multiply the XP he gets from actions (Inspired: double XP). Several XP buffs multiply together. A buff can also raise an attribute while it lasts: Lucky (from a big tip or rubbing a statue) adds {LUCKY_LUCK} luck.
 
