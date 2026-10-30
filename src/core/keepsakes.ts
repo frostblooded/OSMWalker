@@ -4,7 +4,7 @@
 // each country, and crawls, little sets he finishes by visiting places of a
 // kind. Pure data and rules; Stats.collect() uses them.
 import type * as CC from "./cityCards";
-import { type Item, partsOf, type Rarity } from "./items";
+import type { Rarity } from "./items";
 import type { Fx, Place } from "./stats";
 
 /** Map classes that count as landmarks; art shops (art_gallery/art) don't. */
@@ -72,17 +72,17 @@ export const fareCut = (souvenirs: number) => Math.min(Math.floor(souvenirs / SO
 export type Souvenir = { name: string; country: string; city: string; t: number };
 
 /** A crawl: `need` different places of `kinds` (a class, or class/subclass) in one day, in one city, or ever. Done once; from then on every visit to one of its places gives `perk`. */
-export type Crawl = { id: string; /** Its kinds in words, for Help and the Collection. */ about: string; name: string; icon: string; kinds: string[]; need: number; per: "day" | "city" | "ever"; perk: Fx };
+export type Crawl = { id: string; name: string; icon: string; kinds: string[]; need: number; per: "day" | "city" | "ever"; perk: Fx };
 export const CRAWLS: Crawl[] = [
-  { id: "coffee", about: "cafes or coffee shops", name: "Coffee crawl", icon: "☕", kinds: ["cafe", "shop/coffee"], need: 4, per: "day", perk: { energy: 2 } },
-  { id: "pub", about: "bars, pubs, clubs or beer gardens", name: "Pub crawl", icon: "🍺", kinds: ["bar", "beer"], need: 4, per: "day", perk: { mood: 2 } },
-  { id: "sweet", about: "ice cream parlours, bakeries or sweet shops", name: "Sweet tooth", icon: "🍦", kinds: ["ice_cream", "bakery", "shop/confectionery", "shop/chocolate"], need: 3, per: "day", perk: { fullness: 2 } },
-  { id: "parks", about: "parks or gardens", name: "Park life", icon: "🌳", kinds: ["park", "garden"], need: 5, per: "day", perk: { health: 1 } },
-  { id: "shops", about: "shops or clothing stores", name: "Window shopping", icon: "🛍", kinds: ["shop", "clothing_store"], need: 6, per: "day", perk: { mood: 1 } },
-  { id: "museums", about: "museums", name: "Museum marathon", icon: "🏛", kinds: ["museum"], need: 3, per: "day", perk: { xp: 5 } },
-  { id: "pilgrim", about: "places of worship", name: "Pilgrim", icon: "⛪", kinds: ["place_of_worship"], need: 5, per: "city", perk: { mood: 2 } },
-  { id: "culture", about: "museums, galleries or theatres", name: "Culture vulture", icon: "🎭", kinds: ["museum", "art_gallery", "theatre"], need: 15, per: "ever", perk: { xp: 5 } },
-  { id: "sights", about: "landmarks", name: "Sightseer", icon: "🃏", kinds: LANDMARK_CLASSES, need: 25, per: "ever", perk: { xp: 5 } },
+  { id: "coffee", name: "Coffee crawl", icon: "☕", kinds: ["cafe", "shop/coffee"], need: 4, per: "day", perk: { energy: 2 } },
+  { id: "pub", name: "Pub crawl", icon: "🍺", kinds: ["bar", "beer"], need: 4, per: "day", perk: { mood: 2 } },
+  { id: "sweet", name: "Sweet tooth", icon: "🍦", kinds: ["ice_cream", "bakery", "shop/confectionery", "shop/chocolate"], need: 3, per: "day", perk: { fullness: 2 } },
+  { id: "parks", name: "Park life", icon: "🌳", kinds: ["park", "garden"], need: 5, per: "day", perk: { health: 1 } },
+  { id: "shops", name: "Window shopping", icon: "🛍", kinds: ["shop", "clothing_store"], need: 6, per: "day", perk: { mood: 1 } },
+  { id: "museums", name: "Museum marathon", icon: "🏛", kinds: ["museum"], need: 3, per: "day", perk: { xp: 5 } },
+  { id: "pilgrim", name: "Pilgrim", icon: "⛪", kinds: ["place_of_worship"], need: 5, per: "city", perk: { mood: 2 } },
+  { id: "culture", name: "Culture vulture", icon: "🎭", kinds: ["museum", "art_gallery", "theatre"], need: 15, per: "ever", perk: { xp: 5 } },
+  { id: "sights", name: "Sightseer", icon: "🃏", kinds: LANDMARK_CLASSES, need: 25, per: "ever", perk: { xp: 5 } },
 ];
 /** "+2 energy", "+5 XP". */
 export const perkText = (perk: Fx) =>
@@ -113,7 +113,9 @@ export class Keepsakes {
   freePacks = 0;
   /** Cities ("code:name") and countries ("code") he has been to, for the free packs. */
   seen: string[] = [];
-  /** Item bases ("b:Sword") and materials ("m:Bronze") he has owned, for the Collection. */
+  /** Kinds of made-up place he has been to (poiGen.ODD_KINDS). */
+  odd: string[] = [];
+  /** Item bases ("b:Sword") and materials ("m:Bronze") he has owned; collection.award notes them from his gear and bag. */
   owned: string[] = [];
   /** The badge tier (1 Bronze, 2 Silver, 3 Gold) he has for each feat (see collection.ts). */
   badges: Record<string, number> = {};
@@ -131,12 +133,6 @@ export class Keepsakes {
     this.city = city;
   }
 
-  /** Notes the base and material of an item he now has. */
-  own(item: Item): void {
-    const { base, mat } = partsOf(item);
-    for (const id of [base && `b:${base}`, mat && `m:${mat}`]) if (id && !this.owned.includes(id)) this.owned.push(id);
-  }
-
   toJSON() {
     return {
       cards: [...this.cards],
@@ -150,6 +146,7 @@ export class Keepsakes {
       spares: this.spares,
       freePacks: this.freePacks,
       seen: this.seen,
+      odd: this.odd,
       owned: this.owned,
       badges: this.badges,
       title: this.title,
@@ -170,6 +167,7 @@ export class Keepsakes {
     k.spares = d.spares ?? [];
     k.freePacks = d.freePacks ?? 0;
     k.seen = d.seen ?? [];
+    k.odd = d.odd ?? [];
     k.owned = d.owned ?? [];
     k.badges = d.badges ?? {};
     k.title = d.title ?? "";

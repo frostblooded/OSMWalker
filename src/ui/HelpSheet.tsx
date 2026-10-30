@@ -1,16 +1,21 @@
 // Help: a search box over a list of topics by section, and a page per topic
 // made of cards. The code that fills the text in (help.ts, with every list and
 // number it pulls from the game) is its own chunk, kept off the startup path
-// (main.tsx fetches it at idle); the text itself loads the first time Help opens.
+// (main.tsx fetches it, and the text, at idle once the service worker runs, so Help opens offline).
+// The text's address carries a hash of it, so after a deploy that changes Help
+// the service worker can't hand back the old text.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GameData } from "../game/game";
 import type { Section } from "./help";
 
 type Help = typeof import("./help");
 
+/** Where the Help text lives; a new address whenever the text changes. */
+export const HELP_URL = `${import.meta.env.BASE_URL}data/help.txt?v=${__HELP_VERSION__}`;
+
 let text: Promise<string> | null = null;
 const fetchText = () => {
-  text ??= fetch(`${import.meta.env.BASE_URL}data/help.txt`).then((r) => {
+  text ??= fetch(HELP_URL).then((r) => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   });

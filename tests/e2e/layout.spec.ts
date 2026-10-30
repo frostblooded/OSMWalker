@@ -1,13 +1,24 @@
 // Layout guardrail: on every screen, at small and large phone widths, no two
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { encode } from "../../src/core/postcard";
 import { KEEPSAKES, mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
 });
+
+/** Drags a sheet's title bar down by dy px. */
+async function dragTitle(page: Page, sheet: Locator, dy: number) {
+  const b = (await sheet.locator("header h2").boundingBox())!;
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(x, y + (dy * i) / 5);
+  await page.mouse.up();
+}
 
 /** Pairs of visible text runs and controls whose boxes overlap, as "a | b" strings. */
 const overlaps = (page: Page) =>
@@ -119,6 +130,10 @@ for (const width of [360, 412]) {
 
       await page.getByRole("button", { name: "Menu" }).click();
       await check(page, "menu");
+      const menu = page.getByRole("dialog", { name: /Menu/ });
+      await dragTitle(page, menu, (await menu.boundingBox())!.height - 740 * 0.32);
+      await expect(menu).toHaveAttribute("style", /max-height/);
+      await check(page, "menu-dragged");
       await page.getByRole("button", { name: "Close" }).click();
 
       await openMenuItem(page, /Help/);

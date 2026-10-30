@@ -1,6 +1,6 @@
 // The sheets: Help, Stats, Collection, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { KEEPSAKES, mockServices, reopenWith } from "./mock";
+import { KEEPSAKES, mockServices, reopenAfter, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -35,9 +35,17 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
 });
 
+test("The top card shows today's forecast once the game data is in", async ({ page }) => {
+  await startInSofia(page);
+  const line = page.locator(".hud .forecast");
+  await expect(line).toBeVisible();
+  await expect(line).not.toContainText("quiet day");
+  await expect(line).not.toContainText("{n}");
+});
+
 test("Help that couldn't load offers Try again", async ({ page }) => {
   let fail = true;
-  await page.route("**/data/help.txt", (route) => (fail ? route.abort() : route.fallback()));
+  await page.route("**/data/help.txt?*", (route) => (fail ? route.abort() : route.fallback()));
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
@@ -272,4 +280,122 @@ test("City area switch is remembered", async ({ page }) => {
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("switch", { name: /City area/ })).toHaveAttribute("aria-checked", "true");
+});
+
+test("A city gets its made-up places, saved, and the game's icons load for the map", async ({ page }) => {
+  const icons = page.waitForResponse(/\/icons-[\w-]+\.js$/, { timeout: 30000 });
+  await startInSofia(page);
+  await expect
+    .poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").made_places ?? {}).flat().length), { timeout: 30000 })
+    .toBeGreaterThan(0);
+  expect((await icons).ok()).toBe(true);
+});
+
+/** Drags a sheet's title bar by dy px with touch-like pointer moves. */
+async function dragTitle(page: Page, name: RegExp, dy: number) {
+  const head = page.getByRole("dialog", { name }).locator("header h2");
+  const b = (await head.boundingBox())!;
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(x, y + (dy * i) / 5);
+  await page.mouse.up();
+}
+
+test("a sheet stays where its title bar is let go, and closes below 30% of the screen", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  const screen = page.viewportSize()!.height;
+  const height = async () => (await menu.boundingBox())!.height;
+  const tall = await height();
+  await dragTitle(page, /Menu/, 100);
+  await expect.poll(height).toBeLessThan(tall - 90);
+  expect(await height()).toBeGreaterThan(tall - 110);
+  await expect(menu.getByRole("button", { name: /History/ })).toBeVisible();
+  await dragTitle(page, /Menu/, -400);
+  expect(Math.abs((await height()) - tall)).toBeLessThan(4);
+  await dragTitle(page, /Menu/, tall - screen * 0.28);
+  await expect(menu).toBeHidden();
+});
+
+test("a full-screen sheet drags down to show the map", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const stats = page.getByRole("dialog", { name: /Stats/ });
+  const screen = page.viewportSize()!.height;
+  await dragTitle(page, /Stats/, screen * 0.5);
+  await expect.poll(async () => (await stats.boundingBox())!.height).toBeLessThan(screen * 0.55);
+  const hud = (await page.locator(".hud").boundingBox())!;
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".hud"), [hud.x + hud.width / 2, hud.y + 20])).toBe(true);
+});
+
+test("History fits the map to the room left above its sheet after a drag", async ({ page }) => {
+  await startInSofia(page);
+  // Hours away fill History, so its sheet is tall enough to drag down without closing.
+  await reopenAfter(page, 8);
+  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
+  const sheet = page.getByRole("dialog", { name: /History/ });
+  await expect.poll(async () => (await sheet.boundingBox())?.height ?? 0, { timeout: 10000 }).toBeGreaterThan(page.viewportSize()!.height * 0.5);
+  // He walks a px or so a second; the fit moves him far more. Wait for the fit to end.
+  const him = page.locator(".marker.him");
+  const y = async () => (await him.boundingBox())!.y;
+  let before = -1;
+  await expect
+    .poll(async () => {
+      const last = before;
+      await page.waitForTimeout(300);
+      before = await y();
+      return Math.abs(before - last) < 3;
+    }, { timeout: 10000 })
+    .toBe(true);
+  await dragTitle(page, /History/, 150);
+  await expect(sheet).toBeVisible();
+  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(20);
+});
+
+test("the map credit stays under an open sheet's buttons", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  await expect(menu).toBeVisible();
+  const credit = (await page.locator(".maplibregl-ctrl-attrib").boundingBox())!;
+  const top = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("[role='dialog'], .maplibregl-ctrl")?.className, [credit.x + credit.width / 2, credit.y + credit.height / 2]);
+  expect(top).toContain("sheet");
+});
+
+test("a sheet keeps its height when a second drag ends where it started", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  const height = async () => (await menu.boundingBox())!.height;
+  const tall = await height();
+  await dragTitle(page, /Menu/, 120);
+  await expect.poll(height).toBeLessThan(tall - 100);
+  const kept = await height();
+  const b = (await menu.locator("header h2").boundingBox())!;
+  await page.mouse.move(b.x + 10, b.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 10, b.y + 40);
+  await page.mouse.move(b.x + 10, b.y + 10);
+  await page.mouse.up();
+  expect(Math.abs((await height()) - kept)).toBeLessThan(2);
+});
+
+test("a short sheet stays open after a tiny or upward drag", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
+  const sheet = page.getByRole("dialog", { name: /History/ });
+  expect((await sheet.boundingBox())!.height).toBeLessThan(page.viewportSize()!.height * 0.3);
+  await dragTitle(page, /History/, 3);
+  await expect(sheet).toBeVisible();
+  await dragTitle(page, /History/, -40);
+  await expect(sheet).toBeVisible();
+  await dragTitle(page, /History/, 40);
+  await expect(sheet).toBeHidden();
 });

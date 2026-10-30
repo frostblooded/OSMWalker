@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { loadData, whenIdle } from "./app/data";
 import { App } from "./ui/App";
+import { HELP_URL } from "./ui/HelpSheet";
 // Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
 import "@fontsource/fredoka/latin-600.css";
 import "@fontsource/nunito/latin-700.css";
@@ -32,11 +33,17 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       const send = (urls: string[]) => urls.length && reg.active?.postMessage({ cache: urls });
       send([new URL("./", location.href).href, ...missed(performance.getEntriesByType("resource"))]);
       new PerformanceObserver((list) => send(missed(list.getEntries()))).observe({ type: "resource" });
-      // The code that loads only when needed (Help, a reopen's dilemma, the Collection) is fetched now
+      // The code that loads only when needed (Help, a reopen's dilemma and its away sheet, the Stats sheet, the Collection, the Care package sheet, the map icons and the made-up places) is fetched now
       // too, so the worker keeps it for offline play after every deploy.
       void import("./ui/help").catch(() => undefined);
+      void fetch(HELP_URL).catch(() => undefined);
       void import("./core/dilemmas").catch(() => undefined);
       void import("./ui/CollectionSheet").catch(() => undefined);
+      void import("./ui/AwaySheet").catch(() => undefined);
+      void import("./ui/StatsSheet").catch(() => undefined);
+      void import("./ui/CareSheet").catch(() => undefined);
+      void import("./map/icons").catch(() => undefined);
+      void import("./core/poiGen").catch(() => undefined);
     });
   };
   const later = () => whenIdle(register);

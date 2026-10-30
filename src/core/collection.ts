@@ -7,6 +7,7 @@ import { dayOf } from "./gifts";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
+import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
 
 export const TABS = [
@@ -29,6 +30,34 @@ export type CSet = { id: string; tab: Tab; icon: string; title: string; entries:
 /** A feat: a count with Bronze, Silver and Gold thresholds; Gold gives `title`. `what` words a number of it ("{n} countries visited"). */
 export type Feat = { id: string; icon: string; name: string; what: string; tiers: [number, number, number]; title: string; count: (s: Stats) => number };
 
+/** Every base, with the kind of shop that sells it. */
+export const BASES: (Items.Base & { kind: Items.Kind })[] = (Object.entries(Items.KINDS) as [Items.Kind, Items.Base[]][]).flatMap(([kind, list]) => list.map((b) => ({ ...b, kind })));
+/** Every material word: metals, then cloths. */
+export const MATERIAL_NAMES = [...Items.MATERIALS.map((m) => m.metal), ...Items.MATERIALS.map((m) => m.cloth)];
+
+/** The base and material an item is made of, read from its name (items don't store them). */
+export function partsOf(item: Pick<Items.Item, "name" | "slot">): { base?: string; mat?: string } {
+  let best: { base?: string; mat?: string } = {};
+  for (const b of BASES) {
+    if (b.slot !== item.slot || (best.base && best.base.length >= b.base.length)) continue;
+    const mat = Items.MATERIALS.map((m) => (b.cloth ? m.cloth : m.metal)).find((w) => item.name.includes(`${w} ${b.base}`));
+    if (mat) best = { base: b.base, mat };
+  }
+  return best;
+}
+
+/** Item bases ("b:Sword") and materials ("m:Bronze") he has owned: the ones noted so far and what he has now. */
+export function ownedIds(s: Stats): Set<string> {
+  const ids = new Set(s.keepsakes.owned);
+  for (const item of [...Object.values(s.gear), ...s.bag]) {
+    if (!item) continue;
+    const { base, mat } = partsOf(item);
+    if (base) ids.add(`b:${base}`);
+    if (mat) ids.add(`m:${mat}`);
+  }
+  return ids;
+}
+
 export const TIER_NAMES = ["", "Bronze", "Silver", "Gold"] as const;
 export const MEDALS = ["", "🥉", "🥈", "🥇"] as const;
 
@@ -44,9 +73,24 @@ const seenCities = (s: Stats) => s.keepsakes.seen.filter((x) => x.includes(":"))
 /** Country names by code, from the city card pool. */
 const countryNames = (s: Stats) => new Map([...(s.cityPool?.byCountry ?? [])].map(([code, cards]) => [code, cards[0]?.country ?? code]));
 const shiny = (s: Stats) => [...s.keepsakes.cards.values(), ...s.keepsakes.cityCards.values()].filter((c) => c.finish).length;
-const GEAR = Items.BASES.filter((b) => b.slot !== "vehicle");
-const VEHICLES = Items.BASES.filter((b) => b.slot === "vehicle");
-const ownedOf = (s: Stats, bases: Items.Base[]) => bases.filter((b) => s.keepsakes.owned.includes(`b:${b.base}`)).length;
+const GEAR = BASES.filter((b) => b.slot !== "vehicle");
+const VEHICLES = BASES.filter((b) => b.slot === "vehicle");
+const ownedOf = (s: Stats, bases: Items.Base[]) => {
+  const ids = ownedIds(s);
+  return bases.filter((b) => ids.has(`b:${b.base}`)).length;
+};
+/** Each crawl's place kinds in words, for its hint and Help. */
+export const CRAWL_KINDS: Record<string, string> = {
+  coffee: "cafes or coffee shops",
+  pub: "bars, pubs, clubs or beer gardens",
+  sweet: "ice cream parlours, bakeries or sweet shops",
+  parks: "parks or gardens",
+  shops: "shops or clothing stores",
+  museums: "museums",
+  pilgrim: "places of worship",
+  culture: "museums, galleries or theatres",
+  sights: "landmarks",
+};
 /** Where each kind of item is sold, for hints (the place kinds with its "item" in data/actions.json). */
 const SOLD_AT: Record<Items.Kind, string> = {
   weapons: "weapon, knife and hunting shops",
@@ -116,6 +160,17 @@ export const SETS: CSet[] = [
     },
   },
   {
+    id: "odd",
+    tab: "places",
+    icon: "🔮",
+    title: "Odd places",
+    entries: (s) =>
+      ODD_KINDS.map((kind) => {
+        const got = s.keepsakes.odd.includes(kind);
+        return { id: kind, icon: kind === TOWER_KIND ? "🔮" : "📜", name: K.kindLabel(kind), got, info: got ? "Made up by the game" : kind === TOWER_KIND ? "Rises at a grand landmark of a big city" : "Made up by the game in some cities" };
+      }),
+  },
+  {
     id: "crawls",
     tab: "places",
     icon: "🏁",
@@ -128,7 +183,7 @@ export const SETS: CSet[] = [
         const stale = (c.per === "day" && k.day !== dayOf(s.now() * 1000)) || (c.per === "city" && k.city !== s.where.city);
         const got = stale ? 0 : (k.progress[c.id]?.length ?? 0);
         const per = c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all";
-        return { id: c.id, icon: c.icon, name: c.name, got: done, info: done ? `Done · ${K.perkText(c.perk)} at each one` : `${c.need} different ${c.about} ${per}: ${got} / ${c.need}` };
+        return { id: c.id, icon: c.icon, name: c.name, got: done, info: done ? `Done · ${K.perkText(c.perk)} at each one` : `${c.need} different ${CRAWL_KINDS[c.id] ?? c.kinds.join(", ")} ${per}: ${got} / ${c.need}` };
       }),
   },
   {
@@ -170,25 +225,33 @@ export const SETS: CSet[] = [
     tab: "gear",
     icon: "🎒",
     title: "Item bases",
-    entries: (s) => GEAR.map((b) => ({ id: b.base, icon: SLOT_ICON[b.slot], name: b.base, got: s.keepsakes.owned.includes(`b:${b.base}`), info: `Sold at ${SOLD_AT[b.kind]}`, group: cap(words(b.kind)) })),
+    entries: (s) => {
+      const ids = ownedIds(s);
+      return GEAR.map((b) => ({ id: b.base, icon: SLOT_ICON[b.slot], name: b.base, got: ids.has(`b:${b.base}`), info: `Sold at ${SOLD_AT[b.kind]}`, group: cap(words(b.kind)) }));
+    },
   },
   {
     id: "materials",
     tab: "gear",
     icon: "⛏",
     title: "Materials",
-    entries: (s) =>
-      Items.MATERIALS.flatMap((m) => [
-        { id: m.metal, icon: "⛏", name: m.metal, got: s.keepsakes.owned.includes(`m:${m.metal}`), info: `Metal, from level ${m.level}` },
-        { id: m.cloth, icon: "🧵", name: m.cloth, got: s.keepsakes.owned.includes(`m:${m.cloth}`), info: `Cloth, from level ${m.level}` },
-      ]),
+    entries: (s) => {
+      const ids = ownedIds(s);
+      return Items.MATERIALS.flatMap((m) => [
+        { id: m.metal, icon: "⛏", name: m.metal, got: ids.has(`m:${m.metal}`), info: `Metal, from level ${m.level}` },
+        { id: m.cloth, icon: "🧵", name: m.cloth, got: ids.has(`m:${m.cloth}`), info: `Cloth, from level ${m.level}` },
+      ]);
+    },
   },
   {
     id: "vehicles",
     tab: "gear",
     icon: "🚲",
     title: "Vehicles",
-    entries: (s) => VEHICLES.map((b) => ({ id: b.base, icon: VEHICLE_ICON[b.vehicle ?? ""] ?? "🚲", name: b.base, got: s.keepsakes.owned.includes(`b:${b.base}`), info: `Sold at ${SOLD_AT[b.kind]}` })),
+    entries: (s) => {
+      const ids = ownedIds(s);
+      return VEHICLES.map((b) => ({ id: b.base, icon: VEHICLE_ICON[b.vehicle ?? ""] ?? "🚲", name: b.base, got: ids.has(`b:${b.base}`), info: `Sold at ${SOLD_AT[b.kind]}` }));
+    },
   },
 ];
 
@@ -203,9 +266,10 @@ export const FEATS: Feat[] = [
   { id: "shiny", icon: "🌈", name: "Shiny", what: "{n} Foil or Gold cards", tiers: [1, 5, 20], title: "Shiny Hunter", count: shiny },
   { id: "placedex", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
   { id: "souvenirs", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
+  { id: "odd", icon: "🔮", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "crawls", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", icon: "🎒", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
-  { id: "materials", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, Items.MATERIAL_NAMES.length], title: "Artisan", count: (s) => s.keepsakes.owned.filter((x) => x.startsWith("m:")).length },
+  { id: "materials", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },
   { id: "vehicles", icon: "🚗", name: "Garage", what: "{n} vehicles owned", tiers: [1, 3, VEHICLES.length], title: "Road King", count: (s) => ownedOf(s, VEHICLES) },
   { id: "treasured", icon: "💎", name: "Keepsakes", what: "{n} treasured items he has", tiers: [1, 3, 6], title: "Storyteller", count: (s) => [...Object.values(s.gear), ...s.bag].filter((i) => i && Items.isTreasured(i)).length },
 ];
@@ -222,6 +286,7 @@ export const tierHeld = (f: Feat, s: Stats) => Math.max(s.keepsakes.badges[f.id]
 /** Gives him the badges he has newly reached, with a feed line each; a new Gold one becomes his title. */
 export function award(s: Stats): string[] {
   const k = s.keepsakes;
+  k.owned = [...ownedIds(s)];
   const lines: string[] = [];
   for (const f of FEATS) {
     const n = f.count(s);

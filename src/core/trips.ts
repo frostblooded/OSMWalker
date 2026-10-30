@@ -5,9 +5,9 @@
 // station, by plane from an airport, or in his own car after filling up at a
 // gas station, and pays for the ride.
 import { isBusStation, isGasStation } from "./cityCheck";
-import { bboxAround, distanceM, type BBox } from "./geo";
+import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
-import type { Rng } from "./rng";
+import { Rng, seedOf, slug } from "./rng";
 import { BUS, CAR_ROAD, PLANE } from "./speeds";
 import type { Place } from "./stats";
 
@@ -37,6 +37,11 @@ export const SAME_CITY_M = 20_000;
 /** Destinations in a new city are picked within this radius, scaled by population. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
+
+/** Cities this big with no airport in reach get one of their own. */
+export const AIRPORT_POP = 500_000;
+/** A made airport is this far from the centre, like most real ones. */
+const AIRPORT_OUT_M: [number, number] = [8_000, 15_000];
 
 export type Kind = "stay" | "city" | "country";
 export type Mode = "bus" | "plane" | "car";
@@ -128,9 +133,9 @@ export class Trips {
     readonly airports: Airport[] = [],
   ) {}
 
-  /** The airport nearest to the point within reach, or null. */
+  /** The airport nearest to the point within reach, else a big city's made-up one, or null. */
   nearestAirport(lat: number, lon: number, reach = AIRPORT_REACH_M): Airport | null {
-    return nearest(this.airports, lat, lon, reach);
+    return nearest(this.airports, lat, lon, reach) ?? madeAirport(this.cities, lat, lon, reach);
   }
 
   /**
@@ -165,6 +170,11 @@ export class Trips {
     return { error: `no ${hasCar ? "gas station" : "bus station"} or airport within reach` };
   }
 
+  /** The listed city nearest to the point within `reach`, or null. */
+  cityNear(lat: number, lon: number, reach = SAME_CITY_M): City | null {
+    return nearest(this.cities, lat, lon, reach);
+  }
+
   /** Country code of the listed city nearest to the point. */
   countryAt(lat: number, lon: number): string {
     return nearest(this.cities, lat, lon)?.code ?? "";
@@ -190,3 +200,12 @@ export class Trips {
 }
 
 export const isPlan = (p: Plan | NoPlan): p is Plan => !("error" in p);
+
+/** An airport for a big city near [lat, lon] that has none of its own in reach, or null; the same city always gets the same one. */
+export function madeAirport(cities: City[], lat: number, lon: number, reach = AIRPORT_REACH_M): Airport | null {
+  const best = nearest(cities.filter((c) => c.pop >= AIRPORT_POP), lat, lon, reach);
+  if (!best) return null;
+  const rng = new Rng(seedOf(`${slug(best.name)}:airport`));
+  const [alat, alon] = moved(best.lat, best.lon, rng.polar(AIRPORT_OUT_M));
+  return { name: `${best.name} Airport`, class: "aerodrome", subclass: "airport", iata: "", code: best.code, rank: 1, lat: alat, lon: alon, id: `${slug(best.name)}:airport:0`, made: true };
+}

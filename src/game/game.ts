@@ -5,7 +5,8 @@
 // bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. No DOM here: the
 // app calls step() and the screens read the state.
-import { Activities, choose, needWeight, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, exploreWeight, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
+import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
@@ -17,8 +18,12 @@ import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
+import { placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
+import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
+import type { Forecast } from "../core/forecast";
+import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
@@ -44,8 +49,10 @@ export const CATCHUP_WAIT_MS = 3000;
 export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
+/** Cities whose made-up places the save keeps; the oldest is dropped first. */
+export const MADE_CITIES = 20;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -98,6 +105,8 @@ export class Game {
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
+  /** Made-up places by city (core/poiGen.ts), saved so a city keeps its own. */
+  made: Record<string, Place[]> = {};
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
   /** True once the first wake has run, so screens know whether an away card is coming. */
@@ -108,9 +117,8 @@ export class Game {
   dilemma: Dilemma | null = null;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
-  /** The Collection's badge rules, loaded once he is awake so they stay out of startup JS and off the reopen. */
-  private collection: typeof import("../core/collection") | null = null;
-  private collectionLoading = false;
+  /** The Collection's badge rules, loaded once he is awake so they stay out of startup JS and off the reopen; null if they failed. */
+  private collection: Promise<typeof import("../core/collection") | null> | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -125,6 +133,10 @@ export class Game {
   private factsOf = "";
   private noPlacesWarned = "";
   private severeOf = "";
+  private madeOf = "";
+  private madeIn: StreetGraph | null = null;
+  private madePending = false;
+  private madeFailed = "";
   private severeLogged = new Set<string>();
   private readonly rng: Rng;
   /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
@@ -218,7 +230,8 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
-    w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats);
+    w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
+    w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
       arrived: (p) => this.onArrived(p),
@@ -280,7 +293,7 @@ export class Game {
       return;
     }
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
-    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng);
+    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
     this.changed();
   }
@@ -370,6 +383,8 @@ export class Game {
 
   /** Each pick goes in the debug log with the trip roll that came before it. */
   private onPicked(info: PickInfo): void {
+    const line = needLine(info.need as NeedKey | undefined ?? "", (info.need_w as number) ?? 1, info.urgent === true, String(info.place ?? ""), this.stats.cents);
+    if (line) this.stats.say(line);
     const e: Entry = { ...this.journey.takeLog(), ...info };
     if (this.forced) e.forced = this.forced;
     this.debugLog.add(e);
@@ -412,10 +427,13 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the forecasts and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
+    this.stats.jokes = this.deps.data.jokes ?? {};
+    this.stats.forecasts = this.deps.data.forecasts ?? [];
+    this.stats.letters = this.deps.data.letters ?? null;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -451,24 +469,11 @@ export class Game {
     const w = this.walker;
     if (!w) return;
     if (this.waking) return;
-    this.awardBadges();
+    // Badges he has reached (see core/collection.ts); the next save keeps them.
+    void this.collection?.then((m) => m?.award(this.stats));
     this.savedAt = this.now();
-    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt });
+    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt, made: this.made });
     if (err) this.problems.error(err);
-  }
-
-  /** Gives him the badges he has reached (see core/collection.ts), once their rules have loaded. */
-  private awardBadges(): void {
-    this.collection?.award(this.stats);
-  }
-
-  private loadCollection(): void {
-    if (this.collection || this.collectionLoading) return;
-    this.collectionLoading = true;
-    void import("../core/collection").then(
-      (m) => (this.collection = m),
-      () => (this.collectionLoading = false),
-    );
   }
 
   /** Picks up the saved game, if any. */
@@ -491,6 +496,7 @@ export class Game {
     this.placeStats();
     this.skipRoll = d.skipRoll;
     this.savedAt = d.savedAt;
+    this.made = d.made;
     void this.learnCity(d.origin[0], d.origin[1]);
     this.changed();
     return true;
@@ -523,6 +529,7 @@ export class Game {
       const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
+      this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
       this.dilemma =
         D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
@@ -540,7 +547,7 @@ export class Game {
   /** The first wake has decided whether there is an away card (or never will: no map, so no loop), so a postcard from a link may show. */
   woken(): void {
     this.woke = true;
-    this.loadCollection();
+    this.collection ??= import("../core/collection").catch(() => (this.collection = null));
     this.changed();
   }
 
@@ -652,6 +659,28 @@ export class Game {
     w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
   }
 
+  /** You whisper `word`: he follows it for a while by his trust in you, or shrugs it off. Rolls on the card dice, so his walk stays the same. */
+  whisper(word: Whisper): void {
+    const heeded = this.stats.bond.whisper(word, dayOf(this.now()), this.cardRng);
+    if (heeded === null) return;
+    this.stats.say(whisperLine(word, heeded));
+    this.save();
+    this.changed();
+  }
+
+  /** His latest line about something he did: not a whisper you sent or a letter to you. */
+  lastDeed(): { text: string; t: number } | null {
+    return this.stats.history.entries.findLast((e) => !isNote(e.text)) ?? null;
+  }
+
+  /** You praise (+1) or scold (-1) his latest deed, which leans him kind or rascal. */
+  judge(sign: 1 | -1): void {
+    const last = this.lastDeed();
+    if (!last || !this.stats.bond.judge(sign, last.t)) return;
+    this.save();
+    this.changed();
+  }
+
   /** Sends him a care package; he opens it at his next stop. */
   sendGift(id: string): void {
     if (!this.stats.care.send(id)) return;
@@ -758,6 +787,7 @@ export class Game {
       this.citySummary = null;
     }
     if (!this.areaLoaded() || !w.bounds) return;
+    if (!this.placesMade(w, w.bounds)) return;
     const sm = CityCheck.summary(w.graph.placesIn(w.bounds), this.activities, this.country);
     this.citySummary = sm;
     this.severeNow = CityCheck.problems(sm, this.city);
@@ -769,6 +799,70 @@ export class Game {
         `Loaded in the city box: ${sm.bus} bus stations, ${sm.airport} airports, ${sm.gas} gas stations, ${sm.dealer} car dealers, ${sm.earn} places that pay.`,
       ]);
     }
+  }
+
+  /**
+   * True once the city's made-up places are on the map, or they can't be made
+   * now. Until then (once per city, when the streets around him are loaded)
+   * it starts putting them there, so the city check doesn't run before them.
+   */
+  private placesMade(w: Walker, bounds: BBox): boolean {
+    if (this.madeOf === this.city && this.madeIn === w.graph) return true;
+    // Browsers remember a chunk that failed to load, so trying again before a reload is no use: the check runs without them.
+    if (this.madeFailed === this.city) return true;
+    if (!this.madePending) {
+      this.madePending = true;
+      void this.makePlaces(w, bounds).finally(() => (this.madePending = false));
+    }
+    return false;
+  }
+
+  /**
+   * Puts the city's made-up places on the map: made now (from what the real
+   * ones lack) or the ones it got before. The maker (core/poiGen.ts) loads as
+   * its own chunk, off the startup path; if it can't load (offline before it
+   * was cached) the city goes without them until the game is opened again.
+   */
+  private async makePlaces(w: Walker, bounds: BBox): Promise<void> {
+    const city = this.city;
+    let list = this.made[city];
+    if (!list) {
+      w.graph.made = [];
+      let Gen: typeof import("../core/poiGen");
+      try {
+        Gen = await import("../core/poiGen");
+      } catch {
+        this.madeFailed = city;
+        return;
+      }
+      if (this.city !== city || this.walker !== w) return;
+      const real = w.graph.placesIn(bounds);
+      const missing = CityCheck.missing(CityCheck.summary(real, this.activities, this.country));
+      const near = this.trips.cityNear(this.origin[0], this.origin[1]);
+      const snap = (lat: number, lon: number): LatLon | null => {
+        const id = w.graph.nearestNode(lat, lon);
+        return id === null ? null : w.graph.nodes.get(id)!;
+      };
+      list = Gen.generate({ name: city, center: this.origin, pop: near?.pop ?? 0 }, real, missing, snap);
+    }
+    // The city he was in last goes to the end, so the save drops the one he has been away from longest.
+    delete this.made[city];
+    const keys = Object.keys(this.made);
+    if (keys.length >= MADE_CITIES) delete this.made[keys[0]!];
+    this.made[city] = list;
+    w.graph.made = list;
+    this.madeOf = city;
+    this.madeIn = w.graph;
+    this.changed();
+  }
+
+  /** The game icons around him (core/mapIcons.ts): made-up places and travel hubs, none on a ride. */
+  placeIcons(): MapIcon[] {
+    const w = this.walker;
+    if (!w?.bounds || w.isTraveling()) return [];
+    const here = w.position();
+    const air = this.trips.nearestAirport(here[0], here[1]);
+    return placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here);
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

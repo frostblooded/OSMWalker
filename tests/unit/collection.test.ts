@@ -53,35 +53,47 @@ describe("the registry", () => {
   it("lists every country of the city list and every item base", () => {
     expect(set("countries").entries(stats)).toHaveLength(pool.byCountry.size);
     const bases = [...set("gear").entries(stats), ...set("vehicles").entries(stats)].map((e) => e.id);
-    expect(bases.sort()).toEqual(Items.BASES.map((b) => b.base).sort());
-    expect(set("materials").entries(stats)).toHaveLength(Items.MATERIAL_NAMES.length);
+    expect(bases.sort()).toEqual(C.BASES.map((b) => b.base).sort());
+    expect(set("materials").entries(stats)).toHaveLength(C.MATERIAL_NAMES.length);
   });
 });
 
 describe("items he has owned", () => {
   it("reads the base and material back from any item's name", () => {
-    expect(new Set(Items.BASES.map((b) => b.base)).size).toBe(Items.BASES.length);
+    expect(new Set(C.BASES.map((b) => b.base)).size).toBe(C.BASES.length);
     const rng = new Rng(7);
     for (const kind of Object.keys(Items.KINDS) as Items.Kind[])
       for (let i = 0; i < 200; i++) {
         const item = Items.make(kind, 30, rng, 50);
-        const { base, mat } = Items.partsOf(item);
+        const { base, mat } = C.partsOf(item);
         expect(item.name, item.name).toContain(`${mat} ${base}`);
         expect(Items.KINDS[kind].some((b) => b.base === base), item.name).toBe(true);
       }
-    expect(Items.partsOf({ name: "Lucky Copper Lucky Charm of Fortune", slot: "trinket" })).toEqual({ base: "Lucky Charm", mat: "Copper" });
-    expect(Items.partsOf({ name: "Wooden Racing Bike", slot: "vehicle" })).toEqual({ base: "Racing Bike", mat: "Wooden" });
+    expect(C.partsOf({ name: "Lucky Copper Lucky Charm of Fortune", slot: "trinket" })).toEqual({ base: "Lucky Charm", mat: "Copper" });
+    expect(C.partsOf({ name: "Wooden Racing Bike", slot: "vehicle" })).toEqual({ base: "Racing Bike", mat: "Wooden" });
   });
 
-  it("counts what he equips, keeps it in the save, and counts old saves' gear", () => {
+  it("counts what he has, and keeps what he had once a save notes it", () => {
     const sword = Items.build(Items.KINDS.weapons[0]!, Items.MATERIALS[2]!, []);
     stats.equip(sword);
     expect(set("gear").entries(stats).find((e) => e.id === "Sword")!.got).toBe(true);
     expect(set("materials").entries(stats).find((e) => e.id === "Bronze")!.got).toBe(true);
-    expect(roundTrip(stats).keepsakes.owned).toEqual(["b:Sword", "m:Bronze"]);
-    const old = JSON.parse(JSON.stringify(stats));
-    delete old.keepsakes.owned;
-    expect(Stats.fromJSON(old).keepsakes.owned).toEqual(["b:Sword", "m:Bronze"]);
+    C.award(stats);
+    stats.gear = {};
+    const back = roundTrip(stats);
+    expect(back.keepsakes.owned).toEqual(["b:Sword", "m:Bronze"]);
+    expect(set("gear").entries(back).find((e) => e.id === "Sword")!.got).toBe(true);
+  });
+});
+
+describe("odd places", () => {
+  it("notes the first of each made-up odd kind, but not must-haves", () => {
+    const at = { rank: 1, lat: 0, lon: 0, made: true };
+    stats.collect({ ...at, name: "Wizard's tower at X", class: "wizard_tower", subclass: "wizard_tower", tower: true }, new Rng(1));
+    stats.collect({ ...at, name: "Sofia inn", class: "lodging", subclass: "guest_house", must: true }, new Rng(1));
+    expect(roundTrip(stats).keepsakes.odd).toEqual(["wizard_tower"]);
+    expect(set("odd").entries(stats).filter((e) => e.got).map((e) => e.name)).toEqual(["Wizard tower"]);
+    expect(stats.keepsakes.dex.size).toBe(0);
   });
 });
 

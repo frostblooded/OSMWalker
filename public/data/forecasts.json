@@ -1,0 +1,92 @@
+[
+ {
+  "id": "bakery",
+  "icon": "🥐",
+  "text": "Bakeries feel {n} as good today",
+  "effect": "mood",
+  "kind": "bakery",
+  "mult": 2
+ },
+ {
+  "id": "cafe",
+  "icon": "☕",
+  "text": "Cafés feel {n} as good today",
+  "effect": "mood",
+  "kind": "cafe",
+  "mult": 2
+ },
+ {
+  "id": "park",
+  "icon": "🌳",
+  "text": "Parks feel {n} as good today",
+  "effect": "mood",
+  "kind": "park",
+  "mult": 2
+ },
+ {
+  "id": "museum",
+  "icon": "🏛",
+  "text": "Museums feel {n} as good today",
+  "effect": "mood",
+  "kind": "museum",
+  "mult": 2
+ },
+ {
+  "id": "ice_cream",
+  "icon": "🍦",
+  "text": "Ice cream tastes {n} as good today",
+  "effect": "mood",
+  "kind": "ice_cream",
+  "mult": 2
+ },
+ {
+  "id": "fares",
+  "icon": "🎫",
+  "text": "Fares are {n} off today",
+  "effect": "fare",
+  "mult": 0.8
+ },
+ {
+  "id": "find",
+  "icon": "🪙",
+  "text": "Pockets are leaky today: {n} the money on the street",
+  "effect": "find",
+  "mult": 2
+ },
+ {
+  "id": "sell",
+  "icon": "💶",
+  "text": "Dealers are generous today: things sell for {n} more",
+  "effect": "sell",
+  "mult": 1.25
+ },
+ {
+  "id": "effort",
+  "icon": "🍃",
+  "text": "A tailwind everywhere: walking tires him {n} less",
+  "effect": "effort",
+  "mult": 0.75
+ },
+ {
+  "id": "visit",
+  "icon": "🧭",
+  "text": "New places give {n} more XP today",
+  "effect": "visit",
+  "mult": 1.5
+ },
+ {
+  "id": "wage",
+  "icon": "💼",
+  "text": "Bosses are in a good mood: work pays {n} more",
+  "effect": "wage",
+  "mult": 1.1
+ },
+ {
+  "id": "dragon",
+  "icon": "🐉",
+  "text": "A dragon was seen over the river; parks feel {n} as good",
+  "effect": "mood",
+  "kind": "park",
+  "mult": 2
+ }
+]

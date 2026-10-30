@@ -1,26 +1,25 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for, the
-// day's stops), zoom on the right edge and the main buttons in a bar at the
-// bottom, in reach of the thumb.
-import type { ComponentChildren } from "preact";
+// is, where he goes, a guess about his next trip, what he waits for), zoom on
+// the right edge and the main buttons in a bar at the bottom, in reach of the
+// thumb.
+import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
-import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
+import { hud, sound, type Goal, type Hud } from "../game/hud";
+import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
-import { AwaySheet } from "./AwaySheet";
-import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
-import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
-import { StatsSheet } from "./StatsSheet";
+import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -93,11 +92,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
 
-  // History shows his trail and numbered markers, fitted above the sheet; closing it follows him again.
-  useEffect(() => {
+  // History shows his trail and numbered markers, fitted above the sheet (again when it is dragged); closing it follows him again.
+  const fitHistory = () => {
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  }, [sheet]);
+  };
+  useEffect(fitHistory, [sheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -127,12 +127,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
           {s.care.guess && h.goal?.kind === "going" && h.goal.departing && <GuessRow guess={s.care.guess} onPick={(c) => game.pickGuess(c)} />}
+          <ForecastLine f={s.forecast()} />
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
-          <DayRibbon day={ribbon(game, biasMin())} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
           {game.severeNow.length > 0 && (
@@ -213,23 +213,39 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
       {sheet === "history" && (
-        <SheetBox title="📜 History" onClose={close}>
+        <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
           <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
         </SheetBox>
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          <StatsSheet stats={game.stats} />
+          <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
+            {(m) => <m.StatsSheet stats={game.stats} />}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          <LazyCollection stats={game.stats} />
+          <Lazy load={() => import("./CollectionSheet")} what="the Collection">
+            {(m) => <m.CollectionSheet stats={game.stats} />}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+          <Lazy load={() => import("./CareSheet")} what="the Care package sheet">
+            {(m) => (
+              <m.CareSheet
+                care={s.care}
+                bond={s.bond}
+                last={game.lastDeed()}
+                now={game.now()}
+                onSend={(id) => game.sendGift(id)}
+                onWhisper={(w) => game.whisper(w)}
+                onJudge={(sign) => game.judge(sign)}
+              />
+            )}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "postcard" && (
@@ -262,26 +278,27 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
+          <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
+            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />}
+          </Lazy>
         </SheetBox>
       )}
     </div>
   );
 }
 
-type CollectionModule = typeof import("./CollectionSheet");
-/** The Collection sheet, loaded the first time it opens to keep it out of startup JS. */
-function LazyCollection({ stats }: { stats: Game["stats"] }) {
-  const [mod, setMod] = useState<CollectionModule | null>(null);
+/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats, the Collection, the Care package sheet, the away sheet). */
+function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
+  const [mod, setMod] = useState<M | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    void import("./CollectionSheet").then(
+    void load().then(
       (m) => setMod(() => m),
       () => setFailed(true),
     );
   }, []);
-  if (failed) return <p class="tone-error">Couldn't load the Collection. Check your connection and try again.</p>;
-  return mod ? <mod.CollectionSheet stats={stats} /> : <p class="dim">Loading…</p>;
+  if (failed) return <p class="tone-error">Couldn't load {what}. Check your connection and try again.</p>;
+  return mod ? children(mod) : <p class="dim">Loading…</p>;
 }
 
 const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
@@ -348,16 +365,11 @@ function Waiting({ hud: h }: { hud: Hud }) {
   return null;
 }
 
-/** Today's stops as small icons, newest on the right. */
-function DayRibbon({ day }: { day: { icons: string[]; more: number } }) {
-  if (!day.icons.length) return null;
+/** Today's forecast, one dim line (see core/forecast.ts). */
+function ForecastLine({ f }: { f: Forecast }) {
   return (
-    <div class="ribbon" role="img" aria-label={`Today: ${day.icons.length + day.more} stops`}>
-      <span class="dim">Today</span>
-      {day.more > 0 && <span class="dim">+{day.more}</span>}
-      {day.icons.map((icon, i) => (
-        <span key={i}>{icon}</span>
-      ))}
+    <div class="dim small forecast" title="Today's forecast">
+      {f.icon} {words(f)}
     </div>
   );
 }
@@ -373,15 +385,67 @@ function MiniBar({ icon, share, color }: { icon: string; share: number; color: s
   );
 }
 
-export function SheetBox({ title, onClose, onBack, full, children }: { title: string; onClose: () => void; onBack?: () => void; full?: boolean; children: ComponentChildren }) {
+/**
+ * A sheet over the map. Dragging its title bar resizes it: it stays at the
+ * height where the finger lets go, up to its tallest, and closes when let go
+ * below CLOSE_AT of the screen (src/ui/snap.ts).
+ */
+export function SheetBox({ title, onClose, onBack, onResize, full, children }: { title: string; onClose: () => void; onBack?: () => void; onResize?: () => void; full?: boolean; children: ComponentChildren }) {
+  // The height as a share of the screen once dragged; null is the sheet's own height.
+  const [share, setShare] = useState<number | null>(null);
+  // Counts releases, so History refits even when a drag ends at the same height.
+  const [drops, setDrops] = useState(0);
+  const box = useRef<HTMLElement>(null);
+  const drag = useRef<{ y: number; h: number; dy: number } | null>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
     return () => removeEventListener("keydown", esc);
   }, [onClose]);
+  useEffect(() => {
+    if (drops) onResize?.();
+  }, [drops]);
+  const down = (e: PointerEvent) => {
+    if (!box.current || (e.target as Element).closest("button")) return;
+    drag.current = { y: e.clientY, h: box.current.offsetHeight, dy: 0 };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+  // The height follows the finger without a re-render; it is kept once, on release.
+  const move = (e: PointerEvent) => {
+    const d = drag.current;
+    if (!d || !box.current) return;
+    d.dy = e.clientY - d.y;
+    // A few px of jitter is a tap, not a drag.
+    if (Math.abs(d.dy) < 8 && !box.current.style.height) return;
+    const st = box.current.style;
+    st.height = `${Math.max(d.h - d.dy, 0)}px`;
+    st.maxHeight = "none";
+    st.top = "auto";
+  };
+  // A cancelled gesture (the system took the touch) puts the sheet back as it was.
+  const up = (e: PointerEvent) => {
+    const d = drag.current;
+    const el = box.current;
+    drag.current = null;
+    if (!d || !el?.style.height) return;
+    const next = e.type === "pointercancel" ? (share ?? "keep") : settle(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, !!full);
+    // Only a drag down closes it; a short sheet dragged up stays as it was.
+    if (next === "close" && d.dy > 0) return onClose();
+    el.style.height = el.style.top = "";
+    if (next === "close" || next === "keep") {
+      el.style.maxHeight = share === null ? "" : `${share * 100}%`;
+      return;
+    }
+    // Written here as well as in the style prop: Preact won't rewrite a value it thinks is unchanged.
+    el.style.maxHeight = full && next >= 1 ? "" : `${next * 100}%`;
+    setShare(next);
+    setDrops(drops + 1);
+  };
+  const whole = full && (share === null || share >= 1);
+  const style = share !== null && !whole ? { maxHeight: `${share * 100}%` } : undefined;
   return (
-    <section class={`sheet${full ? " full" : ""}`} role="dialog" aria-label={title}>
-      <header>
+    <section class={`sheet${whole ? " full" : ""}`} style={style} role="dialog" aria-label={title} ref={box}>
+      <header onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {onBack && (
           <button class="btn" onClick={onBack} aria-label="Back">
             ‹ Back

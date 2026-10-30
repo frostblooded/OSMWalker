@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
 import { Walker } from "../../src/core/walker";
-import { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
+import { BAD_SAVE_KEY, DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
 
 class MemStorage {
   m = new Map<string, string>();
@@ -30,12 +31,14 @@ function walkerAt(lat: number, lon: number): Walker {
   return w;
 }
 
+const INN = { name: "Sofia inn", class: "lodging", subclass: "guest_house", rank: 1, lat: 42.7, lon: 23.3, id: "sofia:guest_house:0", made: true };
+
 function saved(): Saved {
   const stats = new Stats();
   stats.cents = 4321;
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000 };
+  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000, made: { "Sofia, Bulgaria": [INN] } };
 }
 
 describe("save file", () => {
@@ -55,13 +58,25 @@ describe("save file", () => {
     expect(back.walker.position()).toEqual([42.7, 23.3]);
     expect(back.stats.cents).toBe(4321);
     expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
+    expect(back.made).toEqual({ "Sofia, Bulgaria": [INN] });
+  });
+
+  it("loads saves from before made-up places, with none made yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.made_places;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).made).toEqual({});
   });
 
   it("keeps the stored format that older versions wrote", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log",
+      "made_places", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
   it("loads saves from before care packages with no clovers and nothing on its way", () => {
@@ -75,15 +90,25 @@ describe("save file", () => {
     expect(back.stats.cents).toBe(4321);
   });
 
-  it("loads saves from before the day ribbon and weekly recap with no stops and a fresh week", () => {
+  it("loads saves from the day ribbon's time and drops their stops", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.stops;
+    expect(d.stats.stops).toBeUndefined();
+    d.stats.stops = [{ k: "amenity/cafe", t: 100 }];
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    new SaveFile(kv).write(back);
+    expect(JSON.parse(kv.getItem(SAVE_KEY)!).stats.stops).toBeUndefined();
+  });
+
+  it("loads saves from before the weekly recap with a fresh week", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
     delete d.stats.week;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.stops).toEqual([]);
     expect(back.stats.week.tally.start).toBe(0);
     expect(back.stats.week.pending()).toBeNull();
   });
@@ -121,6 +146,19 @@ describe("save file", () => {
     expect((f.read() as Saved).savedAt).toBe(0);
   });
 
+  it("loads saves from before the bond, with starting trust and no lean", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.bond;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.bond.trust).toBe(TRUST_START);
+    expect(back.bond.leaning()).toBe("");
+    expect(back.bond.nudge).toBe("");
+  });
+
   it("loads saves from before keepsakes, with none collected yet", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -147,6 +185,24 @@ describe("save file", () => {
     d.walker.from = null;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect(f.read()).toBe("The saved game had no spot for him; starting over");
+  });
+
+  it("keeps a copy of a save it can't use, so starting over doesn't lose it", () => {
+    const kv = new MemStorage();
+    kv.setItem(SAVE_KEY, "{oops");
+    new SaveFile(kv).read();
+    expect(kv.getItem(BAD_SAVE_KEY)).toBe("{oops");
+  });
+
+  it("calls a save unreadable when repairing it fails, instead of throwing", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats = null;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect(f.read()).toBe("The saved game was unreadable; starting over");
+    expect(kv.getItem(BAD_SAVE_KEY)).toBe(JSON.stringify(d));
   });
 
   it("says when the device is full", () => {
