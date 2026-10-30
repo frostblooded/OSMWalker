@@ -20,6 +20,7 @@ import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
+import { Rival, type Contest } from "./rival";
 import { Storyteller } from "./storyteller";
 import * as Kit from "./travelKit";
 import type { Vehicle } from "./speeds";
@@ -173,6 +174,10 @@ export class Stats {
   records = new Records();
   /** Paces the incidents. */
   story = new Storyteller();
+  /** Viktor, his rival. */
+  rival = new Rival();
+  /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
+  contests: readonly Contest[] = [];
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -750,17 +755,20 @@ export class Stats {
 
   /**
    * Maybe an incident at a stop at `place` at `hour`, when the storyteller
-   * says so (Luck makes bad ones rarer). Returns its feed line, or "".
-   * Without a deck there is no roll, so the dice stay the same as without one.
+   * says so (Luck makes bad ones rarer), or else a meeting with his rival.
+   * Returns its feed line, or "". Without a deck the stories are off and
+   * nothing rolls, so the dice stay the same as without one.
    */
-  happen(place: Pick<Place, "name" | "class">, hour: number, rng: Rng): string {
+  happen(place: Pick<Place, "name" | "class" | "lat" | "lon">, hour: number, rng: Rng): string {
     if (!this.incidents.length) return "";
     const tone = this.story.roll(rng, riskMult(this.attr("luck")));
-    if (!tone) return "";
-    const card = Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
-    if (!card) return "";
-    this.story.after(card.id, tone);
-    return (this.incidentLine = Inc.play(card, this, place.name, rng));
+    const card = tone && Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
+    if (tone && card) {
+      this.story.after(card.id, tone);
+      return (this.incidentLine = Inc.play(card, this, place.name, rng));
+    }
+    const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
+    return met && (this.incidentLine = met);
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -807,7 +815,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
     };
   }
 
@@ -838,6 +846,8 @@ export class Stats {
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
+    // A save from before Viktor: he hasn't met him yet.
+    s.rival = Rival.fromJSON(d.rival);
     return s;
   }
 }

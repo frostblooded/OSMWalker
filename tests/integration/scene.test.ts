@@ -32,6 +32,7 @@ class FakeMap implements MapPort {
     this.looks++;
   }
   setGoal() {}
+  setRival() {}
   setTrip() {}
   showTrail(on: boolean) {
     this.calls.push(`trail:${on}`);
