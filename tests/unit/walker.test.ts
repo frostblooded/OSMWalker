@@ -3,7 +3,7 @@ import { distanceM, moved, offsetM } from "../../src/core/geo";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { rideS, type City, type Plan } from "../../src/core/trips";
+import { ROAD_FACTOR, rideS, type City, type Plan } from "../../src/core/trips";
 import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { plus, PLUS_BBOX } from "../support/osm";
@@ -409,6 +409,15 @@ describe("saves", () => {
     const back = roundTrip(walker);
     expect(back.isResting()).toBe(true);
     expect(back.restM).toBeCloseTo(REST_M - 50, 3);
+  });
+
+  it("measure a ride from a save without road_m by the straight line", () => {
+    walker.startAt(n(3));
+    walker.startTravel(TRIP, "train");
+    const d = JSON.parse(JSON.stringify(walker));
+    delete d.travel.road_m;
+    const t = Walker.fromJSON(d).travel!;
+    expect(t.road_m).toBeCloseTo(distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, 3);
   });
 
   it("cut an over-long rest to a minute", () => {

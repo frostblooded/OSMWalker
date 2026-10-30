@@ -27,7 +27,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - he does one action there and stays {STAY_MIN} minute (see What he does at places),
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he takes on quests and joins world events as usual (see Quests),
-- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again while you watch.
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle, on his bike to a near town, hitchhiking when broke (see Other ways to travel), or on a long walk (see Long walks).
 
