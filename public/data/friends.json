@@ -1,0 +1,12 @@
+{
+  "names": ["Ana", "Ben", "Chiara", "Dario", "Elif", "Femi", "Greta", "Hugo", "Ines", "Jonas", "Kaja", "Luca", "Mira", "Nikos", "Olga", "Pavel", "Rosa", "Sami", "Tereza", "Uma", "Vera", "Wim", "Yara", "Zeno", "Aiko", "Bruno", "Dana", "Emil", "Lena", "Omar"],
+  "icons": ["🧑", "👩", "👨", "🧔", "👱", "👩‍🦱", "👨‍🦰", "🧑‍🦳", "👵", "👴"],
+  "companions": [
+    { "who": "student", "icon": "🎓", "lines": ["Exams are next week. I'm not thinking about it.", "Do you know a cheap place to eat?", "My mum thinks I'm in the library."] },
+    { "who": "retired sailor", "icon": "⚓", "lines": ["This is nothing. In '78 we had waves like houses.", "Every harbour smells different, you know.", "I still wake up at four."] },
+    { "who": "backpacker", "icon": "🎒", "lines": ["I've been on the road eight months.", "Have you tried hostels with a rooftop?", "My shoes are held together by tape."] },
+    { "who": "grandmother on a visit", "icon": "👵", "lines": ["You're too thin. Have a biscuit.", "My grandson works here, very important job.", "In my day the trams were green."] },
+    { "who": "busker with a guitar", "icon": "🎸", "lines": ["This corner is good on Saturdays.", "Want to hear the one about the sea?", "Three chords is all you need."] },
+    { "who": "travelling salesman", "icon": "💼", "lines": ["Vacuum cleaners. Best in the business.", "Fourth city this week.", "Never trust a hotel breakfast."] }
+  ]
+}

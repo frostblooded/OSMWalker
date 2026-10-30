@@ -77,6 +77,22 @@ test("Viktor shows beside him after a meeting, and his card on the Stats sheet k
   await expect(sheet).toContainText("Plovdiv");
 });
 
+test("his friends and partner show on the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("No one yet");
+  await reopenWith(
+    page,
+    `d.stats.friends = { list: [{ id: "a", name: "Mira", icon: "👩", city: "Plovdiv, Bulgaria", kind: "cafe", place: { name: "Cafe", lat: 42.1, lon: 24.7 }, hearts: 10, met: 1, seen: 2 }, { id: "b", name: "Hugo", icon: "🧔", city: d.stats.where.city, kind: "park", place: { name: "Park", lat: 42.7, lon: 23.3 }, hearts: 3, met: 1, seen: 2 }], partner: "a", companion: null };`,
+  );
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await expect(sheet).toContainText("Mira (partner)");
+  await expect(sheet).toContainText("♥♥♥ · Sofia");
+});
+
 test("sums up what he did while the game was closed", async ({ page }) => {
   await startInSofia(page);
   await reopenAfter(page, 3);

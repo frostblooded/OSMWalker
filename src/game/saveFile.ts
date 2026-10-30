@@ -125,7 +125,7 @@ export class SaveFile {
         walker,
         // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
         // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
-        // his bond with you, golden bricks, his life story (the firsts already past marked done), records, the storyteller (Classic, no tension) and Viktor (not met yet).
+        // his bond with you, golden bricks, his life story (the firsts already past marked done), records, the storyteller (Classic, no tension), Viktor (not met yet) and his friends (no one yet).
         // The day's stops that older saves carry are dropped.
         stats: Stats.fromJSON(d.stats),
         debugLog: DebugLog.fromJSON(d.debug_log),

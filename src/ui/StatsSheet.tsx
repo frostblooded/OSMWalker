@@ -6,6 +6,7 @@ import { euro } from "../core/money";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
+import { hearts, SHOWN } from "../core/friends";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -184,6 +185,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <RivalCard s={s} />
+      <FriendsCard s={s} />
       <Card icon="✨" title="Effects">
         {s.buffs.length ? (
           <div class="zebra">
@@ -203,6 +205,26 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <Records stats={s} />
     </>
+  );
+}
+
+/** The friends he has made, most hearts first, his partner on top. */
+function FriendsCard({ s }: { s: Stats }) {
+  const f = s.friends;
+  const list = [...f.list].sort((a, b) => Number(b.id === f.partner) - Number(a.id === f.partner) || b.hearts - a.hearts).slice(0, SHOWN);
+  return (
+    <Card icon="💞" title="Friends" right={f.list.length || undefined}>
+      {list.length ? (
+        <div class="zebra">
+          {list.map((p) => (
+            <KV key={p.id} k={`${p.icon} ${p.name}${p.id === f.partner ? " (partner)" : ""}`} v={`${hearts(p.hearts)} · ${p.city.split(",")[0]}`} />
+          ))}
+        </div>
+      ) : (
+        <p class="dim small">No one yet. He gets talking with locals as he goes.</p>
+      )}
+      {f.companion && <p class="dim small">{`Travelling with a ${f.companion.who} ${f.companion.icon}`}</p>}
+    </Card>
   );
 }
 
