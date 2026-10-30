@@ -24,6 +24,16 @@ describe("Stats sheet", () => {
     expect(speed(stats.speedMps(true))).not.toBe(speed(stats.speedMps()));
   });
 
+  it("on a day his dragon hasn't eaten, shows its gold under Saving for", () => {
+    const stats = new Stats();
+    stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+    stats.cents = 0;
+    expect(shown(stats)).toContain("🐉 Dragon's gold");
+    stats.cents = DRAGON_UPKEEP;
+    stats.feedDragon(new Rng(1));
+    expect(shown(stats)).not.toContain("Saving for");
+  });
+
   it("in a car, saves for the dragon and its first day of gold", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.cars[0]!, Items.MATERIALS[0]!, []));

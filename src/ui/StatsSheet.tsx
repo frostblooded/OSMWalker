@@ -82,6 +82,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
   const kept = s.keptTreasures();
   const goal = s.vehicleGoal();
+  // With a dragon and no next vehicle: its gold on a day it hasn't eaten.
+  const feed = goal ? 0 : s.vehicleSaving();
   return (
     <>
       <Card icon="⭐" title={`Level ${s.level}`} right={euro(s.cents)}>
@@ -91,9 +93,10 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
-      {(goal || s.savingFor > 0) && (
+      {(goal || feed || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
           {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
+          {feed && <Goal name="🐉 Dragon's gold" has={s.cents} needs={feed} />}
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}
