@@ -5,7 +5,7 @@ import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
 import { Walker } from "../../src/core/walker";
-import { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
+import { BAD_SAVE_KEY, DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
 
 class MemStorage {
   m = new Map<string, string>();
@@ -161,6 +161,24 @@ describe("save file", () => {
     d.walker.from = null;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect(f.read()).toBe("The saved game had no spot for him; starting over");
+  });
+
+  it("keeps a copy of a save it can't use, so starting over doesn't lose it", () => {
+    const kv = new MemStorage();
+    kv.setItem(SAVE_KEY, "{oops");
+    new SaveFile(kv).read();
+    expect(kv.getItem(BAD_SAVE_KEY)).toBe("{oops");
+  });
+
+  it("calls a save unreadable when repairing it fails, instead of throwing", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats = null;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect(f.read()).toBe("The saved game was unreadable; starting over");
+    expect(kv.getItem(BAD_SAVE_KEY)).toBe(JSON.stringify(d));
   });
 
   it("says when the device is full", () => {
