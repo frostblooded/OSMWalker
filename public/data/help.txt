@@ -321,7 +321,7 @@ How he goes depends on the distance in a straight line:
 - from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
 - over {PLANE_ALWAYS_KM} km he always flies.
 
-By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead, fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
 To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 

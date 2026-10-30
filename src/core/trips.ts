@@ -4,6 +4,7 @@
 // and are picked weighted by population. He gets there by bus from a bus
 // station, by plane from an airport, or in his own car after filling up at a
 // gas station, and pays for the ride.
+import { isBusStation, isGasStation } from "./cityCheck";
 import { bboxAround, distanceM, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import type { Rng } from "./rng";
@@ -96,10 +97,6 @@ export function fare(mode: Mode, distanceM: number): number {
 export function planeChance(distanceM: number): number {
   return Math.min(Math.max((distanceM - PLANE_FROM_M) / (PLANE_ALWAYS_M - PLANE_FROM_M), 0), 1);
 }
-
-export const isBusStation = (p: Place) => p.class === "bus" && p.subclass === "bus_station";
-export const isGasStation = (p: Place) => p.class === "fuel";
-export const isAirport = (p: Place) => p.class === "aerodrome";
 
 /** How far from the center destinations are picked: bigger cities spread wider. */
 export function cityRadiusM(pop: number): number {
