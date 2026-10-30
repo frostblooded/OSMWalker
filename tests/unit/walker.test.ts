@@ -534,6 +534,24 @@ describe("goal weights", () => {
     expect(food).toBeGreaterThan(220);
   });
 
+  it("a place's own pull counts for that place alone, though need is worked out per kind", () => {
+    const w = atCross();
+    const a = moved(42, 23, [500, 0]);
+    const b = moved(42, 23, [-500, 0]);
+    // Both cafes, so need is asked once for the kind; "New" comes second.
+    setPlaces(w.graph, [cafe("Old", b[0], b[1]), cafe("New", a[0], a[1])]);
+    w.need = () => ({ pull: 1, urgent: false, bottom: false, why: "" });
+    w.placePull = (q) => (q.name === "New" ? 5 : 1);
+    let fresh = 0;
+    for (let s = 0; s < 300; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      fresh += +(w.place!.name === "New");
+    }
+    expect(fresh).toBeGreaterThan(220);
+  });
+
   const urgentPicks = (bottom: boolean) => {
     const w = atCross();
     const specs: [string, number][] = [["Near food", 150], ["Far food", 600], ["Museum", 500]];

@@ -9,6 +9,7 @@ import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
+import { EXPLORE_PULL } from "../../src/core/activities";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -138,6 +139,18 @@ describe("game", () => {
     const texts = g.stats.history.entries.map((e) => e.text);
     expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
+  });
+
+  it("an Explore whisper pulls each place he has never been to, not its whole kind", async () => {
+    const OLD: Place = { ...CAFE, name: "Cafe Old", lat: 42.6875, lon: 23.3205 };
+    const { g } = game({ places: [OLD, CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.visit(OLD);
+    const w = g.walker!;
+    const ratio = () => w.weigh(CAFE).weight / w.weigh(OLD).weight;
+    const before = ratio();
+    [g.stats.bond.nudge, g.stats.bond.nudgeLeft] = ["explore", 600];
+    expect(ratio()).toBeCloseTo(before * EXPLORE_PULL);
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {

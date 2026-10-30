@@ -219,10 +219,8 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
-    w.need = (p) => {
-      const n = needOf(this.activities.peek(p, this.country), this.stats, this.hour());
-      return { ...n, pull: n.pull * exploreWeight(p, this.stats) };
-    };
+    w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
+    w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
       landed: (c) => this.onLanded(c),
       arrived: (p) => this.onArrived(p),

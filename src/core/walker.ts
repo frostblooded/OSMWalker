@@ -111,6 +111,8 @@ export class Walker {
   legFrom: LatLon | null = null;
   /** How a place meets his needs (see activities.ts needOf); set by the game. */
   need: ((p: Place) => Need) | null = null;
+  /** A pull of one place on its own, on top of its kind's need (an Explore whisper's, see activities.ts exploreWeight); set by the game. */
+  placePull: ((p: Place) => number) | null = null;
   /** The trip plan while he walks to its station. */
   departing: Plan | null = null;
   travel: Travel | null = null;
@@ -281,7 +283,7 @@ export class Walker {
 
   /** How much a place weighs as his next goal, and why (see goals.ts). */
   weigh(p: Place, need: Need = this.need?.(p) ?? NO_NEED): Weights {
-    return weigh(p, this.here() ? this.position() : null, this.heading(), need.pull, need.urgent);
+    return weigh(p, this.here() ? this.position() : null, this.heading(), need.pull * (this.placePull?.(p) ?? 1), need.urgent);
   }
 
   /** A spot in the city box, drawn with the same distance and heading odds as places. */

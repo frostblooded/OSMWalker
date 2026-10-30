@@ -190,9 +190,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** True while any meter is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
+/** True while any meter he feels (see Stats.felt) is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
 export function anyUrgent(stats: Stats): boolean {
-  return Object.values(stats.meters).some((v) => v < URGENT_AT);
+  return (Object.keys(stats.meters) as Meter[]).some((m) => stats.felt(m) < URGENT_AT);
 }
 
 /** One of `actions` he can do at `hour`, picked by weight with `roll` in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */

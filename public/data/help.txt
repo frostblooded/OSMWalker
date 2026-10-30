@@ -80,7 +80,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this number too: Eat makes him feel starving and thirsty, Rest makes him feel out of energy, Save counts as saving for a trip, and Explore makes places he has never been to weigh {EXPLORE_PULL} times as much.
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much.
 
 Urgent: while a meter is under {URGENT_AT} and some place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -157,7 +157,7 @@ Urge: each meter (fullness, thirst, energy, health, mood, hygiene) is a need bel
 
 Need score: an action scores the urge of each meter it raises, times how much of the need it meets: a raise of {FULL_FIX} or more meets it in full, a smaller one in part. Paid work scores the money urge, and with a full bag a resale shop's sale scores 1. The scores of all needs an action meets add up, so a meal with a drink beats a meal alone when he is both hungry and thirsty.
 
-Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom, and fixing it beats every other need. While any meter is urgent he skips the trip dice and stays in town. See Picking the next goal and How he chooses.
+Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom, and fixing it beats every other need. While any meter is urgent he skips the trip dice and stays in town. A meter an Eat or Rest whisper names feels empty while he follows it, so it counts as rock bottom (see Whispers). See Picking the next goal and How he chooses.
 
 The feed says when a strong need picks his goal, for example "Hungry, heading for Bakery Nord": an urgent need, or one at half of {NEED_AT} or lower. Money only counts there while he has less than {SKINT}, not while he just saves up.
 
@@ -430,8 +430,8 @@ He doesn't know who you are, but he can tell someone is looking out for him. His
 Each time his trust passes {LETTER_AT}, he writes you a letter in his History (it starts with ✉). After opening a package he sometimes writes a thank-you too, about {THANKS_PCT} of the time. The more he trusts you, the more likely he listens to a whisper (see Whispers).
 ## Whispers {whisper}
 Up to {WHISPERS_PER_DAY} times a day (by your device's date) you can whisper one word to him from the Care package sheet. He listens with a chance of {HEED_MIN_PCT}, plus {HEED_PER_TRUST_PCT} for each point of trust, so {HEED_FULL_PCT} at full trust. Otherwise he shrugs it off. Either way his History says so. When he listens, he follows the whisper for {NUDGE_MIN} minutes:
-- 🍞 Eat: he acts as if he is starving and thirsty, so food and drink pull him hardest.
-- 💤 Rest: he acts as if he has no energy left, so coffee, benches and naps pull him.
+- 🍞 Eat: he acts as if he is starving and thirsty: food and drink are all he looks for, the nearest first, and he stays in town (see His needs).
+- 💤 Rest: he acts as if he has no energy left: coffee, benches and naps are all he looks for, the nearest first, and he stays in town.
 - 🧭 Explore: places he has never been to pull him {EXPLORE_PULL} times as hard.
 - 💰 Save: he saves as if for a trip: paid work counts more and spending less (see How he chooses).
 
