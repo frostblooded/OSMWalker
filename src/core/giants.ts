@@ -24,7 +24,7 @@ export type Giant = {
 };
 
 export const GIANTS: readonly Giant[] = [
-  { id: "serpent", icon: "🐍", name: "Sea serpent", at: ["ferry_terminal", "swimming"], where: "from a ferry terminal or a swimming lake", say: "A sea serpent's coils rose out of the water off {PLACE}, shining, and slid back under" },
+  { id: "serpent", icon: "🐍", name: "Sea serpent", at: ["ferry_terminal", "swimming/swimming_area"], where: "from a ferry terminal or a swimming lake", say: "A sea serpent's coils rose out of the water off {PLACE}, shining, and slid back under" },
   { id: "kraken", icon: "🦑", name: "Kraken", at: ["harbor"], where: "in a harbour or marina", say: "A kraken's arm curled up between the boats at {PLACE}, waved once, and sank" },
   { id: "giant", icon: "⛰", name: "Sleeping giant", at: ["attraction/viewpoint"], where: "from a viewpoint", say: "From {PLACE} he saw a giant asleep on the far hills, breathing as slowly as the clouds" },
 ];

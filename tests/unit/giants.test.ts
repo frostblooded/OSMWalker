@@ -30,6 +30,7 @@ describe("giants seen from afar", () => {
   it("show from real ferry piers, swimming lakes, harbours and viewpoints", () => {
     expect(G.giantAt(place("Pier", "ferry_terminal", "ferry_terminal"))?.id).toBe("serpent");
     expect(G.giantAt(place("Lake", "swimming", "swimming_area"))?.id).toBe("serpent");
+    expect(G.giantAt(place("Pool hall", "swimming", "swimming"))).toBeUndefined();
     expect(G.giantAt(place("Marina", "harbor", "marina"))?.id).toBe("kraken");
     expect(G.giantAt(VIEW)?.id).toBe("giant");
     expect(G.giantAt(place("Fair", "attraction", "attraction"))).toBeUndefined();
@@ -101,6 +102,6 @@ describe("giants seen from afar", () => {
   it("the quest bank has a giant quest and event", () => {
     const bank = JSON.parse(dataFile("quests.json")) as { quests: { id: string; fantasy?: boolean }[]; events: { id: string; at: string[] }[] };
     expect(bank.quests.find((q) => q.id === "giants_footprints")?.fantasy).toBe(true);
-    expect(bank.events.find((e) => e.id === "shadow_under_the_water")?.at).toEqual(["harbor", "ferry_terminal", "swimming"]);
+    expect(bank.events.find((e) => e.id === "shadow_under_the_water")?.at).toEqual(["harbor", "ferry_terminal"]);
   });
 });
