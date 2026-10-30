@@ -120,6 +120,14 @@ describe("game", () => {
     expect(g.problems.warnings.map((w) => w.text)).toContain("Couldn't load the streets where he starts in Sofia, Bulgaria");
   });
 
+  it("a strong need picks his goal and the feed says so", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.thirst = 5;
+    g.walker!.forceNewGoal();
+    expect(g.stats.history.entries.some((e) => e.text === "Thirsty, heading for Cafe Near")).toBe(true);
+  });
+
   it("hands his stats the jokes and forecasts, and jokes fit the kind of place", async () => {
     const { g } = game({ places: [CAFE] });
     const forecasts: Forecast[] = [{ id: "cafe", icon: "☕", text: "Cafés feel {n} as good today", effect: "mood", kind: "cafe", mult: 2 }];

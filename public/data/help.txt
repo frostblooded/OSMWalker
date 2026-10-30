@@ -80,7 +80,9 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need for resale shops (see The bag and selling). Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that.
+
+Urgent: while a meter is under {URGENT_AT} and some place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -135,16 +137,30 @@ What he did pops up at the top for a few seconds, and goes into his History. Abo
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
-- For each meter the action raises, it gains (60 - meter) / 20 x (amount, at most 50) / 20, but only if that meter is below 60. So the hungrier he is, the more he leans towards food, and the bigger the meal the stronger the pull.
 - Browsing for an item: +1 when he has more than {SKINT_X3}.
 - Selling his loot: +2.
-- Paid work: +3 while he has less than {SKINT}, otherwise +0.5.
 - Anything that would leave him under {SKINT} weighs half as much.
 - A country's own actions get +{FLAVOUR_WEIGHT} (see Country flavour).
-- While he saves up for a trip or his next vehicle, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
+- While he saves up for a trip or his next vehicle, spending weighs {SAVING_SPEND_PCT} as much (see Fares and Saving for a vehicle).
 - Browsing the shop of the vehicle he has saved up for: +{GOAL_SHOP}.
 
+Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always, and only from actions that fix that meter.
+
 An action with weight 4 is four times as likely as one with weight 1.
+## His needs {urges}
+His needs come first, like real ones: a little hungry he may still visit a museum, starving he goes straight for food.
+
+Urge: each meter (fullness, thirst, energy, health, mood, hygiene) is a need below {NEED_AT}. Its urge is the square of how far below it is: 0 at {NEED_AT}, {URGE_HALF} at {NEED_HALF_AT}, 1 at 0. So it grows slowly at first and steeply near empty. Money is a need too: below {SKINT} its urge grows the same way, down to 1 at €0, and while he saves up for a trip or a vehicle it is at least {SAVING_URGE}.
+
+Need score: an action scores the urge of each meter it raises, times how much of the need it meets: a raise of {FULL_FIX} or more meets it in full, a smaller one in part. Paid work scores the money urge, and with a full bag a resale shop's sale scores 1. The scores of all needs an action meets add up, so a meal with a drink beats a meal alone when he is both hungry and thirsty.
+
+Urgent: under {URGENT_AT} a meter is urgent. Under {BOTTOM_AT} it is at rock bottom, and fixing it beats every other need. While any meter is urgent he skips the trip dice and stays in town. See Picking the next goal and How he chooses.
+
+The feed says when a strong need picks his goal, for example "Hungry, heading for Bakery Nord": an urgent need, or one at half of {NEED_AT} or lower. Money only counts there while he has less than {SKINT}, not while he just saves up.
+
+Drain: an action that lowers a meter he needs weighs (1 - that meter's urge) as much, at least {HARM_FLOOR_PCT}, so he doesn't go jogging when he is worn out.
+
+His strengths: an action that trains or needs one of his attributes weighs (that attribute / his average attribute) as much, from 1 up to {STRENGTH_MAX} times, so a strong walker leans to the gym and a charming one to people. A place weighs as much as its best-suited action.
 ## Requirements {needs}
 An action can only be picked when he meets all of its requirements:
 - Money: he needs at least the action's price.
@@ -159,7 +175,7 @@ His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He st
 
 Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he levels up (see Wages).
 
-He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} he leans hard towards paid work and away from spending (see How he chooses).
+He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
 He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a car he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
 ## Wages {wages}
@@ -174,7 +190,7 @@ He always saves up for the cheapest vehicle one step above what he rides:
 - on a bike, a {GOAL_SCOOTER} for {CHEAP_SCOOTER},
 - on a scooter or motorbike, a {GOAL_CAR} for {CHEAP_CAR}.
 
-With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, paid work gets {SAVING_EARN} more and spending weighs {SAVING_SPEND_PCT} as much (see How he chooses), and places that pay pull his goals like a need.
+With a car there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}. Until he has it, money is a need of at least {SAVING_URGE} urge and spending weighs {SAVING_SPEND_PCT} as much (see His needs), so paid work and places that pay pull him.
 
 Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for.
 ## Buffs and debuffs {buffs}
@@ -198,25 +214,25 @@ Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
 He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles), and less on a tailwind day (see Daily forecast). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
-When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
+When energy is under {NEED_AT} he needs rest more and more (see His needs), and shuns actions that tire him. Napping under a tree only happens when it is under {NAP_BELOW}. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
 Fullness (FU, the green bar) is how fed he is, from 0 to 100, starting at {START_FULLNESS}.
 
 It drops by {FULLNESS_PER_H} every hour the game is open, so from full it lasts about {FULLNESS_HOURS} hours. Meals, snacks and buffs such as Snacking fill it.
 
-Under 60 he leans more and more towards food. At 0 he starts losing {STARVING_PER_H} health per hour until he eats.
+Under {NEED_AT} he needs food more and more (see His needs); under {URGENT_AT} he heads straight for it. At 0 he starts losing {STARVING_PER_H} health per hour until he eats.
 ## Thirst {thirst}
 Thirst is how well watered he is, from 0 to 100 (higher is better), starting at {START_THIRST}.
 
 It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts about {THIRST_HOURS} hours. Drinks, drinking fountains, cafes and bars fill it.
 
-Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
+Under {NEED_AT} he needs a drink more and more (see His needs); under {URGENT_AT} he heads straight for one. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it more for a day (see Daily forecast).
 
 It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
-When mood is under 60 he leans towards cheerful actions.
+When mood is under {NEED_AT} he needs cheering up more and more (see His needs).
 
 Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
 ## Hygiene {hygiene}
@@ -224,7 +240,7 @@ Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
 It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hotel rooms, the laundry, a spa and the toilets raise it; sweaty jobs and workouts lower it.
 
-When hygiene is under 60 he leans towards actions that clean him up.
+When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 # 💪 Attributes
@@ -308,7 +324,7 @@ If his bag is full when another item comes in before he finds such a shop, he se
 He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
 ## Trips to other cities {trips}
-Every time he picks a new goal he rolls the trip dice:
+Every time he picks a new goal he rolls the trip dice, unless a need is urgent (see His needs):
 - {COUNTRY_PCT}: he travels to a city in another country,
 - {CITY_PCT}: he travels to another city in the same country,
 - otherwise he stays and picks a place in this city.
@@ -341,7 +357,7 @@ Fares are in euros and never free:
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
-He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
