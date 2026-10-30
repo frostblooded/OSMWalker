@@ -1,8 +1,8 @@
-// The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a face
-// with a bubble over his head), his goal as a pin, his trail and the ride
-// line as lines. MapLibre only draws
-// when something changes, so the game moves the camera a few times a second
-// instead of every frame (see app/loop.ts): the main thread stays idle.
+// The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a
+// face with a bubble over his head), his goal as a pin, his trail and the
+// ride line as lines. MapLibre only draws when something changes, so the
+// game moves the camera a few times a second instead of every frame (see
+// app/loop.ts): the main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";

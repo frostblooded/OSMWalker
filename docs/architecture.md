@@ -25,6 +25,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 - **Game data.** `public/data/actions.json`, `flavour.json`, `cities.tsv` and `airports.tsv` are read through `src/app/data.ts`. `tools/` rebuilds `cities.tsv` and runs the POI sweep (`.github/workflows/poi-sweep.yml`).
 - **Saves.** Changing a saved field means a repair step in `src/game/saveFile.ts`, because players keep old saves.
 - **Catch-up.** The save's `saved_at` is where the catch-up starts; `tests/e2e/mock.ts` (`reopenAfter`) moves it back by editing the stored save, so a change to the save's key or that field breaks it. `catchup.ts` copies the walker's goal odds (`goals.ts`) and the trip rules (`trips.ts`, `game/journey.ts`) instead of calling the walker, so a change to either belongs in both. Its made-up place kinds (`MADE_UP_KINDS`) must keep their own entries in `actions.json` (`tests/unit/catchup.test.ts` checks).
+- **His look.** `src/core/look.ts` names each pose's motion (`rise`, `pop`); `src/ui/app.css` has a `.bubble` class and `@keyframes` of the same name for each. Its place icons must cover every kind in `actions.json` (`tests/unit/look.test.ts` checks).
 - **Perf budgets.** `tests/perf/budgets.json` sets the CI limits (transfer, JS size, first paint, long tasks). A new dependency or eager import usually shows up there first.
 - **Layout.** `tests/e2e/layout.spec.ts` opens every screen at 360 and 412 px and fails on overlap or sideways scroll. A new screen or sheet needs a step there. CI keeps the shots as the `screens` artifact.
 

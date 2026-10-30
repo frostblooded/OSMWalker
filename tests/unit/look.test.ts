@@ -1,3 +1,4 @@
+// His face, bubble and pose on the map, and the icon of every kind of place.
 import { describe, expect, it } from "vitest";
 import { NEED_AT } from "../../src/core/activities";
 import { face, look, need, placeIcon, pose, SICK_AT } from "../../src/core/look";

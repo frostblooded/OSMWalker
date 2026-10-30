@@ -1,7 +1,7 @@
 // How he looks on the map: a face for how he feels, a bubble over his head
-// with his most pressing need or the kind of place he heads for, and while he
-// stays somewhere a pose for what he does there (zZz, steam, a note). Also
-// the icon of each kind of place, which the day ribbon uses too.
+// with his most pressing need or the icon of the kind of place he heads for,
+// and while he stays somewhere a pose for what he does there (zZz, steam, a
+// note).
 import { NEED_AT } from "./activities";
 import { ATTRS, DIRTY_AT, TIRED_ENERGY, type Action, type Attr, type Meter } from "./stats";
 
