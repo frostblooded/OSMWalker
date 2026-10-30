@@ -36,7 +36,7 @@ describe("journey", () => {
   });
 
   it("doubles the odds where there are no places", () => {
-    const { j, stats } = journey(0.3);
+    const { j, stats } = journey(0.2);
     j.consider(where({ noPlaces: true }), stats);
     expect(j.takeLog()).toMatchObject({ boost: 2, outcome: "city" });
   });

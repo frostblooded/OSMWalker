@@ -21,19 +21,19 @@ const plan = (p: T.Plan | T.NoPlan): T.Plan => {
 const smalltonFare = T.fare("bus", distanceM(0, 0, 1, 0) * T.ROAD_FACTOR);
 
 describe("trip odds", () => {
-  it("rolls 75% stay, 20% city, 5% country", () => {
+  it("rolls 87.5% stay, 10% city, 2.5% country", () => {
     expect(T.roll(0)).toBe("country");
-    expect(T.roll(0.049)).toBe("country");
-    expect(T.roll(0.05)).toBe("city");
-    expect(T.roll(0.249)).toBe("city");
-    expect(T.roll(0.25)).toBe("stay");
+    expect(T.roll(0.024)).toBe("country");
+    expect(T.roll(0.025)).toBe("city");
+    expect(T.roll(0.124)).toBe("city");
+    expect(T.roll(0.125)).toBe("stay");
     expect(T.roll(0.999)).toBe("stay");
   });
 
   it("doubles the odds in a city with no places", () => {
-    expect(T.roll(0.09, T.NO_PLACES_BOOST)).toBe("country");
-    expect(T.roll(0.49, T.NO_PLACES_BOOST)).toBe("city");
-    expect(T.roll(0.5, T.NO_PLACES_BOOST)).toBe("stay");
+    expect(T.roll(0.049, T.NO_PLACES_BOOST)).toBe("country");
+    expect(T.roll(0.249, T.NO_PLACES_BOOST)).toBe("city");
+    expect(T.roll(0.25, T.NO_PLACES_BOOST)).toBe("stay");
   });
 
   it("gets planes likelier with distance", () => {
@@ -45,10 +45,16 @@ describe("trip odds", () => {
 });
 
 describe("rides", () => {
-  it("go at real speeds", () => {
-    expect(T.rideS("bus", 80_000)).toBeCloseTo(3600);
-    expect(T.rideS("plane", 800_000)).toBeCloseTo(3600);
-    expect(T.rideS("car", 90_000)).toBeCloseTo(3600);
+  it("go 10x faster than real speeds", () => {
+    expect(T.rideS("bus", 80_000)).toBeCloseTo(360);
+    expect(T.rideS("plane", 800_000)).toBeCloseTo(360);
+    expect(T.rideS("car", 90_000)).toBeCloseTo(360);
+  });
+
+  it("never take longer than 15 minutes", () => {
+    expect(T.rideS("bus", 300_000)).toBe(15 * 60);
+    expect(T.rideS("plane", 20_000_000)).toBe(15 * 60);
+    expect(T.RIDE_MAX_S).toBe(15 * 60);
   });
 
   it("cost real prices", () => {
