@@ -35,6 +35,17 @@ export const FULL_FIX = 30;
 export const SAVING_URGE = 0.25;
 /** Actions that train or need his best attribute weigh up to this many times as much (his attribute / his average). */
 export const STRENGTH_MAX = 2;
+/** A need this strong (half way below NEED_AT) or urgent shows in the feed when it picks his goal. */
+export const SAY_URGE = 0.25;
+/** How the feed names each need. */
+export const NEED_WORDS: Record<NeedKey, string> = { fullness: "Hungry", thirst: "Thirsty", energy: "Tired", health: "Hurt", mood: "Glum", hygiene: "Grubby", money: "Short of money" };
+
+/** The feed line for a goal picked for `why`, or "" when the need is too mild to mention. */
+export function needLine(why: NeedKey | "", pull: number, urgent: boolean, place: string): string {
+  if (!why || (!urgent && pull < 1 + NEED_BOOST * SAY_URGE)) return "";
+  return `${NEED_WORDS[why]}, heading for ${place}`;
+}
+
 /** An action that lowers a meter he needs weighs (1 - its urge) as much, but never less than this. */
 export const HARM_FLOOR = 0.02;
 

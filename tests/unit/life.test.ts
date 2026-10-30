@@ -526,6 +526,12 @@ describe("need-driven goals", () => {
     stats.savingFor = 2 * A.SKINT;
     expect(pull([work])).toBeCloseTo(1 + NEED_BOOST * A.SAVING_URGE, 6);
   });
+  it("name a strong need in the feed, and stay quiet about a mild one", () => {
+    expect(A.needLine("fullness", 1 + NEED_BOOST * A.SAY_URGE, false, "Bakery")).toBe("Hungry, heading for Bakery");
+    expect(A.needLine("fullness", 2, false, "Bakery")).toBe("");
+    expect(A.needLine("money", 2, true, "Docks")).toBe("Short of money, heading for Docks");
+    expect(A.needLine("", 50, true, "Docks")).toBe("");
+  });
   it("pull towards places that suit his best attribute", () => {
     const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
     expect(pull([lift])).toBe(1);

@@ -5,7 +5,8 @@
 // bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. No DOM here: the
 // app calls step() and the screens read the state.
-import { Activities, choose, needOf, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
+import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
@@ -367,6 +368,8 @@ export class Game {
 
   /** Each pick goes in the debug log with the trip roll that came before it. */
   private onPicked(info: PickInfo): void {
+    const line = needLine(info.need as NeedKey | undefined ?? "", (info.need_w as number) ?? 1, info.urgent === true, String(info.place ?? ""));
+    if (line) this.stats.say(line);
     const e: Entry = { ...this.journey.takeLog(), ...info };
     if (this.forced) e.forced = this.forced;
     this.debugLog.add(e);
