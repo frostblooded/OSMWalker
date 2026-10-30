@@ -1,6 +1,7 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
-// his keepsakes (landmark cards, Placedex, souvenirs, crawls).
+// his keepsakes (landmark cards, Placedex, souvenirs, crawls), and the
+// storyteller that paces the incidents that happen to him.
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
 import * as Br from "./bricks";
@@ -8,6 +9,7 @@ import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
+import * as Inc from "./incidents";
 import * as Items from "./items";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
@@ -16,6 +18,7 @@ import type { Item, Slot } from "./items";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
+import { Storyteller } from "./storyteller";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
 
@@ -161,6 +164,12 @@ export class Stats {
   chronicle = new Chronicle();
   /** This week in numbers, and last week's recap. */
   week = new Week();
+  /** Paces the incidents. */
+  story = new Storyteller();
+  /** The incident deck from data/incidents.json; not saved, the game sets it. */
+  incidents: readonly Inc.Incident[] = [];
+  /** The feed line of the last incident, so the screen can make it stand out; not saved. */
+  incidentLine = "";
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
@@ -412,6 +421,7 @@ export class Stats {
     }
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
+    this.story.pass(minutes, this.cents);
     this.applyFx(fx);
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
   }
@@ -709,6 +719,21 @@ export class Stats {
     this.chronicle.note(key, text, this.now());
   }
 
+  /**
+   * Maybe an incident at a stop at `place` at `hour`, when the storyteller
+   * says so (Luck makes bad ones rarer). Returns its feed line, or "".
+   * Without a deck there is no roll, so the dice stay the same as without one.
+   */
+  happen(place: Pick<Place, "name" | "class">, hour: number, rng: Rng): string {
+    if (!this.incidents.length) return "";
+    const tone = this.story.roll(rng, riskMult(this.attr("luck")));
+    if (!tone) return "";
+    const card = Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
+    if (!card) return "";
+    this.story.after(card.id, tone);
+    return (this.incidentLine = Inc.play(card, this, place.name, rng));
+  }
+
   /** Notes a stop at a place, for the weekly recap. */
   stop(place: { class: string; subclass: string }): void {
     this.week.stop(place.class);
@@ -741,7 +766,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), story: this.story.toJSON(),
     };
   }
 
@@ -769,6 +794,8 @@ export class Stats {
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
+    // A save from before the storyteller starts calm, on Classic.
+    s.story = Storyteller.fromJSON(d.story);
     return s;
   }
 }

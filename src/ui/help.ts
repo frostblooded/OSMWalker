@@ -14,6 +14,7 @@ import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
 import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
+import * as Inc from "../core/incidents";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
@@ -29,6 +30,7 @@ import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
 import * as Speeds from "../core/speeds";
+import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
@@ -157,8 +159,12 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   return [...names].join(", ");
 }
 
+/** Attribute names as the Help pages call them. */
+const ATTR_LABEL: Record<S.Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
+
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
+  const incidents = data.incidents ?? [];
   const sum = (t: Activities.ActionTable) => Object.values(t).reduce((n, l) => n + l.length, 0);
   const v: Record<string, string> = {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
@@ -440,6 +446,28 @@ export function values(data: GameData): Record<string, string> {
     CARDS_SHOWN: String(K.CARDS_SHOWN),
     FEAT_LIST: Collection.FEATS.map(featLine).join("\n").replace(/,$/, "."),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
+    TENSION_MAX: num(Story.TENSION_MAX),
+    STORY_RATES: Story.STYLES.map((k) => `${Story.STYLE[k].icon} ${Story.STYLE[k].name} ${num(Story.STYLE[k].per_h)}`).join(", "),
+    STORY_BAD: Story.STYLES.map((k) => `${Story.STYLE[k].name} ${pct(Story.STYLE[k].bad)}`).join(", "),
+    WEALTH_STEP: euro(Story.WEALTH_STEP),
+    WEALTH_CAP: num(Story.WEALTH_CAP),
+    FIRE_AT: num(Story.FIRE_AT),
+    FIRE_MAX_PCT: pct(Story.FIRE_MAX),
+    LUCKY_H: num(Story.LUCKY_H),
+    KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
+    RECENT_INCIDENTS: num(Story.RECENT),
+    INCIDENT_COUNT: String(incidents.length),
+    GOOD_INCIDENTS: String(incidents.filter((c) => c.tone === "good").length),
+    BAD_INCIDENTS: String(incidents.filter((c) => c.tone === "bad").length),
+    ODD_INCIDENTS: String(incidents.filter((c) => c.tone === "odd").length),
+    CHOICE_INCIDENTS: String(incidents.filter((c) => c.options).length),
+    LOSS_CAP_PCT: pct(Inc.LOSS_CAP_SHARE),
+    INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
+    INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
+    GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
+      .filter(([, cs]) => cs.length)
+      .map(([a, cs]) => `- ${ATTR_LABEL[a]}: ${cs.map((c) => `${c.icon} ${c.text.replace(/ (near|by|at|outside|over) \{PLACE\}| \{PLACE\}/, "").replace(/\.$/, "")} (at ${num(c.guard!.at)})`).join("; ")}`)
+      .join("\n"),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);
   const rolls = [0, ...Items.MOD_ROLLS, 1];

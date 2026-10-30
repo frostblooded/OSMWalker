@@ -136,6 +136,19 @@ describe("save file", () => {
     expect(back.walker.bounds).not.toBeNull();
   });
 
+  it("loads saves from before the storyteller: Classic, no tension, and keeps a chosen one", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const s = saved();
+    s.stats.story.style = "chaotic";
+    f.write(s);
+    expect((f.read() as Saved).stats.story.style).toBe("chaotic");
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.story;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.story).toMatchObject({ style: "classic", tension: 0, luckyMin: 0, recent: [] });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

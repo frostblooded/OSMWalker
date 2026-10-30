@@ -2,9 +2,10 @@
 // go, without walking the map or loading any streets. He hops from place to
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
 // a flight on a flying mount, see legM), does an action at each, rolls the
-// trip dice as usual and pays and rides like he would. In a city whose places
-// aren't loaded he visits made-up places of the usual kinds ("a cafe in
-// Lyon"). Pure: the game applies where he ends up.
+// trip dice as usual and pays and rides like he would, and the storyteller
+// may bring an incident at a stop (see storyteller.ts). In a city whose
+// places aren't loaded he visits made-up places of the usual kinds ("a cafe
+// in Lyon"). Pure: the game applies where he ends up.
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
@@ -221,6 +222,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       // A made-up place here ("a park in Lyon") is no real park to build at.
       stats.bricksAt(city.places ? place : { ...place, made: true });
+      // Incidents roll on the card dice too, so they leave his walk the same.
+      stats.happen(place, deps.hourAt(startMs + elapsed * 1000), deps.cardRng ?? rng);
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
