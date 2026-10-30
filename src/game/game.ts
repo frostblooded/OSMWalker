@@ -456,6 +456,7 @@ export class Game {
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.contests = this.deps.data.contests ?? [];
     this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
+    this.stats.townNews = this.deps.data.friends?.news ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
