@@ -64,6 +64,17 @@ describe("save file", () => {
     expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
+  it("loads saves from before care packages with no clovers and nothing on its way", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.care;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "" });
+    expect(back.stats.cents).toBe(4321);
+  });
+
   it("fills in what old saves lack: zoom and the city box", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

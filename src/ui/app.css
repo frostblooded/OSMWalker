@@ -121,6 +121,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .pill { padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; font-size: var(--small); white-space: nowrap; }
 .pill.coins { background: var(--coin); }
 .pill.level { background: var(--lilac); }
+.menu .pill { margin-left: auto; }
 .chip { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: var(--s2) var(--s3); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); width: 100%; text-align: left; font-size: var(--body); }
 .chip:active { background: var(--line); }
 .chip .eta { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: var(--paper); border: 2px solid var(--ink); font-size: var(--small); white-space: nowrap; }
@@ -201,6 +202,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
+.gifts > li { display: flex; align-items: center; gap: var(--s3); }
 .away-log > li { display: flex; align-items: baseline; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
