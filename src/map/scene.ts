@@ -26,6 +26,8 @@ export interface MapPort {
   /** His face, the bubble over his head and his pose. */
   setLook(l: Look): void;
   setGoal(at: LatLon | null): void;
+  /** Viktor, his rival, while he is about. */
+  setRival(at: LatLon | null): void;
   setTrip(path: LatLon[] | null): void;
   showTrail(on: boolean): void;
   setTrail(key: string, segments: () => LatLon[][]): void;
@@ -82,6 +84,7 @@ export class MapScene {
     v.setHim(at, !w.needsData() && !w.isResting(), glideMs);
     v.setLook(look(g));
     v.setGoal(g.goalTarget());
+    v.setRival(g.rivalAt());
     v.setTrip(w.travel ? w.travel.path : null);
     const h = g.stats.history;
     v.setTrail(`${h.id}:${h.trailVersion}`, () => h.segments());

@@ -180,6 +180,16 @@ describe("catch-up", () => {
     expect(stats.cents).toBeLessThan(500_000);
   });
 
+  it("packs a travel kit as he boards, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    stats.meters.fullness = 10;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    const bus = s.lines.findIndex((l) => l.text.startsWith("Took the bus to Nexttown"));
+    expect(s.lines[bus + 1]?.text).toMatch(/^Packed snacks/);
+  });
+
   it("collects landmark cards and Placedex kinds at real places, none at made-up ones", () => {
     const stats = new Stats();
     stats.arrive("Bigtown", "AAA", "A-land");

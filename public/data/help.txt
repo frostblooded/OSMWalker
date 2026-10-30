@@ -131,7 +131,7 @@ At each place of note he stops and does one action (see What he does at places).
 
 While he stays, the top card shows "Moving again in 0:59" and an orange bar that fills up as the minute passes. When it is full he picks his next goal and sets off.
 ## The map {map}
-The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face (see His face and bubble). The game moves him a few times a second and his face glides smoothly between those steps.
+The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face (see His face and bubble). A smaller round {RIVAL_ICON} beside him, on a cream badge, is Viktor, for a while after they meet (see Viktor, his rival). The game moves him a few times a second and his face glides smoothly between those steps.
 
 While the camera follows him (the Camera follows him switch in the menu, on at first) the map stays still while he walks around the middle, and glides over to him once he is more than {MIDDLE_PCT}% of the view away from the middle. That way the whole map is only redrawn every so often, which saves battery. Drag the map to look around, then tap "Back to him" to follow him again. With the switch off the map never moves by itself, and there is no "Back to him".
 
@@ -406,6 +406,19 @@ Fares are in euros and never free (though a rascal may skip a bus ticket: see Ki
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+## Packing for a trip {packing}
+As he boards for another city he packs a travel kit on his own, by need, and pays for it on top of the fare:
+{KIT_LIST}
+
+He only packs what still leaves him his reserve of {KEEP_CENTS} after the fare. Each one starts a buff (see Buffs and debuffs), so it keeps working after he lands. He packs while you are away too.
+## Crossing a border {borders}
+Each time he arrives in a different country than the one he left, by any kind of trip, the feed and History get a few border lines:
+- a passport stamp, with how many countries he has been to (the Collection's countries list shows them all),
+- some euros swapped for the local money, just to hold: prices in the game stay in euros,
+- on his first visit to that country, the first word he learns there, such as "Zdravey" (hello) in Bulgaria,
+- a dry remark about the border guard.
+
+{BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -549,6 +562,18 @@ A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one ite
 {GUARD_LIST}
 
 {CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. He picks by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. Nothing waits for you.
+## Night legends {legends}
+At night ({TIME_NIGHT}) at castles, graveyards, memorials, shrines, old wells, wizard towers and the like, the storyteller may tell a night legend instead: a pale lady on a castle wall, a lantern between the graves, a black cat that only greets the lucky. There are {LEGEND_COUNT}, each written for its kind of place. They come like any incident (see The storyteller), but where one fits it is {LEGEND_WEIGHT} times likelier than any other card.
+## Viktor, his rival {rival}
+{RIVAL_ICON} {RIVAL_NAME} is another traveller. When he reaches a new city, {RIVAL_TOWN_PCT} of the time Viktor is there too. Then each place he reaches has a {RIVAL_MEET_PCT} chance of a meeting, when no incident happens there. It all happens by itself.
+
+Most meetings are a contest for the same thing, at a place where it fits: the same day's work, the last window table, a chess game, a pub quiz, the last croissant, a photo spot, an arm-wrestle, a race to the corner. Each leans on an attribute. His odds are his attribute plus {HIS_PER_LEVEL} per level of his, against {RIVAL_PER_LEVEL} per level of Viktor's (Viktor starts at level {RIVAL_START_LEVEL}). A win gives {WIN_FX}; a loss {LOSE_FX}, and Viktor goes up a level.
+
+Some meetings are a friendly chat instead: {FRIENDLY_PCT} of them, plus {FRIENDLY_PER_CHA_PCT} per point of Charm above 1, up to {FRIENDLY_CAP_PCT}, and always where no contest fits. A chat gives {FRIENDLY_FX}.
+
+Viktor remembers. He brings up where they last met in another city, and every contest makes his feelings {FEELING_STEP} colder while every chat makes them {FEELING_STEP} warmer (from -{FEELING_MAX} to {FEELING_MAX}). At -{FEELING_AT} he is a Nemesis; at {FEELING_AT} a Friendly rival.
+
+For {SEEN_MIN} minutes after a meeting he shows on the map beside him, as a smaller round {RIVAL_ICON} on a cream badge. His card on the Stats sheet keeps the score.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -574,6 +599,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
+- Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.

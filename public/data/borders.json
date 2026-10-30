@@ -1,0 +1,476 @@
+{
+ "words": {
+  "CHN": [
+   "Nǐ hǎo",
+   "hello",
+   "yuan"
+  ],
+  "USA": [
+   "Howdy",
+   "hello",
+   "dollars"
+  ],
+  "IND": [
+   "Namaste",
+   "hello",
+   "rupees"
+  ],
+  "BRA": [
+   "Obrigado",
+   "thank you",
+   "reais"
+  ],
+  "JPN": [
+   "Arigatō",
+   "thank you",
+   "yen"
+  ],
+  "RUS": [
+   "Spasibo",
+   "thank you",
+   "roubles"
+  ],
+  "MEX": [
+   "¿Qué onda?",
+   "what's up",
+   "pesos"
+  ],
+  "IDN": [
+   "Terima kasih",
+   "thank you",
+   "rupiah"
+  ],
+  "PAK": [
+   "Shukriya",
+   "thank you",
+   "rupees"
+  ],
+  "NGA": [
+   "Ẹ kú àárọ̀",
+   "good morning",
+   "naira"
+  ],
+  "TUR": [
+   "Merhaba",
+   "hello",
+   "lira"
+  ],
+  "DEU": [
+   "Prost",
+   "cheers",
+   ""
+  ],
+  "KOR": [
+   "Annyeonghaseyo",
+   "hello",
+   "won"
+  ],
+  "IRN": [
+   "Salâm",
+   "hello",
+   "rials"
+  ],
+  "GBR": [
+   "Cheers",
+   "thanks",
+   "pounds"
+  ],
+  "EGY": [
+   "Shukran",
+   "thank you",
+   "pounds"
+  ],
+  "ARG": [
+   "Che",
+   "hey",
+   "pesos"
+  ],
+  "PHL": [
+   "Salamat",
+   "thank you",
+   "pesos"
+  ],
+  "COL": [
+   "Parce",
+   "buddy",
+   "pesos"
+  ],
+  "FRA": [
+   "Bonjour",
+   "good day",
+   ""
+  ],
+  "VNM": [
+   "Xin chào",
+   "hello",
+   "dong"
+  ],
+  "TWN": [
+   "Xièxie",
+   "thank you",
+   "dollars"
+  ],
+  "ESP": [
+   "Vale",
+   "okay",
+   ""
+  ],
+  "CAN": [
+   "Sorry",
+   "sorry",
+   "dollars"
+  ],
+  "ZAF": [
+   "Howzit",
+   "how is it going",
+   "rand"
+  ],
+  "BGD": [
+   "Dhonnobad",
+   "thank you",
+   "taka"
+  ],
+  "ITA": [
+   "Ciao",
+   "hello",
+   ""
+  ],
+  "AUS": [
+   "G'day",
+   "hello",
+   "dollars"
+  ],
+  "SAU": [
+   "Marhaba",
+   "hello",
+   "riyals"
+  ],
+  "UKR": [
+   "Dyakuyu",
+   "thank you",
+   "hryvnias"
+  ],
+  "PER": [
+   "Chévere",
+   "cool",
+   "soles"
+  ],
+  "MYS": [
+   "Terima kasih",
+   "thank you",
+   "ringgit"
+  ],
+  "THA": [
+   "Sawasdee",
+   "hello",
+   "baht"
+  ],
+  "CHL": [
+   "Cachai",
+   "get it?",
+   "pesos"
+  ],
+  "POL": [
+   "Dziękuję",
+   "thank you",
+   "złoty"
+  ],
+  "MAR": [
+   "Salam",
+   "hello",
+   "dirhams"
+  ],
+  "KAZ": [
+   "Rakhmet",
+   "thank you",
+   "tenge"
+  ],
+  "ROU": [
+   "Mulțumesc",
+   "thank you",
+   "lei"
+  ],
+  "KEN": [
+   "Jambo",
+   "hello",
+   "shillings"
+  ],
+  "ETH": [
+   "Selam",
+   "hello",
+   "birr"
+  ],
+  "GRC": [
+   "Yassou",
+   "hello",
+   ""
+  ],
+  "PRT": [
+   "Obrigado",
+   "thank you",
+   ""
+  ],
+  "CUB": [
+   "Asere",
+   "mate",
+   "pesos"
+  ],
+  "NLD": [
+   "Gezellig",
+   "cosy",
+   ""
+  ],
+  "ISR": [
+   "Shalom",
+   "hello",
+   "shekels"
+  ],
+  "SGP": [
+   "Lah",
+   "just so",
+   "dollars"
+  ],
+  "TUN": [
+   "Aslema",
+   "hello",
+   "dinars"
+  ],
+  "BEL": [
+   "Merci",
+   "thank you",
+   ""
+  ],
+  "CHE": [
+   "Grüezi",
+   "hello",
+   "francs"
+  ],
+  "NZL": [
+   "Kia ora",
+   "hello",
+   "dollars"
+  ],
+  "ARE": [
+   "Yalla",
+   "let's go",
+   "dirhams"
+  ],
+  "HUN": [
+   "Köszönöm",
+   "thank you",
+   "forints"
+  ],
+  "SWE": [
+   "Fika",
+   "coffee break",
+   "kronor"
+  ],
+  "AUT": [
+   "Servus",
+   "hi",
+   ""
+  ],
+  "BGR": [
+   "Zdravey",
+   "hello",
+   "leva"
+  ],
+  "CZE": [
+   "Na zdraví",
+   "cheers",
+   "korunas"
+  ],
+  "NOR": [
+   "Takk",
+   "thanks",
+   "kroner"
+  ],
+  "DNK": [
+   "Hygge",
+   "cosiness",
+   "kroner"
+  ],
+  "FIN": [
+   "Kiitos",
+   "thank you",
+   ""
+  ],
+  "IRL": [
+   "Sláinte",
+   "cheers",
+   ""
+  ],
+  "SRB": [
+   "Živeli",
+   "cheers",
+   "dinars"
+  ],
+  "HRV": [
+   "Bok",
+   "hi",
+   ""
+  ],
+  "ISL": [
+   "Takk",
+   "thanks",
+   "krónur"
+  ],
+  "GEO": [
+   "Gaumarjos",
+   "cheers",
+   "lari"
+  ],
+  "ARM": [
+   "Barev",
+   "hello",
+   "dram"
+  ],
+  "VEN": [
+   "Chamo",
+   "buddy",
+   "bolívares"
+  ],
+  "ECU": [
+   "Chuta",
+   "wow",
+   "US dollars"
+  ],
+  "BOL": [
+   "Jallalla",
+   "long live",
+   "bolivianos"
+  ],
+  "TZA": [
+   "Hakuna matata",
+   "no worries",
+   "shillings"
+  ],
+  "GHA": [
+   "Akwaaba",
+   "welcome",
+   "cedis"
+  ],
+  "SEN": [
+   "Nanga def",
+   "how are you",
+   "francs"
+  ],
+  "JOR": [
+   "Ahlan",
+   "welcome",
+   "dinars"
+  ],
+  "LBN": [
+   "Yalla",
+   "let's go",
+   "pounds"
+  ],
+  "NPL": [
+   "Namaste",
+   "hello",
+   "rupees"
+  ],
+  "LKA": [
+   "Ayubowan",
+   "may you live long",
+   "rupees"
+  ],
+  "MNG": [
+   "Sain baina uu",
+   "hello",
+   "tögrög"
+  ],
+  "SVK": [
+   "Ďakujem",
+   "thank you",
+   ""
+  ],
+  "SVN": [
+   "Živijo",
+   "cheers",
+   ""
+  ],
+  "EST": [
+   "Tere",
+   "hello",
+   ""
+  ],
+  "LVA": [
+   "Paldies",
+   "thank you",
+   ""
+  ],
+  "LTU": [
+   "Ačiū",
+   "thank you",
+   ""
+  ],
+  "MKD": [
+   "Zdravo",
+   "hello",
+   "denars"
+  ],
+  "ALB": [
+   "Faleminderit",
+   "thank you",
+   "lekë"
+  ],
+  "BIH": [
+   "Merhaba",
+   "hello",
+   "marks"
+  ],
+  "MNE": [
+   "Polako",
+   "take it easy",
+   ""
+  ],
+  "CYP": [
+   "Yassou",
+   "hello",
+   ""
+  ],
+  "MLT": [
+   "Grazzi",
+   "thank you",
+   ""
+  ],
+  "LUX": [
+   "Moien",
+   "hello",
+   ""
+  ],
+  "PRI": [
+   "Wepa",
+   "hooray",
+   "dollars"
+  ],
+  "DOM": [
+   "Klk",
+   "what's up",
+   "pesos"
+  ],
+  "URY": [
+   "Bo",
+   "hey",
+   "pesos"
+  ],
+  "PRY": [
+   "Mba'éichapa",
+   "how are you",
+   "guaraníes"
+  ]
+ },
+ "guards": [
+  "asked the purpose of his visit. \"Walking,\" he said. The guard wrote down \"walking\".",
+  "checked his photo twice. It was taken before he got this tanned.",
+  "asked if he had anything to declare. He declared that his feet hurt.",
+  "stamped the passport so hard the desk moved.",
+  "asked how long he would stay. He said until the dice say otherwise.",
+  "asked where he was staying. He pointed vaguely at the whole country.",
+  "looked at his shoes for a long time, then let him through.",
+  "asked if he packed his bag himself. He was not sure anyone packs his bag.",
+  "said \"Welcome\" in a voice that meant \"Fine\".",
+  "found nothing in his bag but a snack, and ate it. Probably procedure."
+ ]
+}

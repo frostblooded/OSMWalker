@@ -4,6 +4,7 @@
 // storyteller that paces the incidents that happen to him.
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
+import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as F from "./forecast";
@@ -20,7 +21,9 @@ import { getCrawler, isRuin, Ruins } from "./ruins";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
+import { Rival, type Contest } from "./rival";
 import { Storyteller } from "./storyteller";
+import * as Kit from "./travelKit";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
 
@@ -152,6 +155,8 @@ export class Stats {
   cityPool: CC.Pool | null = null;
   /** Deadpan jokes from data/jokes.json; not saved, the game sets it. */
   jokes: Jokes = {};
+  /** Border words and quips from data/borders.json; not saved, the game sets it. */
+  borders: Borders | null = null;
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
@@ -172,6 +177,10 @@ export class Stats {
   ruins = new Ruins();
   /** Paces the incidents. */
   story = new Storyteller();
+  /** Viktor, his rival. */
+  rival = new Rival();
+  /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
+  contests: readonly Contest[] = [];
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -404,6 +413,20 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
+  /** As he boards for a city in country `code`: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
+  packForTrip(code: string): string {
+    const abroad = this.where.code !== "" && code !== this.where.code;
+    const kit = Kit.choose(this.meters, this.cents, abroad, KEEP_CENTS);
+    if (!kit.length) return "";
+    let cost = 0;
+    for (const k of kit) {
+      cost += k.cents;
+      this.addBuff(k.buff);
+    }
+    this.cents -= cost;
+    return `Packed ${Kit.list(kit.map((k) => k.name))} for the trip (${signed(-cost)})`;
+  }
+
   /** Starts a timed effect, replacing one of the same name. */
   addBuff(buff: NonNullable<Action["buff"]>): void {
     this.buffs = this.buffs.filter((b) => b.name !== buff.name);
@@ -577,7 +600,7 @@ export class Stats {
     return xp;
   }
 
-  /** He is now in `city` (`code`, `country`): worn items count the country in their story. */
+  /** He is now in `city` (`code`, `country`): worn items count the country in their story, and a new country gets the border lines. */
   arrive(city: string, code: string, country: string): void {
     const was = this.where;
     this.where = { city, code, country };
@@ -587,6 +610,11 @@ export class Stats {
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
+    if (was.code && was.code !== code) {
+      const first = !seen.includes(code);
+      const stamps = seen.filter((c) => !c.includes(":")).length + (first ? 1 : 0);
+      for (const line of crossing(this.borders, code, country, stamps, first)) this.say(line);
+    }
     for (const s of [code, `${code}:${city}`]) {
       if (seen.includes(s)) continue;
       seen.push(s);
@@ -741,17 +769,20 @@ export class Stats {
 
   /**
    * Maybe an incident at a stop at `place` at `hour`, when the storyteller
-   * says so (Luck makes bad ones rarer). Returns its feed line, or "".
-   * Without a deck there is no roll, so the dice stay the same as without one.
+   * says so (Luck makes bad ones rarer), or else a meeting with his rival.
+   * Returns its feed line, or "". Without a deck the stories are off and
+   * nothing rolls, so the dice stay the same as without one.
    */
-  happen(place: Pick<Place, "name" | "class">, hour: number, rng: Rng): string {
+  happen(place: Pick<Place, "name" | "class" | "lat" | "lon">, hour: number, rng: Rng): string {
     if (!this.incidents.length) return "";
     const tone = this.story.roll(rng, riskMult(this.attr("luck")));
-    if (!tone) return "";
-    const card = Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
-    if (!card) return "";
-    this.story.after(card.id, tone);
-    return (this.incidentLine = Inc.play(card, this, place.name, rng));
+    const card = tone && Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
+    if (tone && card) {
+      this.story.after(card.id, tone);
+      return (this.incidentLine = Inc.play(card, this, place.name, rng));
+    }
+    const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
+    return met && (this.incidentLine = met);
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -798,7 +829,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), story: this.story.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
     };
   }
 
@@ -830,6 +861,8 @@ export class Stats {
     s.ruins = Ruins.fromJSON(d.ruins);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
+    // A save from before Viktor: he hasn't met him yet.
+    s.rival = Rival.fromJSON(d.rival);
     return s;
   }
 }

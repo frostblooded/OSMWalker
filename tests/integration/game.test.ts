@@ -16,7 +16,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
-import { Game, MADE_CITIES, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
@@ -160,6 +160,28 @@ describe("game", () => {
     expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
   });
 
+  it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], contests: JSON.parse(dataFile("rival.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.contests.length).toBeGreaterThan(0);
+    const meet = vi.spyOn(g.stats.rival, "meet");
+    run(g, 400);
+    // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+  });
+
+  it("shows Viktor beside him for a while after they meet, only in that city", async () => {
+    const { g } = game({ places: [CAFE], clock: () => 2_000_000_000_000 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.rivalAt()).toBeNull();
+    const r = g.stats.rival;
+    Object.assign(r, { town: g.stats.where.city, inTown: true, seenUntil: 2_000_000_000 + 60, seenAt: [42.7, 23.3] });
+    expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
+    r.seenUntil = 2_000_000_000;
+    expect(g.rivalAt()).toBeNull();
+  });
+
   it("switches the storyteller from the menu and keeps it in the save", async () => {
     const { g, storage } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -295,6 +317,8 @@ describe("game", () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 50_000;
+    // Full, so he packs nothing and pays only the fare.
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
     g.skipRoll = false;
     g.debugNewGoal();
     const w = g.walker!;

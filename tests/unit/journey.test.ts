@@ -73,6 +73,15 @@ describe("journey", () => {
     expect(problems[0]).toContain("no city to go to from Farcity");
   });
 
+  it("packs what he needs as he boards", () => {
+    const { j, stats } = journey(0.1);
+    stats.meters.fullness = 60;
+    const plan = j.consider(where(), stats)!;
+    expect(j.board(plan, stats)).toBe("");
+    expect(stats.history.latest()).toMatch(/^Packed snacks for the trip/);
+    expect(stats.buffNames()).toContain("Packed snacks");
+  });
+
   it("pays the fare at the station and sets off", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;

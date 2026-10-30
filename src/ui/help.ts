@@ -33,8 +33,10 @@ import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
 import * as Ruins from "../core/ruins";
 import * as Speeds from "../core/speeds";
+import * as Rival from "../core/rival";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
+import * as Kit from "../core/travelKit";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
 import type { GameData } from "../game/game";
@@ -423,6 +425,12 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    KIT_LIST: Kit.KIT.map((k) => {
+      const fx = [...Object.entries(k.buff.per_h ?? {}).map(([m, v]) => `${m} +${v} an hour`), ...Object.entries(k.buff.attrs ?? {}).map(([a, v]) => `${Inc.ATTR_NAMES[a as S.Attr]} +${v}`)];
+      const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
+      return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
+    }).join("\n"),
+    BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
@@ -480,6 +488,25 @@ export function values(data: GameData): Record<string, string> {
     ODD_INCIDENTS: String(incidents.filter((c) => c.tone === "odd").length),
     CHOICE_INCIDENTS: String(incidents.filter((c) => c.options).length),
     LOSS_CAP_PCT: pct(Inc.LOSS_CAP_SHARE),
+    LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
+    LEGEND_WEIGHT: num(Inc.LEGEND_WEIGHT),
+    RIVAL_ICON: Rival.RIVAL_ICON,
+    RIVAL_NAME: Rival.RIVAL_NAME,
+    RIVAL_TOWN_PCT: pct(Rival.IN_TOWN_CHANCE),
+    RIVAL_MEET_PCT: pct(Rival.MEET_CHANCE),
+    HIS_PER_LEVEL: num(Rival.HIS_PER_LEVEL),
+    RIVAL_PER_LEVEL: num(Rival.RIVAL_PER_LEVEL),
+    RIVAL_START_LEVEL: num(Rival.START_LEVEL),
+    WIN_FX: Gifts.effect({ fx: Rival.WIN_FX }),
+    LOSE_FX: Gifts.effect({ fx: Rival.LOSE_FX }),
+    FRIENDLY_FX: Gifts.effect({ fx: Rival.FRIENDLY_FX }),
+    FRIENDLY_PCT: pct(Rival.FRIENDLY_BASE),
+    FRIENDLY_PER_CHA_PCT: pct(Rival.FRIENDLY_PER_CHA),
+    FRIENDLY_CAP_PCT: pct(Rival.FRIENDLY_CAP),
+    FEELING_MAX: num(Rival.FEELING_MAX),
+    FEELING_AT: num(Rival.FEELING_AT),
+    FEELING_STEP: num(Rival.FEELING_STEP),
+    SEEN_MIN: num(Rival.SEEN_MIN),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
