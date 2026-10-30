@@ -236,6 +236,7 @@ export function values(data: GameData): Record<string, string> {
     RIDE_SPEEDUP: String(Trips.RIDE_SPEEDUP),
     RIDE_MAX_MIN: String(Trips.RIDE_MAX_S / 60),
     BUS_100_MIN: String(Math.round(Trips.rideS("bus", 100_000) / 60)),
+    BUS_300_MIN: String(Math.round(Trips.rideS("bus", 300_000) / 60)),
     BUS_PER_KM: euro(toCents(Trips.BUS_PER_KM)),
     PLANE_BASE: euro(toCents(Trips.PLANE_BASE)),
     PLANE_PER_KM: euro(toCents(Trips.PLANE_PER_KM)),
