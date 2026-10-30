@@ -160,6 +160,15 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 /* He glides between game ticks; the loop sets --glide to the time until the next one. */
 .marker.him.glide { transition: transform var(--glide, 0ms) linear; will-change: transform; }
 .marker.him { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; font-size: 22px; }
+/* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
+.him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
+.him .bubble[hidden] { display: none; }
+.him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
+.him .bubble.rise { animation-name: rise; }
+.him .bubble.pop { animation-name: pop; }
+@keyframes rise { from { transform: translate(-50%, 6px); opacity: 0; } 25% { opacity: 1; } to { transform: translate(-50%, -10px); opacity: 0; } }
+@keyframes pop { from { transform: translateX(-50%) scale(0.6); } 15% { transform: translateX(-50%) scale(1.2); } 30%, to { transform: translateX(-50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .him .bubble.pose { animation: none; } }
 /* MapLibre's own CSS loads later, so these carry .game to win. */
 .game .maplibregl-ctrl-bottom-left { bottom: calc(var(--s3) + var(--safe-bottom)); left: var(--s3); }
 .game .maplibregl-ctrl-bottom-right { right: calc(var(--tap) + 2 * var(--s3)); bottom: calc(var(--s3) + var(--safe-bottom)); }
