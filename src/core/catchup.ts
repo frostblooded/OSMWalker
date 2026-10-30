@@ -2,7 +2,8 @@
 // go, without walking the map or loading any streets. He hops from place to
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
 // a flight on a flying mount, see legM), does an action at each, rolls the
-// trip dice as usual and pays and rides like he would, and the storyteller
+// trip dice as usual and pays and rides like he would (or steps through a
+// portal, see portals.ts), and the storyteller
 // may bring an incident at a stop (see storyteller.ts); he takes on quests
 // and joins world events as he would while watched (see quests.ts). In a city whose
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
@@ -14,7 +15,7 @@ import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
+import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -229,6 +230,13 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
+      const door = city.places ? stats.portalAt(place, trips) : null;
+      if (door) {
+        s.stops++;
+        landIn(door, "portal", place.lon, [door.lat, door.lon], 0);
+        yield;
+        continue;
+      }
       // Incidents roll on the card dice too, so they leave his walk the same.
       stats.happen(place, deps.hourAt(startMs + elapsed * 1000), cardRng);
       s.stops++;
@@ -291,17 +299,22 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     }
     for (const line of stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code)) stats.say(line);
     pass(rideMin, 0);
-    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
+    landIn(dest, plan.mode, plan.station.lon, plan.arrive, plan.distance_m);
+    return true;
+  }
+
+  /** Lands in `dest` at `at` after `distM` by `mode` from longitude `fromLon`, as the watched game does on landing. */
+  function landIn(dest: City, mode: Mode, fromLon: number, at: LatLon, distM: number): void {
+    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
-    moveTo(null, plan.arrive);
+    moveTo(null, at);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
-    for (const line of stats.land(plan.mode, plan.station.lon, plan.arrive[1], plan.distance_m, city.name)) stats.say(line);
+    for (const line of stats.land(mode, fromLon, at[1], distM, city.name)) stats.say(line);
     skipRoll = true;
-    return true;
   }
 
   /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded. */

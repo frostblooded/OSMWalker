@@ -9,7 +9,7 @@
 // hitchhikes for free. Now and then, on foot, he walks to a near town over
 // hours of open play, sleeping in hostels on the way (no streets load on the
 // way: he is on the zoomed-out map like a ride). A long flight leaves him
-// jet-lagged.
+// jet-lagged. Very rarely a portal (portals.ts) takes him, free and at once.
 import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from "./cityCheck";
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
@@ -88,7 +88,7 @@ export const JET_LAG_ENERGY_PER_H = 4;
 export const JET_LAG_XP = 0.9;
 
 export type Kind = "stay" | "city" | "country";
-export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch" | "walk";
+export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch" | "walk" | "portal";
 export type City = { name: string; code: string; country: string; lat: number; lon: number; pop: number; bounds?: BBox };
 export type Airport = Place & { iata: string; code: string };
 export type LatLon = [number, number];
@@ -128,8 +128,8 @@ export function roll(r: number, boost = 1): Kind {
   return "stay";
 }
 
-const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH, walk: WALK };
-const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0, walk: 0 };
+const MODE_MPS: Record<Mode, number> = { bus: BUS, plane: PLANE, car: CAR_ROAD, train: TRAIN, ferry: FERRY, bike: BIKE_ROAD, hitch: HITCH, walk: WALK, portal: Infinity };
+const PER_KM: Record<Mode, number> = { bus: BUS_PER_KM, plane: PLANE_PER_KM, car: FUEL_PER_KM, train: TRAIN_PER_KM, ferry: FERRY_PER_KM, bike: 0, hitch: 0, walk: 0, portal: 0 };
 /** How each way of travelling looks on screen and in the feed. */
 export const MODES: Record<Mode, { icon: string; how: string }> = {
   bus: { icon: "🚌", how: "by bus" },
@@ -140,9 +140,10 @@ export const MODES: Record<Mode, { icon: string; how: string }> = {
   bike: { icon: "🚲", how: "by bike" },
   hitch: { icon: "👍", how: "by a hitched lift" },
   walk: { icon: "🥾", how: "on foot" },
+  portal: { icon: "🌀", how: "through a portal" },
 };
 /** Ways that cost nothing and need no station: he sets off from where he stands. */
-const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch"]);
+const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch", "portal"]);
 
 /** Seconds a ride of `distanceM` takes; a long walk always takes LONG_WALK_MAX_S. */
 export function rideS(mode: Mode, distanceM: number): number {
@@ -300,15 +301,27 @@ export class Trips {
 
   /** A city for a trip of `kind`, weighted by population, or null when there is nowhere to go. */
   pick(kind: Kind, country: string, lat: number, lon: number, rng: Rng): City | null {
-    const opts = this.options(kind, country, lat, lon);
-    if (opts.length === 0) return null;
-    let r = rng.randf() * opts.reduce((acc, c) => acc + c.pop, 0);
-    for (const c of opts) {
-      r -= c.pop;
-      if (r < 0) return c;
-    }
-    return opts[opts.length - 1]!;
+    return byPop(this.options(kind, country, lat, lon), rng);
   }
+
+  /** A city anywhere he has never been (`been` says which he has), weighted by population, or null when he has been everywhere. */
+  pickNew(lat: number, lon: number, been: (c: City) => boolean, rng: Rng): City | null {
+    return byPop(
+      this.cities.filter((c) => !been(c) && distanceM(lat, lon, c.lat, c.lon) >= SAME_CITY_M),
+      rng,
+    );
+  }
+}
+
+/** One of `opts`, weighted by population, or null when there are none. */
+function byPop(opts: City[], rng: Rng): City | null {
+  if (opts.length === 0) return null;
+  let r = rng.randf() * opts.reduce((acc, c) => acc + c.pop, 0);
+  for (const c of opts) {
+    r -= c.pop;
+    if (r < 0) return c;
+  }
+  return opts[opts.length - 1]!;
 }
 
 /** Where he sets off from on his bike or with his thumb out: right where he stands. */

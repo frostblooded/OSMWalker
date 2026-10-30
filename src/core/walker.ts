@@ -248,11 +248,11 @@ export class Walker {
     this.pickGoal();
   }
 
-  /** Rides to `city` by road and lands there at once, ending any rest (a trucker's free lift, or Debug). */
-  rideNow(city: City): void {
+  /** Rides to `city` by road (or steps through a portal) and lands there at once, ending any rest (a trucker's free lift, a portal, or Debug). */
+  rideNow(city: City, mode: "car" | "portal" = "car"): void {
     this.restM = 0;
     // By road: a free lift (or a Debug trip) is no flight, so it brings no jet lag.
-    this.startTravel(city, "car");
+    this.startTravel(city, mode);
     this.land();
   }
 

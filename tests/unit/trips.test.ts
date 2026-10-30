@@ -217,9 +217,10 @@ describe("planTrip", () => {
     expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bus" });
   });
 
-  it("has a ride time and an icon for every way of travelling", () => {
-    for (const m of Object.keys(T.MODES) as T.Mode[]) expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
-    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍", "🥾"]);
+  it("has a ride time and an icon for every way of travelling, but a portal, which is instant", () => {
+    for (const m of Object.keys(T.MODES) as T.Mode[]) if (m !== "portal") expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
+    expect(T.rideS("portal", 100_000)).toBe(0);
+    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍", "🥾", "🌀"]);
     expect(T.fare("bike", 50_000)).toBe(0);
     expect(T.fare("hitch", 50_000)).toBe(0);
     expect(T.fare("train", 100_000)).toBe(Math.ceil(100 * T.TRAIN_PER_KM * 100));
