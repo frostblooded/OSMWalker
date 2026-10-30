@@ -6,7 +6,7 @@
 import { distanceM, type BBox } from "../core/geo";
 import * as Looks from "../core/look";
 import { soundscape, type Soundscape } from "../core/soundscape";
-import type { LatLon, Mode } from "../core/trips";
+import { MODES, type LatLon, type Mode } from "../core/trips";
 import { pathLengthM, tripLimitM } from "../core/walker";
 import type { Game } from "./game";
 
@@ -80,7 +80,7 @@ export function doing(g: Game): string {
   if (!w) return "not started";
   if (w.travel) {
     const t = w.travel;
-    return `travelling to ${t.to.name} by ${t.mode}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
+    return `travelling to ${t.to.name} by ${MODES[t.mode].by}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
   }
   if (w.isResting()) return `staying ${w.restLeftS().toFixed(0)} s more at ${w.place?.name ?? "a spot"}`;
   const target = g.goalTarget();
