@@ -45,7 +45,7 @@ test("The top card shows today's forecast once the game data is in", async ({ pa
 
 test("Help that couldn't load offers Try again", async ({ page }) => {
   let fail = true;
-  await page.route("**/data/help.txt", (route) => (fail ? route.abort() : route.fallback()));
+  await page.route("**/data/help.txt?*", (route) => (fail ? route.abort() : route.fallback()));
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
