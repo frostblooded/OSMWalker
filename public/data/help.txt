@@ -212,7 +212,7 @@ It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts ab
 
 Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
 ## Mood {mood}
-Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it twice as much for a day (see Daily forecast).
+Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it more for a day (see Daily forecast).
 
 It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
@@ -250,7 +250,7 @@ Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and f
 Luck does three things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
-- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, doubled on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
+- Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, more on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
