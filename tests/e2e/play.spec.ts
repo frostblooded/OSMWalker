@@ -59,6 +59,24 @@ test("the storyteller switches from the menu, is remembered, and brings incident
   await expect(page.getByRole("button", { name: /Storyteller/ })).toContainText("Chaotic");
 });
 
+test("Viktor shows beside him after a meeting, and his card on the Stats sheet keeps the score", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Not met yet");
+  await reopenWith(
+    page,
+    `d.stats.rival = { level: 3, wins: 2, losses: 1, chats: 1, feeling: -6, town: d.stats.where.city, inTown: true, seenUntil: Date.now() / 1000 + 600, seenAt: [42.6977, 23.3219], memory: [{ t: 1, city: "Plovdiv, Bulgaria", contest: "chess", won: true }] };`,
+  );
+  await expect(page.locator(".marker.rival")).toHaveText("🎩", { timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await expect(sheet).toContainText("Nemesis");
+  await expect(sheet).toContainText("2 won · 1 lost");
+  await expect(sheet).toContainText("Plovdiv");
+});
+
 test("sums up what he did while the game was closed", async ({ page }) => {
   await startInSofia(page);
   await reopenAfter(page, 3);

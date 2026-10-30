@@ -1,6 +1,6 @@
 // The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a
-// face with a bubble over his head), his goal as a pin, his trail and the
-// ride line as lines. MapLibre only draws when something changes, so the
+// face with a bubble over his head), his goal as a pin, Viktor while he is
+// about, his trail and the ride line as lines. MapLibre only draws when something changes, so the
 // game moves the camera a few times a second instead of every frame (see
 // app/loop.ts): the main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
@@ -8,6 +8,7 @@ import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
 import type { MapIcon } from "../core/mapIcons";
+import { RIVAL_ICON } from "../core/rival";
 import type { LatLon } from "../core/trips";
 import type { MapPort, Padding } from "./scene";
 
@@ -50,6 +51,7 @@ export class MapView implements MapPort {
   map!: MlMap;
   private him!: Marker;
   private pin!: Marker;
+  private rival!: Marker;
   private following = true;
   /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
   autoFollow = true;
@@ -105,6 +107,7 @@ export class MapView implements MapPort {
     this.map.touchZoomRotate.disableRotation();
     this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
+    this.rival = new ml.Marker({ element: markerEl("rival", RIVAL_ICON), anchor: "center" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
         this.following = false;
@@ -232,6 +235,14 @@ export class MapView implements MapPort {
       return;
     }
     this.pin.setLngLat([at[1], at[0]]).addTo(this.map);
+  }
+
+  setRival(at: LatLon | null): void {
+    if (!at) {
+      this.rival.remove();
+      return;
+    }
+    this.rival.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
   /** Shows or hides his trail and the History markers. */

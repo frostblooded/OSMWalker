@@ -31,6 +31,7 @@ import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
+import * as Rival from "../core/rival";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Trips from "../core/trips";
@@ -466,6 +467,25 @@ export function values(data: GameData): Record<string, string> {
     ODD_INCIDENTS: String(incidents.filter((c) => c.tone === "odd").length),
     CHOICE_INCIDENTS: String(incidents.filter((c) => c.options).length),
     LOSS_CAP_PCT: pct(Inc.LOSS_CAP_SHARE),
+    LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
+    LEGEND_WEIGHT: num(Inc.LEGEND_WEIGHT),
+    RIVAL_ICON: Rival.RIVAL_ICON,
+    RIVAL_NAME: Rival.RIVAL_NAME,
+    RIVAL_TOWN_PCT: pct(Rival.IN_TOWN_CHANCE),
+    RIVAL_MEET_PCT: pct(Rival.MEET_CHANCE),
+    HIS_PER_LEVEL: num(Rival.HIS_PER_LEVEL),
+    RIVAL_PER_LEVEL: num(Rival.RIVAL_PER_LEVEL),
+    RIVAL_START_LEVEL: num(Rival.START_LEVEL),
+    WIN_FX: Gifts.effect({ fx: Rival.WIN_FX }),
+    LOSE_FX: Gifts.effect({ fx: Rival.LOSE_FX }),
+    FRIENDLY_FX: Gifts.effect({ fx: Rival.FRIENDLY_FX }),
+    FRIENDLY_PCT: pct(Rival.FRIENDLY_BASE),
+    FRIENDLY_PER_CHA_PCT: pct(Rival.FRIENDLY_PER_CHA),
+    FRIENDLY_CAP_PCT: pct(Rival.FRIENDLY_CAP),
+    FEELING_MAX: num(Rival.FEELING_MAX),
+    FEELING_AT: num(Rival.FEELING_AT),
+    FEELING_STEP: num(Rival.FEELING_STEP),
+    SEEN_MIN: num(Rival.SEEN_MIN),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
