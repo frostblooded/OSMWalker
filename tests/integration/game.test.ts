@@ -263,6 +263,8 @@ describe("game", () => {
     expect(walked.every((m) => m > 0 && m < 10)).toBe(true);
     expect(g.stats.magic).toBeGreaterThan(0);
     expect(g.stats.buffNames()).toContain("Ley-charmed");
+    // Reaching them gives the burst too.
+    expect(g.stats.lore.tapped.length).toBeGreaterThan(0);
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {

@@ -62,6 +62,12 @@ describe("the real help", () => {
     expect(body).toContain("On his own he picks drink from her hands.");
   });
 
+  it("lists each spell with its cost and what it does", () => {
+    const body = page("spells").body;
+    expect(body).toContain("- 🍲 Warm soup, 20 Magic: +30 fullness");
+    expect(body).toContain("- 💡 Bright mind, 25 Magic: ×1.2 XP for 1 h");
+  });
+
   it("takes the nap threshold from the data", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
