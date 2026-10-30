@@ -43,9 +43,9 @@ export const AIRPORT_POP = 500_000;
 /** A made airport is this far from the centre, like most real ones. */
 const AIRPORT_OUT_M: [number, number] = [8_000, 15_000];
 
-/** After a flight he is jet-lagged JET_LAG_H_PER_ZONE hours per time zone crossed, at most JET_LAG_MAX_H: energy drains faster and XP is cut. */
 /** One time zone per this many degrees of longitude. */
 export const DEG_PER_ZONE = 15;
+/** After a flight he is jet-lagged JET_LAG_H_PER_ZONE hours per time zone crossed, at most JET_LAG_MAX_H: energy drains faster and XP is cut. */
 export const JET_LAG_H_PER_ZONE = 1;
 export const JET_LAG_MAX_H = 12;
 export const JET_LAG_ENERGY_PER_H = 4;

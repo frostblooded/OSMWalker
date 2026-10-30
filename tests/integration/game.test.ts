@@ -312,7 +312,7 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ roll: 0.99, outcome: "stay", forced: "goal" });
   });
 
-  it("lands jet-lagged after a flight across time zones, not after a bus", async () => {
+  it("lands jet-lagged after a flight across time zones", async () => {
     const { g } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
     const paris = g.trips.cities.find((c) => c.name === "Paris")!;
@@ -320,6 +320,16 @@ describe("game", () => {
     for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
     expect(g.stats.history.entries.some((e) => e.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
     expect(g.stats.buffNames()).toContain("Jet-lagged");
+  });
+
+  it("lands fresh after a bus across the same time zones", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "bus");
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.where.city).toBe("Paris, France");
+    expect(g.stats.buffNames()).not.toContain("Jet-lagged");
   });
 
   it("walks to the bus station for a trip, pays and rides", async () => {
