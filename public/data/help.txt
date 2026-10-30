@@ -525,7 +525,7 @@ Incidents are things that happen to him, not things he chooses to do: a stray do
 
 Some only happen at some places (a wedding at a church or town hall, food poisoning at a restaurant or snack bar), at some times (quiz night at a pub in the evening), or while he gets about a certain way (a bike thief only when he rides a bike, a parking ticket only by car or motorbike, and a few only on a fantasy mount).
 
-Each one is a line in his History that starts with its icon, and the line over the map stands out with a darker edge.
+Each one is a line in his History that starts with its icon, and the line over the map stands out: bold, on a shaded card with an orange edge.
 
 A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one item from his bag, but never his gear or a treasured item. A high enough attribute wards some off:
 {GUARD_LIST}
