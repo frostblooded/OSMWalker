@@ -113,7 +113,8 @@ export const TREASURED_KEEP = 3;
 /** At a resale shop with a full bag he sells his cheapest things until this many are left (a selling run). */
 export const SELL_RUN_LEFT = BAG_SIZE / 2;
 
-export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
+/** Meter, attribute, XP and Magic changes; Magic stays within 0 to Mg.MAGIC_MAX. */
+export type Fx = Partial<Record<Meter | Attr | "xp" | "magic", number>>;
 /** A timed effect; `attrs` adds to his attributes while it lasts. */
 export type Buff = { name: string; left: number; per_h: Fx; xp_mult: number; attrs?: Partial<Record<Attr, number>> };
 export type Action = {
@@ -562,10 +563,11 @@ export class Stats {
     return line;
   }
 
-  /** Adds meter and attribute changes; meters stay within 0-100. */
+  /** Adds meter, attribute, XP and Magic changes; meters stay within 0-100. */
   applyFx(fx: Fx): void {
     for (const [k, v] of Object.entries(fx) as [keyof Fx, number][]) {
       if (k === "xp") this.addXp(Math.trunc(v));
+      else if (k === "magic") this.magic = Math.min(Math.max(this.magic + v, 0), Mg.MAGIC_MAX);
       else if (k in this.meters) this.meters[k as Meter] = Math.min(Math.max(this.meters[k as Meter] + v, 0), 100);
       else if (k in this.attrs) this.attrs[k as Attr] = Math.max(this.attrs[k as Attr] + v, 0);
     }

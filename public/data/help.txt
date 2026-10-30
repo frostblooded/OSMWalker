@@ -299,7 +299,7 @@ When hygiene is under {NEED_AT} he needs a wash more and more (see His needs).
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
 ## Magic {magic}
-Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines); his spells spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
+Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), and so do a few fantasy quests and night events, such as The Ley Hunter and humming stones; his spells spend it (see Spells). Nothing happens when it is empty, except that he can't cast.
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.

@@ -82,6 +82,18 @@ describe("ley lines", () => {
     expect(s.buffNames()).not.toContain(M.LEY_CHARM.name);
   });
 
+  it("quest and event rewards can give Magic, kept within 0 and MAGIC_MAX", () => {
+    const s = stats();
+    s.applyFx({ magic: 15 });
+    expect(s.magic).toBe(15);
+    s.applyFx({ magic: 500 });
+    expect(s.magic).toBe(M.MAGIC_MAX);
+    s.applyFx({ magic: -500 });
+    expect(s.magic).toBe(0);
+    const bank = JSON.parse(dataFile("quests.json")) as { quests: { id: string; reward: { fx?: Record<string, number> } }[] };
+    for (const id of ["ley_hunter", "borrowed_spellbook"]) expect(bank.quests.find((q) => q.id === id)?.reward.fx?.magic, id).toBeGreaterThan(0);
+  });
+
   it("a place on a line gives a burst once a day each", () => {
     const s = stats();
     const church = at("place_of_worship", 0, "St Nedelya");
