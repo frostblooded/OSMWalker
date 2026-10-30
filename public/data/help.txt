@@ -28,11 +28,11 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
-The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count. On a bus, a plane or in his car the weather doesn't reach him.
+The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed (when every place near enough is closed he walks to a random spot instead), and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count. On a trip to another city by bus, plane or car the weather doesn't reach him.
 
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
 
-If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
+If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby, and in the same time for the city's weather (see Weather).
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
@@ -219,7 +219,7 @@ What the weather does to him:
 - Freezing ({COLD_C}°C or less): he loses {COLD_ENERGY_PER_H} energy more an hour.
 - Sunny (clear, {SUNNY_MIN_C}°C to below {HOT_C}°C, while the sky isn't yet dark): his mood gets {SUNNY_MOOD_PER_H} back an hour.
 
-While he rides a bus, a plane or his car the weather doesn't reach him.
+On a trip to another city by bus, plane or car the weather doesn't reach him (driving his car around town, it does).
 
 Some actions only happen in the right weather, such as hot chocolate while it pours, a snowman in the park or watching the sunset (see Requirements). The top card and the Stats sheet show the weather now.
 ## Seasons {seasons}
@@ -356,7 +356,7 @@ When he reaches a city, the game looks it up on Wikidata: the most populous plac
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon until the weather is known), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 

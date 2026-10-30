@@ -140,8 +140,8 @@ export class Game {
 
   /** The sky over him now, or at unix ms over a city: weather only where the forecast is for, and none while he rides. */
   sky(ms = this.now(), city = this.city, at: LatLon = this.origin): Sky {
-    const f = this.forecast?.city === city && !this.walker?.isTraveling() ? this.forecast : null;
-    const sky = skyAt(ms, at[0], at[1], f?.offsetS ?? offsetFromLon(at[1]), weatherAt(f, ms));
+    const f = this.forecast?.city === city ? this.forecast : null;
+    const sky = skyAt(ms, at[0], at[1], f?.offsetS ?? offsetFromLon(at[1]), this.walker?.isTraveling() ? null : weatherAt(f, ms));
     const pinned = this.deps.hour?.();
     return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
   }
@@ -501,7 +501,6 @@ export class Game {
       this.stats.onSay = (text, t) => ride.push({ text, t });
       // Exactly what is left, so rounding can't leave him a hair short of landing.
       w.advance(leftM);
-      this.stats.sky = { ...this.sky(fromMs), weather: null };
       this.stats.passTime(rideS / 60, 0);
       this.stats.now = clock;
       this.stats.onSay = null;

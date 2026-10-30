@@ -167,4 +167,25 @@ describe("catch-up", () => {
     // Stops count only the places he reached.
     expect(s.stops).toBe(s.lines.filter((l) => l.text.startsWith("Reached")).length);
   });
+
+  it("keeps the weather off him on a trip's ride", () => {
+    const seen: { riding: boolean; weather: boolean }[] = [];
+    let riding = false;
+    class Watched extends Stats {
+      override say(line: string): string {
+        if (line.startsWith("Took the")) riding = true;
+        if (line.startsWith("Arrived in")) riding = false;
+        return super.say(line);
+      }
+      override passTime(minutes: number, walkedM: number): void {
+        seen.push({ riding, weather: !!this.sky?.weather });
+        super.passTime(minutes, walkedM);
+      }
+    }
+    const hot = { kind: "clear" as const, tempC: 35 };
+    catchUp(new Watched(), HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1, skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, hot) }));
+    expect(seen.some((x) => x.riding)).toBe(true);
+    expect(seen.filter((x) => x.riding && x.weather)).toEqual([]);
+    expect(seen.some((x) => !x.riding && x.weather)).toBe(true);
+  });
 });

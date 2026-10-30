@@ -464,6 +464,61 @@ describe("game", () => {
       expect(g.stats.sky?.weather).toBeNull();
     });
 
+    it("keeps the weather off the rest of a ride on reopen", async () => {
+      let now = NOW;
+      const { api } = weatherApi(0, 35);
+      const { g, storage } = game({ api, clock: () => now, roll: 0.1 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      g.stats.cents = 50_000;
+      g.skipRoll = false;
+      g.debugNewGoal();
+      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      expect(g.walker!.isTraveling()).toBe(true);
+      g.save();
+      now += 3 * 60_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      const weather: unknown[] = [];
+      const pass = again.stats.passTime.bind(again.stats);
+      again.stats.passTime = (m, w) => (weather.push(again.stats.sky?.weather ?? null), pass(m, w));
+      await again.wake();
+      expect(weather[0]).toBeNull();
+    });
+
+    it("goes on by the forecast kept on the device, and retries a failed fetch later", async () => {
+      let now = NOW;
+      const { api, weatherCalls } = weatherApi(71, -2);
+      const first = game({ api, clock: () => now });
+      await first.g.startCity("Sofia, Bulgaria", ...START, null);
+      run(first.g, 2);
+      await tick();
+      expect(weatherCalls()).toBe(1);
+      // The network is gone: a new game reads the kept forecast and keeps using it.
+      let down = 0;
+      const offline = new Api(async () => (down++, new Response("", { status: 503 })));
+      now += 2 * 3600_000;
+      const again = new Game({ ...(first.g as unknown as { deps: GameDeps }).deps, api: offline, storage: first.storage });
+      again.problems.quiet = true;
+      expect(again.forecast?.city).toBe("Sofia, Bulgaria");
+      again.load();
+      expect(again.stats.sky?.weather).toEqual({ kind: "snow", tempC: -2 });
+      run(again, 2);
+      await tick();
+      expect(again.problems.warnings.map((w) => w.text)).toContain("Couldn't get the weather for Sofia, Bulgaria");
+      const tries = down;
+      run(again, 5);
+      await tick();
+      expect(down).toBe(tries);
+      now += 11 * 60_000;
+      run(again, 2);
+      await tick();
+      expect(down).toBeGreaterThan(tries);
+      expect(again.stats.sky?.weather?.kind).toBe("snow");
+    });
+
     it("finds shops closed at night and does nothing there", async () => {
       const { g } = game({ places: [SHOP], hour: () => 23 });
       await g.startCity("Sofia, Bulgaria", ...START, null);
