@@ -235,8 +235,14 @@ export class Stats {
 
   /** Cents he saves up to: a trip fare, or his next vehicle plus his reserve, whichever is more. */
   savingTarget(): number {
+    return Math.max(this.savingFor, this.vehicleSaving());
+  }
+
+  /** Cents he saves up for his vehicle: the next one plus his reserve (and a dragon's first day of gold), or while his dragon is unfed today, its gold plus his reserve. */
+  vehicleSaving(): number {
     const goal = this.vehicleGoal();
-    return Math.max(this.savingFor, goal ? goal.cents + KEEP_CENTS : 0);
+    if (goal) return goal.cents + KEEP_CENTS + (goal.kind === "dragons" ? DRAGON_UPKEEP : 0);
+    return this.sulking() ? DRAGON_UPKEEP + KEEP_CENTS : 0;
   }
 
   /** True while he has less than he saves up to. */

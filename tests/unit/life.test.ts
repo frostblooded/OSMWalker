@@ -9,6 +9,7 @@ import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
 import * as S from "../../src/core/stats";
+import { dayOf } from "../../src/core/gifts";
 import { euro } from "../../src/core/money";
 import { dataFile } from "../support/data";
 
@@ -382,7 +383,14 @@ describe("gear", () => {
     expect(stats.saving()).toBe(true);
     stats.gear.vehicle = vehicle("dragon");
     stats.savingFor = 0;
-    expect(stats.saving()).toBe(false);
+    stats.cents = S.DRAGON_UPKEEP + KEEP_CENTS - 1;
+    expect(stats.saving()).toBe(true);
+    stats.feedDragon(rng);
+    stats.cents = 0;
+    stats.savingFor = 0;
+    expect(stats.savingTarget()).toBe(0);
+    stats.gear.vehicle = vehicle("car");
+    expect(stats.savingTarget()).toBe(stats.vehicleGoal()!.cents + KEEP_CENTS + S.DRAGON_UPKEEP);
   });
 
   it("a car beats any bike", () => {
@@ -628,6 +636,7 @@ describe("need-driven goals", () => {
   });
   it("send him to paid work when he is broke or saving up", () => {
     stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 0;
     expect(pull([work])).toBeCloseTo(1 + NEED_BOOST, 6);
     expect(needOf([work], stats, 12).why).toBe("money");
@@ -738,6 +747,7 @@ describe("activities", () => {
 
   it("saving for a trip favours paid work and cuts spending", () => {
     stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 100;
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };

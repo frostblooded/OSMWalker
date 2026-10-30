@@ -76,7 +76,8 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
   );
 }
 
-export function StatsSheet({ stats: s }: { stats: Stats }) {
+/** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
+export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: boolean }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
   const kept = s.keptTreasures();
@@ -87,12 +88,12 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         {s.keepsakes.title && <KV k="🎖 Title" v={s.keepsakes.title} />}
         <KV k="XP" v={`${Math.floor(s.xp)} / ${need}`} />
         <Bar share={s.xp / need} color="#e8730c" />
-        <KV k="Speed" v={speed(s.speedMps())} />
+        <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
       {(goal || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
-          {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={goal.cents + KEEP_CENTS} />}
+          {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}
