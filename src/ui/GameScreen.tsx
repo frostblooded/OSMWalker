@@ -21,11 +21,11 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-/** Wait after the map is up before loading the menu's sheets. */
+/** Wait after the map is up before loading the sheets. */
 const SHEETS_AFTER_MS = 3000;
-/** The sheets (the menu's, postcards and While you were away), loaded after startup or as soon as one is needed, so their code stays off the startup path. */
+/** The menu's sheets and the postcard ones, loaded after startup or as soon as one is needed, so their code stays off the startup path. */
 const loadSheets = async () => {
-  const [help, debug, history, stats, collection, care, postcard, away] = await Promise.all([
+  const [help, debug, history, stats, collection, care, postcard] = await Promise.all([
     import("./HelpSheet"),
     import("./DebugSheet"),
     import("./HistorySheet"),
@@ -33,9 +33,8 @@ const loadSheets = async () => {
     import("./CollectionSheet"),
     import("./CareSheet"),
     import("./PostcardSheet"),
-    import("./AwaySheet"),
   ]);
-  return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard, ...away };
+  return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard };
 };
 type Sheets = Awaited<ReturnType<typeof loadSheets>>;
 
@@ -63,6 +62,18 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         setSheetsFailed(true);
       });
   };
+  // While you were away loads on its own, so the reopen card never waits on, or fails with, the menu's sheets.
+  const [awaySheet, setAwaySheet] = useState<typeof import("./AwaySheet") | null>(null);
+  const [awayFailed, setAwayFailed] = useState(false);
+  const awayLoading = useRef(false);
+  const fetchAway = () => {
+    if (awayLoading.current) return;
+    awayLoading.current = true;
+    import("./AwaySheet").then(setAwaySheet, (e: Error) => {
+      game.problems.warn(`Couldn't load While you were away: ${e.message}`);
+      setAwayFailed(true);
+    });
+  };
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
 
@@ -87,8 +98,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         };
         loop.start();
         performance.mark("osmwalker:map");
-        // The menu's sheets follow once the map is up, so they open at once and work offline later.
-        setTimeout(() => !gone && fetchSheets(), SHEETS_AFTER_MS);
+        // The sheets follow once the map is up, so they open at once and work offline later.
+        setTimeout(() => {
+          if (gone) return;
+          fetchSheets();
+          fetchAway();
+        }, SHEETS_AFTER_MS);
       })
       .catch((e: Error) => {
         game.problems.error(`The map couldn't start: ${e.message}`);
@@ -133,8 +148,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   }, [sheets]);
 
   useEffect(() => {
-    if ((sheet || received || game.away) && !sheets) fetchSheets();
-  }, [sheet, sheets, received, game.away]);
+    if ((sheet || received) && !sheets) fetchSheets();
+  }, [sheet, sheets, received]);
+
+  useEffect(() => {
+    if (game.away && !awaySheet) fetchAway();
+  }, [game.away, awaySheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -310,10 +329,10 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          {sheets ? (
-            <sheets.AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
+          {awaySheet ? (
+            <awaySheet.AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
           ) : (
-            <Loading failed={sheetsFailed} />
+            <Loading failed={awayFailed} />
           )}
         </SheetBox>
       )}
