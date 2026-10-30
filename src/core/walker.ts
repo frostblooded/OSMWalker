@@ -45,7 +45,7 @@ export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
   /** Arrived somewhere new: the trip's destination. */
-  landed?(city: City): void;
+  landed?(city: City, travel: Travel): void;
   /** Reached a place of note. Listeners may change how long he stays with restFor(). */
   arrived?(place: Place): void;
   /** Picked a new goal or trip, and how. */
@@ -364,7 +364,7 @@ export class Walker {
     this.bounds = t.to.bounds ?? cityBounds(t.to.lat, t.to.lon);
     this.tripM = 0;
     this.tripStartM = 0;
-    this.events.landed?.(t.to);
+    this.events.landed?.(t.to, t);
   }
 
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
