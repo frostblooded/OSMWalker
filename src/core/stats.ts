@@ -212,10 +212,11 @@ export class Stats {
     return line;
   }
 
-  /** Speed percent from his gear. */
+  /** Speed percent from his gear; a sulking dragon's doesn't count. */
   speedBonus(): number {
     let v = 0;
-    for (const item of Object.values(this.gear)) v += item?.stats.speed ?? 0;
+    const sulks = this.sulking();
+    for (const [slot, item] of Object.entries(this.gear)) if (!(sulks && slot === "vehicle")) v += item?.stats.speed ?? 0;
     return v;
   }
 

@@ -33,9 +33,10 @@ export const MAX_SKIPS = 3;
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
 /** After a catch-up he stands on the nearest loaded corner when it is this close to where he ended up. */
 export const SNAP_M = 100;
-/** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and nearer the goal by half. */
+/** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and at most LAND_SHARE of his distance. */
 export const FLY_MIN_M = 400;
 export const LAND_MAX_M = 1500;
+export const LAND_SHARE = 0.5;
 export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
 export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
@@ -477,7 +478,7 @@ export class Walker {
     const far = distanceM(from[0], from[1], goal[0], goal[1]);
     if (far < FLY_MIN_M) return false;
     let pad: Place | null = null;
-    let padM = Math.min(LAND_MAX_M, far / 2);
+    let padM = Math.min(LAND_MAX_M, far * LAND_SHARE);
     for (const q of this.graph.placesIn(bboxAround(goal[0], goal[1], LAND_MAX_M))) {
       if (!LAND_KINDS.has(q.class)) continue;
       const m = distanceM(q.lat, q.lon, goal[0], goal[1]);
@@ -695,6 +696,8 @@ export class Walker {
     w.departing = d.departing;
     w.travel = d.travel;
     w.flight = d.flight ?? null;
+    // The corner he lands on, so the walk goes on before the streets there reload.
+    if (w.flight && !graph.nodes.has(w.flight.node)) graph.nodes.set(w.flight.node, [w.flight.to[0], w.flight.to[1]]);
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
       if (id !== null && p && !graph.nodes.has(id)) graph.nodes.set(id, [p[0], p[1]]);
     }

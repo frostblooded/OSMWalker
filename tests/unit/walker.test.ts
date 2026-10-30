@@ -938,5 +938,11 @@ describe("flying mounts", () => {
     const back = roundTrip(w, longStreet(6));
     expect(back.flight).toEqual(w.flight);
     expect(back.position()[1]).toBeCloseTo(w.position()[1], 9);
+    // Reloaded with no streets yet, he still lands and stands where he landed.
+    const bare = roundTrip(w);
+    bare.flies = true;
+    bare.advance(5000);
+    expect(bare.flight).toBeNull();
+    expect(bare.position()).toEqual(w.flight!.to);
   });
 });

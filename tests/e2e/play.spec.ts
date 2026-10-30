@@ -25,13 +25,10 @@ test("picks a city and walks its streets", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("on a fed dragon, it shows at his side", async ({ page }) => {
+test("on a dragon he can feed, it shows at his side", async ({ page }) => {
   await startInSofia(page);
-  await reopenWith(
-    page,
-    `const t = new Date(); d.stats.dragonFed = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
-     d.stats.gear.vehicle = { name: "Dragon", slot: "vehicle", vehicle: "dragon", stats: { speed: 2 }, rarity: "Common", price: 4000000 };`,
-  );
+  // He starts with enough money to feed it, so it eats as soon as he sets off.
+  await reopenWith(page, `d.stats.gear.vehicle = { name: "Dragon", slot: "vehicle", vehicle: "dragon", stats: { speed: 2 }, rarity: "Common", price: 4000000 };`);
   await expect(page.locator(".marker.him .mount")).toHaveText("🐉", { timeout: 20000 });
 });
 

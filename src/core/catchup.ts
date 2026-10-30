@@ -168,6 +168,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   };
   /** Walks `m` meters, or as far as the time left allows; false when time ran out first. */
   const walk = (m: number) => {
+    // His dragon eats before he sets off, so a fed one flies the whole leg, as it would after the first moment of a watched walk.
+    stats.feedDragon(rng);
     const min = m / stats.speedMps() / 60;
     if (min > leftMin()) return false;
     pass(min, m);

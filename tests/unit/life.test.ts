@@ -454,6 +454,8 @@ describe("speed", () => {
     expect(stats.feedDragon(never)).toMatch(/sulks/);
     expect(stats.feedDragon(never)).toBe("");
     expect(stats.getsAbout()).toBe("");
+    stats.gear.vehicle!.stats.speed = 50;
+    expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
     stats.cents = S.DRAGON_UPKEEP;
     stats.walkFor(0.5, never);
     expect(stats.getsAbout()).toBe("dragon");
