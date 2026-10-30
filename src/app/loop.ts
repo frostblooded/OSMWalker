@@ -26,7 +26,7 @@ export class Loop {
     private readonly scene: MapScene,
   ) {
     document.addEventListener("visibilitychange", () => (document.hidden ? this.pause() : this.start()));
-    addEventListener("pagehide", () => (this.game.leaveDilemma(), this.game.save()));
+    addEventListener("pagehide", () => this.game.leave());
   }
 
   start(): void {
@@ -40,8 +40,7 @@ export class Loop {
   pause(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    this.game.leaveDilemma();
-    this.game.save();
+    this.game.leave();
   }
 
   private schedule(ms: number): void {

@@ -10,7 +10,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 
 | Layer | Folder | What it holds |
 | --- | --- | --- |
-| Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core`; `HelpSheet.tsx` loads it, and the text, only when Help first opens. |
+| Screens | `src/ui/` | Preact screens and sheets. `kit.tsx` + `app.css` are the UI kit (see `docs/ui-guidelines.md`). `help.ts` fills Help text with numbers from `src/core`; `HelpSheet.tsx` loads it as its own chunk, off the startup path, and the text when Help first opens. |
 | App | `src/app/` | `loop.ts` ticks the game while the page is visible. `data.ts` fetches `public/data/` once. `sound.ts` is the optional city sound, made with Web Audio and loaded only when it is turned on. |
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
@@ -28,6 +28,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 - **His look.** `src/core/look.ts` names each pose's motion (`rise`, `pop`); `src/ui/app.css` has a `.bubble` class and `@keyframes` of the same name for each. Its place icons must cover every kind in `actions.json` (`tests/unit/look.test.ts` checks).
 - **Postcards.** A postcard travels in the link's `#postcard=` fragment, so the format in `core/postcard.ts` must keep reading links already sent; `App.tsx` reads it on open and clears it from the address.
 - **Keepsakes in Help.** `src/ui/help.ts` words each crawl's place kinds by crawl id (`CRAWL_KINDS`), so a crawl added to or changed in `keepsakes.ts` needs its words there; Help shows one souvenir price, so every "souvenir": true action in `actions.json` must cost the same. `tests/unit/help.test.ts` checks both. The Souvenirs page also names the kinds of place that sell souvenirs (gift shops, kiosks, newsagents, sights, museums) by hand, so moving the action to other places in `actions.json` needs that page changed.
+- **Lazy chunks.** `HelpSheet.tsx` imports `help.ts`, and `game.ts` imports `core/dilemmas.ts`, with `import()` to keep them out of startup JS. The service worker only caches what the page fetches, so `src/main.tsx` fetches the same chunks at idle once it is ready; a new lazy `import()` that must work offline needs a line there too.
 - **Perf budgets.** `tests/perf/budgets.json` sets the CI limits (transfer, JS size, first paint, long tasks). A new dependency or eager import usually shows up there first.
 - **Layout.** `tests/e2e/layout.spec.ts` opens every screen at 360 and 412 px and fails on overlap or sideways scroll. A new screen or sheet needs a step there. CI keeps the shots as the `screens` artifact.
 

@@ -1,7 +1,7 @@
 // One dilemma on reopen: now and then, after a long time away, the away card
 // holds one small choice ("A trucker offers a free ride to Varna. Hop on, or
 // stay?"). Your tap picks the outcome; if you just carry on he decides by
-// himself, leaning on his own attributes and meters. Nothing ever waits for
+// himself, leaning on one of his attributes. Nothing ever waits for
 // you. A few offers send him to another city, free.
 import { effect } from "./gifts";
 import { euro, signed } from "./money";

@@ -1,7 +1,9 @@
 // The game loop with real Sofia streets, fake servers and fixed dice.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+// Loaded up front, so the game's own import() of it is instant and never runs past DILEMMA_WAIT_MS on a slow machine.
+import "../../src/core/dilemmas";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
@@ -526,7 +528,7 @@ describe("game", () => {
 
     it("never waits for you: leaving the page, or another reopen, lets him decide", async () => {
       const { again } = await reopenDilemma("bread");
-      expect(again.leaveDilemma()).toBe(true);
+      again.leave();
       expect(again.dilemma).toMatchObject({ by: "him" });
       expect(again.stats.history.latest()).toMatch(/^Decided by himself: /);
       expect(again.leaveDilemma()).toBe(false);
@@ -557,8 +559,34 @@ describe("game", () => {
       again.dilemma!.city = plovdiv!;
       again.walker!.startTravel({ ...vidin!, bounds: cityBounds(vidin!) }, "bus");
       again.chooseDilemma(0);
-      expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
-      expect(again.stats.history.latest()).toBe("Thanked the trucker and stayed");
+      expect(again.dilemma).toMatchObject({ picked: 1, by: "him" });
+      expect(again.stats.history.latest()).toBe("Decided by himself: Thanked the trucker and stayed");
+    });
+
+    it("lets a free ride replace a trip he is walking to, with its guess", async () => {
+      const { again } = await reopenDilemma("trucker");
+      const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
+      again.dilemma!.city = vidin!;
+      const w = again.walker!;
+      w.departing = { city: { ...plovdiv!, bounds: cityBounds(plovdiv!) }, mode: "bus", station: null, fare: 1248, arrive: [plovdiv!.lat, plovdiv!.lon], distance_m: 120000 } as unknown as typeof w.departing;
+      again.stats.care.guess = { abroad: false, choices: ["Plovdiv", "Vidin"], answer: "Plovdiv", pick: "" };
+      again.chooseDilemma(0);
+      expect(again.city).toBe("Vidin, Bulgaria");
+      expect(w.departing).toBeNull();
+      expect(again.stats.care.guess).toBeNull();
+    });
+
+    it("still finishes a reopen when the dilemma code can't load", async () => {
+      vi.doMock("../../src/core/dilemmas", () => {
+        throw new Error("offline");
+      });
+      try {
+        const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true));
+        expect(again.away).not.toBeNull();
+        expect(again.dilemma).toBeNull();
+      } finally {
+        vi.doUnmock("../../src/core/dilemmas");
+      }
     });
 
     it("goes on trips while away and lands him in the new city", async () => {

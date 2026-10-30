@@ -1,7 +1,7 @@
 // Help: a search box over a list of topics by section, and a page per topic
-// made of cards. The text and the code that fills it in (help.ts, with every
-// list and number it pulls from the game) load the first time Help opens, so
-// they cost nothing at startup.
+// made of cards. The code that fills the text in (help.ts, with every list and
+// number it pulls from the game) is its own chunk, kept off the startup path
+// (main.tsx fetches it at idle); the text itself loads the first time Help opens.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GameData } from "../game/game";
 import type { Section } from "./help";

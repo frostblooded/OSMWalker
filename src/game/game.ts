@@ -39,6 +39,8 @@ export const MAX_STEP_S = 1;
 export const STREET_RING = 1;
 /** Longest wait on reopen for the streets around him (from the device's cache), so the catch-up uses real places. */
 export const CATCHUP_WAIT_MS = 3000;
+/** Longest a reopen waits, after the streets, for the dilemma code; past it there is no dilemma this time. */
+export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
@@ -101,7 +103,7 @@ export class Game {
   awayClover = false;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
-  /** core/dilemmas.ts, loaded on the first long reopen so it costs nothing at startup. */
+  /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
@@ -485,8 +487,9 @@ export class Game {
     if (awayS < MIN_AWAY_S) return;
     this.leaveDilemma();
     this.waking = true;
-    // Loads alongside the street wait; a reopen without it (offline before it was ever cached) just has no dilemma.
-    const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").catch(() => null);
+    // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
+    // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
+    const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
@@ -494,11 +497,13 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      const D = (this.dilemmas = await dilemmas);
+      const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.dilemma =
         D?.rollDilemma(awayS, this.rng, (kind) => {
+          // No free ride while he is on a paid one.
+          if (w.isTraveling()) return null;
           const here = w.position();
           return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
@@ -589,6 +594,12 @@ export class Game {
     this.changed();
   }
 
+  /** The page is hidden or closed: nothing waits for you, so he settles an open dilemma, then the game saves. */
+  leave(): void {
+    this.leaveDilemma();
+    this.save();
+  }
+
   /** He decides an open dilemma by himself: the card is closing, the page is being left, or a new reopen replaces it. True when he did. */
   leaveDilemma(): boolean {
     const d = this.dilemma;
@@ -601,8 +612,8 @@ export class Game {
   /** Applies a dilemma's outcome; a trip offer sends him to its city at once, free. */
   private settleDilemma(d: Dilemma, pick: number, by: "you" | "him"): void {
     const w = this.walker;
-    // A ride he has already paid for goes first, so he turns a free one down.
-    if (d.city && w?.isTraveling()) pick = 1;
+    // He boarded a paid ride while the card was open: that goes first, so he turns the free one down himself.
+    if (d.city && w?.isTraveling()) [pick, by] = [1, "him"];
     const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     if (!o.trip || !d.city || !w) return;
     // A free ride replaces a trip he is still walking to the station for, and its guess.
