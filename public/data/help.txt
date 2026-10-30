@@ -72,7 +72,7 @@ If no places have loaded yet, he heads for a random spot in the city box instead
 
 He counts as arrived when he is within {ARRIVE_M} m of the place.
 ## Made-up places {made_places}
-The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions. They give no cards, souvenirs, Placedex entries or crawl progress, since those are for real places.
+The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions. They give no cards, souvenirs, Placedex entries or crawl progress, since those are for real places, but the first of each extra kind and his first wizard's tower count as odd places in the Collection.
 
 Must-haves fill gaps. If none of the loaded places is one of these, the city gets one near its centre, on a street:
 - a bus station ("Plovdiv coach station"), so he can leave,
@@ -504,7 +504,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
@@ -512,12 +512,19 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
-🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
-- Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
-- City cards: how many of each rarity he has out of all, foil and gold, spares waiting to be sold and free packs waiting to be opened, then a row per country he has cards from (tap Countries), with ✔ for a finished set.
-- Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
-- Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
-- Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
+🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
+
+At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
+- 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
+- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
+- 🌍 World: every country, how many cities he has been to, and the souvenirs.
+- ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
+- 🏅 Feats: his badges, a card for each tab they belong to.
+
+Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.
+## Badges and titles {badges}
+A feat counts something he does. Its first number gives him a 🥉 Bronze badge, the second 🥈 Silver and the third 🥇 Gold. The feed says so, and a badge stays even if the count drops later (say he sells a treasured item). A Gold badge also gives him a title, shown on the Collection and Stats sheets: the newest one he earned. Badges and titles give nothing else.
+{FEAT_LIST}
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 

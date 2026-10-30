@@ -515,11 +515,16 @@ export class Stats {
    * Right after reaching a real place (after visit()): a landmark card the
    * first time (a revisit gives nothing) and maybe the country's souvenir,
    * a new Placedex kind, the perks of crawls he finished, and progress on the rest.
-   * Made-up places (core/poiGen.ts) give none of these.
+   * Made-up places (core/poiGen.ts) give none of these; only the first
+   * of each odd kind (a well, a wizard's tower) is noted for the Collection.
    */
   collect(place: Place, rng: Rng): void {
-    if (place.made) return;
     const k = this.keepsakes;
+    if (place.made) {
+      // Extras carry `extra`; a wizard's tower is known by its kind (poiGen.TOWER_KIND, which a test checks).
+      if ((place.extra || place.class === "wizard_tower") && !k.odd.includes(place.class)) k.odd.push(place.class);
+      return;
+    }
     const key = visitKey(place);
     const kind = K.kindOf(place);
     if (K.isLandmark(place) && !k.cards.has(key)) {

@@ -111,6 +111,25 @@ for (const width of [360, 412]) {
   test.describe(`at ${width} px`, () => {
     test.use({ viewport: { width, height: 740 } });
 
+    // The Collection's five tabs have their own walk, so the one above stays well inside its time limit.
+    test("no Collection tab has overlapping text or sideways scroll", async ({ page }) => {
+      await page.goto("./");
+      await page.getByLabel("City name").fill("Sofia");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await reopenWith(page, KEEPSAKES);
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Collection/);
+      const collection = page.getByRole("dialog", { name: /Collection/ });
+      for (const tab of ["Cards", "Places", "World", "Gear", "Feats"]) {
+        await collection.getByRole("tab", { name: new RegExp(tab) }).click();
+        // Open the first fold on the tab, so a grid of tiles is checked too.
+        const fold = collection.locator(".fold-head").first();
+        if (await fold.count()) await fold.click();
+        await check(page, `collection-${tab.toLowerCase()}`);
+      }
+    });
+
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
       // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
       test.setTimeout(90_000);
@@ -153,11 +172,6 @@ for (const width of [360, 412]) {
 
       await reopenWith(page, KEEPSAKES);
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      await openMenuItem(page, /Collection/);
-      const collection = page.getByRole("dialog", { name: /Collection/ });
-      for (const fold of [/His cards/, /Countries/, /Today/]) await collection.getByRole("button", { name: fold }).click();
-      await check(page, "collection");
-      await collection.getByRole("button", { name: /Close/ }).click();
       await openMenuItem(page, /Stats/);
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
       await check(page, "stats-story");

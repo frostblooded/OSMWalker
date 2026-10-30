@@ -14,13 +14,11 @@ import { euro } from "../core/money";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
-import { AwaySheet } from "./AwaySheet";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
-import { StatsSheet } from "./StatsSheet";
 import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
@@ -221,7 +219,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          <StatsSheet stats={game.stats} />
+          <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
+            {(m) => <m.StatsSheet stats={game.stats} />}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "collection" && (
@@ -278,14 +278,16 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />
+          <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
+            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />}
+          </Lazy>
         </SheetBox>
       )}
     </div>
   );
 }
 
-/** A sheet's module, loaded the first time it opens to keep it out of startup JS (the Collection, the Care package sheet). */
+/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats, the Collection, the Care package sheet, the away sheet). */
 function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
   const [mod, setMod] = useState<M | null>(null);
   const [failed, setFailed] = useState(false);

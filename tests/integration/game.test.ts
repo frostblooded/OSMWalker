@@ -731,6 +731,14 @@ describe("game", () => {
       }
     });
 
+    it("hands out badges at saves once he is awake", async () => {
+      const { again } = await reopen(2 * HOUR, {}, (g) => (g.stats.level = 5));
+      await vi.waitFor(() => {
+        again.save();
+        expect(again.stats.history.entries.some((e) => e.text === "🥉 Bronze badge: Growing up (level 5)")).toBe(true);
+      });
+    });
+
     it("goes on trips while away and lands him in the new city", async () => {
       const { again } = await reopen(24 * HOUR, { roll: 0.1 }, (g) => {
         g.stats.cents = 500_000;

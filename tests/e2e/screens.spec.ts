@@ -91,22 +91,46 @@ test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   await expect(sheet).toBeHidden();
 });
 
-test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page }) => {
+test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {
   await startInSofia(page);
-  await reopenWith(page, KEEPSAKES);
+  await reopenWith(page, `${KEEPSAKES} d.stats.keepsakes.title = "Globetrotter";`);
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Collection/ }).click();
   const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Landmark cards", "City cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("button", { name: /Countries/ }).click();
+  for (const t of ["Completion", "Globetrotter", "Landmark cards", "City cards"]) await expect(sheet).toContainText(t);
+  await expect(sheet.locator(".dex-tile.gold")).toContainText("Alexander Nevsky Cathedral");
+  // No word on a tile is split across lines.
+  const split = await sheet.locator(".dex-tile .small").evaluateAll((spans) =>
+    spans.flatMap((el) => {
+      const text = el.firstChild!;
+      const words: string[] = [];
+      for (const m of (text.textContent ?? "").matchAll(/\S+/g)) {
+        const r = document.createRange();
+        r.setStart(text, m.index!);
+        r.setEnd(text, m.index! + m[0].length);
+        if (r.getClientRects().length > 1) words.push(m[0]);
+      }
+      return words;
+    }),
+  );
+  expect(split).toEqual([]);
+  await sheet.getByRole("tab", { name: /Places/ }).click();
+  for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
+  await sheet.getByRole("tab", { name: /World/ }).click();
+  await sheet.getByRole("button", { name: /^All/ }).last().click();
   await expect(sheet).toContainText("bottle of rose oil");
-  await sheet.getByRole("button", { name: /Today/ }).click();
-  await expect(sheet).toContainText("Coffee crawl");
-  await expect(sheet).toContainText("✔ Done");
-  await sheet.getByRole("button", { name: /His cards/ }).click();
-  await expect(sheet.locator(".lcard.gold")).toContainText("Alexander Nevsky Cathedral");
+  await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
+  await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
+  await sheet.getByRole("tab", { name: /Gear/ }).click();
+  for (const t of ["Item bases", "Materials", "Vehicles"]) await expect(sheet).toContainText(t);
+  await sheet.getByRole("tab", { name: /Feats/ }).click();
+  await expect(sheet).toContainText("Passport stamps");
   expect(await smallButtons(page)).toEqual([]);
+  await sheet.getByRole("button", { name: /Close/ }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("🎖 TitleGlobetrotter");
 });
 
 test("Stats tells a bought item's story", async ({ page }) => {

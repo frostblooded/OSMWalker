@@ -208,11 +208,16 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 .tile { background: var(--zebra); border: 2px solid var(--ink); border-radius: var(--r-small); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
 .tile b { font-size: var(--title); }
-/* Landmark cards: a frame in the rarity colour, doubled for foil and gold (named on the card too); text stays on paper. */
-.lcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s2); }
-.lcard { border: 4px solid; border-radius: var(--r-small); background: var(--paper); box-shadow: var(--lip); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
-.lcard b { font-size: var(--body); }
-.lcard.foil, .lcard.gold { border-style: double; border-width: 6px; }
+/* Collection: tabs, then dex grids. Tiles are wide enough for a whole word; a word breaks only if it is longer than the tile. A found tile has a frame in its rarity colour, doubled for foil and gold (named in its detail too); an unfound one is a dimmed ?. */
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s2); }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: var(--tap-big); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); font-size: var(--heading); padding: var(--s1) 0; }
+.tab.on { background: var(--accent); color: #fff; box-shadow: var(--lip); }
+.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); margin-top: var(--s2); }
+.dex-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; min-width: 0; padding: var(--s1); border: 3px solid var(--ink); border-radius: var(--r-small); background: var(--paper); font-size: var(--heading); overflow-wrap: break-word; hyphens: manual; text-align: center; }
+.dex-tile .small { line-height: 1.2; }
+.dex-tile.unfound { background: var(--zebra); border-style: dashed; color: var(--dim); }
+.dex-tile.foil, .dex-tile.gold { border-style: double; border-width: 6px; }
+.dex-pick { margin: var(--s2) 0 0; padding: var(--s2) var(--s3); border-radius: 12px; background: var(--zebra); font-size: var(--body); }
 .alerts { display: flex; flex-direction: column; gap: var(--s2); }
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
