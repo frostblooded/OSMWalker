@@ -101,7 +101,7 @@ His face shows how he feels. The first of these that fits wins:
 - 😄 happy: mood {HAPPY_MOOD} or more,
 - 🙂 fine: anything else.
 
-While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot or on a trip there is no bubble.
+While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
 
 While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
 # 🎯 Actions
