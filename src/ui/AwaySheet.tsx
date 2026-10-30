@@ -4,7 +4,7 @@
 // one small choice, and everything he did folded away below. After a week
 // turns over, last week's recap leads it, once.
 import type { Summary } from "../core/catchup";
-import { kindOf, labels, question, type Dilemma } from "../core/dilemmas";
+import type { Dilemma } from "../core/dilemmas";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
 import { timeText } from "../core/history";
 import { placeIcon } from "../core/look";
@@ -105,14 +105,13 @@ function weekText(start: number): string {
 
 /** The one choice this reopen offers: tap an option, or carry on and he decides by himself. */
 function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => void }) {
-  const names = labels(d);
   return (
-    <Card icon={kindOf(d).icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
-      <p>{question(d)}</p>
+    <Card icon={d.icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
+      <p>{d.ask}</p>
       {d.picked === null ? (
         <>
           <div class="choices dilemma">
-            {names.map((n, i) => (
+            {d.labels.map((n, i) => (
               <button key={n} class="btn" onClick={() => onChoose(i)}>
                 {n}
               </button>
@@ -122,7 +121,7 @@ function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => 
         </>
       ) : (
         <>
-          <KV k="✔ You chose" v={names[d.picked]} tone="ok" />
+          <KV k={d.by === "you" ? "✔ You chose" : "✔ He chose"} v={d.labels[d.picked]} tone="ok" />
           <p class="dim small">{d.said}</p>
         </>
       )}

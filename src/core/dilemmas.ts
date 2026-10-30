@@ -17,6 +17,11 @@ export const DILEMMA_CHANCE = 0.25;
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
 
+/** What the chess hustler bets. */
+export const CHESS_STAKE = 1000;
+/** What the found wallet holds. */
+export const WALLET_CENTS = 4000;
+
 export type Option = {
   label: string;
   /** What he says he did, for his History. */
@@ -32,7 +37,7 @@ export type Option = {
 export type DilemmaKind = {
   id: string;
   icon: string;
-  /** The question; {CITY} is the city of a trip offer. */
+  /** The question; {CITY} is the city of a trip offer, {STAKE} and {WALLET} the sums below. */
   text: string;
   /** A trip offer goes to a city of this kind. */
   trip?: Exclude<Kind, "stay">;
@@ -55,12 +60,12 @@ export const DILEMMAS: DilemmaKind[] = [
     options: [{ label: "Join in", say: "Busked with a street musician", cents: 1200, fx: { mood: 15, energy: -10 } }, { label: "Walk on", say: "Listened to a street musician, then walked on", fx: { mood: 3 } }],
   },
   {
-    id: "wallet", icon: "👛", text: "He finds a wallet with €40 in it.", lean: "wit",
-    options: [{ label: "Hand it in", say: "Handed a lost wallet in to the police", fx: { mood: 10, xp: 40 } }, { label: "Keep it", say: "Kept a wallet he found", cents: 4000, fx: { mood: -10 } }],
+    id: "wallet", icon: "👛", text: "He finds a wallet with {WALLET} in it.", lean: "wit",
+    options: [{ label: "Hand it in", say: "Handed a lost wallet in to the police", fx: { mood: 10, xp: 40 } }, { label: "Keep it", say: "Kept a wallet he found", cents: WALLET_CENTS, fx: { mood: -10 } }],
   },
   {
-    id: "chess", icon: "♟", text: "A chess hustler bets €10 he can't beat him.", lean: "wit",
-    options: [{ label: "Play", say: "Played a chess hustler for €10", fx: { xp: 25 } }, { label: "Pass", say: "Passed on a chess hustler's bet" }],
+    id: "chess", icon: "♟", text: "A chess hustler bets {STAKE} he can't beat him.", lean: "wit",
+    options: [{ label: "Play", say: "Played a chess hustler for {STAKE}", fx: { xp: 25 } }, { label: "Pass", say: "Passed on a chess hustler's bet" }],
   },
   {
     id: "helper", icon: "🛍", text: "An old lady needs help carrying her shopping home.", lean: "str",
@@ -81,7 +86,6 @@ export const DILEMMAS: DilemmaKind[] = [
 
 /** The chess game: his chance to win, from Wits. */
 export const chessWin = (wit: number) => Math.min(0.3 + 0.04 * wit, 0.8);
-export const CHESS_STAKE = 1000;
 
 const ATTR_NAMES: Record<Attr, string> = { str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck" };
 
@@ -95,17 +99,19 @@ export function optionText(k: DilemmaKind, o: Option): string {
 /** One Help line per dilemma: the question, the attribute he leans on, and what each option does. */
 export const helpList = () =>
   DILEMMAS.map((k) => {
-    const q = k.text.replace("{CITY}", k.trip === "country" ? "another country" : "another city");
+    const q = fill(k.text, k.trip === "country" ? "another country" : "another city");
     return `- ${k.icon} ${q} ${k.options.map((o) => `${o.label} (${optionText(k, o)})`).join(" or ")}. He leans on ${ATTR_NAMES[k.lean]}.`;
   }).join("\n");
 
-/** A dilemma that came up, with the city a trip offer goes to. */
-export type Dilemma = { id: string; city: City | null; picked: number | null; by: "you" | "him" | null; said: string };
+/**
+ * A dilemma that came up, with the city a trip offer goes to and what the
+ * away card shows (so the card needs nothing from this file, which loads
+ * only on a reopen).
+ */
+export type Dilemma = { id: string; city: City | null; icon: string; ask: string; labels: string[]; picked: number | null; by: "you" | "him" | null; said: string };
 
-export const kindOf = (d: Dilemma) => DILEMMAS.find((k) => k.id === d.id)!;
-const fillCity = (text: string, d: Dilemma) => text.replace("{CITY}", d.city?.name ?? "");
-export const question = (d: Dilemma) => fillCity(kindOf(d).text, d);
-export const labels = (d: Dilemma) => kindOf(d).options.map((o) => o.label);
+const kindOf = (d: Dilemma) => DILEMMAS.find((k) => k.id === d.id)!;
+const fill = (text: string, city: string) => text.replace("{CITY}", city).replace("{STAKE}", euro(CHESS_STAKE)).replace("{WALLET}", euro(WALLET_CENTS));
 
 /**
  * Maybe a dilemma for a reopen after `awayS`: DILEMMA_CHANCE of one after
@@ -119,14 +125,14 @@ export function rollDilemma(awayS: number, rng: Rng, cityFor: (kind: Exclude<Kin
     const k = pool.splice(rng.randiRange(0, pool.length - 1), 1)[0]!;
     const city = k.trip ? cityFor(k.trip) : null;
     if (k.trip && !city) continue;
-    return { id: k.id, city, picked: null, by: null, said: "" };
+    return { id: k.id, city, icon: k.icon, ask: fill(k.text, city?.name ?? ""), labels: k.options.map((o) => o.label), picked: null, by: null, said: "" };
   }
   return null;
 }
 
-/** His own pick when you don't choose: 0 ("go for it") more likely the higher his leaning attribute. */
+/** His own pick when you don't choose: 0 ("go for it") more likely the higher his leaning attribute, never less likely than even. */
 export function hisPick(d: Dilemma, stats: Stats, rng: Rng): number {
-  const lean = Math.min(LEAN_PER_POINT * (stats.attr(kindOf(d).lean) - 1), LEAN_CAP);
+  const lean = Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(kindOf(d).lean) - 1), LEAN_CAP));
   return rng.randf() < 0.5 + lean ? 0 : 1;
 }
 
@@ -140,7 +146,7 @@ export function settle(d: Dilemma, pick: number, by: "you" | "him", stats: Stats
   d.picked = pick;
   d.by = by;
   let cents = o.cents ?? 0;
-  let say = fillCity(o.say, d);
+  let say = fill(o.say, d.city?.name ?? "");
   if (k.id === "chess" && pick === 0) {
     const won = rng.randf() < chessWin(stats.attr("wit"));
     cents = won ? CHESS_STAKE : -Math.min(CHESS_STAKE, stats.cents);

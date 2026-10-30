@@ -10,7 +10,7 @@ import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Su
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
-import { DILEMMA_CHANCE, hisPick, rollDilemma, settle, type Dilemma } from "../core/dilemmas";
+import type { Dilemma } from "../core/dilemmas";
 import { distanceM, type BBox } from "../core/geo";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
@@ -99,8 +99,10 @@ export class Game {
   away: Summary | null = null;
   /** True when this reopen earned a clover, for the summary card. */
   awayClover = false;
-  /** The choice the summary card offers this time, if any; he settles it himself when the card closes. */
+  /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
+  /** core/dilemmas.ts, loaded on the first long reopen so it costs nothing at startup. */
+  private dilemmas: typeof import("../core/dilemmas") | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -481,6 +483,7 @@ export class Game {
     const from = this.savedAt;
     const awayS = (this.now() - from) / 1000;
     if (awayS < MIN_AWAY_S) return;
+    this.leaveDilemma();
     this.waking = true;
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
@@ -491,10 +494,11 @@ export class Game {
       }
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
-      this.dilemma = rollDilemma(awayS, this.rng, (kind) => {
+      const D = (this.dilemmas ??= await import("../core/dilemmas"));
+      this.dilemma = D.rollDilemma(awayS, this.rng, (kind) => {
         const here = w.position();
         return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
-      }, this.alwaysDilemma ? 1 : DILEMMA_CHANCE);
+      }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE);
     } finally {
       this.waking = false;
     }
@@ -565,8 +569,7 @@ export class Game {
 
   /** Closes the summary card. */
   dismissAway(): void {
-    const d = this.dilemma;
-    if (d && d.picked === null) this.settleDilemma(d, hisPick(d, this.stats, this.rng), "him");
+    if (this.leaveDilemma()) this.save();
     this.dilemma = null;
     this.away = null;
     this.awayClover = false;
@@ -583,9 +586,18 @@ export class Game {
     this.changed();
   }
 
+  /** He decides an open dilemma by himself: the card is closing, the page is being left, or a new reopen replaces it. True when he did. */
+  leaveDilemma(): boolean {
+    const d = this.dilemma;
+    if (!d || d.picked !== null || !this.dilemmas) return false;
+    this.settleDilemma(d, this.dilemmas.hisPick(d, this.stats, this.rng), "him");
+    this.changed();
+    return true;
+  }
+
   /** Applies a dilemma's outcome; a trip offer sends him to its city at once, free. */
   private settleDilemma(d: Dilemma, pick: number, by: "you" | "him"): void {
-    const o = settle(d, pick, by, this.stats, this.rng);
+    const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     const w = this.walker;
     if (!o.trip || !d.city || !w) return;
     this.stats.history.breakTrail();

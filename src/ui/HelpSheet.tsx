@@ -1,9 +1,12 @@
 // Help: a search box over a list of topics by section, and a page per topic
-// made of cards. The text is fetched the first time Help opens, so it costs
-// nothing before.
+// made of cards. The text and the code that fills it in (help.ts, with every
+// list and number it pulls from the game) load the first time Help opens, so
+// they cost nothing at startup.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GameData } from "../game/game";
-import { blocks, build, search, type Section } from "./help";
+import type { Section } from "./help";
+
+type Help = typeof import("./help");
 
 let text: Promise<string> | null = null;
 const fetchText = () => {
@@ -17,17 +20,21 @@ const fetchText = () => {
 
 export function HelpSheet({ data, page, onPage }: { data: GameData; page: string; onPage: (id: string) => void }) {
   const [sections, setSections] = useState<Section[] | null>(null);
+  const [help, setHelp] = useState<Help | null>(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const hits = useMemo(() => (sections ? search(sections, query) : []), [sections, query]);
+  const hits = useMemo(() => (sections && help ? help.search(sections, query) : []), [sections, help, query]);
   useEffect(() => {
-    fetchText()
-      .then((t) => setSections(build(t, data)))
+    Promise.all([fetchText(), import("./help")])
+      .then(([t, h]) => {
+        setHelp(h);
+        setSections(h.build(t, data));
+      })
       .catch(() => setError("Couldn't load Help. Check your connection and try again."));
   }, [data]);
 
   if (error) return <p class="notice error">✖ {error}</p>;
-  if (!sections) {
+  if (!sections || !help) {
     return (
       <p class="notice">
         <span class="spin" /> Loading Help…
@@ -39,7 +46,7 @@ export function HelpSheet({ data, page, onPage }: { data: GameData; page: string
     return (
       <>
         <h3 class="page-title">{open.title}</h3>
-        {blocks(open.body).map((b, i) => (
+        {help.blocks(open.body).map((b, i) => (
           <div class="card help-block" key={i}>
             {b.text && <p>{b.text}</p>}
             {b.items.length > 0 && (

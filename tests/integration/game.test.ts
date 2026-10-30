@@ -8,7 +8,7 @@ import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { parseAirports, parseCities } from "../../src/core/trips";
+import { parseAirports, parseCities, type City } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -501,9 +501,16 @@ describe("game", () => {
       expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
     });
 
+    /** A reopen that brings a dilemma (the Debug switch), then made into `id`, offering `city`. */
+    async function reopenDilemma(id: string, city: City | null = null) {
+      const r = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true));
+      expect(r.again.dilemma).not.toBeNull();
+      r.again.dilemma = { ...r.again.dilemma!, id, city };
+      return r;
+    }
+
     it("settles a dilemma by your tap, or by himself when the card closes", async () => {
-      const { again } = await reopen(5 * HOUR);
-      again.dilemma = { id: "wallet", city: null, picked: null, by: null, said: "" };
+      const { again } = await reopenDilemma("wallet");
       const cents = again.stats.cents;
       again.chooseDilemma(1);
       again.chooseDilemma(0);
@@ -512,16 +519,31 @@ describe("game", () => {
       again.dismissAway();
       expect(again.dilemma).toBeNull();
 
-      const other = (await reopen(5 * HOUR)).again;
-      other.dilemma = { id: "musician", city: null, picked: null, by: null, said: "" };
+      const other = (await reopenDilemma("musician")).again;
       other.dismissAway();
       expect(other.stats.history.latest()).toMatch(/^Decided by himself: /);
     });
 
+    it("never waits for you: leaving the page, or another reopen, lets him decide", async () => {
+      const { again } = await reopenDilemma("bread");
+      expect(again.leaveDilemma()).toBe(true);
+      expect(again.dilemma).toMatchObject({ by: "him" });
+      expect(again.stats.history.latest()).toMatch(/^Decided by himself: /);
+      expect(again.leaveDilemma()).toBe(false);
+
+      const r = await reopenDilemma("helper");
+      const open = r.again.dilemma!;
+      r.setNow(r.now() + 5 * HOUR);
+      await r.again.wake();
+      expect(open).toMatchObject({ by: "him" });
+      expect(r.again.stats.history.entries.some((e) => e.text.startsWith("Decided by himself: "))).toBe(true);
+    });
+
     it("takes him to the offered city when he hops on a free ride", async () => {
-      const { again } = await reopen(5 * HOUR);
+      const r = await reopenDilemma("trucker");
+      const again = r.again;
       const plovdiv = again.trips.cities.find((c) => c.name === "Plovdiv")!;
-      again.dilemma = { id: "trucker", city: plovdiv, picked: null, by: null, said: "" };
+      again.dilemma!.city = plovdiv;
       const cents = again.stats.cents;
       again.chooseDilemma(0);
       expect(again.city).toBe("Plovdiv, Bulgaria");

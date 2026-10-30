@@ -1,6 +1,6 @@
 // One small choice on reopen, and his own pick when you don't make it (src/core/dilemmas.ts).
 import { describe, expect, it } from "vitest";
-import { CHESS_STAKE, chessWin, DILEMMA_AWAY_S, DILEMMA_CHANCE, DILEMMAS, helpList, hisPick, labels, LEAN_CAP, question, rollDilemma, settle, type Dilemma } from "../../src/core/dilemmas";
+import { CHESS_STAKE, chessWin, DILEMMA_AWAY_S, DILEMMA_CHANCE, DILEMMAS, helpList, hisPick, LEAN_CAP, rollDilemma, settle, type Dilemma } from "../../src/core/dilemmas";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 import type { City } from "../../src/core/trips";
@@ -8,13 +8,13 @@ import type { City } from "../../src/core/trips";
 const VARNA: City = { name: "Varna", code: "BGR", country: "Bulgaria", lat: 43.2, lon: 27.9, pop: 330000 };
 /** An Rng whose rolls come from `rolls` in turn, and whose ranges always pick their low end. */
 const fixed = (...rolls: number[]) => ({ randf: () => rolls.shift() ?? 0, randiRange: (lo: number) => lo }) as unknown as Rng;
-const open = (id: string, city: City | null = null): Dilemma => ({ id, city, picked: null, by: null, said: "" });
+const open = (id: string, city: City | null = null): Dilemma => ({ id, city, icon: "", ask: "", labels: [], picked: null, by: null, said: "" });
 
 describe("rolling a dilemma", () => {
   it("needs a long absence and a lucky roll", () => {
     expect(rollDilemma(DILEMMA_AWAY_S - 1, fixed(0), () => VARNA)).toBeNull();
     expect(rollDilemma(DILEMMA_AWAY_S, fixed(DILEMMA_CHANCE), () => VARNA)).toBeNull();
-    expect(rollDilemma(DILEMMA_AWAY_S, fixed(0), () => VARNA)).toEqual(open(DILEMMAS[0]!.id, VARNA));
+    expect(rollDilemma(DILEMMA_AWAY_S, fixed(0), () => VARNA)).toMatchObject({ id: DILEMMAS[0]!.id, city: VARNA, picked: null, by: null });
   });
 
   it("skips trip offers when there is no city to go to", () => {
@@ -23,9 +23,11 @@ describe("rolling a dilemma", () => {
     expect(d.city).toBeNull();
   });
 
-  it("asks with the city filled in and two choices", () => {
-    expect(question(open("trucker", VARNA))).toBe("A trucker offers a free ride to Varna.");
-    expect(labels(open("trucker", VARNA))).toEqual(["Hop on", "Stay"]);
+  it("asks with the city and sums filled in, and two choices", () => {
+    const pick = (id: string) => ({ randf: () => 0, randiRange: () => DILEMMAS.findIndex((k) => k.id === id) }) as unknown as Rng;
+    expect(rollDilemma(DILEMMA_AWAY_S, pick("trucker"), () => VARNA)).toMatchObject({ icon: "🚚", ask: "A trucker offers a free ride to Varna.", labels: ["Hop on", "Stay"] });
+    expect(rollDilemma(DILEMMA_AWAY_S, pick("wallet"), () => VARNA)!.ask).toBe("He finds a wallet with €40 in it.");
+    expect(rollDilemma(DILEMMA_AWAY_S, pick("chess"), () => VARNA)!.ask).toBe("A chess hustler bets €10 he can't beat him.");
     for (const k of DILEMMAS) expect(k.options).toHaveLength(2);
   });
 });
@@ -42,6 +44,8 @@ describe("his own pick", () => {
     };
     expect(share(1)).toBeCloseTo(0.5, 1);
     expect(share(30)).toBeCloseTo(0.5 + LEAN_CAP, 1);
+    // Wits under 1 (dirt cuts Charm, say) never tilt him the other way.
+    expect(share(-3)).toBeCloseTo(0.5, 1);
   });
 });
 
