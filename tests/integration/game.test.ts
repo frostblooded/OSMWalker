@@ -385,6 +385,21 @@ describe("game", () => {
     expect(w.speedMps).toBeLessThan(g.stats.speedMps() / 2);
   });
 
+  it("a dragon he can't feed sulks: it doesn't show at his side and he walks", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+    g.stats.cents = 0;
+    await tick();
+    run(g, 1);
+    expect(look(g).mount).toBe("");
+    expect(g.walker!.flies).toBe(false);
+    g.stats.cents = 100_000;
+    run(g, 1);
+    expect(look(g).mount).toBe("🐉");
+    expect(g.walker!.flies).toBe(true);
+  });
+
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
     const shop: Place = { name: "Velo", class: "bicycle", subclass: "bicycle", rank: 1, lat: 42.6875, lon: 23.3135 };
     const near = Array.from({ length: 10 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: 42.687 + i * 0.0003, lon: 23.3195 }));
