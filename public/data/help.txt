@@ -239,7 +239,7 @@ Charm starts at 1. It grows from social actions (chatting, performing, parties),
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
-Charm also gets him better prices when he sells: each point adds 5% to what a shop pays (see The bag and selling).
+Charm also gets him better prices when he sells: each point adds {SELL_PER_CHA_PCT} to what a shop pays (see The bag and selling).
 ## Wits {wit}
 Wits start at 1. They grow from reading, learning, games, puzzles and city trivia, from levelling up, and from gear such as bows, beanies, wrenches, pocket watches and violins.
 
@@ -299,7 +299,7 @@ Each modifier adds {MOD_PRICE_PCT} of the price.
 ## The bag and selling {bag}
 Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats sheet lists what is in it.
 
-At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5. The daily forecast can raise it for a day (see Daily forecast).
+At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus {SELL_PER_CHA_PCT} of that for every point of charm. For example an item worth €100 sells for {SELL_100_CHA0} with charm 0, or {SELL_100_CHA5} with charm 5. The daily forecast can raise it for a day (see Daily forecast).
 
 While his bag is full he goes on a selling run: resale shops ({RESALE_SHOPS}) pull his next goal like an empty need (see Picking the next goal). There "Sell his loot" sells his cheapest things one after another until {SELL_RUN_LEFT} are left, with a line for each sale. Other shops still buy just one thing at a time.
 

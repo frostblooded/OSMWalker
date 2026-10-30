@@ -80,6 +80,8 @@ export const KEEP_CENTS = 2000;
 export const DEALER_OFFERS = 5;
 /** Share of an item's price he gets selling it, before his charm. */
 export const SELL_SHARE = 0.4;
+/** Each point of charm adds this share to what a shop pays. */
+export const SELL_PER_CHA = 0.05;
 /** Treasured items (see Items.isTreasured) he won't sell: his most travelled few. */
 export const TREASURED_KEEP = 3;
 /** At a resale shop with a full bag he sells his cheapest things until this many are left (a selling run). */
@@ -261,7 +263,7 @@ export class Stats {
   }
 
   sellPrice(item: Item): number {
-    return Math.round(item.price * SELL_SHARE * (1 + 0.05 * this.attr("cha")) * F.mult(this.forecast(), "sell"));
+    return Math.round(item.price * SELL_SHARE * (1 + SELL_PER_CHA * this.attr("cha")) * F.mult(this.forecast(), "sell"));
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
