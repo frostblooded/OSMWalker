@@ -212,3 +212,18 @@ describe("cities", () => {
     expect(all.nearestAirport(42.69, 23.32)!.name).toBe("Sofia Airport");
   });
 });
+
+describe("jet lag", () => {
+  it("counts time zones one per 15 degrees, the short way round", () => {
+    expect(T.timeZones(0, 7)).toBe(0);
+    expect(T.timeZones(0, 8)).toBe(1);
+    expect(T.timeZones(23.4, 139.7)).toBe(8);
+    expect(T.timeZones(170, -170)).toBe(1);
+  });
+
+  it("lasts an hour per zone up to JET_LAG_MAX_H, draining energy and cutting XP", () => {
+    expect(T.jetLag(0)).toBeNull();
+    expect(T.jetLag(3)).toMatchObject({ name: "Jet-lagged", min: 180, per_h: { energy: -T.JET_LAG_ENERGY_PER_H }, xp_mult: T.JET_LAG_XP });
+    expect(T.jetLag(20)!.min).toBe(60 * T.JET_LAG_MAX_H);
+  });
+});

@@ -32,7 +32,7 @@ import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
-import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
+import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -240,7 +240,7 @@ export class Game {
     w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
-      landed: (c) => this.onLanded(c),
+      landed: (c, t) => this.onLanded(c, t),
       arrived: (p) => this.onArrived(p),
       picked: (i) => this.onPicked(i),
       boarding: (p) => this.onBoarding(p),
@@ -404,7 +404,7 @@ export class Game {
     this.changed();
   }
 
-  private onLanded(dest: City): void {
+  private onLanded(dest: City, t: Travel): void {
     this.city = `${dest.name}, ${dest.country}`;
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
@@ -412,6 +412,10 @@ export class Game {
     this.track();
     this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
+    if (t.mode === "plane") {
+      const lag = this.stats.landFlight(t.from[1], t.arrive[1]);
+      if (lag) this.stats.say(lag);
+    }
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();

@@ -23,6 +23,7 @@ import * as Speeds from "./speeds";
 import { Rival, type Contest } from "./rival";
 import { Storyteller } from "./storyteller";
 import * as Kit from "./travelKit";
+import { jetLag, timeZones } from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
 
@@ -414,6 +415,15 @@ export class Stats {
     }
     this.cents -= cost;
     return `Packed ${Kit.list(kit.map((k) => k.name))} for the trip (${signed(-cost)})`;
+  }
+
+  /** Landed after flying from longitude `fromLon` to `toLon`: jet lag for the time zones crossed; the feed line, or "". */
+  landFlight(fromLon: number, toLon: number): string {
+    const zones = timeZones(fromLon, toLon);
+    const lag = jetLag(zones);
+    if (!lag) return "";
+    this.addBuff(lag);
+    return `Jet-lagged after flying across ${zones} time zone${zones === 1 ? "" : "s"}`;
   }
 
   /** Starts a timed effect, replacing one of the same name. */
