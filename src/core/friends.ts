@@ -89,7 +89,8 @@ export class Friends {
   board(fare: number, data: FriendData, rng: Rng): { back: number; with: string } {
     const p = this.partnerOf();
     if (p) return { back: 0, with: `, with ${p.name} ${p.icon}` };
-    if (!data.companions.length || rng.randf() >= COMPANION_CHANCE) return { back: 0, with: "" };
+    // A fellow traveller still along stays for their stops; no second one joins.
+    if (this.companion || !data.companions.length || rng.randf() >= COMPANION_CHANCE) return { back: 0, with: "" };
     const k = rng.pick(data.companions);
     this.companion = { ...k, left: COMPANION_STOPS + 1 };
     const back = Math.floor(fare * SPLIT);

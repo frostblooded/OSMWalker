@@ -215,6 +215,7 @@ function FriendsCard({ s }: { s: Stats }) {
   const row = (p: Friend) => <KV key={p.id} k={`${p.icon} ${p.name}${p.id === f.partner ? " (partner)" : ""}`} v={`${hearts(p.hearts)} · ${p.city.split(",")[0]}`} />;
   return (
     <Card icon="💞" title="Friends" right={f.list.length || undefined}>
+      {f.companion && <KV k="Travelling with" v={`${f.companion.icon} ${f.companion.who}`} />}
       {list.length ? (
         <div class="zebra">{list.slice(0, SHOWN).map(row)}</div>
       ) : (
@@ -225,7 +226,6 @@ function FriendsCard({ s }: { s: Stats }) {
           <div class="zebra">{list.slice(SHOWN).map(row)}</div>
         </Collapsible>
       )}
-      {f.companion && <KV k="Travelling with" v={`${f.companion.icon} ${f.companion.who}`} />}
     </Card>
   );
 }

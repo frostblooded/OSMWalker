@@ -81,6 +81,16 @@ describe("friends", () => {
     expect(f.companion).toBeNull();
   });
 
+  it("keeps a fellow traveller still along through the next trip, with no second one", () => {
+    const f = new F.Friends();
+    f.board(1000, DATA, fixed(0));
+    f.stop(at(), DATA, fixed(0));
+    const along = f.companion;
+    expect(f.board(1000, { ...DATA, companions: [DATA.companions[1]!] }, fixed(0))).toEqual({ back: 0, with: "" });
+    expect(f.companion).toBe(along);
+    expect(f.companion!.left).toBe(F.COMPANION_STOPS);
+  });
+
   it("brings his partner on every trip, and then no stranger joins", () => {
     const f = new F.Friends();
     f.list = [local()];
