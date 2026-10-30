@@ -92,7 +92,8 @@ export function weight(action: Action, stats: Stats): number {
  * How much a place with `actions` pulls his next goal: 1, up to 1 + NEED_BOOST
  * when one of them refills a meter that is empty, or pays while he is broke
  * or saving up; the strongest need counts. A shop that sells the vehicle he
- * has saved up for pulls GOAL_SHOP_PULL.
+ * has saved up for pulls GOAL_SHOP_PULL. With a full bag, a resale shop
+ * pulls like an empty need, for a selling run.
  */
 export function needWeight(actions: Action[], stats: Stats): number {
   const saving = stats.saving();
@@ -100,7 +101,9 @@ export function needWeight(actions: Action[], stats: Stats): number {
   const shop = saving ? undefined : stats.vehicleGoal()?.kind;
   if (shop && actions.some((a) => a.item === shop)) return GOAL_SHOP_PULL;
   let need = 0;
+  const full = stats.bagFull();
   for (const a of actions) {
+    if (full && a.resale) need = 1;
     if (broke && a.earn !== undefined) need = 1;
     for (const [m, v] of Object.entries(a.fx ?? {})) {
       if (v > 0 && m in stats.meters) need = Math.max(need, Math.max(NEED_AT - stats.meters[m as keyof Stats["meters"]], 0) / NEED_AT);

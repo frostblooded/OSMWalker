@@ -26,6 +26,7 @@ describe("service worker strategy", () => {
     const keys = [`${here}data/help.txt?v=old1`, `${here}data/help.txt?v=new2`, `${here}data/actions.json`, `${here}data/help.txt`];
     expect(replaced(keys, `${here}data/help.txt?v=new2`)).toEqual([`${here}data/help.txt?v=old1`, `${here}data/help.txt`]);
     expect(replaced(keys, `${here}data/actions.json`)).toEqual([]);
+    expect(replaced([...keys, `${here}data/actions.json?x=1`], `${here}data/actions.json?x=2`)).toEqual([]);
   });
 
   it("keeps map tiles, which never change at a versioned address", () => {

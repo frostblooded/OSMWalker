@@ -1,7 +1,7 @@
 // Help: a search box over a list of topics by section, and a page per topic
 // made of cards. The code that fills the text in (help.ts, with every list and
 // number it pulls from the game) is its own chunk, kept off the startup path
-// (main.tsx fetches it at idle); the text itself loads the first time Help opens.
+// (main.tsx fetches it, and the text, at idle once the service worker runs, so Help opens offline).
 // The text's address carries a hash of it, so after a deploy that changes Help
 // the service worker can't hand back the old text.
 import { useEffect, useMemo, useState } from "preact/hooks";

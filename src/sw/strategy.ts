@@ -21,7 +21,7 @@ export function strategyFor(url: URL, scope: string, mode: RequestMode): Strateg
   if (mode === "navigate" || path === "" || path === "index.html") return { kind: "network-first", cache: "app" };
   if (path.startsWith("assets/")) return { kind: "cache-first", cache: "app" };
   // A data file whose address carries its version (Help's ?v=) can't go stale at that address.
-  if (path.startsWith("data/")) return { kind: url.searchParams.has("v") ? "cache-first" : "stale-while-revalidate", cache: "app" };
+  if (path.startsWith("data/")) return { kind: versioned(url) ? "cache-first" : "stale-while-revalidate", cache: "app" };
   return null;
 }
 
@@ -31,8 +31,13 @@ export function overflow(keys: string[], max: number, trimmed: (url: string) => 
   return own.slice(0, Math.max(own.length - max, 0));
 }
 
-/** Older versions of `url` in `keys` (same address, another ?query): what storing `url` replaces. */
+/** A data file whose address carries its version (Help's ?v=). */
+export function versioned(url: URL): boolean {
+  return url.searchParams.has("v");
+}
+
+/** Older versions of a versioned `url` in `keys` (same address, another or no ?query): what storing `url` replaces. */
 export function replaced(keys: string[], url: string): string[] {
   const base = url.split("?")[0]!;
-  return url.includes("?") ? keys.filter((k) => k !== url && k.split("?")[0] === base) : [];
+  return versioned(new URL(url)) ? keys.filter((k) => k !== url && k.split("?")[0] === base) : [];
 }

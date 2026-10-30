@@ -52,7 +52,7 @@ async function store(name: string, req: Request, res: Response): Promise<void> {
   const cache = await caches.open(name);
   await cache.put(req, res);
   const assets = `${self.registration.scope}assets/`;
-  if (req.url.startsWith(`${self.registration.scope}data/`) && req.url.includes("?")) {
+  if (req.url.startsWith(`${self.registration.scope}data/`)) {
     for (const k of replaced((await cache.keys()).map((k) => k.url), req.url)) await cache.delete(k);
   }
   if (name === CACHES.map ? ++puts % 100 === 0 : req.url.startsWith(assets)) {

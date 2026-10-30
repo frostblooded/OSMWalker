@@ -7,11 +7,13 @@ import * as CatchUp from "../core/catchup";
 import * as CityFacts from "../core/cityFacts";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
+import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
+import * as Jokes from "../core/jokes";
 import * as Day from "../core/day";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
@@ -170,6 +172,13 @@ export function values(data: GameData): Record<string, string> {
     CHESS_BASE_PCT: pct(Dilemmas.CHESS_BASE),
     CHESS_PER_WIT_PCT: pct(Dilemmas.CHESS_PER_WIT),
     CHESS_MAX_PCT: pct(Dilemmas.CHESS_MAX),
+    FORECAST_LIST: (data.forecasts ?? []).map((f) => `- ${f.icon} ${Forecast.words(f)}`).join("\n"),
+    RESALE_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.resale))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    JOKE_PCT: pct(Jokes.JOKE_CHANCE),
+    SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     SNAP_M: num(W.SNAP_M),
@@ -241,6 +250,9 @@ export function values(data: GameData): Record<string, string> {
     BAG_SIZE: String(S.BAG_SIZE),
     KEEP_CENTS: euro(S.KEEP_CENTS),
     SELL_PCT: pct(S.SELL_SHARE),
+    SELL_PER_CHA_PCT: pct(S.SELL_PER_CHA),
+    SELL_100_CHA0: euro(Math.round(10000 * S.SELL_SHARE)),
+    SELL_100_CHA5: euro(Math.round(10000 * S.SELL_SHARE * (1 + 5 * S.SELL_PER_CHA))),
     START_CENTS: euro(s.cents),
     EXAMPLE_PRICE: euro(120),
     CHEAP_BIKE: euro(cheapest("bicycles")),
