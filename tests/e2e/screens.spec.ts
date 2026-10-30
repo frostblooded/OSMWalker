@@ -192,6 +192,19 @@ test("His face shows on the map, with his need or his goal over his head", async
   await expect(page.locator(".marker.him .bubble")).toHaveText("🍔", { timeout: 20000 });
 });
 
+test("City sound is off at first, and the switch is remembered", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const sw = page.getByRole("switch", { name: /City sound/ });
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await page.reload();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("switch", { name: /City sound/ })).toHaveAttribute("aria-checked", "true");
+});
+
 /** Drags the map well away from him with a finger (the test phone is touch only). */
 async function dragAway(page: Page) {
   // The game loop has started on the map once it sets his glide time.
