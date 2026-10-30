@@ -81,18 +81,6 @@ test("a long reopen may hold one choice, which a tap settles", async ({ page }) 
   await expect(away).toBeHidden();
 });
 
-test("History shows the places he stopped at today, not the top card", async ({ page }) => {
-  // The hour he was away must fall on today.
-  test.skip(new Date().getHours() < 1, "too close to midnight");
-  await startInSofia(page);
-  await reopenAfter(page, 1);
-  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
-  await expect(page.locator(".hud .ribbon")).toHaveCount(0);
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /History/ }).click();
-  await expect(page.getByRole("dialog", { name: /History/ }).locator(".ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops?$/);
-});
-
 test("while he walks to a station you can guess where he is going, once", async ({ page }) => {
   await startInSofia(page);
   await reopenDeparting(page);

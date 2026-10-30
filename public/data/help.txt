@@ -110,8 +110,6 @@ While he walks, a bubble over his head shows what he needs most: the icon of his
 While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
 ## City sound {sound}
 The 🔊 City sound switch in the menu (off at first) plays a soft loop for where he is: cafe chatter with the odd clinking cup while he stays at a place to eat or drink, birds and leaves in parks and gardens, and a low street hum anywhere else. On a trip it is quiet. The sound is made on your phone, so it downloads nothing; it stops while the game is in the background.
-## The day ribbon {ribbon}
-At the top of 📜 History (in the ☰ menu), a 📅 Today card shows the places he stopped at today as small icons (☕ 🏛 🍺 🏨), the newest on the right, including the ones from while you were away. It shows the last {RIBBON} stops; "+5" in front counts the earlier ones today. The day starts at midnight on your phone's clock, and the game keeps his last {MAX_STOPS} stops.
 # 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
@@ -429,7 +427,7 @@ Only three buttons sit on the map, at the bottom right in reach of your thumb: +
 ## The menu {menu}
 ☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
-To see more of the map, drag any sheet down by its title bar (the one with the grip line). When you let go it settles at one of three heights: tall ({SHEET_TALL_PCT}% of the screen, or all of it for full-screen sheets like Stats and Help), half ({SHEET_HALF_PCT}%), or just the title bar. Drag it below that to close it. Drag it back up, or tap the title bar when it is at its smallest, to open it again.
+To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
 Camera follows him (a switch, on at first and remembered) keeps him in view: the map glides over to him whenever he walks out of the middle of the screen. Turn it off and the map stays wherever you leave it, even when he walks off the screen (see The map).
 
@@ -453,7 +451,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
 - Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
 ## History {history}
-📜 History starts with the 📅 Today card once he has stopped somewhere today, with the places he stopped at (see The day ribbon). Under it, it lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
+📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, because he didn't walk them.
 ## Debug {debug}

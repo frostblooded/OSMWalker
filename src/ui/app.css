@@ -129,9 +129,6 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .minibar { display: flex; align-items: center; gap: var(--s1); font-size: var(--small); }
 .minibar .track { flex: 1; height: 10px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper); overflow: hidden; }
 .minibar .track > div { height: 100%; }
-/* The day ribbon: today's stops, newest last; wraps to a second line rather than clipping. */
-.ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1); font-size: var(--body); }
-.ribbon .dim { font-size: var(--small); }
 .guess { display: flex; flex-direction: column; gap: var(--s1); }
 .choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .choices .btn { flex: 1 1 auto; }
@@ -154,9 +151,6 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 /* Sheets over the map: bottom half, so he stays visible above. z-index 3 keeps them over MapLibre's corner controls (z-index 2), so the ⓘ credit can't sit on their buttons. */
 .sheet { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; max-height: 60%; display: flex; flex-direction: column; background: var(--paper); border: var(--edge); border-bottom: 0; border-radius: 24px 24px 0 0; padding-bottom: var(--safe-bottom); }
 .sheet.full { top: 0; max-height: none; border: 0; border-radius: 0; padding-top: var(--safe-top); }
-/* Dragged smaller: half (src/ui/snap.ts HALF) or just the title bar. */
-.sheet.half { max-height: 35%; }
-.sheet.peek .body { display: none; }
 /* The title bar is the drag handle; the grip line above the title shows it. */
 .sheet header { touch-action: none; position: relative; display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s3) var(--s3) var(--s4); border-bottom: 3px solid var(--line); }
 .sheet header::before { content: ""; position: absolute; top: var(--s1); left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: var(--line); }

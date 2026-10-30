@@ -131,13 +131,9 @@ for (const width of [360, 412]) {
       await page.getByRole("button", { name: "Menu" }).click();
       await check(page, "menu");
       const menu = page.getByRole("dialog", { name: /Menu/ });
-      await dragTitle(page, menu, 200);
-      await expect(menu).toHaveClass(/half/);
-      await check(page, "menu-half");
-      const head = (await menu.locator("header").boundingBox())!.height;
-      await dragTitle(page, menu, (await menu.boundingBox())!.height - head);
-      await expect(menu).toHaveClass(/peek/);
-      await check(page, "menu-peek");
+      await dragTitle(page, menu, (await menu.boundingBox())!.height - 740 * 0.32);
+      await expect(menu).toHaveAttribute("style", /max-height/);
+      await check(page, "menu-dragged");
       await page.getByRole("button", { name: "Close" }).click();
 
       await openMenuItem(page, /Help/);
@@ -189,11 +185,6 @@ for (const width of [360, 412]) {
       await away.getByRole("button", { name: /events, newest first/ }).click();
       await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();
-
-      await openMenuItem(page, /History/);
-      await expect(page.getByRole("dialog", { name: /History/ }).locator(".ribbon")).toBeVisible();
-      await check(page, "history-today");
-      await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Send a postcard/);
       await check(page, "postcard");

@@ -281,23 +281,20 @@ async function dragTitle(page: Page, name: RegExp, dy: number) {
   await page.mouse.up();
 }
 
-test("a sheet drags smaller by its title bar, opens on a tap and closes when dragged off", async ({ page }) => {
+test("a sheet stays where its title bar is let go, and closes below 30% of the screen", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   const menu = page.getByRole("dialog", { name: /Menu/ });
   const screen = page.viewportSize()!.height;
   const height = async () => (await menu.boundingBox())!.height;
   const tall = await height();
-  await dragTitle(page, /Menu/, tall - screen * 0.35);
-  await expect(menu).toHaveClass(/half/);
-  expect(Math.abs((await height()) - screen * 0.35)).toBeLessThan(4);
-  const head = (await menu.locator("header").boundingBox())!.height;
-  await dragTitle(page, /Menu/, (await height()) - head);
-  await expect(menu).toHaveClass(/peek/);
-  await expect(menu.getByRole("button", { name: /History/ })).toBeHidden();
-  await menu.locator("header h2").click();
+  await dragTitle(page, /Menu/, 100);
+  await expect.poll(height).toBeLessThan(tall - 90);
+  expect(await height()).toBeGreaterThan(tall - 110);
   await expect(menu.getByRole("button", { name: /History/ })).toBeVisible();
-  await dragTitle(page, /Menu/, (await height()) + 20);
+  await dragTitle(page, /Menu/, -400);
+  expect(Math.abs((await height()) - tall)).toBeLessThan(4);
+  await dragTitle(page, /Menu/, tall - screen * 0.28);
   await expect(menu).toBeHidden();
 });
 
@@ -306,10 +303,27 @@ test("a full-screen sheet drags down to show the map", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const stats = page.getByRole("dialog", { name: /Stats/ });
-  await dragTitle(page, /Stats/, page.viewportSize()!.height * 0.6);
-  await expect(stats).toHaveClass(/half/);
+  const screen = page.viewportSize()!.height;
+  await dragTitle(page, /Stats/, screen * 0.5);
+  await expect.poll(async () => (await stats.boundingBox())!.height).toBeLessThan(screen * 0.55);
   const hud = (await page.locator(".hud").boundingBox())!;
   expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".hud"), [hud.x + hud.width / 2, hud.y + 20])).toBe(true);
+});
+
+test("History fits the map to the room left above its sheet after a drag", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Debug/ }).click();
+  await page.getByRole("button", { name: /New city/ }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
+  const sheet = page.getByRole("dialog", { name: /History/ });
+  await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
+  const him = page.locator(".marker.him");
+  await page.waitForTimeout(1000);
+  const before = (await him.boundingBox())!.y;
+  await dragTitle(page, /History/, 150);
+  await expect.poll(async () => (await him.boundingBox())!.y, { timeout: 5000 }).toBeGreaterThan(before + 20);
 });
 
 test("the map credit stays under an open sheet's buttons", async ({ page }) => {

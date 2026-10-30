@@ -75,15 +75,25 @@ describe("save file", () => {
     expect(back.stats.cents).toBe(4321);
   });
 
-  it("loads saves from before the day ribbon and weekly recap with no stops and a fresh week", () => {
+  it("loads saves from the day ribbon's time and drops their stops", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.stops;
+    expect(d.stats.stops).toBeUndefined();
+    d.stats.stops = [{ k: "amenity/cafe", t: 100 }];
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    new SaveFile(kv).write(back);
+    expect(JSON.parse(kv.getItem(SAVE_KEY)!).stats.stops).toBeUndefined();
+  });
+
+  it("loads saves from before the weekly recap with a fresh week", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
     delete d.stats.week;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.stops).toEqual([]);
     expect(back.stats.week.tally.start).toBe(0);
     expect(back.stats.week.pending()).toBeNull();
   });
