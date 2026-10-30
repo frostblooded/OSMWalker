@@ -162,6 +162,22 @@ describe("going on a quest", () => {
     expect(back.quests.city).toBe("Testville");
     expect(Stats.fromJSON({ ...s.toJSON(), quests: undefined } as never).quests.board).toEqual([]);
   });
+
+  it("counts quests done in an older save that has no tally yet", () => {
+    expect(Q.Quests.fromJSON({ done: ["a:Ana:0", "b:Bo:1"] }).finished).toBe(2);
+  });
+
+  it("stays behind, with the board and events, when a free ride takes him to another city", () => {
+    const { s } = setup();
+    s.quests.since = 9;
+    Q.questGoal(s, TOWN, HERE, new Rng(7));
+    s.quests.events = [{ id: "e@1", kind: "e", at: Q.spotOf(TOWN[0]!), ends: s.now() + 600, line: 0 }];
+    expect(s.quests.active).not.toBeNull();
+    // Its places aren't loaded yet: everything from the old city goes at once.
+    s.quests.roll("Farville", 300_000, [], new Rng(7));
+    expect([s.quests.active, s.quests.board, s.quests.events, s.quests.city]).toEqual([null, [], [], ""]);
+    expect(Q.questGoal(s, [], HERE, new Rng(7))).toBeNull();
+  });
 });
 
 describe("world events", () => {
@@ -179,6 +195,15 @@ describe("world events", () => {
     Q.questStop(s, park, TOWN, 12, new Rng(8));
     expect(s.quests.events).toEqual([]);
     expect(s.quests.log.at(-1)).toMatchObject({ title: "Test event", event: true });
+  });
+
+  it("the one you nudged comes first, however far he has walked from it", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [], events: [ev()] });
+    const far = place("Far Park", "park", 30);
+    Q.startEvent(s, null, far, [far], 12, new Rng(8));
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))).toBeNull();
+    s.quests.nudge = s.quests.events[0]!.id;
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))?.name).toBe("Far Park");
   });
 
   it("play out without him when the time runs out", () => {

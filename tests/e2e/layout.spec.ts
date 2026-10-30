@@ -107,7 +107,9 @@ const QUEST_NEXT_TO_HIM = `const at = d.walker.from_pos;
 d.walker.progress_m = 0; d.walker.rest_m = d.walker.rest_total_m = 1e6;
 d.stats.quests = { city: d.city, board: [{ key: "lost_dog:Ana:0", kind: "lost_dog", giver: "Ana", item: 0, twist: -1,
   at: { name: "Test Park", class: "park", subclass: "park", lat: at[0], lon: at[1] + (80 * 360) / (512 * 2 ** d.zoom) } }],
-  active: null, events: [], done: [], log: [], since: 0, wait: 4, nudge: "" };`;
+  active: null, done: [], log: [], since: 0, wait: 4, nudge: "",
+  events: [{ id: "bakery_oven@1", kind: "bakery_oven", line: 0, ends: Math.floor(Date.now() / 1000) + 2700,
+    at: { name: "The Very Long Named Neighbourhood Bakery and Coffee House", class: "shop", subclass: "bakery", lat: at[0], lon: at[1] - (80 * 360) / (512 * 2 ** d.zoom) } }] };`;
 
 async function openMenuItem(page: Page, name: RegExp) {
   await page.getByRole("button", { name: "Menu" }).click();
@@ -197,6 +199,15 @@ for (const width of [360, 412]) {
       await card.getByRole("button", { name: /Go help/ }).click();
       await check(page, "quest-card-nudged");
       await card.getByRole("button", { name: /Close/ }).click();
+      // The event about 80 px west of him, with a long place name.
+      const event = page.getByRole("dialog", { name: /Oven trouble/ });
+      await expect(async () => {
+        const him = (await page.locator(".marker.him").boundingBox())!;
+        for (let dx = 28; dx <= 160 && !(await event.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 - dx, him.y + him.height / 2);
+        await expect(event).toBeVisible({ timeout: 500 });
+      }).toPass({ timeout: 20000 });
+      await check(page, "event-card");
+      await event.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });

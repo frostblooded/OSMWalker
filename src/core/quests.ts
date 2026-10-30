@@ -162,13 +162,20 @@ export class Quests {
     return { icon: k.icon, title: k.title, text: fill(k.steps[0]!.say[0]!, { giver: o.giver, item: k.items[o.item], place: o.at.name, town }) };
   }
 
-  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board. */
+  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board, events and quest at once. */
   roll(city: string, pop: number, places: readonly Place[], rng: Rng): void {
-    if (this.city === city || places.length < BOARD_PLACES || !this.bank.quests.length) return;
+    if (this.city === city) return;
+    // Another city's board, events and quest stay behind (a free ride can take him away mid-quest).
+    if (this.city || this.active) {
+      this.city = "";
+      this.board = [];
+      this.events = [];
+      this.active = null;
+      this.nudge = "";
+      this.rev++;
+    }
+    if (places.length < BOARD_PLACES || !this.bank.quests.length) return;
     this.city = city;
-    this.board = [];
-    this.events = [];
-    this.rev++;
     const done = new Set(this.done);
     const byKind = indexKinds(places);
     const n = boardSize(pop);
@@ -215,8 +222,8 @@ export class Quests {
 
 /**
  * Where he should go next for a story, or null for his usual pick: never
- * while a need is urgent. A world event near him comes first (it won't
- * wait), then the step of the quest he is on, then, once enough stops have
+ * while a need is urgent. A world event near him (or the one you nudged,
+ * however far) comes first (it won't wait), then the step of the quest he is on, then, once enough stops have
  * passed, a new quest from the board (the one you nudged, else a near one).
  */
 export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, rng: Rng): Place | null {
@@ -225,7 +232,7 @@ export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, 
   if (anyUrgent(stats)) return null;
   const now = stats.now();
   const near = q.events
-    .filter((e) => e.ends > now && distanceM(here[0], here[1], e.at.lat, e.at.lon) < EVENT_NEAR_M)
+    .filter((e) => e.ends > now && (e.id === q.nudge || distanceM(here[0], here[1], e.at.lat, e.at.lon) < EVENT_NEAR_M))
     .sort((a, b) => (a.id === q.nudge ? -1 : b.id === q.nudge ? 1 : a.ends - b.ends));
   if (near.length) return placeOf(near[0]!.at, places);
   if (q.active) {

@@ -380,6 +380,18 @@ describe("game", () => {
     expect(g.stats.buffNames()).not.toContain("Jet-lagged");
   });
 
+  it("doesn't set off on a trip while he is on a quest", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    const at = { name: "Cafe Near", class: "cafe", subclass: "cafe", lat: CAFE.lat, lon: CAFE.lon };
+    g.stats.quests.active = { key: "q:Ana:0", kind: "q", giver: "Ana", item: 0, twist: -1, at, step: 0, target: at };
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
+  });
+
   it("walks to the bus station for a trip, pays and rides", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
