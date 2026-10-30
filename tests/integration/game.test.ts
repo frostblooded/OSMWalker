@@ -13,7 +13,7 @@ import type { Forecast } from "../../src/core/forecast";
 import { EXPLORE_PULL } from "../../src/core/activities";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
-import { ON_THE_TRAIL, type Place } from "../../src/core/stats";
+import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
@@ -800,6 +800,7 @@ describe("game", () => {
     it("a long walk that outlasts the time away goes on when you are back, and lands with its reward", async () => {
       const walk = (g: Game) => {
         const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+        g.stats.meters.fullness = 100;
         g.stats.ride(0, "walk", "the road out of town", "Vidin, Bulgaria");
         g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
       };
@@ -814,8 +815,10 @@ describe("game", () => {
       expect(again.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
 
       // Away for longer than the walk: he lands first, then lives in the new town.
-      const long = (await reopen(5 * HOUR, {}, walk)).again;
+      const long = (await reopen(LONG_WALK_MAX_S * 1000 + 60_000, {}, walk)).again;
       expect(long.walker!.isTraveling()).toBe(false);
+      // Fed by the hostels the whole way: only the minute after landing drains him.
+      expect(long.stats.meters.fullness).toBeGreaterThan(100 - FULLNESS_PER_H / 10);
       expect(long.away!.cities[0]).toBe("Vidin, Bulgaria");
       expect(long.away!.lines.some((l) => /^Walked \d+ km to Vidin, Bulgaria/.test(l.text))).toBe(true);
     });
