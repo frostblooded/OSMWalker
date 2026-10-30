@@ -203,12 +203,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      s.stops++;
+      stats.stop(place);
       if (city.places) {
         const bonus = stats.visit(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
       } else stats.say(`Reached ${place.name}`);
+      stats.care.open(stats);
+      s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, rng);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
@@ -268,6 +270,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.enterCity(city.name);
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);

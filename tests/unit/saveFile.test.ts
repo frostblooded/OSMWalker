@@ -64,6 +64,40 @@ describe("save file", () => {
     expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
+  it("loads saves from before care packages with no clovers and nothing on its way", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.care;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "", guess: null });
+    expect(back.stats.cents).toBe(4321);
+  });
+
+  it("loads saves from before the day ribbon and weekly recap with no stops and a fresh week", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.stops;
+    delete d.stats.week;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.stops).toEqual([]);
+    expect(back.stats.week.tally.start).toBe(0);
+    expect(back.stats.week.pending()).toBeNull();
+  });
+
+  it("loads saves with clovers from before guesses with no guess open", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.care = { clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "2026-10-30", today: 1, parcel: "snack", guess: null });
+  });
+
   it("fills in what old saves lack: zoom and the city box", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -110,7 +144,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
     f.write(saved());
-    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, problems: new Problems() });
+    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems() });
     f.clear();
     expect(f.has()).toBe(false);
     expect(kv.getItem(SETTINGS_KEY)).not.toBeNull();
@@ -123,12 +157,12 @@ describe("save file", () => {
     const problems = new Problems();
     problems.quiet = true;
     problems.warn("kept");
-    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, problems });
+    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems });
     const s = f.readSettings() as Exclude<ReturnType<SaveFile["readSettings"]>, string | null>;
-    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false });
+    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true });
     expect(s.problems.warnings.map((w) => w.text)).toContain("kept");
     kv.setItem(SETTINGS_KEY, "{}");
-    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true });
+    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false });
     kv.setItem(SETTINGS_KEY, "nope");
     expect(f.readSettings()).toBe("Settings were unreadable; using defaults");
   });

@@ -10,7 +10,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { parseAirports, parseCities } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud } from "../../src/game/hud";
+import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -19,7 +19,7 @@ const WEST: Tile = { x: 9253, y: 6039 };
 const START: [number, number] = [42.687, 23.319];
 const CAFE: Place = { name: "Cafe Near", class: "cafe", subclass: "cafe", rank: 1, lat: 42.6885, lon: 23.3215 };
 const BUS: Place = { name: "Central Bus", class: "bus", subclass: "bus_station", rank: 1, lat: 42.6862, lon: 23.3172 };
-const CITIES = "Sofia\tBGR\tBulgaria\t42.6975\t23.3241\t1200000\nPlovdiv\tBGR\tBulgaria\t42.15\t24.75\t340000\nParis\tFRA\tFrance\t48.85\t2.35\t2100000\n";
+const CITIES = "Sofia\tBGR\tBulgaria\t42.6975\t23.3241\t1200000\nPlovdiv\tBGR\tBulgaria\t42.15\t24.75\t340000\nParis\tFRA\tFrance\t48.85\t2.35\t2100000\nVidin\tBGR\tBulgaria\t43.99\t22.88\t1\n";
 
 const pbf = (t: Tile) => new Uint8Array(readFileSync(fileURLToPath(new URL(`../fixtures/ofm/14_${t.x}_${t.y}.pbf`, import.meta.url))));
 const empty = (): Cell => ({ ids: new Float64Array(), coords: new Float64Array(), ways: [], places: [] });
@@ -85,6 +85,19 @@ describe("game", () => {
     expect(g.walker!.totalM).toBeCloseTo(30 * (5 / 3.6), 3); // 5 km/h on foot
   });
 
+  it("opens a care package at the place he reaches next", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.care.clovers = 2;
+    g.sendGift("guide");
+    expect(g.stats.care.clovers).toBe(0);
+    run(g, 400);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    const reached = texts.findIndex((t) => t.startsWith("Reached Cafe Near"));
+    expect(texts[reached + 1]).toBe("Opened your care package: 📖 City guide! Thank you! (+2 Wits for 4 h)");
+    expect(g.stats.buffNames()).toContain("City guide");
+  });
+
   it("says when the streets can't load", async () => {
     const { g } = game({ fail: true });
     expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("Couldn't load streets. Check your connection and try again.");
@@ -98,6 +111,16 @@ describe("game", () => {
     expect(g.stats.visited.size).toBeGreaterThan(0);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
     expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
+  });
+
+  it("strikes a pose for what he does at a place", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 400 && !g.walker!.isResting(); i++) run(g, 1);
+    expect(g.walker!.isResting()).toBe(true);
+    expect(g.doing).not.toBeNull();
+    expect(look(g).pose).not.toBeNull();
+    expect(ribbon(g, 0).icons).toEqual(["☕"]);
   });
 
   it("keeps the walk across a save", async () => {
@@ -161,12 +184,59 @@ describe("game", () => {
     const w = g.walker!;
     expect(w.isDeparting()).toBe(true);
     expect(w.departing!.station.name).toBe("Central Bus");
-    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to Plovdiv");
+    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to somewhere in Bulgaria");
     const fare = w.departing!.fare;
     for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
     expect(w.isTraveling()).toBe(true);
     expect(g.stats.cents).toBe(50_000 - fare);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
+  });
+
+  it("lets you guess where he is going until he boards, and pays a clover for a right guess", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    const guess = g.stats.care.guess!;
+    expect(guess.abroad).toBe(false);
+    expect([...guess.choices].sort()).toEqual(["Plovdiv", "Vidin"]);
+    g.pickGuess("Plovdiv");
+    g.pickGuess("Vidin");
+    expect(guess.pick).toBe("Plovdiv");
+    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.care.clovers).toBe(1);
+    expect(g.stats.care.guess).toBeNull();
+    expect(g.stats.history.entries.some((e) => e.text === "You guessed it: Plovdiv! (+1 ☘)")).toBe(true);
+  });
+
+  it("drops the guess when the trip is called off, and he goes on without one", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    expect(g.stats.care.guess).not.toBeNull();
+    g.walker!.departing = null;
+    g.step(1);
+    expect(g.stats.care.guess).toBeNull();
+  });
+
+  it("drops the guess, with no clover, when he can't pay at the station", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    g.pickGuess("Plovdiv");
+    expect(g.stats.care.guess!.pick).toBe("Plovdiv");
+    g.stats.cents = 0;
+    for (let i = 0; i < 600 && g.walker!.isDeparting(); i++) g.step(1);
+    expect(g.walker!.isTraveling()).toBe(false);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
+    expect(g.stats.care.guess).toBeNull();
+    expect(g.stats.care.clovers).toBe(0);
+    expect(g.stats.history.entries.some((e) => /guessed it|^Not /.test(e.text))).toBe(false);
   });
 
   it("saves up when he can't afford a trip", async () => {
@@ -192,16 +262,31 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "country", trip: "Paris, France" });
   });
 
+  it("shows last week's recap once: closing the away sheet marks it seen", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.week.roll(1, 0, 1, 0);
+    g.stats.week.stop("cafe");
+    g.stats.week.roll(8 * 86400, 0, 1, 0);
+    expect(g.stats.week.pending()).not.toBeNull();
+    g.dismissAway();
+    expect(g.stats.week.pending()).toBeNull();
+  });
+
   it("wakes in hospital after fainting", async () => {
     const hospital: Place = { name: "St Anna", class: "hospital", subclass: "hospital", rank: 1, lat: 42.688, lon: 23.316 };
     const { g } = game({ places: [hospital, CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.meters.health = 0;
+    g.doing = { name: "Nap on a bench", min: 1, fx: { energy: 20 } };
     const coins = g.stats.cents;
     g.step(1);
     expect(g.walker!.place).toEqual(hospital);
     expect(g.walker!.isResting()).toBe(true);
     expect(g.stats.cents).toBeLessThan(coins);
+    // He rests at the hospital, but did nothing there to strike a pose for.
+    expect(g.doing).toBeNull();
+    expect(look(g).pose).toBeNull();
   });
 
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
@@ -377,6 +462,20 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
+      const { again } = await reopen(2 * HOUR, {}, (g) => {
+        g.stats.care.clovers = 1;
+        g.sendGift("snack");
+      });
+      expect(again.awayClover).toBe(true);
+      expect(again.stats.care.clovers).toBe(1);
+      expect(again.stats.care.parcel).toBe("");
+      expect(again.away!.lines.some((l) => l.text.startsWith("Opened your care package: 🥪 Snack"))).toBe(true);
+      again.dismissAway();
+      expect(again.awayClover).toBe(false);
+      expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
     });
 
     it("goes on trips while away and lands him in the new city", async () => {

@@ -4,11 +4,13 @@
 // apart under SETTINGS_KEY, so New city keeps them, and the last weather
 // forecast under WEATHER_KEY.
 import { DebugLog, type Entry } from "../core/debugLog";
+import { Care } from "../core/gifts";
 import { Problems } from "../core/problems";
 import { Stats } from "../core/stats";
 import type { Forecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
+import { Week } from "../core/week";
 
 export const SAVE_KEY = "osmwalker.save";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
@@ -34,7 +36,7 @@ export type Saved = {
   savedAt: number;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; problems: Problems };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems };
 
 /** The stored form; its keys never change, so older saves still load. */
 type Stored = {
@@ -48,7 +50,7 @@ type Stored = {
   debug_log: Entry[];
   saved_at?: number;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown };
 
 export function safeStorage(): KV | null {
   try {
@@ -112,7 +114,8 @@ export class SaveFile {
       origin: d.origin,
       zoom: d.zoom || DEFAULT_ZOOM,
       walker,
-      stats: Stats.fromJSON(d.stats),
+      // Saves from before care packages have no clovers, nothing on its way and no guess; from before the day ribbon and weekly recap, no stops and no week yet.
+      stats: Stats.fromJSON({ ...d.stats, care: { ...new Care().toJSON(), ...d.stats.care }, stops: d.stats.stops ?? [], week: d.stats.week ?? new Week().toJSON() }),
       debugLog: DebugLog.fromJSON(d.debug_log),
       savedAt: d.saved_at ?? 0,
     };
@@ -129,7 +132,7 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, problems: Problems.fromJSON(d.problems) };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems) };
     } catch {
       return "Settings were unreadable; using defaults";
     }
@@ -155,7 +158,7 @@ export class SaveFile {
 
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, problems: s.problems };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.

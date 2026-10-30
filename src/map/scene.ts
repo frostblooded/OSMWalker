@@ -1,13 +1,16 @@
-// What the map shows and where its camera points. Each tick it puts him, his
-// goal pin, the ride, his trail, the route line and the city area on the map,
-// sending a layer to MapLibre only when it changed. The camera follows him;
-// a tap on the goal chip shows him and his goal until he picks a new one; a
-// trip zooms out to the whole ride until he lands; History fits his trail
-// above its sheet. The map itself sits behind MapPort, so tests use a fake.
+// What the map shows and where its camera points. Each tick it puts him (his
+// face, bubble and pose), his goal pin, the ride, his trail, the route line
+// and the city area on the map, sending a layer to MapLibre only when it
+// changed. The camera follows him; a tap on the goal chip shows him and his
+// goal until he picks a new one; a trip zooms out to the whole ride until he
+// lands; History fits his trail above its sheet. The map itself sits behind
+// MapPort, so tests use a fake.
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
+import type { Look } from "../core/look";
 import type { LatLon } from "../core/trips";
 import type { Game } from "../game/game";
+import { look } from "../game/hud";
 
 export type Padding = { top: number; bottom: number; left: number; right: number };
 export type RouteLine = { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null;
@@ -19,6 +22,8 @@ export interface MapPort {
   /** Told when the player drags the map. */
   onUserMove: () => void;
   setHim(at: LatLon, walking: boolean, glideMs: number): void;
+  /** His face, the bubble over his head and his pose. */
+  setLook(l: Look): void;
   setGoal(at: LatLon | null): void;
   setTrip(path: LatLon[] | null): void;
   showTrail(on: boolean): void;
@@ -70,6 +75,7 @@ export class MapScene {
     const at = w.position();
     v.autoFollow = g.cameraFollows;
     v.setHim(at, !w.needsData() && !w.isResting(), glideMs);
+    v.setLook(look(g));
     v.setGoal(g.goalTarget());
     v.setTrip(w.travel ? w.travel.path : null);
     const h = g.stats.history;

@@ -1,19 +1,22 @@
 // The game screen: the map with him on it (dimmed at night), a compact card
-// on top (where he is, where he goes, what he waits for, the weather), zoom
-// on the right edge and the main buttons in a bar at the bottom, in reach of
-// the thumb.
+// on top (where he is, where he goes, a guess about his next trip, what he
+// waits for, the weather, the day's stops), zoom on the right edge and the
+// main buttons in a bar at the bottom, in reach of the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
-import { hud, type Goal, type Hud } from "../game/hud";
+import type { Sound } from "../app/sound";
+import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
+import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
+import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
-import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { StatsSheet } from "./StatsSheet";
@@ -23,12 +26,13 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "care" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
   const scene = useRef<MapScene | null>(null);
+  const audio = useRef<Sound | null>(null);
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -70,6 +74,21 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       scene.current = null;
     };
   }, [game]);
+
+  // The city sound: its code loads only once the switch is on; the scene follows him at the screen's redraw rate.
+  useEffect(() => {
+    if (!game.sound) return;
+    let gone = false;
+    void import("../app/sound").then(({ Sound }) => {
+      if (!gone) audio.current = new Sound();
+    });
+    return () => {
+      gone = true;
+      audio.current?.stop();
+      audio.current = null;
+    };
+  }, [game, game.sound]);
+  if (game.walker) audio.current?.set(sound(game));
 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
@@ -114,11 +133,13 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
+          {s.care.guess && h.goal?.kind === "going" && h.goal.departing && <GuessRow guess={s.care.guess} onPick={(c) => game.pickGuess(c)} />}
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
+          <DayRibbon day={ribbon(game, biasMin())} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
           {game.severeNow.length > 0 && (
@@ -159,6 +180,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
+            <button class="btn" onClick={() => setSheet("care")}>
+              🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -180,6 +204,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
               🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />
             </button>
+            <button class="btn" role="switch" aria-checked={game.sound} onClick={() => game.setSound(!game.sound)}>
+              🔊 City sound <span class={`switch${game.sound ? " on" : ""}`} aria-hidden="true" />
+            </button>
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city
             </button>
@@ -196,6 +223,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           <StatsSheet stats={game.stats} />
         </SheetBox>
       )}
+      {sheet === "care" && (
+        <SheetBox title="🎁 Care package" onClose={close} full>
+          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+        </SheetBox>
+      )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
           <HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} />
@@ -209,7 +241,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <AwaySheet summary={game.away} onDone={() => game.dismissAway()} />
+          <AwaySheet summary={game.away} clover={game.awayClover} week={game.stats.week} onDone={() => game.dismissAway()} />
         </SheetBox>
       )}
     </div>
@@ -241,6 +273,25 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   );
 }
 
+/** While he walks to the station: guess where he is going, or the guess you made. */
+function GuessRow({ guess: g, onPick }: { guess: Guess; onPick: (choice: string) => void }) {
+  if (g.pick) return <div class="notice">🎲 Your guess: {g.pick}. He reveals it when he boards.</div>;
+  return (
+    <div class="guess" role="group" aria-label="Guess where he is going">
+      <div class="small dim">
+        🎲 Where to? {g.abroad ? "Which country" : "Which city"}, for +{GUESS_CLOVERS} ☘
+      </div>
+      <div class="guess-choices">
+        {g.choices.map((c) => (
+          <button key={c} class="btn" onClick={() => onPick(c)}>
+            {c}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Why he is standing still, when it is not a rest: streets still loading. */
 function Waiting({ hud: h }: { hud: Hud }) {
   if (h.restShare !== null) {
@@ -259,6 +310,20 @@ function Waiting({ hud: h }: { hud: Hud }) {
     );
   }
   return null;
+}
+
+/** Today's stops as small icons, newest on the right. */
+function DayRibbon({ day }: { day: { icons: string[]; more: number } }) {
+  if (!day.icons.length) return null;
+  return (
+    <div class="ribbon" role="img" aria-label={`Today: ${day.icons.length + day.more} stops`}>
+      <span class="dim">Today</span>
+      {day.more > 0 && <span class="dim">+{day.more}</span>}
+      {day.icons.map((icon, i) => (
+        <span key={i}>{icon}</span>
+      ))}
+    </div>
+  );
 }
 
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {

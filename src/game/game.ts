@@ -12,7 +12,9 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import { distanceM, type BBox } from "../core/geo";
+import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
+import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
@@ -76,11 +78,15 @@ export class Game {
   zoom = DEFAULT_ZOOM;
   /** Trivia actions for random spots, from Wikidata. */
   cityFacts: Action[] = [];
+  /** The action he does at the place he stays at, for his pose; not saved. */
+  doing: Action | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
   /** The camera keeps him in view by itself (the menu switch); off, the map stays where the player leaves it. */
   cameraFollows = true;
+  /** The optional city sound (the menu switch); off until the player turns it on. */
+  sound = false;
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
@@ -88,6 +94,8 @@ export class Game {
   away: Summary | null = null;
   /** Hourly weather for the city he is in (or was in), null until fetched. */
   forecast: Forecast | null = null;
+  /** True when this reopen earned a clover, for the summary card. */
+  awayClover = false;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
   /** Unix ms of the last save: the catch-up starts from there. */
@@ -169,7 +177,8 @@ export class Game {
     return this.weatherBusy;
   }
 
-  private now(): number {
+  /** Unix ms now, by the game's clock. */
+  now(): number {
     return this.deps.clock?.() ?? Date.now();
   }
 
@@ -220,7 +229,7 @@ export class Game {
   private attach(w: Walker): void {
     this.walker = w;
     w.rng = this.rng;
-    w.tripPlanner = () => this.journey.consider(this.where(), this.stats);
+    w.tripPlanner = () => this.planTrip();
     w.needWeight = (p) => needWeight(this.activities.peek(p, this.country), this.stats) * placeWeight(p, this.stats.sky);
     w.events = {
       landed: (c) => this.onLanded(c),
@@ -247,6 +256,8 @@ export class Game {
     this.stats.passTime(s / 60, w.totalM - before);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.track();
+    // A trip called off before boarding (a faint, a new goal) takes its guess with it.
+    if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
@@ -276,8 +287,11 @@ export class Game {
       return;
     }
     const bonus = this.stats.visit(place);
+    this.stats.stop(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
+    this.stats.care.open(this.stats);
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
+    this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
       return;
@@ -302,6 +316,7 @@ export class Game {
     }
     if (!hospital) this.problems.warn("Fainted with no hospital loaded nearby; he wakes where he is");
     this.stats.wakeInHospital(hospital?.name ?? "");
+    this.doing = null;
     if (w.isTraveling()) return;
     if (w.wakeAt(hospital ? w.graph.nearestNode(hospital.lat, hospital.lon) : null, hospital)) {
       this.stats.history.breakTrail();
@@ -342,13 +357,29 @@ export class Game {
     return { here: w.position(), city: this.city, country: this.country, places: w.bounds ? w.graph.placesIn(w.bounds) : [], noPlaces: this.noPlaces() };
   }
 
+  /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
+  private planTrip(): Plan | null {
+    const plan = this.journey.consider(this.where(), this.stats);
+    this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
+    return plan;
+  }
+
+  /** The player's guess about where he is going; settled when he boards. */
+  pickGuess(choice: string): void {
+    if (!this.stats.care.pickGuess(choice)) return;
+    this.save();
+    this.changed();
+  }
+
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */
   private onBoarding(plan: Plan): boolean {
     const why = this.journey.board(plan, this.stats);
     if (why) {
       this.debugLog.add({ no_trip: why });
+      this.stats.care.guess = null;
       return false;
     }
+    this.stats.care.reveal(this.stats);
     this.changed();
     return true;
   }
@@ -366,6 +397,7 @@ export class Game {
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
     this.track();
+    this.stats.enterCity(this.city);
     this.stats.say(`Arrived in ${this.city}`);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
@@ -480,6 +512,7 @@ export class Game {
       }
       await Promise.race([weather, new Promise((r) => setTimeout(r, Math.max(until - performance.now(), 0)))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
+      this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
     } finally {
       this.waking = false;
     }
@@ -549,6 +582,15 @@ export class Game {
   /** Closes the summary card. */
   dismissAway(): void {
     this.away = null;
+    this.awayClover = false;
+    this.stats.week.seen();
+    this.changed();
+  }
+
+  /** Sends him a care package; he opens it at his next stop. */
+  sendGift(id: string): void {
+    if (!this.stats.care.send(id)) return;
+    this.save();
     this.changed();
   }
 
@@ -559,17 +601,24 @@ export class Game {
     this.showCityArea = s.showCityArea;
     this.showRoute = s.showRoute;
     this.cameraFollows = s.cameraFollows;
+    this.sound = s.sound;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, problems: this.problems });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems });
   }
 
   setShowCityArea(on: boolean): void {
     this.showCityArea = on;
     this.saveSettings();
     if (on) void this.learnOutline();
+    this.changed();
+  }
+
+  setSound(on: boolean): void {
+    this.sound = on;
+    this.saveSettings();
     this.changed();
   }
 

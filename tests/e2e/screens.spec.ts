@@ -146,6 +146,35 @@ test("He glides between steps instead of hopping", async ({ page }) => {
   await expect.poll(() => him.evaluate((e) => parseFloat(getComputedStyle(e).transitionDuration))).toBeGreaterThan(0);
 });
 
+test("His face shows on the map, with his need or his goal over his head", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".marker.him .face")).toHaveText(/^(🤒|😩|😖|😞|😄|🙂)$/u);
+  // Hungry, he wants food over everything. The save is edited as the page loads, after the old page saved on leaving.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("hungry")) return;
+    sessionStorage.setItem("hungry", "1");
+    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
+    d.stats.meters.fullness = 5;
+    localStorage.setItem("osmwalker.save", JSON.stringify(d));
+  });
+  await page.reload();
+  await expect(page.locator(".marker.him .bubble")).toHaveText("🍔", { timeout: 20000 });
+});
+
+test("City sound is off at first, and the switch is remembered", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const sw = page.getByRole("switch", { name: /City sound/ });
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await page.reload();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("switch", { name: /City sound/ })).toHaveAttribute("aria-checked", "true");
+});
+
 /** Drags the map well away from him with a finger (the test phone is touch only). */
 async function dragAway(page: Page) {
   // The game loop has started on the map once it sets his glide time.

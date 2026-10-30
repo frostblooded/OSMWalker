@@ -126,6 +126,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .pill.sky { background: var(--paper); }
 /* One flat layer over the map, none by day: costs a blend, never a map redraw. */
 .night { position: absolute; inset: 0; background: var(--night); pointer-events: none; transition: opacity 2s linear; }
+.menu .pill { margin-left: auto; }
 .chip { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: var(--s2) var(--s3); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); width: 100%; text-align: left; font-size: var(--body); }
 .chip:active { background: var(--line); }
 .chip .eta { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: var(--paper); border: 2px solid var(--ink); font-size: var(--small); white-space: nowrap; }
@@ -133,6 +134,12 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .minibar { display: flex; align-items: center; gap: var(--s1); font-size: var(--small); }
 .minibar .track { flex: 1; height: 10px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper); overflow: hidden; }
 .minibar .track > div { height: 100%; }
+/* The day ribbon: today's stops, newest last; wraps to a second line rather than clipping. */
+.ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1); font-size: var(--body); }
+.ribbon .dim { font-size: var(--small); }
+.guess { display: flex; flex-direction: column; gap: var(--s1); }
+.guess-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.guess-choices .btn { flex: 1 1 auto; }
 .notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
 .notice.error { color: var(--error); }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
@@ -161,6 +168,15 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 /* He glides between game ticks; the loop sets --glide to the time until the next one. */
 .marker.him.glide { transition: transform var(--glide, 0ms) linear; will-change: transform; }
 .marker.him { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; font-size: 22px; }
+/* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
+.him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
+.him .bubble[hidden] { display: none; }
+.him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
+.him .bubble.rise { animation-name: rise; }
+.him .bubble.pop { animation-name: pop; }
+@keyframes rise { from { transform: translate(-50%, 6px); opacity: 0; } 25% { opacity: 1; } to { transform: translate(-50%, -10px); opacity: 0; } }
+@keyframes pop { from { transform: translateX(-50%) scale(0.6); } 15% { transform: translateX(-50%) scale(1.2); } 30%, to { transform: translateX(-50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .him .bubble.pose { animation: none; } }
 /* MapLibre's own CSS loads later, so these carry .game to win. */
 .game .maplibregl-ctrl-bottom-left { bottom: calc(var(--s3) + var(--safe-bottom)); left: var(--s3); }
 .game .maplibregl-ctrl-bottom-right { right: calc(var(--tap) + 2 * var(--s3)); bottom: calc(var(--s3) + var(--safe-bottom)); }
@@ -197,6 +213,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
+.gifts > li { display: flex; align-items: center; gap: var(--s3); }
 .away-log > li { display: flex; align-items: baseline; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
