@@ -12,6 +12,8 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
+  // The menu's sheets load a moment after the map, without opening the menu.
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((e) => /StatsSheet/.test(e.name))), { timeout: 10000 }).toBe(true);
   // The page and every file of the game it has loaded (code, fonts, data) are in the service worker's cache.
   await expect
     .poll(
@@ -35,4 +37,7 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await page.reload();
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
   await expect(page.locator(".marker.him")).toBeVisible();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Vitals", { timeout: 10000 });
 });

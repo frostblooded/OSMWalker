@@ -14,18 +14,28 @@ import { NIGHT_SHADE } from "../core/sky";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
-import { CollectionSheet } from "./CollectionSheet";
-import { CareSheet } from "./CareSheet";
-import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
-import { HelpSheet } from "./HelpSheet";
-import { HistorySheet } from "./HistorySheet";
-import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
+
+/** Wait after the map is up before loading the menu's sheets. */
+const SHEETS_AFTER_MS = 3000;
+/** The menu's sheets, loaded after startup (or when the menu opens first), so their code stays off the startup path. */
+const loadSheets = async () => {
+  const [help, debug, history, stats, collection, care] = await Promise.all([
+    import("./HelpSheet"),
+    import("./DebugSheet"),
+    import("./HistorySheet"),
+    import("./StatsSheet"),
+    import("./CollectionSheet"),
+    import("./CareSheet"),
+  ]);
+  return { ...help, ...debug, ...history, ...stats, ...collection, ...care };
+};
+type Sheets = Awaited<ReturnType<typeof loadSheets>>;
 
 type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "help" | "debug" | "reset" | null;
 
@@ -37,6 +47,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [sheets, setSheets] = useState<Sheets | null>(null);
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
 
@@ -61,6 +72,8 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         };
         loop.start();
         performance.mark("osmwalker:map");
+        // The menu's sheets follow once the map is up, so they open at once and work offline later.
+        setTimeout(() => !gone && void loadSheets().then(setSheets), SHEETS_AFTER_MS);
       })
       .catch((e: Error) => {
         game.problems.error(`The map couldn't start: ${e.message}`);
@@ -99,6 +112,10 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   }, [sheet]);
+
+  useEffect(() => {
+    if (sheet && !sheets) void loadSheets().then(setSheets);
+  }, [sheet, sheets]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -219,32 +236,32 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close}>
-          <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
+          {sheets ? <sheets.HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
-          <StatsSheet stats={game.stats} />
+          {sheets ? <sheets.StatsSheet stats={game.stats} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "collection" && (
         <SheetBox title="🗂 Collection" onClose={close} full>
-          <CollectionSheet stats={game.stats} />
+          {sheets ? <sheets.CollectionSheet stats={game.stats} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
-          <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+          {sheets ? <sheets.CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
-          <HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} />
+          {sheets ? <sheets.HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "debug" && (
         <SheetBox title="🐞 Debug" onClose={close} full>
-          <DebugSheet game={game} onDone={close} />
+          {sheets ? <sheets.DebugSheet game={game} onDone={close} /> : <Loading />}
         </SheetBox>
       )}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
@@ -388,3 +405,5 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     </div>
   );
 }
+
+const Loading = () => <p class="dim small">Loading…</p>;
