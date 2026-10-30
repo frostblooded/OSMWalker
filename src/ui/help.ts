@@ -416,6 +416,11 @@ export function values(data: GameData): Record<string, string> {
       const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
       return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
     }).join("\n"),
+    DEG_PER_ZONE: num(Trips.DEG_PER_ZONE),
+    JET_LAG_H_PER_ZONE: num(Trips.JET_LAG_H_PER_ZONE),
+    JET_LAG_MAX_H: num(Trips.JET_LAG_MAX_H),
+    JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
+    JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),

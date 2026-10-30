@@ -411,6 +411,8 @@ As he boards for another city he packs a travel kit on his own, by need, and pay
 {KIT_LIST}
 
 He only packs what still leaves him his reserve of {KEEP_CENTS} after the fare. Each one starts a buff (see Buffs and debuffs), so it keeps working after he lands. He packs while you are away too.
+## Jet lag {jetlag}
+After a flight he counts the time zones he crossed: one for every {DEG_PER_ZONE} degrees of longitude between the two airports, the short way round the globe. For each one he is Jet-lagged for {JET_LAG_H_PER_ZONE} hour, at most {JET_LAG_MAX_H} hours. While it lasts he loses {JET_LAG_ENERGY_PER_H} energy an hour and gets {JET_LAG_XP_PCT} less XP from actions (see Buffs and debuffs). A flight within one time zone, and every bus or car ride, leaves him fresh.
 ## Crossing a border {borders}
 Each time he arrives in a different country than the one he left, by any kind of trip, the feed and History get a few border lines:
 - a passport stamp, with how many countries he has been to (the Collection's countries list shows them all),

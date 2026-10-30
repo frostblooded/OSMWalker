@@ -288,6 +288,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     moveTo(null, plan.arrive);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
+    if (plan.mode === "plane") {
+      const lag = stats.landFlight(plan.station.lon, plan.arrive[1]);
+      if (lag) stats.say(lag);
+    }
     skipRoll = true;
     return true;
   }

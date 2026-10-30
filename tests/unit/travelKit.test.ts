@@ -1,4 +1,4 @@
-// Packing a travel kit before a trip (src/core/travelKit.ts, Stats.packForTrip).
+// Packing a travel kit before a trip (src/core/travelKit.ts, Stats.packForTrip), and jet lag after a flight (Stats.landFlight).
 import { describe, expect, it } from "vitest";
 import { Stats, KEEP_CENTS } from "../../src/core/stats";
 import { choose, KIT, list, PACK_BELOW } from "../../src/core/travelKit";
@@ -45,5 +45,15 @@ describe("Stats.packForTrip", () => {
     expect(s.packForTrip("FRA")).toBe("");
     s.arrive("Sofia", "BGR", "Bulgaria");
     expect(s.packForTrip("BGR")).toBe("");
+  });
+});
+
+describe("Stats.landFlight", () => {
+  it("leaves him jet-lagged after a long flight, not a short one", () => {
+    const s = new Stats();
+    expect(s.landFlight(23.4, 2.5)).toBe("Jet-lagged after flying across 1 time zone");
+    expect(s.buffNames()).toContain("Jet-lagged");
+    expect(s.xpMult()).toBeLessThan(1);
+    expect(new Stats().landFlight(23.4, 25)).toBe("");
   });
 });
