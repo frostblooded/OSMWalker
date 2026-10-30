@@ -1,7 +1,8 @@
 // Which game icons the map shows: the city's made-up places (core/poiGen.ts)
 // and the real bus stations and airports he travels from, nearest to him
 // first and capped, so a capital never floods the map. Quests and events add
-// their own icons with another `kind`; each kind has its own cap.
+// their own icons with another `kind`; each kind has its own cap. The
+// monuments he built in this city always show, uncapped (see bricks.ts).
 import { MONUMENTS, type Monument } from "./bricks";
 import { distanceM, type BBox } from "./geo";
 import { isAirport, isBusStation } from "./cityCheck";

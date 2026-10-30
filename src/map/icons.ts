@@ -1,8 +1,8 @@
 // The game's own map icons: a white picture on a round badge whose colour
 // says what kind of place it is (blue travel, green food and rest, amber
-// work, purple story, indigo magic), drawn at 32 CSS px, and the map layer
-// that shows them. Loaded as its own chunk the first time the map shows an
-// icon (see MapView.setMapIcons).
+// work, purple story, indigo magic, gold his monuments), drawn at 32 CSS px,
+// and the map layer that shows them. Loaded as its own chunk the first time
+// the map shows an icon (see MapView.setMapIcons).
 import type { Map as MlMap } from "maplibre-gl";
 
 /** Game icons show from about a whole city in view; their names from street level. */
