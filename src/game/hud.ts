@@ -1,8 +1,9 @@
-// What the screens show about him, worked out once from the game: the top
-// card (what he is doing, where he goes, how long until he moves again, why
+// What the screens show about him, worked out once from the game: his look
+// on the map, the top card (what he is doing, where he goes, how long until he moves again, why
 // he waits) and the facts Debug lists. Plain data, so the screens only lay
 // it out and the numbers are tested without a browser.
 import { distanceM, type BBox } from "../core/geo";
+import * as Looks from "../core/look";
 import type { LatLon, Mode } from "../core/trips";
 import { pathLengthM, tripLimitM } from "../core/walker";
 import type { Game } from "./game";
@@ -84,4 +85,11 @@ export function doing(g: Game): string {
   if (!target) return "no goal yet";
   const here = w.position();
   return `heading for ${w.place?.name ?? "a random spot"} ${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (walked ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
+}
+
+/** His face, bubble and pose: the goal's kind while he walks, what he does while he stays, nothing on a trip. */
+export function look(g: Game): Looks.Look {
+  const w = g.walker!;
+  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null };
+  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null);
 }

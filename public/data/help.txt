@@ -85,13 +85,25 @@ At each place of note he stops and does one action (see What he does at places).
 
 While he stays, the top card shows "Moving again in 0:59" and an orange bar that fills up as the minute passes. When it is full he picks his next goal and sets off.
 ## The map {map}
-The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face. The game moves him a few times a second and his face glides smoothly between those steps.
+The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face (see His face and bubble). The game moves him a few times a second and his face glides smoothly between those steps.
 
 While the camera follows him (the Camera follows him switch in the menu, on at first) the map stays still while he walks around the middle, and glides over to him once he is more than {MIDDLE_PCT}% of the view away from the middle. That way the whole map is only redrawn every so often, which saves battery. Drag the map to look around, then tap "Back to him" to follow him again. With the switch off the map never moves by itself, and there is no "Back to him".
 
 Use the + and − buttons on the right to zoom in and out; the zoom is remembered. Streets are downloaded in squares around him, {STREET_SQUARES} by {STREET_SQUARES} map tiles of about {TILE_KM} km each (smaller far from the equator), and the squares in the direction he is heading load first. Streets he has seen are kept on the device for {CACHE_DAYS} days, so the same city loads faster next time and works with a weak connection.
 
 During a trip to another city a red line shows the way from where he left to where he is going, and the map zooms out to fit it.
+## His face and bubble {look}
+His face shows how he feels. The first of these that fits wins:
+- 🤒 sick: health below {SICK_AT},
+- 😩 tired: energy below {TIRED_ENERGY},
+- 😖 dirty: hygiene below {DIRTY_AT},
+- 😞 down: mood below {LOW_MOOD},
+- 😄 happy: mood {HAPPY_MOOD} or more,
+- 🙂 fine: anything else.
+
+While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot or on a trip there is no bubble.
+
+While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
 # 🎯 Actions
 ## What he does at places {actions}
 Every kind of place has its own list of actions. At a cafe he might have an espresso or chat with the barista, at a park he might nap under a tree, at a shop he might browse for gear or sell his loot. There are {ACTION_COUNT} actions for {PLACE_KINDS} kinds of places, plus a few general ones for places that don't have their own list yet.
