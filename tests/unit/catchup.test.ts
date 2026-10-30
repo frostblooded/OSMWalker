@@ -326,7 +326,7 @@ describe("catch-up", () => {
     expect(lines.some((l) => /^Walked out of town towards Neartown, A-land \(-€20 for hostels\)$/.test(l))).toBe(true);
     expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land, sleeping in 1 hostel on the way$/.test(l))).toBe(true);
     expect(stats.cents).toBeLessThanOrEqual(100_000 - HOSTEL_CENTS);
-    // The same dice with too little time left: the walk waits until you are back.
+    // The same dice with too little time left: he doesn't set off.
     expect(away(seed, LONG_WALK_MAX_S - 60).lines.some((l) => l.startsWith("Walked out of town"))).toBe(false);
   });
 

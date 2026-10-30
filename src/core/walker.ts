@@ -40,7 +40,8 @@ export const LAND_SHARE = 0.5;
 export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
 export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
-export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
+/** A ride to another city; `road_m` is the trip plan's distance (missing in older saves). */
+export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number; road_m?: number };
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
@@ -244,10 +245,11 @@ export class Walker {
     this.pickGoal();
   }
 
-  /** Debug: rides to `city` and lands there at once, ending any rest. */
+  /** Rides to `city` by road and lands there at once, ending any rest (a trucker's free lift, or Debug). */
   rideNow(city: City): void {
     this.restM = 0;
-    this.startTravel(city);
+    // By road: a free lift (or a Debug trip) is no flight, so it brings no jet lag.
+    this.startTravel(city, "car");
     this.land();
   }
 
@@ -360,6 +362,7 @@ export class Walker {
       return;
     }
     this.startTravel(plan.city, plan.mode, plan.path ?? [], plan.arrive);
+    this.travel!.road_m = plan.distance_m;
   }
 
   /** Starts over in the destination with a fresh street graph; he stands on a lone point until its streets load. */

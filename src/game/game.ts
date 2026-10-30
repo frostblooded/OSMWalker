@@ -429,12 +429,8 @@ export class Game {
     this.track();
     this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
-    if (t.mode === "plane") {
-      const lag = this.stats.landFlight(t.from[1], t.arrive[1]);
-      if (lag) this.stats.say(lag);
-    }
-    const rode = this.stats.landRide(t.mode, distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, this.city);
-    if (rode) this.stats.say(rode);
+    const road = t.road_m ?? distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR;
+    for (const line of this.stats.land(t.mode, t.from[1], t.arrive[1], road, this.city)) this.stats.say(line);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();

@@ -688,6 +688,7 @@ describe("trips", () => {
     expect(walker.isTraveling()).toBe(true);
     expect(walker.isDeparting()).toBe(false);
     expect(walker.travel!.mode).toBe("bus");
+    expect(walker.travel!.road_m).toBe(boarded[0]!.distance_m);
     const pathM = distanceM(42.0, 23.00135, 43, 24);
     expect(Math.abs(walker.travel!.total_m - rideS("bus", pathM) * SPEED_MPS)).toBeLessThan(1);
     expect(walker.isResting()).toBe(false);
