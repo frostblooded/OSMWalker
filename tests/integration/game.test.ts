@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import "../../src/core/dilemmas";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
+import { CREATURE_CHANCE, meetingDice } from "../../src/core/creatures";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
@@ -65,6 +66,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     flavour: {},
     cities: parseCities(CITIES),
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
+    creatures: JSON.parse(dataFile("creatures.json")),
   };
   const storage = new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -223,6 +225,19 @@ describe("game", () => {
     expect(g.stats.bricks.built).toMatchObject([{ kind: 0, park: "Park Near", city: "Sofia, Bulgaria" }]);
     expect(g.stats.chronicle.lines.map((l) => l.text)).toContain("Built a bench with his name in Park Near, Sofia, Bulgaria");
     expect(g.placeIcons().some((i) => i.icon === "plaque")).toBe(true);
+  });
+
+  it("meets the dryad at a park he reaches, once that day, and the feed says what he picked", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the dryad's own dice say she shows up at this park.
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    run(g, 400);
+    expect(g.stats.creatures.met).toEqual({ dryad: 1 });
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
   });
 
   it("takes whispers and praise from you without touching his walk dice", async () => {

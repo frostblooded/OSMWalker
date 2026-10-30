@@ -274,6 +274,16 @@ describe("catch-up", () => {
     expect(stats.bricks.count).toBeLessThanOrEqual(2 * BRICKS_PER_DAY);
   });
 
+  it("meets place creatures while away, at most one a day, taking his own pick", () => {
+    const stats = Object.assign(new Stats(), { creatureKinds: JSON.parse(dataFile("creatures.json")) });
+    const parks = [place("Town Park", "park", "park", 0.003, 0), place("Rose Garden", "garden", "garden", 0, 0.004), place("Old Fountain", "fountain", "fountain", -0.003, 0)];
+    catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
+    const met = Object.values(stats.creatures.met).reduce((a, b) => a + b, 0);
+    expect(met).toBeGreaterThan(0);
+    expect(met).toBeLessThanOrEqual(2);
+    expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
+  });
+
   it("builds no monument at made-up places, which are no real parks", () => {
     const stats = new Stats();
     stats.bricks.count = 10_000;

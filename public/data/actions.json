@@ -2333,6 +2333,34 @@
    }
   }
  ],
+ "bridge": [
+  {
+   "name": "Watch the river from the railing",
+   "min": 10,
+   "fx": {
+    "mood": 6,
+    "energy": 3,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Count the boats going under",
+   "min": 15,
+   "fx": {
+    "mood": 4,
+    "wit": 0.05,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Snap a photo of the view",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "xp": 2
+   }
+  }
+ ],
  "information": [
   {
    "name": "Pick up a free map",
