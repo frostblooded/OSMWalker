@@ -16,6 +16,7 @@ import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -26,16 +27,15 @@ const DARK_STEP = 0.05;
 const SHEETS_AFTER_MS = 3000;
 /** The menu's sheets, loaded after startup (or when the menu opens first), so their code stays off the startup path. */
 const loadSheets = async () => {
-  const [help, debug, history, stats, collection, care, postcard] = await Promise.all([
+  const [help, debug, history, stats, collection, care] = await Promise.all([
     import("./HelpSheet"),
     import("./DebugSheet"),
     import("./HistorySheet"),
     import("./StatsSheet"),
     import("./CollectionSheet"),
     import("./CareSheet"),
-    import("./PostcardSheet"),
   ]);
-  return { ...help, ...debug, ...history, ...stats, ...collection, ...care, ...postcard };
+  return { ...help, ...debug, ...history, ...stats, ...collection, ...care };
 };
 type Sheets = Awaited<ReturnType<typeof loadSheets>>;
 
@@ -133,8 +133,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   }, [sheets]);
 
   useEffect(() => {
-    if ((sheet || received) && !sheets) fetchSheets();
-  }, [sheet, sheets, received]);
+    if (sheet && !sheets) fetchSheets();
+  }, [sheet, sheets]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -278,23 +278,19 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "postcard" && (
         <SheetBox title="📮 Send a postcard" onClose={close} full>
-          {sheets ? <sheets.PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} /> : <Loading failed={sheetsFailed} />}
+          <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
         </SheetBox>
       )}
       {received && sheet === null && !game.away && (
         <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
-          {sheets ? (
-            <sheets.ReceivedSheet
-              card={received}
-              onReply={() => {
-                onReceivedDone?.();
-                setSheet("postcard");
-              }}
-              onDone={() => onReceivedDone?.()}
-            />
-          ) : (
-            <Loading failed={sheetsFailed} />
-          )}
+          <ReceivedSheet
+            card={received}
+            onReply={() => {
+              onReceivedDone?.();
+              setSheet("postcard");
+            }}
+            onDone={() => onReceivedDone?.()}
+          />
         </SheetBox>
       )}
       {sheet === "help" && (
