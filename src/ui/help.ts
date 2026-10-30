@@ -523,6 +523,7 @@ export function values(data: GameData): Record<string, string> {
     COMPANION_STOPS: num(Friends.COMPANION_STOPS),
     FRIENDS_SHOWN: num(Friends.SHOWN),
     WORK_CARD_PCT: pct(Work.CARD_CHANCE),
+    SHIFT_MIN: num(Work.SHIFT_MIN),
     WORK_WIN_BASE_PCT: pct(Work.WIN_BASE),
     WORK_WIN_PER_PCT: pct(Work.WIN_PER_POINT),
     WORK_WIN_MAX_PCT: pct(Work.WIN_MAX),

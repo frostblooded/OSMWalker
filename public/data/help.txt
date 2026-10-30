@@ -226,7 +226,7 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
-After {WORK_CARD_PCT} of the jobs that pay him, a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
+After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
 {WORK_CARD_LIST}
 ## Saving for a vehicle {saving}
 He always saves up for the cheapest vehicle one step above what he rides:
@@ -585,10 +585,11 @@ The first friend to reach {HEARTS_MAX} hearts becomes his partner, for good. His
 ## Travel companions {companions}
 Until he has a partner, a fellow traveller joins him on {COMPANION_PCT} of his trips: a student, a retired sailor, a backpacker and others. They split the fare he paid ({SPLIT_PCT} of it back to him, never of a fine) and chat at his next {COMPANION_STOPS} quiet stops (no incident or Viktor), then go their own way at the one after. While one is along, the traveller takes those stops: no friends turn up, and no second traveller joins.
 ## Clubs {clubs}
-A friend with {CLUB_JOIN_AT} hearts or more may invite him to their club: a {CLUB_INVITE_PCT} chance at each quiet stop (no incident) in their city, while he has no club there. The club meets at the real place where he and the friend met, on one weekday at its own hour, by your phone's clock. He belongs to one club a city and {CLUB_MAX} in all.
+A friend with {CLUB_JOIN_AT} hearts or more may invite him to their club: a {CLUB_INVITE_PCT} chance at each quiet stop (no incident) in their city, while he has no club there. The club meets at the place where he and the friend met (only a friend still living in that city invites him), on one weekday at its own hour, by your phone's clock. He belongs to one club a city and {CLUB_MAX} in all.
 
-From then on he goes by himself: when he is in that city on that day, the first stop in the {CLUB_NIGHT_H} hours from the club's start is the club night, and the friend gets a heart. One night a week, never more. If he is somewhere else, the club meets without him. The Stats sheet lists his clubs on the Friends card.
+From then on he goes by himself: when he is in that city on that day, the first quiet stop (no incident) anywhere in the city in the {CLUB_NIGHT_H} hours from the club's start becomes the club night, as he heads over, and the friend gets a heart. One night a week, never more. If he is somewhere else, the club meets without him. The Stats sheet lists his clubs on the Friends card.
 {CLUB_LIST}
+The hedge mages' circle is the one club not of this world: it meets at a wizard's tower (see Made-up places).
 ## Friends' news {townies}
 His friends live their own lives, also while you are away. Each day there is a {NEWS_PCT} chance that one of them with {NEWS_AT} hearts or more has news: a new hobby, a dog, a wedding, a baby, a shop of their own. His partner is with him, so has none. Big news comes as a letter to him, marked 💌 (his own letters to you are ✉); the rest is a line in the feed. Each piece of news happens to a friend once.
 
@@ -596,7 +597,7 @@ A friend may move to another city he has been to. From then on that is their cit
 ## Anniversaries {anniversaries}
 The day he set out is his birthday. Each year on it he has a party in the city he is in, with his partner and the friends there with {PARTY_AT} hearts or more ({PARTY_MAX} at most), for {PARTY_MOOD} mood. With his mood out of 100 as the chance (at least {GREAT_MIN_PCT}), it is a great one, and he glows for {GLOW_H} hours: {GLOW_PER_H} mood an hour. With no friends there it is a quiet one alone, {ALONE_MOOD} mood.
 
-On the same day of every other month (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
+On the same day of each of the other months (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.

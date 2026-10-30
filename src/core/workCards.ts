@@ -1,5 +1,5 @@
 // Chance cards at work (The Sims' career chance cards): now and then a paid
-// job brings a small dilemma, such as the boss asking him to cover a double.
+// shift brings a small dilemma, such as the boss asking him to cover a double.
 // He picks by himself, leaning on one of his attributes, never you; the bold
 // choice can pay off or go wrong, by the same attribute. The feed shows what
 // he chose and how it went. Pure; Stats.do draws one.
@@ -9,8 +9,10 @@ import { signed } from "./money";
 import type { Rng } from "./rng";
 import type { Attr, Fx, Stats } from "./stats";
 
-/** Chance a paid job brings a chance card. */
+/** Chance a paid shift brings a chance card. */
 export const CARD_CHANCE = 0.15;
+/** Only paid actions this long count as a shift, so a coin by the ATM or a lottery ticket brings none. */
+export const SHIFT_MIN = 45;
 /** The bold choice works out with WIN_BASE plus WIN_PER_POINT a point of the card's attribute, up to WIN_MAX. */
 export const WIN_BASE = 0.4;
 export const WIN_PER_POINT = 0.05;

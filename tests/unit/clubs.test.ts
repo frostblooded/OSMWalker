@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import * as C from "../../src/core/clubs";
 import type { Friend } from "../../src/core/friends";
 import type { Rng } from "../../src/core/rng";
+import { TOWER_KIND } from "../../src/core/poiGen";
 import { Stats, type Fx } from "../../src/core/stats";
+import { dataFile } from "../support/data";
 
 /** An Rng whose rolls come from `rolls` in turn, whose picks take the first, and whose ranges take `day`. */
 const fixed = (day: number, ...rolls: number[]) => ({ randf: () => rolls.shift() ?? 0, pick: <T>(l: readonly T[]) => l[0]!, randiRange: () => day }) as unknown as Rng;
-const local = (over: Partial<Friend> = {}): Friend => ({ id: "x", name: "Ana", icon: "👩", city: "Sofia, Bulgaria", kind: "cafe", place: { name: "Café Rila", lat: 42.7, lon: 23.3 }, hearts: C.JOIN_AT, met: 0, seen: 0, ...over });
+const local = (over: Partial<Friend> = {}): Friend => ({ id: "Sofia, Bulgaria|Café Rila|0", name: "Ana", icon: "👩", city: "Sofia, Bulgaria", kind: "cafe", place: { name: "Café Rila", lat: 42.7, lon: 23.3 }, hearts: C.JOIN_AT, met: 0, seen: 0, ...over });
 /** Tuesday 27 October 2026 at `h`:30, local time. */
 const tue = (h: number) => {
   const d = new Date(2026, 9, 27, h, 30);
@@ -24,20 +26,30 @@ describe("clubs", () => {
     }
   });
 
+  it("meets only at place classes the game still has: kinds with actions, and wizard's towers", () => {
+    const actions = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
+    for (const k of C.KINDS) for (const cls of k.at) expect(cls === TOWER_KIND || actions[cls] !== undefined, `${k.id} at ${cls}`).toBe(true);
+  });
+
+  it("gets no invitation from a friend who moved away from where they met", () => {
+    const c = new C.Clubs();
+    expect(c.stop({ ...tue(12), city: "Porto, Portugal" }, [local({ id: "Sofia, Bulgaria|Café Rila|0", city: "Porto, Portugal" })], {}, fixed(2, 0))).toBe("");
+  });
+
   it(`invites him from ${C.JOIN_AT} hearts, at the place they met, on a weekday at the club's hour`, () => {
     const c = new C.Clubs();
     expect(c.stop(tue(12), [local({ hearts: C.JOIN_AT - 1 })], {}, fixed(2, 0))).toBe("");
     expect(c.stop(tue(12), [local()], {}, fixed(2, C.INVITE_CHANCE))).toBe("");
     expect(c.stop(tue(12), [local({ kind: "fuel" })], {}, fixed(2, 0))).toBe("");
     expect(c.stop(tue(12), [local()], {}, fixed(2, 0))).toBe("♟ Ana invited him to the chess club at Café Rila, Tuesdays at 19:00. He joined");
-    expect(c.list[0]).toMatchObject({ kind: "chess", host: "x", city: "Sofia, Bulgaria", day: 2, hour: 19, nights: 0 });
+    expect(c.list[0]).toMatchObject({ kind: "chess", host: "Sofia, Bulgaria|Café Rila|0", city: "Sofia, Bulgaria", day: 2, hour: 19, nights: 0 });
     // One club a city.
     expect(c.stop(tue(12), [local({ id: "y", kind: "library" })], {}, fixed(3, 0))).toBe("");
   });
 
   it(`stops inviting at ${C.MAX_CLUBS} clubs`, () => {
     const c = new C.Clubs();
-    for (let i = 0; i < C.MAX_CLUBS; i++) c.stop({ ...tue(12), city: `Town ${i}` }, [local({ id: `${i}`, city: `Town ${i}` })], {}, fixed(2, 0));
+    for (let i = 0; i < C.MAX_CLUBS; i++) c.stop({ ...tue(12), city: `Town ${i}` }, [local({ id: `Town ${i}|Cafe|0`, city: `Town ${i}` })], {}, fixed(2, 0));
     expect(c.list).toHaveLength(C.MAX_CLUBS);
     expect(c.stop(tue(12), [local()], {}, fixed(2, 0))).toBe("");
   });

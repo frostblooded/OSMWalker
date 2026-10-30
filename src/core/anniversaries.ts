@@ -1,7 +1,7 @@
 // Anniversaries (RimWorld's rituals, The Sims' birthdays): the day he set out
 // is his birthday. Each year on it he has a party with his friends in the
 // city he is in; how it goes rolls with his mood, and a great one leaves a
-// long glow. On the same day of every other month he marks a small one:
+// long glow. On the same day of each of the other months he marks a small one:
 // "Three months on the road". Pure; Stats owns one and calls it once a
 // local day.
 import type { Friend } from "./friends";

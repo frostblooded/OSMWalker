@@ -1,8 +1,8 @@
 // Clubs (The Sims 4's clubs): a friend with JOIN_AT hearts may invite him to
-// the club they go to, at the real place where they met, on one weekday at
+// the club they go to, at the place where they met, on one weekday at
 // a set hour (chess at a café on Tuesdays at 19:00). From then on, whenever
-// he is in that city at that time he goes by himself: a stop in the club's
-// hours turns into the club night, with its mood and XP and a heart for
+// he is in that city at that time he goes by himself: a quiet stop anywhere
+// in the city in the club's hours turns into the club night (he heads over), with its mood and XP and a heart for
 // the friend. One club per city, MAX_CLUBS in all. A rare few are not of
 // this world: a hedge mages' circle meets at a wizard's tower. Pure; Stats
 // owns one.
@@ -30,7 +30,7 @@ export const KINDS: ClubKind[] = [
   { id: "chess", name: "chess club", icon: "♟", at: ["cafe", "chess"], hour: 19, fx: { mood: 8, xp: 30 } },
   { id: "books", name: "book club", icon: "📚", at: ["library", "college"], hour: 18, fx: { mood: 6, xp: 35 } },
   { id: "quiz", name: "quiz night", icon: "🧠", at: ["bar", "beer"], hour: 20, fx: { mood: 10, xp: 20 } },
-  { id: "run", name: "running club", icon: "🏃", at: ["park", "garden", "running", "athletics", "sports_centre"], hour: 8, fx: { mood: 10, health: 5, energy: -15, xp: 20 } },
+  { id: "run", name: "running club", icon: "🏃", at: ["park", "garden", "sports_centre"], hour: 8, fx: { mood: 10, health: 5, energy: -15, xp: 20 } },
   { id: "swim", name: "swimming club", icon: "🏊", at: ["swimming", "swimming_pool", "water_park"], hour: 7, fx: { mood: 8, health: 5, hygiene: 20, energy: -15, xp: 15 } },
   { id: "choir", name: "choir", icon: "🎶", at: ["place_of_worship", "music", "theatre"], hour: 19, fx: { mood: 12, xp: 15 } },
   { id: "dogs", name: "dog walkers' club", icon: "🐕", at: ["dog_park"], hour: 9, fx: { mood: 12, xp: 10 } },
@@ -52,6 +52,11 @@ export type Club = {
   nights: number;
 };
 
+/**
+ * The map classes in KINDS' `at` come from the map (OpenFreeMap) and, for
+ * wizard_tower, from poiGen.ts TOWER_KIND; tests/unit/clubs.test.ts checks
+ * each still exists.
+ */
 /** Where he is when it happens: the city, the local weekday (Date.getDay()) and hour, the local date and unix seconds. */
 export type When = { city: string; day: number; hour: number; date: string; t: number };
 
@@ -80,7 +85,8 @@ export class Clubs {
     const night = this.list.find((c) => inNight(c, w) && c.last !== w.date);
     if (night) return this.go(night, w, friends, fx);
     if (this.list.length >= MAX_CLUBS || this.list.some((c) => c.city === w.city)) return "";
-    const hosts = friends.filter((f) => f.city === w.city && f.hearts >= JOIN_AT && kindAt(f.kind));
+    // A friend who moved away (townies.ts) has no club where they met, so only those still in the city they met in invite.
+    const hosts = friends.filter((f) => f.city === w.city && f.id.startsWith(`${f.city}|`) && f.hearts >= JOIN_AT && kindAt(f.kind));
     if (!hosts.length || rng.randf() >= INVITE_CHANCE) return "";
     const f = rng.pick(hosts);
     const k = kindAt(f.kind)!;

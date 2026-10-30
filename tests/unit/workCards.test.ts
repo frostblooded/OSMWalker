@@ -62,4 +62,16 @@ describe("work chance cards", () => {
     expect(said[0]).toMatch(/^Worked a shift at Cafe/);
     expect(said[1]).toMatch(/^\S+ At work: /);
   });
+
+  it(`never follows a short paid action (under ${W.SHIFT_MIN} minutes) or a bet`, () => {
+    const s = new Stats();
+    const said: string[] = [];
+    s.onSay = (l) => said.push(l);
+    for (let t = 1; t < 200; t++) {
+      s.now = () => t;
+      s.do({ name: "Find a coin", min: 1, earn: 1 }, "ATM", fixed(0, 0.99));
+      s.do({ name: "Arm-wrestling bet", min: W.SHIFT_MIN, earn: 15, risk: { p: 0 } }, "Bar", fixed(0, 0.99));
+    }
+    expect(said.filter((l) => l.includes(" At work: "))).toEqual([]);
+  });
 });

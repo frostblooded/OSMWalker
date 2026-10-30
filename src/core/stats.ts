@@ -630,7 +630,7 @@ export class Stats {
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
-    if (earned) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (earned && action.min >= Work.SHIFT_MIN && !action.risk) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
     return line;
   }
 
