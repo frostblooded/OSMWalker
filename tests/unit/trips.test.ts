@@ -202,6 +202,7 @@ describe("planTrip", () => {
     // Not with a vehicle, not too near or far, and not when he can't pay the hostels.
     expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, false)).toMatchObject({ mode: "bus" });
     expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, true)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(city("Nearby", 0.1, 0), [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, true)).toMatchObject({ mode: "bus" });
     expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100, false, 0, 1, false, true)).toMatchObject({ mode: "hitch" });
   });
 

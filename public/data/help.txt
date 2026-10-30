@@ -403,13 +403,14 @@ To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h, and so do the train, the bike and a hitched lift at their own speeds (see Other ways to travel); a ferry sails straight. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open. So 100 km by bus takes about {BUS_100_MIN} minutes, and 300 km by bus about {BUS_300_MIN}. While he rides, the map zooms out and a red line marks the way. Every ride but the plane arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
-Fares are in euros, and only cycling and hitchhiking are free (a rascal may also skip a bus ticket: see Kind or rascal):
+Fares are in euros, and only cycling, hitchhiking and a long walk under {HOSTEL_KM} km of road are free (a rascal may also skip a bus ticket: see Kind or rascal):
 - bus: {BUS_PER_KM} per km of road,
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
 - car: fuel at {FUEL_PER_KM} per km of road,
 - train: {TRAIN_PER_KM} per km of road,
 - ferry: {FERRY_PER_KM} per km over the water,
 - cycling and hitchhiking: free (see Other ways to travel).
+- long walk: {HOSTEL_PRICE} a hostel night for every {HOSTEL_KM} km of road, so free under {HOSTEL_KM} km (see Long walks).
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
