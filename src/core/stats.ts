@@ -521,7 +521,8 @@ export class Stats {
   collect(place: Place, rng: Rng): void {
     const k = this.keepsakes;
     if (place.made) {
-      if ((place.extra || place.tower) && !k.odd.includes(place.class)) k.odd.push(place.class);
+      // Extras carry `extra`; a wizard's tower is known by its kind (poiGen.TOWER_KIND, which a test checks).
+      if ((place.extra || place.class === "wizard_tower") && !k.odd.includes(place.class)) k.odd.push(place.class);
       return;
     }
     const key = visitKey(place);

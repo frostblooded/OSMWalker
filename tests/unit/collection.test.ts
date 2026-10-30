@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as CC from "../../src/core/cityCards";
 import * as C from "../../src/core/collection";
 import * as Items from "../../src/core/items";
+import { TOWER_KIND } from "../../src/core/poiGen";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 import { parseCities } from "../../src/core/trips";
@@ -87,13 +88,26 @@ describe("items he has owned", () => {
 });
 
 describe("odd places", () => {
+  it("knows a wizard's tower by the kind poiGen gives it", () => {
+    expect(TOWER_KIND).toBe("wizard_tower");
+  });
+
   it("notes the first of each made-up odd kind, but not must-haves", () => {
     const at = { rank: 1, lat: 0, lon: 0, made: true };
-    stats.collect({ ...at, name: "Wizard's tower at X", class: "wizard_tower", subclass: "wizard_tower", tower: true }, new Rng(1));
+    stats.collect({ ...at, name: "Wizard's tower at X", class: "wizard_tower", subclass: "wizard_tower" }, new Rng(1));
     stats.collect({ ...at, name: "Sofia inn", class: "lodging", subclass: "guest_house", must: true }, new Rng(1));
     expect(roundTrip(stats).keepsakes.odd).toEqual(["wizard_tower"]);
     expect(set("odd").entries(stats).filter((e) => e.got).map((e) => e.name)).toEqual(["Wizard tower"]);
     expect(stats.keepsakes.dex.size).toBe(0);
+  });
+});
+
+describe("old saves", () => {
+  it("load with no items noted, odd places, badges or title", () => {
+    const old = JSON.parse(JSON.stringify(stats));
+    for (const key of ["owned", "odd", "badges", "title"]) delete old.keepsakes[key];
+    const k = Stats.fromJSON(old).keepsakes;
+    expect([k.owned, k.odd, k.badges, k.title]).toEqual([[], [], {}, ""]);
   });
 });
 

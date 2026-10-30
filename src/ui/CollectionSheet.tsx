@@ -83,24 +83,33 @@ function SetCard({ set, stats }: { set: C.CSet; stats: Stats }) {
   );
 }
 
+/** Badges, a card per tab they belong to, so no card holds more than a few. */
 function Feats({ stats: s }: { stats: Stats }) {
   return (
-    <Card icon="🏅" title="Badges" right={`${C.FEATS.filter((f) => C.tierHeld(f, s) === 3).length} / ${C.FEATS.length} Gold`}>
-      <div class="zebra">
-        {C.FEATS.map((f) => {
-          const n = f.count(s);
-          const tier = C.tierHeld(f, s);
-          const next = f.tiers[tier];
-          return (
-            <div key={f.id}>
-              <KV k={`${f.icon} ${f.name}`} v={[1, 2, 3].map((t) => (tier >= t ? C.MEDALS[t] : "·")).join(" ")} />
-              <div class="small dim">{next === undefined ? `Done · title ${f.title}` : `${C.say(f, `${Math.min(n, next)} / ${next}`)} for ${C.TIER_NAMES[tier + 1]}`}</div>
-              {next !== undefined && <Bar share={n / next} color="var(--ok)" />}
+    <>
+      {C.TABS.map((t) => {
+        const feats = C.FEATS.filter((f) => f.tab === t.id);
+        if (!feats.length) return null;
+        return (
+          <Card key={t.id} icon={t.icon} title={t.name} right={`${feats.filter((f) => C.tierHeld(f, s) === 3).length} / ${feats.length} Gold`}>
+            <div class="zebra">
+              {feats.map((f) => {
+                const n = f.count(s);
+                const tier = C.tierHeld(f, s);
+                const next = f.tiers[tier];
+                return (
+                  <div key={f.id}>
+                    <KV k={`${f.icon} ${f.name}`} v={[1, 2, 3].map((t) => (tier >= t ? C.MEDALS[t] : "·")).join(" ")} />
+                    <div class="small dim">{next === undefined ? `Done · title ${f.title}` : `${C.say(f, `${Math.min(n, next)} / ${next}`)} for ${C.TIER_NAMES[tier + 1]}`}</div>
+                    {next !== undefined && <Bar share={n / next} color="var(--ok)" />}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-    </Card>
+          </Card>
+        );
+      })}
+    </>
   );
 }
 

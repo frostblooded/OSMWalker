@@ -519,9 +519,9 @@ At the top, Completion counts every tile he has found and every badge tier he ho
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places) and the crawls.
 - 🌍 World: every country, with the cities he has been to, and the souvenirs.
 - 🎒 Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned.
-- 🏅 Feats: his badges.
+- 🏅 Feats: his badges, a card for each tab they belong to.
 
-Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears it, for its base and its material.
+Each set has a bar and a grid of tiles, like a dex. A found tile shows its name, framed in its rarity colour (double for Foil or Gold). One he hasn't found yet is a ?. Tap a tile: a found one shows its detail, and a ? shows a hint, such as "Found in France" or "A Rare kind of shop". Landmark cards have no end, so they don't count towards Completion. An item counts once he wears or carries it, for its base and its material.
 ## Badges and titles {badges}
 A feat counts something he does. Its first number gives him a 🥉 Bronze badge, the second 🥈 Silver and the third 🥇 Gold. The feed says so, and a badge stays even if the count drops later (say he sells a treasured item). A Gold badge also gives him a title, shown on the Collection and Stats sheets: the newest one he earned. Badges and titles give nothing else.
 {FEAT_LIST}

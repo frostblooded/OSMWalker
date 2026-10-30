@@ -28,7 +28,7 @@ export type Entry = { id: string; icon: string; name: string; got: boolean; info
  */
 export type CSet = { id: string; tab: Tab; icon: string; title: string; entries: (s: Stats) => Entry[]; facts?: (s: Stats) => [string, string][]; open?: boolean; startedOnly?: boolean };
 /** A feat: a count with Bronze, Silver and Gold thresholds; Gold gives `title`. `what` words a number of it ("{n} countries visited"). */
-export type Feat = { id: string; icon: string; name: string; what: string; tiers: [number, number, number]; title: string; count: (s: Stats) => number };
+export type Feat = { id: string; /** The tab its badge card is named after. */ tab: Tab; icon: string; name: string; what: string; tiers: [number, number, number]; title: string; count: (s: Stats) => number };
 
 /** Every base, with the kind of shop that sells it. */
 export const BASES: (Items.Base & { kind: Items.Kind })[] = (Object.entries(Items.KINDS) as [Items.Kind, Items.Base[]][]).flatMap(([kind, list]) => list.map((b) => ({ ...b, kind })));
@@ -256,22 +256,22 @@ export const SETS: CSet[] = [
 ];
 
 export const FEATS: Feat[] = [
-  { id: "level", icon: "⭐", name: "Growing up", what: "level {n}", tiers: [5, 15, 30], title: "Veteran", count: (s) => s.level },
-  { id: "places", icon: "📍", name: "Out and about", what: "{n} places visited", tiers: [50, 500, 2000], title: "Local Legend", count: (s) => s.visited.size },
-  { id: "cities", icon: "🏙", name: "City hopper", what: "{n} cities visited", tiers: [5, 25, 100], title: "Wanderer", count: (s) => seenCities(s).length },
-  { id: "countries", icon: "🌍", name: "Passport stamps", what: "{n} countries visited", tiers: [3, 10, 30], title: "Globetrotter", count: (s) => seenCountries(s).length },
-  { id: "landmarks", icon: "🃏", name: "Landmarks", what: "{n} landmark cards", tiers: [10, 50, 200], title: "Landmark Hunter", count: (s) => s.keepsakes.cards.size },
-  { id: "citycards", icon: "🎴", name: "Card binder", what: "{n} city cards", tiers: [10, 50, 250], title: "Card Shark", count: (s) => s.keepsakes.cityCards.size },
-  { id: "sets", icon: "🗃", name: "Full sets", what: "{n} country sets of city cards", tiers: [1, 3, 10], title: "Set Collector", count: (s) => s.keepsakes.sets.length },
-  { id: "shiny", icon: "🌈", name: "Shiny", what: "{n} Foil or Gold cards", tiers: [1, 5, 20], title: "Shiny Hunter", count: shiny },
-  { id: "placedex", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
-  { id: "souvenirs", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
-  { id: "odd", icon: "🔮", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
-  { id: "crawls", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
-  { id: "gear", icon: "🎒", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
-  { id: "materials", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },
-  { id: "vehicles", icon: "🚗", name: "Garage", what: "{n} vehicles owned", tiers: [1, 3, VEHICLES.length], title: "Road King", count: (s) => ownedOf(s, VEHICLES) },
-  { id: "treasured", icon: "💎", name: "Keepsakes", what: "{n} treasured items he has", tiers: [1, 3, 6], title: "Storyteller", count: (s) => [...Object.values(s.gear), ...s.bag].filter((i) => i && Items.isTreasured(i)).length },
+  { id: "level", tab: "world", icon: "⭐", name: "Growing up", what: "level {n}", tiers: [5, 15, 30], title: "Veteran", count: (s) => s.level },
+  { id: "places", tab: "places", icon: "📍", name: "Out and about", what: "{n} places visited", tiers: [50, 500, 2000], title: "Local Legend", count: (s) => s.visited.size },
+  { id: "cities", tab: "world", icon: "🏙", name: "City hopper", what: "{n} cities visited", tiers: [5, 25, 100], title: "Wanderer", count: (s) => seenCities(s).length },
+  { id: "countries", tab: "world", icon: "🌍", name: "Passport stamps", what: "{n} countries visited", tiers: [3, 10, 30], title: "Globetrotter", count: (s) => seenCountries(s).length },
+  { id: "landmarks", tab: "cards", icon: "🃏", name: "Landmarks", what: "{n} landmark cards", tiers: [10, 50, 200], title: "Landmark Hunter", count: (s) => s.keepsakes.cards.size },
+  { id: "citycards", tab: "cards", icon: "🎴", name: "Card binder", what: "{n} city cards", tiers: [10, 50, 250], title: "Card Shark", count: (s) => s.keepsakes.cityCards.size },
+  { id: "sets", tab: "cards", icon: "🗃", name: "Full sets", what: "{n} country sets of city cards", tiers: [1, 3, 10], title: "Set Collector", count: (s) => s.keepsakes.sets.length },
+  { id: "shiny", tab: "cards", icon: "🌈", name: "Shiny", what: "{n} Foil or Gold cards", tiers: [1, 5, 20], title: "Shiny Hunter", count: shiny },
+  { id: "placedex", tab: "places", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
+  { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
+  { id: "odd", tab: "places", icon: "🔮", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
+  { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
+  { id: "gear", tab: "gear", icon: "🎒", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
+  { id: "materials", tab: "gear", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },
+  { id: "vehicles", tab: "gear", icon: "🚗", name: "Garage", what: "{n} vehicles owned", tiers: [1, 3, VEHICLES.length], title: "Road King", count: (s) => ownedOf(s, VEHICLES) },
+  { id: "treasured", tab: "gear", icon: "💎", name: "Keepsakes", what: "{n} treasured items he has", tiers: [1, 3, 6], title: "Storyteller", count: (s) => [...Object.values(s.gear), ...s.bag].filter((i) => i && Items.isTreasured(i)).length },
 ];
 
 /** "30 countries visited" for n = 30. */

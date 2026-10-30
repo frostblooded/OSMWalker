@@ -209,7 +209,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .tile { background: var(--zebra); border: 2px solid var(--ink); border-radius: var(--r-small); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
 .tile b { font-size: var(--title); }
 /* Collection: tabs, then dex grids. A found tile has a frame in its rarity colour, doubled for foil and gold (named in its detail too); an unfound one is a dimmed ?. */
-.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s1); }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s2); }
 .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: var(--tap-big); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); font-size: var(--heading); padding: var(--s1) 0; }
 .tab.on { background: var(--accent); color: #fff; box-shadow: var(--lip); }
 .dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--s2); margin-top: var(--s2); }

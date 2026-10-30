@@ -63,7 +63,7 @@ describe("made-up places", () => {
   it("give no cards, Placedex kinds, souvenirs or crawl progress, only an odd place for a tower", () => {
     const before = JSON.stringify({ ...stats.keepsakes.toJSON(), odd: [] });
     const xp = stats.xp;
-    stats.collect({ ...place("Wizard's tower at Old Fort", "wizard_tower", "wizard_tower", 1), made: true, tower: true }, rolls(0.001));
+    stats.collect({ ...place("Wizard's tower at Old Fort", "wizard_tower", "wizard_tower", 1), made: true }, rolls(0.001));
     stats.collect({ ...place("Sofia inn", "lodging", "guest_house", 1), made: true }, rolls(0.001));
     expect(stats.keepsakes.odd).toEqual(["wizard_tower"]);
     expect(JSON.stringify({ ...stats.keepsakes.toJSON(), odd: [] })).toBe(before);

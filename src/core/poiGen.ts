@@ -108,7 +108,7 @@ export function generate(city: GenCity, real: Place[], missing: Need[], snap: Sn
     if (raised.length >= towers) break;
     if (raised.some((r) => distanceM(r.lat, r.lon, m.lat, m.lon) <= TOWER_APART_M)) continue;
     const [lat, lon] = moved(m.lat, m.lon, rng.polar([10, NEAR_SPOT_M]));
-    raised.push({ name: `Wizard's tower at ${m.name}`, class: TOWER_KIND, subclass: TOWER_KIND, rank: 1, lat, lon, id: `${id}:${TOWER_KIND}:${raised.length}`, made: true, tower: true });
+    raised.push({ name: `Wizard's tower at ${m.name}`, class: TOWER_KIND, subclass: TOWER_KIND, rank: 1, lat, lon, id: `${id}:${TOWER_KIND}:${raised.length}`, made: true });
   }
   return [...out, ...raised];
 }
