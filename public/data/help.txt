@@ -108,6 +108,8 @@ His face shows how he feels. The first of these that fits wins:
 While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
 
 While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
+## City sound {sound}
+The 🔊 City sound switch in the menu (off at first) plays a soft loop for where he is: cafe chatter with the odd clinking cup while he stays at a place to eat or drink, birds and leaves in parks and gardens, and a low street hum anywhere else. On a trip it is quiet. The sound is made on your phone, so it downloads nothing; it stops while the game is in the background.
 ## The day ribbon {ribbon}
 Under the bars in the top card, a thin row shows the places he stopped at today as small icons (☕ 🏛 🍺 🏨), the newest on the right, including the ones from while you were away. It shows the last {RIBBON} stops; "+5" in front counts the earlier ones today. The day starts at midnight on your phone's clock, and the game keeps his last {MAX_STOPS} stops.
 # 🎯 Actions
@@ -368,11 +370,13 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Care package (with your clovers), Help, Debug, the Route to goal, Camera follows him and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Care package (with your clovers), Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 Camera follows him (a switch, on at first and remembered) keeps him in view: the map glides over to him whenever he walks out of the middle of the screen. Turn it off and the map stays wherever you leave it, even when he walks off the screen (see The map).
 
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
+
+City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.

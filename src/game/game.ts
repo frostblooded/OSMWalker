@@ -81,6 +81,8 @@ export class Game {
   showRoute = false;
   /** The camera keeps him in view by itself (the menu switch); off, the map stays where the player leaves it. */
   cameraFollows = true;
+  /** The optional city sound (the menu switch); off until the player turns it on. */
+  sound = false;
   cityOutline: LatLon[][] = [];
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
@@ -553,17 +555,24 @@ export class Game {
     this.showCityArea = s.showCityArea;
     this.showRoute = s.showRoute;
     this.cameraFollows = s.cameraFollows;
+    this.sound = s.sound;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, problems: this.problems });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems });
   }
 
   setShowCityArea(on: boolean): void {
     this.showCityArea = on;
     this.saveSettings();
     if (on) void this.learnOutline();
+    this.changed();
+  }
+
+  setSound(on: boolean): void {
+    this.sound = on;
+    this.saveSettings();
     this.changed();
   }
 

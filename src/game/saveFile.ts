@@ -32,7 +32,7 @@ export type Saved = {
   savedAt: number;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; problems: Problems };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems };
 
 /** The stored form; its keys never change, so older saves still load. */
 type Stored = {
@@ -46,7 +46,7 @@ type Stored = {
   debug_log: Entry[];
   saved_at?: number;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown };
 
 export function safeStorage(): KV | null {
   try {
@@ -128,7 +128,7 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, problems: Problems.fromJSON(d.problems) };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems) };
     } catch {
       return "Settings were unreadable; using defaults";
     }
@@ -136,7 +136,7 @@ export class SaveFile {
 
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, problems: s.problems };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.
