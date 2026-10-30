@@ -166,8 +166,12 @@ export class Walker {
       options = options.filter((q) => distanceM(p[0], p[1], q.lat, q.lon) > ARRIVE_M);
     }
     info.too_close = (info.in_box as number) - options.length;
+    const near = options.length;
+    let parts = options.map((q) => this.weigh(q));
+    // Closed places weigh nothing; when every one is closed he walks to a spot.
+    options = options.filter((_, i) => parts[i]!.weight > 0);
+    parts = parts.filter((w) => w.weight > 0);
     if (options.length > 0) {
-      const parts = options.map((q) => this.weigh(q));
       const weights = parts.map((w) => w.weight);
       const r = this.rng.randf();
       const i = pickIndex(weights, r);
@@ -187,7 +191,7 @@ export class Walker {
     const spot = this.randomSpot();
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : `every loaded place is within ${ARRIVE_M} m of him`;
+    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? "every place near enough is closed" : `every loaded place is within ${ARRIVE_M} m of him`;
     this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);
   }

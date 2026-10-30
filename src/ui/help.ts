@@ -10,11 +10,14 @@ import * as Goals from "../core/goals";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import { euro, toCents } from "../core/money";
+import * as Opening from "../core/opening";
 import * as Problems from "../core/problems";
+import * as Sky from "../core/sky";
 import * as Speeds from "../core/speeds";
 import * as S from "../core/stats";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Weather from "../core/weather";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -262,6 +265,26 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
+    SKY_ACTIONS: String(Object.values(data.actions).reduce((n, list) => n + list.filter((a) => a.needs?.season || a.needs?.weather).length, 0)),
+    OPEN_H: `${String(Opening.OPEN_H).padStart(2, "0")}:00`,
+    CLOSE_H: `${String(Opening.CLOSE_H).padStart(2, "0")}:00`,
+    HOT_C: num(Sky.HOT_C),
+    HOT_THIRST: num(Sky.HOT_THIRST),
+    COLD_C: num(Sky.COLD_C),
+    COLD_ENERGY_PER_H: num(Sky.COLD_ENERGY_PER_H),
+    WET_MOOD_PER_H: num(Sky.WET_MOOD_PER_H),
+    SUNNY_MOOD_PER_H: num(Sky.SUNNY_MOOD_PER_H),
+    SUNNY_MIN_C: num(Sky.SUNNY_MIN_C),
+    SNOW_SPEED_PCT: pct(Sky.SNOW_SPEED),
+    WET_OUTDOOR: num(Sky.WET_OUTDOOR),
+    WET_SHELTER: num(Sky.WET_SHELTER),
+    HOT_COOL: num(Sky.HOT_COOL),
+    MIN_DAY_H: num(Sky.MIN_DAY_H),
+    MAX_DAY_H: num(Sky.MAX_DAY_H),
+    TROPICS_LAT: num(Sky.TROPICS_LAT),
+    NIGHT_SHADE_PCT: pct(Sky.NIGHT_SHADE),
+    NIGHT_DEG: num(-Sky.NIGHT_DEG),
+    WEATHER_TTL_MIN: num(Weather.WEATHER_TTL_MS / 60_000),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);
   const rolls = [0, ...Items.MOD_ROLLS, 1];

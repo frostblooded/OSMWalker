@@ -1,12 +1,14 @@
-// The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, what he waits for), zoom on the right edge and the main
-// buttons in a bar at the bottom, in reach of the thumb.
+// The game screen: the map with him on it (dimmed at night), a compact card
+// on top (where he is, where he goes, what he waits for, the weather), zoom
+// on the right edge and the main buttons in a bar at the bottom, in reach of
+// the thumb.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import { hud, type Goal, type Hud } from "../game/hud";
 import { euro } from "../core/money";
+import { NIGHT_SHADE } from "../core/sky";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
@@ -18,6 +20,8 @@ import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
+/** The night shade's opacity moves in steps this big, so it is restyled rarely. */
+const DARK_STEP = 0.05;
 
 type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
 
@@ -87,6 +91,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   return (
     <div class="game">
       <div class="map" ref={mapEl} />
+      {h.sky && h.sky.dark > 0 && <div class="night" aria-hidden="true" style={{ opacity: Math.round((h.sky.dark * NIGHT_SHADE) / DARK_STEP) * DARK_STEP }} />}
       <div class="top" ref={topEl}>
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
@@ -100,6 +105,12 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
+              {h.sky && (
+                <span class="pill sky">
+                  {h.sky.icon}
+                  {h.sky.tempC !== null && ` ${h.sky.tempC}°`}
+                </span>
+              )}
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />

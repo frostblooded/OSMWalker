@@ -1,9 +1,11 @@
 // His character sheet: level and XP, what he saves up for, six meters as
-// bars, four attributes with what his gear adds, every gear slot, the bag
-// and his buffs.
+// bars, the sky over him, four attributes with what his gear adds, every
+// gear slot, the bag and his buffs.
 import { SLOTS, type Item, type Rarity, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { isCold, isHot, isWet, type Sky } from "../core/sky";
+import { SEASON_ICON, skyIcon } from "../game/hud";
 import { speed } from "./format";
 import { Bar, Card, Collapsible, KV } from "./kit";
 
@@ -29,6 +31,26 @@ const SLOT: Record<Slot, [string, string]> = {
 export const RARITY_COLOR: Record<Rarity, string> = { Common: "#6b7280", Uncommon: "#2e9e44", Rare: "#1a5fb4", Legendary: "#e8730c" };
 
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString();
+/** Hours as a 24-hour clock time. */
+const hhmm = (h: number) => {
+  const m = Math.round(h * 60) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+const cap = (t: string) => t[0]!.toUpperCase() + t.slice(1);
+
+function SkyCard({ sky }: { sky: Sky }) {
+  const w = sky.weather;
+  const note = isWet(sky) ? "🌧 Wet: he heads indoors and his mood drops." : isHot(sky) ? "🥵 Hot: he gets thirsty faster and looks for ways to cool off." : isCold(sky) ? "🥶 Freezing: he tires faster." : "";
+  return (
+    <Card icon="🌦" title="Sky" right={`${SEASON_ICON[sky.season]} ${cap(sky.season)}`}>
+      <KV k="Weather" v={w ? `${skyIcon(sky)} ${cap(w.kind)}, ${Math.round(w.tempC)}°C` : <span class="dim">Unknown yet</span>} />
+      <KV k="🕒 City time" v={hhmm(sky.clock)} />
+      <KV k="🌅 Sunrise" v={hhmm(sky.rise)} />
+      <KV k="🌇 Sunset" v={hhmm(sky.set)} />
+      {note && <p class="small tone-warning">{note}</p>}
+    </Card>
+  );
+}
 
 function ItemName({ item }: { item: Item }) {
   return (
@@ -79,6 +101,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
           })}
         </div>
       </Card>
+      {s.sky && <SkyCard sky={s.sky} />}
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {

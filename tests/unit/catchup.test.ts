@@ -4,6 +4,7 @@ import { Activities } from "../../src/core/activities";
 import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
+import { skyAt } from "../../src/core/sky";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
@@ -26,7 +27,7 @@ function deps(o: Partial<CatchUpDeps> = {}): CatchUpDeps {
     activities: new Activities(JSON.parse(dataFile("actions.json"))),
     trips: new Trips(parseCities(CITIES), parseAirports(AIRPORTS)),
     rng: new Rng(7),
-    hourAt: (ms) => new Date(ms).getUTCHours(),
+    skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
     roll: () => 0.99,
     ...o,
   };
@@ -143,5 +144,15 @@ describe("catch-up", () => {
     const s = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps());
     expect(s.firstVisits).toBeLessThanOrEqual(PLACES.length);
     expect(s.lines.filter((l) => l.text.includes(`(+${FIRST_VISIT_XP} XP)`)).length).toBe(s.firstVisits);
+  });
+
+  it("lives by the sky: closed shops at night, and the weather of each hour", () => {
+    const shops: AwayCity = { ...HOME, places: [place("Shoe Shop", "shop", "shoes", 0.003, 0), place("Shoe Shop Two", "shop", "shoes", 0, 0.004)] };
+    const night = Date.UTC(2026, 9, 29, 22);
+    const seen: number[] = [];
+    const s = catchUp(new Stats(), shops, [0, 0], 4 * 3600, night, deps({ skyAt: (ms, c) => (seen.push(ms), skyAt(ms, c.center[0], c.center[1], 0, { kind: "snow", tempC: -3 })) }));
+    expect(s.stops).toBeGreaterThan(0);
+    expect(s.lines.some((l) => l.text.startsWith("Reached Shoe Shop"))).toBe(false);
+    expect(Math.max(...seen)).toBeGreaterThan(night + 3 * 3600_000);
   });
 });

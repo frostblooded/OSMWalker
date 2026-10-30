@@ -1,8 +1,10 @@
 // What the screens show about him, worked out once from the game: the top
 // card (what he is doing, where he goes, how long until he moves again, why
-// he waits) and the facts Debug lists. Plain data, so the screens only lay
+// he waits, the sky) and the facts Debug lists. Plain data, so the screens only lay
 // it out and the numbers are tested without a browser.
 import { distanceM, type BBox } from "../core/geo";
+import type { Season, Sky } from "../core/sky";
+import type { WeatherKind } from "../core/weather";
 import type { LatLon, Mode } from "../core/trips";
 import { pathLengthM, tripLimitM } from "../core/walker";
 import type { Game } from "./game";
@@ -25,7 +27,19 @@ export type Hud = {
   restShare: number | null;
   /** Why he stands still when it is not a rest. */
   waiting: "" | "streets" | "failing";
+  /** The weather (or the season while it is unknown) as an icon, the temperature, and how dark the map is (0-1). */
+  sky: { icon: string; tempC: number | null; dark: number } | null;
 };
+
+export const SEASON_ICON: Record<Season, string> = { spring: "🌸", summer: "🌻", autumn: "🍂", winter: "❄" };
+export const WEATHER_ICON: Record<WeatherKind, string> = { clear: "☀", cloudy: "☁", fog: "🌫", rain: "🌧", snow: "🌨", storm: "⛈" };
+
+/** The icon for the sky: its weather (a moon on a clear night), else the season. */
+export function skyIcon(sky: Sky): string {
+  const w = sky.weather;
+  if (!w) return SEASON_ICON[sky.season];
+  return w.kind === "clear" && sky.dark > 0.5 ? "🌙" : WEATHER_ICON[w.kind];
+}
 
 export function hud(g: Game): Hud | null {
   const w = g.walker;
@@ -42,6 +56,7 @@ export function hud(g: Game): Hud | null {
     goal: goal(g),
     restShare: resting && !riding ? w.restFraction() : null,
     waiting,
+    sky: g.stats.sky ? { icon: skyIcon(g.stats.sky), tempC: g.stats.sky.weather ? Math.round(g.stats.sky.weather.tempC) : null, dark: g.stats.sky.dark } : null,
   };
 }
 

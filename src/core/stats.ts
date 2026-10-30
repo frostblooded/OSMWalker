@@ -6,6 +6,7 @@ import * as Items from "./items";
 import type { Item, Slot } from "./items";
 import type { Rng } from "./rng";
 import { euro, signed, toCents } from "./money";
+import { meets, speedShare, weatherPerH, type Season, type Sky, type WeatherNeed } from "./sky";
 import * as Speeds from "./speeds";
 import type { Vehicle } from "./speeds";
 
@@ -16,8 +17,8 @@ export type Attr = (typeof ATTRS)[number];
 /** Effect keys an action's fx may use. */
 export const FX_KEYS = [...METERS, ...ATTRS, "xp"] as const;
 /** Requirement keys an action's needs may use. */
-export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below"] as const;
-/** Hours that count as each time of day (night wraps past midnight). */
+export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below", "season", "weather"] as const;
+/** Sun hours (sunrise 6, sunset 18, see sky.ts) that count as each time of day (night wraps past midnight). */
 export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5] } as const;
 export type TimeOfDay = keyof typeof TIMES;
 
@@ -82,7 +83,7 @@ export type Action = {
   cost?: number;
   earn?: number | [number, number];
   fx?: Fx;
-  needs?: Partial<Record<Attr | "level", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>> };
+  needs?: Partial<Record<Attr | "level", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>>; season?: Season; weather?: WeatherNeed };
   risk?: { p: number; text?: string; fx?: Fx; cost?: number };
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
@@ -111,6 +112,8 @@ export class Stats {
   walkMin = 0;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
   now = () => Math.floor(Date.now() / 1000);
+  /** The sky over him (season, sun, weather); the game and the catch-up set it, null when unknown. */
+  sky: Sky | null = null;
   /** Hears every feed line as it is said; the catch-up collects them for its summary. */
   onSay: ((line: string, t: number) => void) | null = null;
 
@@ -135,12 +138,12 @@ export class Stats {
     return v;
   }
 
-  /** Meters per second: walking or his vehicle, +1% a level above 1 and gear's speed percent, slower when tired. */
+  /** Meters per second: walking or his vehicle, +1% a level above 1 and gear's speed percent, slower when tired or on foot in snow. */
   speedMps(): number {
     const v = this.vehicle();
     const base = v ? Speeds.FOR_VEHICLE[v] : Speeds.WALK;
     const tired = 0.5 + 0.5 * Math.min(this.meters.energy / TIRED_ENERGY, 1);
-    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus() / 100) * tired;
+    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus() / 100) * tired * speedShare(this.sky, v);
   }
 
   /** The next vehicle he saves up for, or null once he has a car. */
@@ -237,12 +240,13 @@ export class Stats {
   /** Lets `minutes` pass, `walkedM` of them on the move. */
   passTime(minutes: number, walkedM: number): void {
     const h = minutes / 60;
+    const sky = weatherPerH(this.sky);
     const fx: Fx = {
       fullness: -FULLNESS_PER_H * h,
-      thirst: -THIRST_PER_H * h,
+      thirst: -THIRST_PER_H * sky.thirstMult * h,
       hygiene: -HYGIENE_PER_H * h,
-      mood: -(MOOD_PER_H + (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
-      energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * walkedM) / 1000,
+      mood: (sky.mood - MOOD_PER_H - (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
+      energy: (-ENERGY_PER_KM * EFFORT[this.vehicle()] * walkedM) / 1000 + sky.energy * h,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
     for (const b of this.buffs) {
@@ -293,7 +297,7 @@ export class Stats {
     return this.buffs.reduce((m, b) => m * b.xp_mult, 1);
   }
 
-  /** True when he has the coins, skills, level and timing for `action`. */
+  /** True when he has the coins, skills, level, timing, season and weather for `action`. */
   canDo(action: Action, hour: number): boolean {
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
@@ -303,6 +307,10 @@ export class Stats {
         if (this.level < (need as number)) return false;
       } else if (k === "time") {
         if (!inTime(need as TimeOfDay, hour)) return false;
+      } else if (k === "season") {
+        if (this.sky?.season !== need) return false;
+      } else if (k === "weather") {
+        if (!meets(need as WeatherNeed, this.sky)) return false;
       } else if (k === "below") {
         for (const [m, v] of Object.entries(need as object)) if (this.meters[m as Meter] >= v) return false;
       } else if (this.attr(k as Attr) < (need as number)) return false;

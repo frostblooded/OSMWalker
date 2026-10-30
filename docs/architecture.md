@@ -15,8 +15,8 @@ Imports only point down this list (`src/sw/` imports nothing).
 | Map | `src/map/` | `scene.ts` decides what the map shows and where the camera points. `mapView.ts` is the only file that talks to MapLibre. |
 | Game | `src/game/` | `game.ts` runs a city: walker, streets, trips, saves, and the catch-up on reopen (`wake()`). `journey.ts` trips, `saveFile.ts` saves and settings, `hud.ts` what the screens show. |
 | Streets | `src/streets/` | The Web Worker that fetches, decodes and caches street tiles (`source.ts`), and `loader.ts`, which picks which tiles to load next. |
-| Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
-| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, and `catchup.ts`, which lives through the time the game was closed without walking the map. |
+| Network | `src/net/api.ts` | The game's outside services: OpenFreeMap street tiles, Overpass, Photon, Nominatim, OSRM, Wikidata, Open-Meteo weather. The map style and map tiles are fetched by `src/map/mapView.ts` and MapLibre itself. |
+| Core | `src/core/` | Pure logic with no DOM and no network: walker, route (A*), goal weights, stats, items, trips, history, money in cents, a seedable RNG, the sky (`sky.ts`: sun, season, the city's clock and what weather does; `weather.ts`: Open-Meteo forecasts; `opening.ts`: opening hours), and `catchup.ts`, which lives through the time the game was closed without walking the map. |
 | Offline | `src/sw/` | The service worker and its cache rules, built on its own. |
 
 ## Hidden links
@@ -25,6 +25,7 @@ Imports only point down this list (`src/sw/` imports nothing).
 - **Game data.** `public/data/actions.json`, `flavour.json`, `cities.tsv` and `airports.tsv` are read through `src/app/data.ts`. `tools/` rebuilds `cities.tsv` and runs the POI sweep (`.github/workflows/poi-sweep.yml`).
 - **Saves.** Changing a saved field means a repair step in `src/game/saveFile.ts`, because players keep old saves.
 - **Catch-up.** The save's `saved_at` is where the catch-up starts; `tests/e2e/mock.ts` (`reopenAfter`) moves it back by editing the stored save, so a change to the save's key or that field breaks it. `catchup.ts` copies the walker's goal odds (`goals.ts`) and the trip rules (`trips.ts`, `game/journey.ts`) instead of calling the walker, so a change to either belongs in both. Its made-up place kinds (`MADE_UP_KINDS`) must keep their own entries in `actions.json` (`tests/unit/catchup.test.ts` checks).
+- **Sky.** `stats.sky` is set by the game once a second and by the catch-up per step; it is never saved. The forecast lives apart under `WEATHER_KEY` (`saveFile.ts`). Actions' `needs.season` / `needs.weather` values must be in `SEASONS` / `WEATHER_NEEDS` (`tests/unit/sky.test.ts` checks). `tests/e2e/mock.ts` answers Open-Meteo with rain at 9°C.
 - **Perf budgets.** `tests/perf/budgets.json` sets the CI limits (transfer, JS size, first paint, long tasks). A new dependency or eager import usually shows up there first.
 - **Layout.** `tests/e2e/layout.spec.ts` opens every screen at 360 and 412 px and fails on overlap or sideways scroll. A new screen or sheet needs a step there. CI keeps the shots as the `screens` artifact.
 

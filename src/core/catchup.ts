@@ -3,12 +3,15 @@
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking
 // each), does an action at each, rolls the trip dice as usual and pays and
 // rides like he would. In a city whose places aren't loaded he visits
-// made-up places of the usual kinds ("a cafe in Lyon"). Pure: the game
+// made-up places of the usual kinds ("a cafe in Lyon"). The sky (sun,
+// season, weather, closed places) follows the hour he is in. Pure: the game
 // applies where he ends up.
 import { choose, needWeight, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, pickIndex, randomSpot, rankWeight, type Vec } from "./goals";
 import { euro, signed } from "./money";
+import { isOpen } from "./opening";
+import { placeWeight, type Sky } from "./sky";
 import type { Rng } from "./rng";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
@@ -53,8 +56,8 @@ export type CatchUpDeps = {
   activities: Activities;
   trips: Trips;
   rng: Rng;
-  /** The hour of day at unix ms, for actions that need a time of day. */
-  hourAt: (ms: number) => number;
+  /** The sky over `city` at unix ms: the time of day, season and weather. */
+  skyAt: (ms: number, city: AwayCity) => Sky;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   roll?: () => number;
   /** Trivia actions for the city he starts in. */
@@ -130,6 +133,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (text.startsWith("Bought")) s.bought.push(text);
   };
   const leftMin = () => (coveredS - elapsed) / 60;
+  const skyNow = () => (stats.sky = deps.skyAt(startMs + elapsed * 1000, city));
 
   /** Lets `minutes` pass, `walkedM` of them on foot (or in his vehicle). */
   const pass = (minutes: number, walkedM: number) => {
@@ -137,6 +141,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     while (left > 1e-9) {
       const m = Math.min(left, STEP_MIN);
       const w = (walkedM * m) / minutes;
+      skyNow();
       stats.passTime(m, w);
       if (w > 0) stats.walkFor(m, rng);
       elapsed += m * 60;
@@ -162,6 +167,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   };
   /** Walks `m` meters, or as far as the time left allows; false when time ran out first. */
   const walk = (m: number) => {
+    skyNow();
     const min = m / stats.speedMps() / 60;
     if (min > leftMin()) return false;
     pass(min, m);
@@ -183,8 +189,11 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
       } else stats.say(`Reached ${place.name}`);
       s.stops++;
-      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
+      const sky = skyNow();
+      const open = isOpen(place, sky.clock, sky.holiday);
+      const action = open ? choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf()) : null;
       if (action) stats.do(action, place.name, rng);
+      else if (!open) stats.say(`Found ${place.name} closed`);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
@@ -252,16 +261,18 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const real = city.places ?? [];
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
-    const need = flat.kinds.map((p) => needWeight(activities.peek(p, city.code), stats));
-    const needOf = (p: Place) => needWeight(activities.peek(p, city.code), stats);
+    const sky = skyNow();
+    const needOf = (p: Place) => needWeight(activities.peek(p, city.code), stats) * placeWeight(p, sky);
+    const need = flat.kinds.map(needOf);
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     let any = false;
     const weights = real.map((_, i) => {
       const v: Vec = [flat.x[i]! - hx, flat.y[i]! - hy];
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
-      any = true;
-      return flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
+      const w = flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
+      if (w > 0) any = true;
+      return w;
     });
     if (any) return real[pickIndex(weights, rng.randf())]!;
     const made = madeUp();

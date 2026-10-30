@@ -390,4 +390,60 @@ describe("game", () => {
       expect(again.loader.graph).toBe(again.walker!.graph);
     });
   });
+
+  describe("the sky", () => {
+    const NOW = Date.UTC(2026, 9, 29, 10);
+    const SHOP: Place = { name: "Shoe Shop", class: "shop", subclass: "shoes", rank: 1, lat: 42.6885, lon: 23.3215 };
+    /** An Open-Meteo answer with `code` weather at `tempC` around NOW, counting the requests. */
+    function weatherApi(code: number, tempC: number) {
+      const calls: string[] = [];
+      const hours = Array.from({ length: 72 }, (_, i) => Math.floor(NOW / 1000) - 24 * 3600 + i * 3600);
+      const api = new Api(async (url) => {
+        calls.push(url);
+        if (!url.startsWith("https://api.open-meteo.com/")) return new Response("", { status: 503 });
+        return Response.json({ utc_offset_seconds: 7200, hourly: { time: hours, temperature_2m: hours.map(() => tempC), weather_code: hours.map(() => code) } });
+      });
+      return { api, weatherCalls: () => calls.filter((u) => u.includes("open-meteo")).length };
+    }
+
+    it("fetches the city's weather once an hour, keeps it on the device and lives by it", async () => {
+      let now = NOW;
+      const { api, weatherCalls } = weatherApi(63, 9);
+      const { g, storage } = game({ api, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 3);
+      await tick();
+      run(g, 3);
+      expect(weatherCalls()).toBe(1);
+      expect(g.stats.sky).toMatchObject({ offsetS: 7200, weather: { kind: "rain", tempC: 9 }, season: "autumn" });
+      expect(JSON.parse(storage.getItem("osmwalker.weather")!).city).toBe("Sofia, Bulgaria");
+      now += 30 * 60_000;
+      run(g, 2);
+      expect(weatherCalls()).toBe(1);
+      now += 31 * 60_000;
+      run(g, 2);
+      await tick();
+      expect(weatherCalls()).toBe(2);
+    });
+
+    it("finds shops closed at night and does nothing there", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      // Closed places don't pull him, so he only gets there on a goal picked by day.
+      g.walker!.needWeight = () => 1;
+      run(g, 400);
+      const lines = g.stats.history.entries.map((e) => e.text);
+      expect(lines).toContain("Found Shoe Shop closed");
+      expect(lines.some((l) => l.endsWith("at Shoe Shop"))).toBe(false);
+    });
+
+    it("doesn't head for closed places", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      g.debugNewGoal();
+      expect(g.walker!.place).toBeNull();
+      expect(g.debugLog.entries.at(-1)?.fallback).toBe("every place near enough is closed");
+    });
+  });
 });

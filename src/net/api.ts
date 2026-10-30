@@ -1,11 +1,13 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
 // (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
 // for road routes between cities, Wikidata for city trivia and Nominatim for
-// city outlines. Fetch is injected, so it is easy to test.
+// city outlines, Open-Meteo for his city's weather. Fetch is injected, so it
+// is easy to test.
 import * as CityFacts from "../core/cityFacts";
 import type { BBox, Tile } from "../core/geo";
 import type { Cell, OverpassData } from "../core/graph";
 import { fromPbf, TILE_ZOOM } from "../core/ofm";
+import { parseForecast, weatherUrl, type Forecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 
 /** Public Overpass servers, tried in order; the main one is often busy (429/504). */
@@ -277,6 +279,11 @@ export class Api {
   }
 
   /** The road route between two points, or [] on failure. */
+  /** Hourly weather around `lat`, `lon` from a day ago to two days ahead, stamped with unix ms `nowMs`, or null. */
+  async forecast(city: string, lat: number, lon: number, nowMs: number): Promise<Forecast | null> {
+    return parseForecast(await this.getJson(weatherUrl(lat, lon), 20), city, nowMs);
+  }
+
   async route(a: LatLon, b: LatLon): Promise<LatLon[]> {
     return osrmPath(await this.getJson(osrmUrl(a, b), 30));
   }

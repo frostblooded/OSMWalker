@@ -28,6 +28,8 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
+The sky changes hour by hour while you are away, just as it does on screen: day and night follow the real sun, closed places stay closed, and in his own city the weather is the real weather of each hour (see Weather). In other cities he reaches while you are away only the sun and the season count.
+
 In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
 
 If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
@@ -51,7 +53,7 @@ His speed depends on how he gets about:
 
 He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
 
-Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy.
+Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy. In snow he goes at {SNOW_SPEED_PCT} of his speed on foot or by bike (see Weather).
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
 ## Places of note {places}
@@ -72,6 +74,8 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
 Need: a meter below {NEED_AT} is a need. A place with an action that refills it weighs more, up to {NEED_MAX} times when the meter is empty ({NEED_HALF} times at half of {NEED_AT}). So when he is hungry he heads for food, when tired for coffee or a bench, and when he is broke or saving for a trip or a vehicle, for paid work. Only his strongest need counts. One thing beats every need: once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle).
+
+The sky multiplies the need number too: a closed place weighs 0, so he never sets off for a shop at night (see Opening hours), and rain, snow or heat make some places pull more or less (see Weather). If every place near enough is closed he walks to a random spot.
 
 Random spots (while no places are loaded) follow the same distance and heading odds, and always stay inside the city box. Debug shows all four numbers for every pick.
 ## His goal {goal}
@@ -127,7 +131,9 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Level: some need a minimum level.
-- Time of day, by your device's clock: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}. Bars serve rakia only in the evening, for example.
+- Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, where 06:00 is sunrise and 18:00 is sunset (see Day and night). Bars serve rakia only in the evening, for example.
+- Season: some only happen in one season, such as mulled wine in winter (see Seasons).
+- Weather: some need wet weather (rain, snow or a storm), snow, heat, frost or sunshine, such as building a snowman (see Weather).
 - Low meters: some only happen when a meter is low, such as napping under a tree when his energy is under 40, or the soup kitchen when his fullness is under 30.
 ## Money {coins}
 His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
@@ -171,7 +177,7 @@ When health reaches 0 he faints and wakes up in hospital (see Fainting and hospi
 ## Energy {energy}
 Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
-He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
+He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles), and {COLD_ENERGY_PER_H} more every hour while it is freezing (see Weather). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
 When energy is under 60 he leans towards actions that give energy. Napping under a tree only happens when it is under 40. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
@@ -183,13 +189,13 @@ Under 60 he leans more and more towards food. At 0 he starts losing {STARVING_PE
 ## Thirst {thirst}
 Thirst is how well watered he is, from 0 to 100 (higher is better), starting at {START_THIRST}.
 
-It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts about {THIRST_HOURS} hours. Drinks, drinking fountains, cafes and bars fill it.
+It drops by {THIRST_PER_H} every hour the game is open, so from full it lasts about {THIRST_HOURS} hours, and {HOT_THIRST} times as fast in the heat (see Weather). Drinks, drinking fountains, cafes and bars fill it.
 
 Under 60 he leans towards drinks. At 0 he starts losing {STARVING_PER_H} health per hour until he drinks.
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}.
 
-It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
+It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Wet weather takes {WET_MOOD_PER_H} more an hour and sunshine gives {SUNNY_MOOD_PER_H} back (see Weather). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
 When mood is under 60 he leans towards cheerful actions.
 
@@ -202,6 +208,33 @@ It drops by {HYGIENE_PER_H} every hour the game is open. Showers, swimming, hote
 When hygiene is under 60 he leans towards actions that clean him up.
 
 Under {DIRTY_AT} he is dirty, and two things happen. His charm counts less, down to {DIRTY_CHARM_PCT} less at 0 hygiene, which means worse sell prices and fewer charm actions. And his mood drops {DIRTY_MOOD_PER_H} more every hour. The Stats sheet shows charm's drop in red.
+# 🌦 Weather and sky
+## Weather {weather}
+The weather in his city is the real weather there, from Open-Meteo. The game asks for it once every {WEATHER_TTL_MIN} minutes while it is open, and gets the hours from a day ago to two days ahead in one small request, so the catch-up knows what the sky did while you were away. The last forecast is kept on the device. Until it arrives, or if it can't be reached, the weather is unknown and changes nothing.
+
+What the weather does to him:
+- Wet (rain, snow or a storm): outdoor places such as parks, gardens and sports pitches pull his goal {WET_OUTDOOR} times as much, and shelters such as museums, cafes, libraries and cinemas {WET_SHELTER} times. His mood drops {WET_MOOD_PER_H} more an hour.
+- Snow: on foot or by bike he goes at {SNOW_SPEED_PCT} of his speed.
+- Hot ({HOT_C}°C or more): he gets thirsty {HOT_THIRST} times as fast, and ice cream, fountains and pools pull his goal {HOT_COOL} times as much.
+- Freezing ({COLD_C}°C or less): he loses {COLD_ENERGY_PER_H} energy more an hour.
+- Sunny (clear, {SUNNY_MIN_C}°C to below {HOT_C}°C): his mood rises {SUNNY_MOOD_PER_H} an hour, which makes up for its usual drop.
+
+Some actions only happen in the right weather, such as hot chocolate while it pours, a snowman in the park or watching the sunset (see Requirements). The top card and the Stats sheet show the weather now.
+## Seasons {seasons}
+The season comes from the date in his city: spring is March to May, summer June to August, autumn September to November and winter December to February. South of the equator they are the other way round, and within {TROPICS_LAT}° of the equator it is summer all year.
+
+Some actions only happen in one season, such as mulled wine by a bar's heater in winter, kicking through leaves in autumn or a picnic under the blossom in spring. There are {SKY_ACTIONS} actions that need a season or a weather. The Stats sheet shows the season.
+## Day and night {day_night}
+Day and night follow the real sun over his city, worked out on your device from the date and where he is, with no download. Times go by the city's own clock, not your phone's: when it is night in Tokyo it is night for him in Tokyo. The clock comes with the weather, and until then from the city's longitude.
+
+For actions, sunrise counts as 06:00 and sunset as 18:00, with the day and the night each stretched or squeezed to 12 hours in between, so "evening" starts around sunset in every season. In the far north and south, where the sun may not rise or set, a day counts as at least {MIN_DAY_H} and at most {MAX_DAY_H} hours.
+
+After sunset the map darkens under a blue shade as the sun sinks, until it is {NIGHT_SHADE_PCT} dark once the sun is {NIGHT_DEG}° below the horizon, and lightens again at dawn. At night he may stroll under the street lamps.
+## Opening hours {opening}
+Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
+
+He never sets off for a closed place (it weighs 0 when he picks his next goal). If a place closes while he is on his way, he finds it closed, does nothing there and moves on after the usual minute.
+
 # 💪 Attributes
 ## Strength {str}
 Strength starts at 1. It grows a little from physical actions (workouts, hauling, sport), from levelling up, and from gear such as weapons, shields, helmets, boots and backpacks.
@@ -321,7 +354,7 @@ When he reaches a city, the game looks it up on Wikidata: the most populous plac
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon until the weather is known), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 
@@ -337,6 +370,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 - Level, an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
+- Sky: the season, the weather, the city's time, and today's sunrise and sunset, with a line on what the weather does to him (see Weather).
 - Attributes: a tile for each, with the part his gear adds in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.

@@ -25,6 +25,14 @@ test("picks a city and walks its streets", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("shows the weather in his city on the top card and the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".pill.sky")).toHaveText("🌧 9°", { timeout: 10000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.locator(".card", { hasText: "Sky" })).toContainText("Rain, 9°C");
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
