@@ -14,6 +14,7 @@ import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
+import { CollectionSheet } from "./CollectionSheet";
 import { CareSheet } from "./CareSheet";
 import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
@@ -25,7 +26,7 @@ import { StatsSheet } from "./StatsSheet";
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "care" | "postcard" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -172,6 +173,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
+            <button class="btn" onClick={() => setSheet("collection")}>
+              🗂 Collection
+            </button>
             <button class="btn" onClick={() => setSheet("care")}>
               🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
             </button>
@@ -216,6 +220,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close} full>
           <StatsSheet stats={game.stats} />
+        </SheetBox>
+      )}
+      {sheet === "collection" && (
+        <SheetBox title="🗂 Collection" onClose={close} full>
+          <CollectionSheet stats={game.stats} />
         </SheetBox>
       )}
       {sheet === "care" && (

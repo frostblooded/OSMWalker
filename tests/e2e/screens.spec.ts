@@ -1,6 +1,6 @@
-// The sheets: Help, Stats, History and Debug, with fake map services.
+// The sheets: Help, Stats, Collection, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { mockServices } from "./mock";
+import { KEEPSAKES, mockServices, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -68,6 +68,36 @@ test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
+});
+
+test("Collection shows his cards, Placedex, souvenirs and crawls", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, KEEPSAKES);
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Collection/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Collection/ });
+  for (const t of ["Landmark cards", "Placedex", "Souvenirs", "Crawls", "1 / 6 done"]) await expect(sheet).toContainText(t);
+  await sheet.getByRole("button", { name: /Countries/ }).click();
+  await expect(sheet).toContainText("bottle of rose oil");
+  await sheet.getByRole("button", { name: /Today/ }).click();
+  await expect(sheet).toContainText("Coffee crawl");
+  await expect(sheet).toContainText("✔ Done");
+  await sheet.getByRole("button", { name: /His cards/ }).click();
+  await expect(sheet.locator(".lcard.gold")).toContainText("Alexander Nevsky Cathedral");
+  expect(await smallButtons(page)).toEqual([]);
+});
+
+test("Stats tells a bought item's story", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, KEEPSAKES);
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await sheet.getByRole("button", { name: /Lucky Cap/ }).click();
+  for (const t of ["🛒 Bought", "Sofia", "🌍 Countries", "3: BGR, FRA, ITA", "42 km", "💎 Treasured", "he won't sell it"]) await expect(sheet).toContainText(t);
+  expect(await smallButtons(page)).toEqual([]);
 });
 
 test("History lists what he did and shows it on the map", async ({ page }) => {

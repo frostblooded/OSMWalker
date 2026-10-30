@@ -28,7 +28,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
-In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP. He leaves such a city from its bus station or a gas station in the middle.
+In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, Placedex entries or crawl progress. He leaves such a city from its bus station or a gas station in the middle.
 
 If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
 
@@ -296,7 +296,9 @@ Gear he takes off goes into his bag, which holds {BAG_SIZE} items. The Stats she
 
 At shops he can "Sell his loot": he sells the cheapest item in his bag. A shop pays {SELL_PCT} of the item's price, plus 5% of that for every point of charm. For example an item worth €100 sells for €40 with charm 0, or €50 with charm 5.
 
-If his bag is full when another item comes in, he keeps the more valuable of the new item and the cheapest one in the bag, and sells the other on the spot.
+If his bag is full when another item comes in, he sells the cheapest item he may sell on the spot, which can be the new one.
+
+He never sells his {TREASURED_KEEP} most travelled treasured items (see Item stories), unless they are all that is left in the bag.
 # ✈ Travel
 ## Trips to other cities {trips}
 Every time he picks a new goal he rolls the trip dice:
@@ -330,7 +332,7 @@ Fares are in euros and never free:
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
 - car: fuel at {FUEL_PER_KM} per km of road.
 
-Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}.
+Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs make it cheaper (see Souvenirs).
 
 He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, paid work counts {SAVING_EARN} more in How he chooses, and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
 ## Country flavour {flavour}
@@ -341,6 +343,37 @@ To make them come up often, each one gets +{FLAVOUR_WEIGHT} weight when he choos
 When he reaches a city, the game looks it up on Wikidata: the most populous place within {TRIVIA_KM} km of the centre, and facts about it such as when it was founded, how many people live there, how high it is, up to {TRIVIA_TWINS} twin towns, who it is named after and what it is the capital of.
 
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
+# 🗂 Collection
+## Landmark cards {cards}
+The first time he reaches a landmark he gets its card. Landmarks are places of these kinds: {LANDMARK_KINDS}. Art shops don't count.
+
+A card's rarity comes from the place's rank on the map (see Places of note):
+- rank {CARD_RARE_RANK}, the most important in its area: Rare,
+- rank {CARD_UNCOMMON_RANK}: Uncommon,
+- any other: Common.
+
+On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card. When he goes back to a landmark he has a card for, there is a {UPGRADE_PCT} chance he rolls its finish again, and he keeps it only if it is better (plain, then Foil, then Gold). The feed says "New card" or "Card upgraded", and the Collection sheet shows them all.
+## Placedex {placedex}
+The Placedex counts every kind of place he has been to, such as a cafe, a Christian place of worship or a viewpoint. The first time he reaches a kind he has never seen, he gets bonus XP by how rare that kind is:
+- Common: +{DEX_XP_COMMON} XP,
+- Uncommon: +{DEX_XP_UNCOMMON} XP,
+- Rare: +{DEX_XP_RARE} XP,
+- Legendary: +{DEX_XP_LEGENDARY} XP.
+
+Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
+## Souvenirs {souvenirs}
+In every country he can buy one souvenir. "Buy a souvenir" costs {SOUVENIR_PRICE} and is an action at gift shops, kiosks, newsagents, sights and museums, but only while he has no souvenir from the country he is in. It weighs +{SOUVENIR_WEIGHT} in How he chooses. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else he buys a fridge magnet.
+
+Souvenirs make him a seasoned traveller: every {SOUVENIRS_PER_CUT} souvenirs make his fares {FARE_CUT_PCT} cheaper, up to {FARE_CUT_MAX_PCT} (see Fares).
+## Crawls {crawls}
+A crawl is a little set he finishes by visiting different places of a kind. Each is done once and pays XP and money:
+{CRAWL_LIST}
+
+"A day" is a day on your device's clock, so a crawl he hasn't finished by midnight starts over. "In one city" starts over when he travels to another city. Visiting the same place twice counts once.
+## Item stories {stories}
+Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
+
+An item worn through {TREASURED_COUNTRIES} or more countries becomes treasured (💎). He never sells his {TREASURED_KEEP} most travelled treasured items from his bag (see The bag and selling). Gear he had before stories existed has none.
 # ☘ Little touches
 ## Clovers and care packages {care}
 You never steer him, but you can leave him a small gift. Gifts cost clovers, and you earn clovers just by checking in:
@@ -374,7 +407,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Care package (with your clovers), Send a postcard, Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Debug, the Route to goal, Camera follows him, City area and City sound switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 Camera follows him (a switch, on at first and remembered) keeps him in view: the map glides over to him whenever he walks out of the middle of the screen. Turn it off and the map stays wherever you leave it, even when he walks off the screen (see The map).
 
@@ -387,9 +420,15 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters.
 - Attributes: a tile for each, with the part his gear adds in green.
-- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty.
-- Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list.
+- Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
+- Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Effects: his buffs with the minutes they have left.
+## The Collection sheet {collection}
+🗂 Collection (in the menu) shows what he has collected, a card each. You never have to open it: he collects on his own.
+- Landmark cards: how many of each rarity, foil and gold he has, then the cards themselves, newest first (the newest {CARDS_SHOWN}). A Foil or Gold card has a double frame.
+- Placedex: kinds found out of the kinds the map sweep knows, by rarity, then every kind he has seen and the city he first saw it in. Legendary shows a "+", since kinds the sweep never saw count as Legendary too.
+- Souvenirs: how much cheaper his fares are, then a row per country (tap Countries to show them).
+- Crawls: one list each for today's crawls, this city's and all-time ones, with how many are done; tap one to see each crawl done, or how many places he has out of how many it needs.
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
