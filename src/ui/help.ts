@@ -11,6 +11,7 @@ import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
+import * as Day from "../core/day";
 import * as Looks from "../core/look";
 import { euro, toCents } from "../core/money";
 import * as Problems from "../core/problems";
@@ -187,6 +188,8 @@ export function values(data: GameData): Record<string, string> {
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
     SICK_AT: String(Looks.SICK_AT),
+    RIBBON: String(Day.RIBBON),
+    MAX_STOPS: String(Day.MAX_STOPS),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
     LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
