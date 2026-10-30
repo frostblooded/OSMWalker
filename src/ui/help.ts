@@ -147,9 +147,9 @@ export const fill = (text: string, vals: Record<string, string>) => text.replace
 
 export const build = (text: string, data: GameData) => parse(fill(text, values(data)));
 
-/** Shortest form of a number: 0.5, 2, 1.3. */
 /** Stat names in the enchantment list. */
 const ENCHANT_STAT: Record<string, string> = { str: "strength", cha: "charm", wit: "wits", luck: "luck", speed: "speed", magic: "Magic" };
+/** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
 /** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
