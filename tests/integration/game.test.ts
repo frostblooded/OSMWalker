@@ -14,7 +14,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
+import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -196,7 +196,6 @@ describe("game", () => {
     expect(g.walker!.isResting()).toBe(true);
     expect(g.doing).not.toBeNull();
     expect(look(g).pose).not.toBeNull();
-    expect(ribbon(g, 0).icons).toEqual(["☕"]);
   });
 
   it("keeps the walk across a save", async () => {

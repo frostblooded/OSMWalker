@@ -3,7 +3,6 @@
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls).
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
-import { addStop, type Stop } from "./day";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -145,8 +144,6 @@ export class Stats {
   bond = new B.Bond();
   /** His letters to you from data/letters.json; not saved, the game sets it. */
   letters: B.Letters | null = null;
-  /** The places he stopped at lately, for the day ribbon. */
-  stops: Stop[] = [];
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** Minutes walked since the last roll for money on the street. */
@@ -628,9 +625,8 @@ export class Stats {
     if (thanks && new Rng(seedOf(`thanks${this.now()}`)).randf() < B.THANKS_CHANCE) this.say(`${B.LETTER_MARK} ${thanks}`);
   }
 
-  /** Notes a stop at a place, for the day ribbon. */
+  /** Notes a stop at a place, for the weekly recap. */
   stop(place: { class: string; subclass: string }): void {
-    addStop(this.stops, place, this.now());
     this.week.stop(place.class);
   }
 
@@ -660,7 +656,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, stops: this.stops, week: this.week.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(),
     };
   }
 
@@ -682,7 +678,6 @@ export class Stats {
     s.where = d.where ?? s.where;
     s.care = Care.fromJSON(d.care);
     s.bond = B.Bond.fromJSON(d.bond);
-    s.stops = d.stops ?? [];
     s.week = Week.fromJSON(d.week);
     return s;
   }
