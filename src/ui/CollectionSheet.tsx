@@ -1,7 +1,7 @@
 // The Collection: his overall %, badges and title on top, then a tab per
 // topic. Each set is a card with a progress bar and a grid of tiles, like a
 // dex: found entries show their name, the rest are ? tiles; tapping a tile
-// shows its detail or hint. The Feats tab lists badges, then his life story. Everything comes from
+// shows its detail or hint. The Places tab ends with his last ruin crawls. The Feats tab lists badges, then his life story. Everything comes from
 // core/collection.ts. Loaded only when the sheet first opens.
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
@@ -155,8 +155,34 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           <Feats stats={s} />
           <Life stats={s} />
         </>
-      ) : C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)}
+      ) : (
+        C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)
+      )}
+      {tab === "places" && <Ruins stats={s} />}
     </>
+  );
+}
+
+/** The logs of his last ruin crawls (core/ruins.ts), newest first, each room opening under its place. */
+function Ruins({ stats: s }: { stats: Stats }) {
+  const logs = [...s.ruins.logs].reverse();
+  return (
+    <Card icon="🏰" title="Ruin crawls" right={s.ruins.count}>
+      {logs.length ? (
+        logs.map((r, i) => (
+          <Collapsible key={i} title={r.name} right={`${r.rooms.filter((m) => m.won).length} / ${r.of} rooms`}>
+            <div class="zebra">
+              {r.rooms.map((m, j) => (
+                <KV key={j} k={`${m.won ? "✔" : "✖"} ${m.text}`} v={m.how} tone={m.won ? undefined : "warning"} />
+              ))}
+              <KV k="🎁 Found" v={r.found ? <span style={{ color: RARITY_COLOR[r.found.rarity] }}>{r.found.name}</span> : <span class="dim">nothing</span>} />
+            </div>
+          </Collapsible>
+        ))
+      ) : (
+        <p class="dim small">None yet. He crawls a castle or ruin when he reaches one, once a week each.</p>
+      )}
+    </Card>
   );
 }
 

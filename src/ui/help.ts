@@ -9,6 +9,7 @@ import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
+import * as Crawl from "../core/crawl";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -30,6 +31,7 @@ import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
+import * as Ruins from "../core/ruins";
 import * as Speeds from "../core/speeds";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
@@ -330,6 +332,18 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
+    MIN_ROOMS: String(Crawl.MIN_ROOMS),
+    MAX_ROOMS: String(Crawl.MAX_ROOMS),
+    ROOM_BASE_PCT: pct(Crawl.ROOM_BASE),
+    ROOM_PER_POINT_PCT: pct(Crawl.ROOM_PER_POINT),
+    ROOM_DEPTH_PCT: pct(Crawl.ROOM_DEPTH_CUT),
+    ROOM_MIN_PCT: pct(Crawl.ROOM_MIN),
+    ROOM_MAX_PCT: pct(Crawl.ROOM_MAX),
+    ROOM_XP: String(Crawl.ROOM_XP),
+    ROOM_ENERGY: String(Crawl.ROOM_ENERGY),
+    FAIL_ENERGY: String(Crawl.FAIL_ENERGY),
+    DEPTH_RARITY_PCT: pct(Crawl.DEPTH_RARITY),
+    RUIN_LOGS: String(Ruins.LOG_SIZE),
     REC_STRETCH_KM: km(Rec.BRAG_FROM.stretchM),
     REC_DAY_KM: km(Rec.BRAG_FROM.dayM),
     REC_STOPS: String(Rec.BRAG_FROM.dayStops),
