@@ -28,7 +28,7 @@ He doesn't walk the map while you are away, so no streets have to load. Instead 
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he rolls the trip dice as usual and pays for the trip (see Trips to other cities). A trip that wouldn't be over before you come back waits until you are there to watch.
 
-In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, Placedex entries or crawl progress. He leaves such a city from its bus station or a gas station in the middle.
+In a city whose streets haven't loaded (one he reached while you were away), he visits made-up places of the usual kinds, such as "a cafe in Plovdiv". They have the actions of real places of that kind, but give no first-visit XP, cards, souvenirs, Placedex entries, crawl progress or crawl perks. He leaves such a city from its bus station or a gas station in the middle.
 
 If he was on a bus, a plane or driving his car when you left, the ride finishes first. On reopen the game waits up to {CATCHUP_WAIT_S} seconds for the streets around him to come out of the device's cache, so he visits the real places nearby.
 
@@ -352,7 +352,7 @@ A card's rarity comes from the place's rank on the map (see Places of note):
 - rank {CARD_UNCOMMON_RANK}: Uncommon,
 - any other: Common.
 
-On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card. When he goes back to a landmark he has a card for, there is a {UPGRADE_PCT} chance he rolls its finish again, and he keeps it only if it is better (plain, then Foil, then Gold). The feed says "New card" or "Card upgraded", and the Collection sheet shows them all.
+On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card, given on his first visit; going back gives nothing more, and a card's finish never changes. The feed says "New card", and the Collection sheet shows them all.
 ## Placedex {placedex}
 The Placedex counts every kind of place he has been to, such as a cafe, a Christian place of worship or a viewpoint. The first time he reaches a kind he has never seen, he gets bonus XP by how rare that kind is:
 - Common: +{DEX_XP_COMMON} XP,
@@ -362,11 +362,11 @@ The Placedex counts every kind of place he has been to, such as a cafe, a Christ
 
 Rarity comes from a POI sweep of big cities around the world: a kind found {DEX_COMMON_MIN} or more times there is Common, {DEX_UNCOMMON_MIN} or more Uncommon, {DEX_RARE_MIN} or more Rare, and anything rarer, or never found at all, is Legendary. The sweep knows {DEX_KINDS} kinds. This XP comes on top of the first-visit XP and isn't changed by buffs or mood.
 ## Souvenirs {souvenirs}
-In every country he can buy one souvenir. "Buy a souvenir" costs {SOUVENIR_PRICE} and is an action at gift shops, kiosks, newsagents, sights and museums, but only while he has no souvenir from the country he is in. It weighs +{SOUVENIR_WEIGHT} in How he chooses. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else he buys a fridge magnet.
+Every country has one souvenir for him, and it costs nothing. Each time he reaches a landmark (see Landmark cards) in a country he has no souvenir from, there is a {SOUVENIR_PCT} chance he finds it there. {SOUVENIR_COUNTRIES} countries have their own souvenir, such as a bottle of rose oil from Bulgaria; anywhere else it is a fridge magnet.
 
 Souvenirs make him a seasoned traveller: every {SOUVENIRS_PER_CUT} souvenirs make his fares {FARE_CUT_PCT} cheaper, up to {FARE_CUT_MAX_PCT} (see Fares).
 ## Crawls {crawls}
-A crawl is a little set he finishes by visiting different places of a kind. Each is done once and pays XP and money:
+A crawl is a little set he finishes by visiting different places of a kind. Each is done once, and from then on it gives a small lasting perk every time he reaches one of its places, on top of whatever he does there:
 {CRAWL_LIST}
 
 "A day" is a day on your device's clock, so a crawl he hasn't finished by midnight starts over. "In one city" starts over when he travels to another city. Visiting the same place twice counts once.

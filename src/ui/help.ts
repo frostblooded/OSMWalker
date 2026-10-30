@@ -307,7 +307,6 @@ export function values(data: GameData): Record<string, string> {
     LANDMARK_KINDS: K.LANDMARK_CLASSES.map((c) => K.kindLabel(c).toLowerCase()).join(", "),
     GOLD_PCT: pct(K.GOLD_CHANCE),
     FOIL_PCT: pct(K.FOIL_CHANCE),
-    UPGRADE_PCT: pct(K.UPGRADE_CHANCE),
     DEX_XP_COMMON: String(K.DEX_XP.Common),
     DEX_XP_UNCOMMON: String(K.DEX_XP.Uncommon),
     DEX_XP_RARE: String(K.DEX_XP.Rare),
@@ -318,13 +317,12 @@ export function values(data: GameData): Record<string, string> {
     CARD_RARE_RANK: String(K.RARE_RANK),
     CARD_UNCOMMON_RANK: String(K.UNCOMMON_RANK),
     DEX_KINDS: String(Object.keys(data.dex ?? {}).length),
-    SOUVENIR_PRICE: euro(toCents(Object.values(data.actions).flatMap((list) => (Array.isArray(list) ? list : [])).find((a) => a.souvenir)?.cost ?? 0)),
-    SOUVENIR_WEIGHT: num(Activities.SOUVENIR_WEIGHT),
+    SOUVENIR_PCT: pct(K.SOUVENIR_CHANCE),
     SOUVENIR_COUNTRIES: String(Object.keys(K.SOUVENIRS).length),
     SOUVENIRS_PER_CUT: String(K.SOUVENIRS_PER_CUT),
     FARE_CUT_PCT: pct(K.FARE_CUT),
     FARE_CUT_MAX_PCT: pct(K.FARE_CUT_MAX),
-    CRAWL_LIST: K.CRAWLS.map((c) => `- ${c.icon} ${c.name}: ${c.need} different ${crawlKinds(c)} ${c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all"}, +${c.xp} XP and ${euro(c.cents)},`)
+    CRAWL_LIST: K.CRAWLS.map((c) => `- ${c.icon} ${c.name}: ${c.need} different ${crawlKinds(c)} ${c.per === "day" ? "in a day" : c.per === "city" ? "in one city" : "in all"}, then ${K.perkText(c.perk)} at each one he visits,`)
       .join("\n")
       .replace(/,$/, "."),
     TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),

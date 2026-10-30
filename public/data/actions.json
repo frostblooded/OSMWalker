@@ -864,16 +864,6 @@
    "needs": {
     "wit": 6
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "art_gallery": [
@@ -1022,16 +1012,6 @@
    "needs": {
     "cha": 4
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "castle": [
@@ -2519,16 +2499,6 @@
     "wit": 0.1,
     "xp": 5
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "shop/convenience": [
@@ -3044,16 +3014,6 @@
    "needs": {
     "cha": 3
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "shop/second_hand": [
@@ -4481,16 +4441,6 @@
     "luck": 0.1,
     "xp": 2
    }
-  },
-  {
-   "name": "Buy a souvenir",
-   "min": 5,
-   "cost": 8,
-   "fx": {
-    "mood": 8,
-    "xp": 5
-   },
-   "souvenir": true
   }
  ],
  "shop/mobile_phone": [

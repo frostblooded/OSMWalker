@@ -94,8 +94,6 @@ export type Action = {
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
-  /** Buys this country's souvenir, if he has none from it yet. */
-  souvenir?: boolean;
   flavour?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
@@ -336,7 +334,6 @@ export class Stats {
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
-    if (action.souvenir && (!this.where.code || this.keepsakes.souvenirs.has(this.where.code))) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
         if (this.level < (need as number)) return false;
@@ -371,7 +368,6 @@ export class Stats {
       this.applyFx(action.fx ?? {});
       return this.sellLoot(where);
     }
-    if (action.souvenir) return this.buySouvenir(action, where);
     let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
     let text = action.name;
@@ -416,28 +412,20 @@ export class Stats {
   }
 
   /**
-   * Right after reaching a real place (after visit()): a landmark card or a
-   * roll to upgrade it, a new Placedex kind, and progress on crawls.
+   * Right after reaching a real place (after visit()): a landmark card the
+   * first time (a revisit gives nothing) and maybe the country's souvenir,
+   * a new Placedex kind, the perks of crawls he finished, and progress on the rest.
    */
   collect(place: Place, rng: Rng): void {
     const k = this.keepsakes;
     const key = visitKey(place);
     const kind = K.kindOf(place);
-    if (K.isLandmark(place)) {
-      const had = k.cards.get(key);
-      if (!had) {
-        const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now() };
-        k.cards.set(key, card);
-        this.say(`New card: ${place.name} (${[card.rarity, K.FINISH_NAME[card.finish]].filter(Boolean).join(", ")})`);
-      } else if (rng.randf() < K.UPGRADE_CHANCE) {
-        const finish = K.rollFinish(rng.randf());
-        if (K.FINISH_ORDER[finish] > K.FINISH_ORDER[had.finish]) {
-          had.finish = finish;
-          had.t = this.now();
-          this.say(`Card upgraded: ${place.name} is now ${K.FINISH_NAME[finish]}`);
-        }
-      }
+    if (K.isLandmark(place) && !k.cards.has(key)) {
+      const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now() };
+      k.cards.set(key, card);
+      this.say(`New card: ${place.name} (${[card.rarity, K.FINISH_NAME[card.finish]].filter(Boolean).join(", ")})`);
     }
+    if (K.isLandmark(place) && this.where.code && !k.souvenirs.has(this.where.code) && rng.randf() < K.SOUVENIR_CHANCE) this.gotSouvenir(place.name);
     if (!k.dex.has(kind)) {
       const rarity = K.dexRarity(this.dex, kind);
       k.dex.set(kind, { t: this.now(), city: this.where.city });
@@ -446,32 +434,29 @@ export class Stats {
     }
     k.roll(dayOf(this.now() * 1000), this.where.city);
     for (const c of K.CRAWLS) {
-      if (k.done.has(c.id) || !K.crawlMatches(c, place)) continue;
+      if (!K.crawlMatches(c, place)) continue;
+      if (k.done.has(c.id)) {
+        this.applyFx(c.perk);
+        continue;
+      }
       const seen = (k.progress[c.id] ??= []);
       if (seen.includes(key)) continue;
       seen.push(key);
       if (seen.length < c.need) continue;
       k.done.set(c.id, this.now());
       delete k.progress[c.id];
-      this.cents += c.cents;
-      this.addXp(c.xp);
-      this.say(`Finished the ${c.name}! (+${c.xp} XP, ${signed(c.cents)})`);
+      this.say(`Finished the ${c.name}! From now on ${K.perkText(c.perk)} at each such place`);
     }
   }
 
-  private buySouvenir(action: Action, where: string): string {
-    const cost = toCents(action.cost ?? 0);
+  /** This country's souvenir, found at `where`; every SOUVENIRS_PER_CUT make fares cheaper. */
+  private gotSouvenir(where: string): void {
     const { code, country, city } = this.where;
     const name = K.souvenirName(code, country);
-    this.cents -= cost;
-    const fx: Fx = { ...action.fx };
-    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
-    this.applyFx(fx);
     this.keepsakes.souvenirs.set(code, { name, country, city, t: this.now() });
-    const line = this.say(`Bought a souvenir from ${country || city}: a ${name}${where ? ` at ${where}` : ""} (${signed(-cost)})`);
-    if (this.keepsakes.souvenirs.size % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(this.keepsakes.souvenirs.size) > K.fareCut(this.keepsakes.souvenirs.size - 1))
-      this.say(`Seasoned traveller: fares are now ${Math.round(K.fareCut(this.keepsakes.souvenirs.size) * 100)}% cheaper`);
-    return line;
+    this.say(`Found a souvenir from ${country || city} at ${where}: a ${name}`);
+    const n = this.keepsakes.souvenirs.size;
+    if (n % K.SOUVENIRS_PER_CUT === 0 && K.fareCut(n) > K.fareCut(n - 1)) this.say(`Seasoned traveller: fares are now ${Math.round(K.fareCut(n) * 100)}% cheaper`);
   }
 
   /** Notes a stop at a place, for the day ribbon. */
