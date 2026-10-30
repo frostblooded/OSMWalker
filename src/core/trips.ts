@@ -170,6 +170,11 @@ export class Trips {
     return { error: `no ${hasCar ? "gas station" : "bus station"} or airport within reach` };
   }
 
+  /** The listed city nearest to the point within `reach`, or null. */
+  cityNear(lat: number, lon: number, reach = SAME_CITY_M): City | null {
+    return nearest(this.cities, lat, lon, reach);
+  }
+
   /** Country code of the listed city nearest to the point. */
   countryAt(lat: number, lon: number): string {
     return nearest(this.cities, lat, lon)?.code ?? "";

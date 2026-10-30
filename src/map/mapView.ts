@@ -64,7 +64,7 @@ export class MapView implements MapPort {
   private lookKey = "";
   private iconKey = "";
   /** The icon pictures and layer, added the first time there is an icon to show. */
-  private iconLayer: Promise<void> | null = null;
+  private iconLayer: Promise<boolean> | null = null;
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
   /** Told the `id` of a game icon the player taps. */
@@ -294,9 +294,19 @@ export class MapView implements MapPort {
         geometry: { type: "Point", coordinates: [i.at[1], i.at[0]] },
       })),
     };
-    this.iconLayer ??= import("./icons").then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)));
-    void this.iconLayer.then(() => {
-      if (this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);
+    // A chunk that can't load (offline before it was cached) is tried again on the next change.
+    this.iconLayer ??= import("./icons")
+      .then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)))
+      .then(
+        () => true,
+        () => {
+          this.iconLayer = null;
+          this.iconKey = "";
+          return false;
+        },
+      );
+    void this.iconLayer.then((ok) => {
+      if (ok && this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);
     });
   }
 

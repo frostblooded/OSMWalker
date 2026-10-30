@@ -22,7 +22,7 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, SAME_CITY_M, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -796,7 +796,7 @@ export class Game {
       if (this.city !== city || this.walker !== w) return;
       const real = w.graph.placesIn(bounds);
       const missing = CityCheck.missing(CityCheck.summary(real, this.activities, this.country));
-      const near = this.trips.cities.find((c) => distanceM(c.lat, c.lon, this.origin[0], this.origin[1]) < SAME_CITY_M);
+      const near = this.trips.cityNear(this.origin[0], this.origin[1]);
       const snap = (lat: number, lon: number): LatLon | null => {
         const id = w.graph.nearestNode(lat, lon);
         return id === null ? null : w.graph.nodes.get(id)!;
