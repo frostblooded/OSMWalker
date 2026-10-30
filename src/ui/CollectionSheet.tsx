@@ -1,11 +1,12 @@
 // His keepsakes: landmark cards (counts by rarity and finish, then the cards
-// themselves), the Placedex of place kinds, souvenirs by country and crawls.
+// themselves), city cards by country, the Placedex of place kinds, souvenirs
+// by country and crawls. Loaded only when the sheet first opens.
+import * as CC from "../core/cityCards";
 import type { Rarity } from "../core/items";
 import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
 import type { Stats } from "../core/stats";
-import { Card, Collapsible, KV } from "./kit";
-import { RARITY_COLOR } from "./StatsSheet";
+import { Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
 const CARD_RARITIES: Rarity[] = ["Rare", "Uncommon", "Common"];
 const DEX_RARITIES: Rarity[] = ["Legendary", "Rare", "Uncommon", "Common"];
@@ -23,6 +24,36 @@ function LandmarkCard({ card }: { card: K.Card }) {
       </span>
       <span class="small dim">🏙 {card.city}</span>
     </div>
+  );
+}
+
+/** City cards: owned out of the pool by rarity, finishes, spares and sets, then a row per country he has cards from. */
+function CityCards({ stats: s }: { stats: Stats }) {
+  const k = s.keepsakes;
+  const pool = s.cityPool;
+  if (!pool) return null;
+  const owned = pool.cards.filter((c) => k.cityCards.has(c.key));
+  const finishes = [...k.cityCards.values()];
+  const countries = [...new Set(owned.map((c) => c.code))].map((code) => ({ code, country: owned.find((c) => c.code === code)!.country, has: owned.filter((c) => c.code === code).length, of: pool.perCountry.get(code) ?? 0 }));
+  return (
+    <Card icon="🎴" title="City cards" right={`${owned.length} / ${pool.cards.length}`}>
+      {CARD_RARITIES.map((r) => (
+        <KV key={r} k={<span style={{ color: RARITY_COLOR[r] }}>{r}</span>} v={`${owned.filter((c) => c.rarity === r).length} / ${pool.byRarity.get(r)?.length ?? 0}`} />
+      ))}
+      <KV k="🌈 Foil · 🥇 Gold" v={`${finishes.filter((f) => f.finish === "foil").length} · ${finishes.filter((f) => f.finish === "gold").length}`} />
+      <KV k="Spares to sell · free packs" v={`${k.spares.length} · ${k.freePacks}`} />
+      {countries.length ? (
+        <Collapsible title="Countries" right={`${k.sets.length} sets done`}>
+          <div class="zebra">
+            {countries.map((c) => (
+              <KV key={c.code} k={c.country} v={c.has >= c.of ? `✔ ${c.has} / ${c.of}, Charm +${CC.SET_CHARM} there` : `${c.has} / ${c.of}`} tone={c.has >= c.of ? "ok" : undefined} />
+            ))}
+          </div>
+        </Collapsible>
+      ) : (
+        <p class="dim small">None yet. He opens a free pack when he levels up or reaches a new city or country, and buys packs at kiosks.</p>
+      )}
+    </Card>
   );
 }
 
@@ -67,6 +98,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
           </Collapsible>
         )}
       </Card>
+      <CityCards stats={s} />
       <Card icon="🧳" title="Souvenirs" right={k.souvenirs.size}>
         <KV k="✈ Fares" v={cut ? `${Math.round(cut * 100)}% cheaper` : "full price"} tone={cut ? "ok" : undefined} />
         {k.souvenirs.size ? (

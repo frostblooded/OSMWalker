@@ -3,6 +3,7 @@
 // seen (rarer the less common the kind is in the POI sweep), a souvenir from
 // each country, and crawls, little sets he finishes by visiting places of a
 // kind. Pure data and rules; Stats.collect() uses them.
+import type * as CC from "./cityCards";
 import type { Rarity } from "./items";
 import type { Fx, Place } from "./stats";
 
@@ -17,6 +18,8 @@ export type Finish = "" | "foil" | "gold";
 export const GOLD_CHANCE = 0.005;
 export const FOIL_CHANCE = 0.05;
 export const FINISH_NAME: Record<Finish, string> = { "": "", foil: "Foil", gold: "Gold" };
+/** Plain, then Foil, then Gold. */
+export const FINISH_RANK: Record<Finish, number> = { "": 0, foil: 1, gold: 2 };
 
 /** A landmark card's rarity from the place's map rank: 1 is the most important in its area. */
 export const RARE_RANK = 1;
@@ -102,6 +105,16 @@ export class Keepsakes {
   progress: Record<string, string[]> = {};
   day = "";
   city = "";
+  /** City cards he owns, by card key (see cityCards.ts), with their best finish. */
+  cityCards = new Map<string, CC.Owned>();
+  /** City cards he pulled twice, waiting to be sold at a card shop. */
+  spares: CC.Spare[] = [];
+  /** Free packs he has earned (level-ups, new cities and countries) and opens at his next stop. */
+  freePacks = 0;
+  /** Cities ("code:name") and countries ("code") he has been to, for the free packs. */
+  seen: string[] = [];
+  /** Countries whose whole city card set he has. */
+  sets: string[] = [];
 
   /** Starts each day's and city's crawls over when the day or city changed. */
   roll(day: string, city: string): void {
@@ -121,6 +134,11 @@ export class Keepsakes {
       progress: this.progress,
       day: this.day,
       city: this.city,
+      cityCards: [...this.cityCards],
+      spares: this.spares,
+      freePacks: this.freePacks,
+      seen: this.seen,
+      sets: this.sets,
     };
   }
 
@@ -134,6 +152,11 @@ export class Keepsakes {
     k.progress = d.progress ?? {};
     k.day = d.day ?? "";
     k.city = d.city ?? "";
+    k.cityCards = new Map(d.cityCards ?? []);
+    k.spares = d.spares ?? [];
+    k.freePacks = d.freePacks ?? 0;
+    k.seen = d.seen ?? [];
+    k.sets = d.sets ?? [];
     return k;
   }
 }

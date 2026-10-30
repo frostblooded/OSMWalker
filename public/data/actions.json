@@ -2499,6 +2499,15 @@
     "wit": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
+   "fx": {
+    "mood": 4
+   },
+   "pack": true
   }
  ],
  "shop/convenience": [
@@ -3014,6 +3023,15 @@
    "needs": {
     "cha": 3
    }
+  },
+  {
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
+   "fx": {
+    "mood": 4
+   },
+   "pack": true
   }
  ],
  "shop/second_hand": [
@@ -4441,6 +4459,15 @@
     "luck": 0.1,
     "xp": 2
    }
+  },
+  {
+   "name": "Buy a city card pack",
+   "min": 3,
+   "cost": 5,
+   "fx": {
+    "mood": 4
+   },
+   "pack": true
   }
  ],
  "shop/mobile_phone": [
