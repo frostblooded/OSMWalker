@@ -112,8 +112,10 @@ describe("catch-up", () => {
   it("goes on trips as usual, and lands in a city with made-up places", () => {
     const stats = new Stats();
     stats.cents = 500_000;
-    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1 }));
-    expect(s.cities.length).toBeGreaterThan(0);
+    // One trip, then he stays put.
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    expect(s.cities).toHaveLength(1);
     expect(s.cities[0]).toBe("Nexttown, A-land");
     expect(s.end.city.name).not.toBe(HOME.name);
     expect(s.end.city.places).toBeNull();

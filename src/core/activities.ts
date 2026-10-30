@@ -4,8 +4,9 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Picks an action he can do, leaning towards what he needs.
+import type { Need, NeedKey } from "./goals";
 import { toCents } from "./money";
-import type { Action, Place, Stats } from "./stats";
+import { ATTRS, type Action, type Attr, type Meter, type Place, type Stats } from "./stats";
 
 export type ActionTable = Record<string, Action[]>;
 
@@ -13,18 +14,80 @@ export type ActionTable = Record<string, Action[]>;
 export const MAX_MINUTES = 1;
 /** Below this many cents (€20) he looks for work and avoids spending. */
 export const SKINT = 2000;
-/** Extra weight for paid work, and the cut to spending, while he saves for a trip or his next vehicle. */
-export const SAVING_EARN_WEIGHT = 4;
+/** The cut to spending while he saves for a trip or his next vehicle. */
 export const SAVING_SPEND_MULT = 0.5;
 /** Extra weight for browsing the shop of his next vehicle once he can afford it, and how much more that shop pulls his goal. */
 export const GOAL_SHOP_WEIGHT = 4;
 export const GOAL_SHOP_PULL = 200;
 /** Extra weight for a country's own actions, so they come up often. */
 export const FLAVOUR_WEIGHT = 2;
-/** Below this a meter is a need: places that refill it pull his next goal towards them. */
+/** Below this a meter is a need. Its urge is the square of how far below it is, so it is mild at first and steep near empty. */
 export const NEED_AT = 40;
-/** A place that meets an empty need weighs 1 + NEED_BOOST times as much as his goal. */
-export const NEED_BOOST = 4;
+/** Below this a meter is urgent: if anything he can do nearby fixes it, he heads for that and does it, and nothing else. */
+export const URGENT_AT = 15;
+/** An empty need makes a place or action that meets it in full weigh 1 + NEED_BOOST times as much. */
+export const NEED_BOOST = 49;
+/** Raising a meter by this much or more meets its need in full; less meets it in part. */
+export const FULL_FIX = 30;
+/** Money's urge while he saves up for a trip or his next vehicle, at least. Broke, it grows like a meter's below SKINT. */
+export const SAVING_URGE = 0.25;
+/** Actions that train or need his best attribute weigh up to this many times as much (his attribute / his average). */
+export const STRENGTH_MAX = 2;
+/** An action that lowers a meter he needs weighs (1 - its urge) as much, but never less than this. */
+export const HARM_FLOOR = 0.02;
+
+const ATTR_KEYS = new Set<string>(ATTRS);
+
+/** How badly he needs a meter at `value`: 0 at NEED_AT and above, up to 1 at 0. */
+export function urge(value: number): number {
+  const p = Math.min(Math.max((NEED_AT - value) / NEED_AT, 0), 1);
+  return p * p;
+}
+
+/** How badly he needs money: grows like a meter's below SKINT, and is at least SAVING_URGE while he saves up. */
+export function moneyUrge(stats: Stats): number {
+  const p = Math.min(Math.max((SKINT - stats.cents) / SKINT, 0), 1);
+  return Math.max(p * p, stats.saving() ? SAVING_URGE : 0);
+}
+
+/** How much `action` meets his needs (the sum over every need it meets), and which need it meets most. */
+export function needScore(action: Action, stats: Stats): { score: number; why: NeedKey | "" } {
+  let score = 0;
+  let why: NeedKey | "" = "";
+  let top = 0;
+  const add = (k: NeedKey, s: number) => {
+    score += s;
+    if (s > top) [top, why] = [s, k];
+  };
+  for (const [m, v] of Object.entries(action.fx ?? {})) {
+    if (v > 0 && m in stats.meters) add(m as Meter, (urge(stats.meters[m as Meter]) * Math.min(v, FULL_FIX)) / FULL_FIX);
+  }
+  if (action.earn !== undefined) add("money", moneyUrge(stats));
+  return { score, why };
+}
+
+/** True when `action` raises a meter that is under URGENT_AT. */
+export function fixesUrgent(action: Action, stats: Stats): boolean {
+  for (const [m, v] of Object.entries(action.fx ?? {})) if (v > 0 && m in stats.meters && stats.meters[m as Meter] < URGENT_AT) return true;
+  return false;
+}
+
+/** 1, up to STRENGTH_MAX for an action that trains or needs the attribute he is best at (that attribute over his average). */
+export function strengthLean(action: Action, stats: Stats): number {
+  let best = 0;
+  for (const k of Object.keys(action.needs ?? {})) if (ATTR_KEYS.has(k)) best = Math.max(best, stats.attrs[k as Attr]);
+  for (const [k, v] of Object.entries(action.fx ?? {})) if (v > 0 && ATTR_KEYS.has(k)) best = Math.max(best, stats.attrs[k as Attr]);
+  if (!best) return 1;
+  const avg = ATTRS.reduce((s, a) => s + stats.attrs[a], 0) / ATTRS.length;
+  return avg > 0 ? Math.min(Math.max(best / avg, 1), STRENGTH_MAX) : 1;
+}
+
+/** (1 - urge) for each meter `action` lowers while he needs it, so he doesn't go jogging when he is worn out. */
+function harm(action: Action, stats: Stats): number {
+  let w = 1;
+  for (const [m, v] of Object.entries(action.fx ?? {})) if (v < 0 && m in stats.meters) w *= 1 - urge(stats.meters[m as Meter]);
+  return Math.max(w, HARM_FLOOR);
+}
 
 export class Activities {
   data: ActionTable;
@@ -71,47 +134,49 @@ function local(place: Partial<Place> | null, table: ActionTable): Action[] {
   return [];
 }
 
-/** How much he wants to do `action` now. */
+/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him, and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
-  for (const [m, v] of Object.entries(action.fx ?? {})) {
-    if (m in stats.meters && v > 0) w += ((Math.max(60 - stats.meters[m as keyof Stats["meters"]], 0) / 20) * Math.min(v, 50)) / 20;
-  }
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
-  if (action.earn !== undefined) w += stats.cents < SKINT ? 3 : 0.5;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
-    if (action.earn !== undefined) w += SAVING_EARN_WEIGHT;
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
-  return w;
+  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * harm(action, stats);
 }
 
 /**
- * How much a place with `actions` pulls his next goal: 1, up to 1 + NEED_BOOST
- * when one of them refills a meter that is empty, or pays while he is broke
- * or saving up; the strongest need counts. A shop that sells the vehicle he
- * has saved up for pulls GOAL_SHOP_PULL.
+ * How much a place with `actions` pulls his next goal, counting only what he
+ * can do at `hour`: 1 + NEED_BOOST x the best action's need score, times how
+ * well it suits him. A shop that sells the vehicle he has saved up for pulls
+ * GOAL_SHOP_PULL, which only an urgent need beats.
  */
-export function needWeight(actions: Action[], stats: Stats): number {
+export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   const saving = stats.saving();
-  const broke = stats.cents < SKINT || saving;
   const shop = saving ? undefined : stats.vehicleGoal()?.kind;
-  if (shop && actions.some((a) => a.item === shop)) return GOAL_SHOP_PULL;
-  let need = 0;
+  let best = 0;
+  let why: NeedKey | "" = "";
+  let lean = 1;
+  let urgent = false;
+  let goalShop = false;
   for (const a of actions) {
-    if (broke && a.earn !== undefined) need = 1;
-    for (const [m, v] of Object.entries(a.fx ?? {})) {
-      if (v > 0 && m in stats.meters) need = Math.max(need, Math.max(NEED_AT - stats.meters[m as keyof Stats["meters"]], 0) / NEED_AT);
-    }
+    if (!stats.canDo(a, hour)) continue;
+    if (shop && a.item === shop) goalShop = true;
+    const s = needScore(a, stats);
+    if (s.score > best) [best, why] = [s.score, s.why];
+    lean = Math.max(lean, strengthLean(a, stats));
+    urgent ||= fixesUrgent(a, stats);
   }
-  return 1 + NEED_BOOST * need;
+  if (goalShop) return { pull: GOAL_SHOP_PULL, urgent, why };
+  return { pull: (1 + NEED_BOOST * best) * lean, urgent, why };
 }
 
-/** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. */
+/** One of `actions` he can do at `hour`, picked by weight with r in [0, 1), or null. With an urgent need, only what fixes one. */
 export function choose(actions: Action[], stats: Stats, hour: number, r: number): Action | null {
-  const options = actions.filter((a) => stats.canDo(a, hour));
+  let options = actions.filter((a) => stats.canDo(a, hour));
+  const fixes = options.filter((a) => fixesUrgent(a, stats));
+  if (fixes.length) options = fixes;
   const weights = options.map((a) => weight(a, stats));
   r *= weights.reduce((s, w) => s + w, 0);
   for (let i = 0; i < options.length; i++) {

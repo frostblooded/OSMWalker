@@ -9,7 +9,7 @@
 // walks to a bus station, airport or gas station, then rides there.
 // Pure logic: no DOM, no networking, so it is easy to test.
 import { bboxAround, distanceM, latToPx, lonToPx, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
-import { pickIndex, randomSpot, weigh, type Vec, type Weights } from "./goals";
+import { NO_NEED, pickIndex, randomSpot, weigh, type Need, type Vec, type Weights } from "./goals";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
@@ -71,6 +71,7 @@ export function pathLengthM(path: LatLon[]): number {
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const kindOf = (p: Place) => `${p.class}/${p.subclass}`;
 
 export class Walker {
   rng = new Rng();
@@ -108,8 +109,8 @@ export class Walker {
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
-  /** How much a place meets his needs (1 = not at all); set by the game. */
-  needWeight: ((p: Place) => number) | null = null;
+  /** How a place meets his needs (see activities.ts needOf); set by the game. */
+  need: ((p: Place) => Need) | null = null;
   /** The trip plan while he walks to its station. */
   departing: Plan | null = null;
   travel: Travel | null = null;
@@ -167,7 +168,20 @@ export class Walker {
     }
     info.too_close = (info.in_box as number) - options.length;
     if (options.length > 0) {
-      const parts = options.map((q) => this.weigh(q));
+      // Need depends only on the kind of place, so it is worked out once per kind.
+      const kinds = new Map<string, Need>();
+      const needs = options.map((q) => {
+        const k = kindOf(q);
+        let v = kinds.get(k);
+        if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
+        return v;
+      });
+      const urgent = needs.some((v) => v.urgent);
+      if (urgent) {
+        options = options.filter((_, i) => needs[i]!.urgent);
+        info.urgent_fixes = options.length;
+      }
+      const parts = options.map((q) => this.weigh(q, kinds.get(kindOf(q))));
       const weights = parts.map((w) => w.weight);
       const r = this.rng.randf();
       const i = pickIndex(weights, r);
@@ -180,6 +194,7 @@ export class Walker {
         class: pl.class,
         rank: Math.trunc(pl.rank ?? 1),
         total_weight: weights.reduce((a, w) => a + w, 0),
+        ...(kinds.get(kindOf(pl))!.why && { need: kinds.get(kindOf(pl))!.why }),
       });
       this.events.picked?.(info);
       return;
@@ -265,8 +280,8 @@ export class Walker {
   }
 
   /** How much a place weighs as his next goal, and why (see goals.ts). */
-  weigh(p: Place): Weights {
-    return weigh(p, this.here() ? this.position() : null, this.heading(), this.needWeight?.(p) ?? 1);
+  weigh(p: Place, need: Need = this.need?.(p) ?? NO_NEED): Weights {
+    return weigh(p, this.here() ? this.position() : null, this.heading(), need.pull, need.urgent);
   }
 
   /** A spot in the city box, drawn with the same distance and heading odds as places. */
