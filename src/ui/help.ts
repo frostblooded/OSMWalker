@@ -13,6 +13,7 @@ import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Day from "../core/day";
+import * as Snap from "./snap";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
@@ -218,6 +219,8 @@ export function values(data: GameData): Record<string, string> {
     MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
     SICK_AT: String(Looks.SICK_AT),
     RIBBON: String(Day.RIBBON),
+    SHEET_TALL_PCT: String(Math.round(Snap.TALL * 100)),
+    SHEET_HALF_PCT: String(Math.round(Snap.HALF * 100)),
     MAX_STOPS: String(Day.MAX_STOPS),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
     LOW_MOOD: String(Looks.LOW_MOOD),

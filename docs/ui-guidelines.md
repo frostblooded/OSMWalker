@@ -113,6 +113,9 @@ things at a time. A block full of lines is the most common mistake here.
   50 % longer) and let lines wrap rather than clip.
 - Panels over the map leave what you need to see uncovered. History takes
   the bottom 60 %, so you can still see him above.
+- Every sheet can be dragged smaller by its title bar (`SheetBox`): it
+  settles tall, half (35 %) or at just the title bar, and closes below
+  that. Keep the title bar free of anything else that drags.
 - Every screen works at 360 px wide with no sideways scroll.
 
 ## 7. Checklist for every UI change

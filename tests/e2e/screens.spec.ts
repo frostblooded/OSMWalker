@@ -268,3 +268,55 @@ test("City area switch is remembered", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("switch", { name: /City area/ })).toHaveAttribute("aria-checked", "true");
 });
+
+/** Drags a sheet's title bar by dy px with touch-like pointer moves. */
+async function dragTitle(page: Page, name: RegExp, dy: number) {
+  const head = page.getByRole("dialog", { name }).locator("header h2");
+  const b = (await head.boundingBox())!;
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(x, y + (dy * i) / 5);
+  await page.mouse.up();
+}
+
+test("a sheet drags smaller by its title bar, opens on a tap and closes when dragged off", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  const screen = page.viewportSize()!.height;
+  const height = async () => (await menu.boundingBox())!.height;
+  const tall = await height();
+  await dragTitle(page, /Menu/, tall - screen * 0.35);
+  await expect(menu).toHaveClass(/half/);
+  expect(Math.abs((await height()) - screen * 0.35)).toBeLessThan(4);
+  await dragTitle(page, /Menu/, screen * 0.3);
+  await expect(menu).toHaveClass(/peek/);
+  await expect(menu.getByRole("button", { name: /History/ })).toBeHidden();
+  await menu.locator("header h2").click();
+  await expect(menu.getByRole("button", { name: /History/ })).toBeVisible();
+  await dragTitle(page, /Menu/, (await height()) + 20);
+  await expect(menu).toBeHidden();
+});
+
+test("a full-screen sheet drags down to show the map", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const stats = page.getByRole("dialog", { name: /Stats/ });
+  await dragTitle(page, /Stats/, page.viewportSize()!.height * 0.6);
+  await expect(stats).toHaveClass(/half/);
+  const hud = (await page.locator(".hud").boundingBox())!;
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".hud"), [hud.x + hud.width / 2, hud.y + 20])).toBe(true);
+});
+
+test("the map credit stays under an open sheet's buttons", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const menu = page.getByRole("dialog", { name: /Menu/ });
+  const credit = (await page.locator(".maplibregl-ctrl-attrib").boundingBox())!;
+  const top = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("[role='dialog'], .maplibregl-ctrl")?.className, [credit.x + credit.width / 2, credit.y + credit.height / 2]);
+  await expect(menu).toBeVisible();
+  expect(top).toContain("sheet");
+});

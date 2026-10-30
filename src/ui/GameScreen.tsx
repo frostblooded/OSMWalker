@@ -21,6 +21,7 @@ import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { StatsSheet } from "./StatsSheet";
+import { type Snap, snapTo } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -93,11 +94,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
 
-  // History shows his trail and numbered markers, fitted above the sheet; closing it follows him again.
-  useEffect(() => {
+  // History shows his trail and numbered markers, fitted above the sheet (again when it is dragged); closing it follows him again.
+  const fitHistory = () => {
     const on = sheet === "history";
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  }, [sheet]);
+  };
+  useEffect(fitHistory, [sheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -132,7 +134,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
             <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
           </div>
-          <DayRibbon day={ribbon(game, biasMin())} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
           {game.severeNow.length > 0 && (
@@ -213,8 +214,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
       {sheet === "history" && (
-        <SheetBox title="📜 History" onClose={close}>
-          <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
+        <SheetBox title="📜 History" onClose={close} onSnap={fitHistory}>
+          <HistorySheet history={game.stats.history} day={ribbon(game, biasMin())} onFocus={(at) => scene.current?.focusEvent(at)} />
         </SheetBox>
       )}
       {sheet === "stats" && (
@@ -348,20 +349,6 @@ function Waiting({ hud: h }: { hud: Hud }) {
   return null;
 }
 
-/** Today's stops as small icons, newest on the right. */
-function DayRibbon({ day }: { day: { icons: string[]; more: number } }) {
-  if (!day.icons.length) return null;
-  return (
-    <div class="ribbon" role="img" aria-label={`Today: ${day.icons.length + day.more} stops`}>
-      <span class="dim">Today</span>
-      {day.more > 0 && <span class="dim">+{day.more}</span>}
-      {day.icons.map((icon, i) => (
-        <span key={i}>{icon}</span>
-      ))}
-    </div>
-  );
-}
-
 function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {
   return (
     <div class="minibar">
@@ -373,15 +360,58 @@ function MiniBar({ icon, share, color }: { icon: string; share: number; color: s
   );
 }
 
-export function SheetBox({ title, onClose, onBack, full, children }: { title: string; onClose: () => void; onBack?: () => void; full?: boolean; children: ComponentChildren }) {
+/**
+ * A sheet over the map. Dragging its title bar resizes it: on release it
+ * settles tall, half or at just the title bar (src/ui/snap.ts), and below
+ * that it closes. Tapping the title bar of a sheet at its smallest opens it
+ * tall again.
+ */
+export function SheetBox({ title, onClose, onBack, onSnap, full, children }: { title: string; onClose: () => void; onBack?: () => void; onSnap?: () => void; full?: boolean; children: ComponentChildren }) {
+  const [snap, setSnap] = useState<Snap>("tall");
+  const box = useRef<HTMLElement>(null);
+  const drag = useRef<{ y: number; h: number; moved: boolean } | null>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", esc);
     return () => removeEventListener("keydown", esc);
   }, [onClose]);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) first.current = false;
+    else onSnap?.();
+  }, [snap]);
+  const down = (e: PointerEvent) => {
+    if (!box.current || (e.target as Element).closest("button")) return;
+    drag.current = { y: e.clientY, h: box.current.offsetHeight, moved: false };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+  // The height follows the finger without a re-render; the snap is set once on release.
+  const move = (e: PointerEvent) => {
+    const d = drag.current;
+    if (!d || !box.current) return;
+    const dy = e.clientY - d.y;
+    if (Math.abs(dy) > 8) d.moved = true;
+    if (!d.moved) return;
+    const st = box.current.style;
+    st.height = `${Math.max(d.h - dy, 0)}px`;
+    st.maxHeight = "none";
+    st.top = "auto";
+  };
+  const up = () => {
+    const d = drag.current;
+    const el = box.current;
+    drag.current = null;
+    if (!d || !el) return;
+    const head = el.querySelector("header")?.offsetHeight ?? 0;
+    const next = d.moved ? snapTo(el.offsetHeight, el.parentElement?.clientHeight ?? innerHeight, head, !!full) : snap === "peek" ? "tall" : snap;
+    el.style.height = el.style.maxHeight = el.style.top = "";
+    if (next === "close") onClose();
+    else setSnap(next);
+  };
+  const look = full && snap === "tall" ? " full" : snap === "tall" ? "" : ` ${snap}`;
   return (
-    <section class={`sheet${full ? " full" : ""}`} role="dialog" aria-label={title}>
-      <header>
+    <section class={`sheet${look}`} role="dialog" aria-label={title} ref={box}>
+      <header onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         {onBack && (
           <button class="btn" onClick={onBack} aria-label="Back">
             ‹ Back
