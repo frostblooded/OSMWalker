@@ -202,11 +202,14 @@ export class MapView implements MapPort {
    * GPU is idle again after a few seconds.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}`;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
     const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
+    const mount = el.querySelector<HTMLElement>(".mount")!;
+    mount.textContent = l.mount;
+    mount.hidden = !l.mount;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
@@ -389,7 +392,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head. */
+/** Him: a face in an orange disc, with a bubble over his head and his fantasy mount, if any, at his side. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -398,7 +401,10 @@ function himMarker(): HTMLElement {
   const bubble = document.createElement("span");
   bubble.className = "bubble";
   bubble.hidden = true;
-  el.append(face, bubble);
+  const mount = document.createElement("span");
+  mount.className = "mount";
+  mount.hidden = true;
+  el.append(face, bubble, mount);
   return el;
 }
 

@@ -92,7 +92,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
       </Card>
       {(goal || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
-          {goal && <Goal name={`🚲 ${goal.name}`} has={s.cents} needs={goal.cents + KEEP_CENTS} />}
+          {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={goal.cents + KEEP_CENTS} />}
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}

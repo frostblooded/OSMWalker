@@ -27,6 +27,7 @@ import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { FLYERS } from "../core/speeds";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -253,6 +254,7 @@ export class Game {
     const s = Math.min(dt, MAX_STEP_S);
     const before = w.totalM;
     w.speedMps = this.stats.speedMps();
+    w.flies = FLYERS.has(this.stats.getsAbout());
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();

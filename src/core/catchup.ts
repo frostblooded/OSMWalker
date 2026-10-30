@@ -1,16 +1,17 @@
 // While you were away: lets the hours the game was closed pass for him in one
 // go, without walking the map or loading any streets. He hops from place to
-// place by the usual goal odds (a straight line x ROAD_FACTOR of walking
-// each), does an action at each, rolls the trip dice as usual and pays and
-// rides like he would. In a city whose places aren't loaded he visits
-// made-up places of the usual kinds ("a cafe in Lyon"). Pure: the game
-// applies where he ends up.
+// place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
+// just the line on a flying mount, each), does an action at each, rolls the
+// trip dice as usual and pays and rides like he would. In a city whose places
+// aren't loaded he visits made-up places of the usual kinds ("a cafe in
+// Lyon"). Pure: the game applies where he ends up.
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { euro } from "./money";
 import type { Rng } from "./rng";
 import type { Action, Place, Stats } from "./stats";
+import { FLYERS } from "./speeds";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
 import { ARRIVE_M } from "./walker";
 
@@ -66,6 +67,9 @@ export type CatchUpDeps = {
 };
 
 export type Line = { text: string; t: number };
+
+/** How much longer than the straight line his way is: none on a flying mount (see walker.ts takeOff), else ROAD_FACTOR for the streets. */
+export const roadFactor = (stats: Stats) => (FLYERS.has(stats.getsAbout()) ? 1 : ROAD_FACTOR);
 
 /** What happened, for the summary card. */
 export type Summary = {
@@ -177,7 +181,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       const place = pickPlace();
-      if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
+      if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * roadFactor(stats))) break;
       moveTo(place, [place.lat, place.lon]);
       stats.stop(place);
       if (city.places) {
@@ -230,7 +234,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return false;
     }
     // A trip that can't finish in the time left waits until the game is open.
-    const toStationM = distanceM(here[0], here[1], plan.station.lat, plan.station.lon) * ROAD_FACTOR;
+    const toStationM = distanceM(here[0], here[1], plan.station.lat, plan.station.lon) * roadFactor(stats);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
     if (toStationM / stats.speedMps() / 60 + rideMin > leftMin()) return false;
     stats.savingFor = 0;

@@ -146,6 +146,21 @@ describe("save file", () => {
     expect((f.read() as Saved).savedAt).toBe(0);
   });
 
+  it("loads saves from before fantasy mounts: a dragon not fed yet, no flight", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.dragonFed;
+    delete d.stats.dragonSulked;
+    delete d.walker.flight;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = f.read() as Saved;
+    expect(back.stats.dragonFed).toBe("");
+    expect(back.stats.dragonSulked).toBe("");
+    expect(back.walker.flight ?? null).toBeNull();
+  });
+
   it("loads saves from before the bond, with starting trust and no lean", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

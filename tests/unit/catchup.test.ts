@@ -1,12 +1,13 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
-import { catchUp, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
+import { catchUp, MADE_UP_KINDS, roadFactor, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, Trips } from "../../src/core/trips";
+import { parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
 const CITIES = "Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNexttown\tAAA\tA-land\t1.0\t0.0\t500000\nFarcity\tBBB\tB-land\t10.0\t10.0\t3000\n";
@@ -41,6 +42,15 @@ describe("catch-up", () => {
     expect(long.awayS).toBe(30 * 3600);
     expect(long.coveredS).toBe(MAX_AWAY_S);
     expect(MAX_AWAY_S).toBe(24 * 3600);
+  });
+
+  it("on a flying mount he goes the straight line; on a sulking dragon or on foot, the streets", () => {
+    const stats = new Stats();
+    expect(roadFactor(stats)).toBe(ROAD_FACTOR);
+    stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+    expect(roadFactor(stats)).toBe(ROAD_FACTOR);
+    stats.feedDragon(new Rng(1));
+    expect(roadFactor(stats)).toBe(1);
   });
 
   it("lets the time pass for his body", () => {

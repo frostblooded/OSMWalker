@@ -7,6 +7,8 @@
 // of him and walks on without stopping there.
 // Instead of a new goal he may travel to another city (see trips.ts): he
 // walks to a bus station, airport or gas station, then rides there.
+// On a flying mount he flies straight to a park or garden near a far goal,
+// lands there and walks the rest.
 // Pure logic: no DOM, no networking, so it is easy to test.
 import { bboxAround, distanceM, latToPx, lonToPx, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
 import { NO_NEED, pickIndex, randomSpot, urgentRules, weigh, type Need, type Vec, type Weights } from "./goals";
@@ -31,6 +33,12 @@ export const MAX_SKIPS = 3;
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
 /** After a catch-up he stands on the nearest loaded corner when it is this close to where he ended up. */
 export const SNAP_M = 100;
+/** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and nearer the goal by half. */
+export const FLY_MIN_M = 400;
+export const LAND_MAX_M = 1500;
+export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
+/** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
+export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
 export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
 export type PickInfo = Record<string, unknown>;
 
@@ -80,6 +88,9 @@ export class Walker {
   tripPlanner: (() => Plan | null) | null = null;
   /** How fast he really moves on the streets (see Stats.speedMps). */
   speedMps = SPEED_MPS;
+  /** True while he rides a flying mount; set by the game. */
+  flies = false;
+  flight: Flight | null = null;
 
   prevNode: number | null = null;
   fromNode: number | null = null;
@@ -122,6 +133,7 @@ export class Walker {
 
   startAt(id: number): void {
     this.prevNode = null;
+    this.flight = null;
     this.fromNode = id;
     this.toNode = null;
     this.progressM = 0;
@@ -229,6 +241,7 @@ export class Walker {
   wakeAt(node: number | null, place: Place | null): boolean {
     const moved = node !== null && !this.travel;
     if (moved) this.startAt(node);
+    else if (this.flight) this.startAt(this.flight.node);
     this.restFor(1);
     this.place = place;
     return moved;
@@ -241,6 +254,7 @@ export class Walker {
    */
   relocate(at: LatLon, bounds: BBox, newCity: boolean): void {
     this.travel = null;
+    this.flight = null;
     this.departing = null;
     this.place = null;
     this.goal = null;
@@ -301,6 +315,7 @@ export class Walker {
     const line = path.length >= 2 ? path : [p, at];
     const m = rideS(mode, pathLengthM(line)) * SPEED_MPS;
     this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m };
+    this.flight = null;
     this.departing = null;
     this.place = null;
     this.goal = null;
@@ -349,7 +364,7 @@ export class Walker {
 
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
   needsData(): boolean {
-    return !this.travel && this.toNode === null && this.fromNode !== null && !this.graph.isComplete(this.fromNode);
+    return !this.travel && !this.flight && this.toNode === null && this.fromNode !== null && !this.graph.isComplete(this.fromNode);
   }
 
   /**
@@ -365,6 +380,18 @@ export class Walker {
         this.travel.left_m -= t;
         meters -= t;
         if (this.travel.left_m <= 0) this.land();
+        continue;
+      }
+      if (this.flight) {
+        const f = this.flight;
+        const fly = meters * scale;
+        const m = Math.min(fly, f.left_m);
+        f.left_m -= m;
+        this.totalM += m;
+        this.tripM += m;
+        if (f.left_m > 0) return 0;
+        meters -= m / scale;
+        this.startAt(f.node);
         continue;
       }
       if (this.restM > 0) {
@@ -422,6 +449,7 @@ export class Walker {
       this.pickGoal();
       if (this.travel) return null;
     }
+    if (this.takeOff()) return null;
     const from = this.fromNode!;
     const next = this.route[0];
     if (next !== undefined && next !== from && this.graph.adjacency.get(from)?.has(next)) return this.route.shift()!;
@@ -439,6 +467,32 @@ export class Walker {
       return null;
     }
     return this.route.shift()!;
+  }
+
+  /** On a flying mount, at the start of the way to a far goal: flies to a park or garden near it, if one is loaded. */
+  private takeOff(): boolean {
+    if (!this.flies || !this.goal || this.tripM > 0 || !this.here()) return false;
+    const from = this.position();
+    const goal = this.goal;
+    const far = distanceM(from[0], from[1], goal[0], goal[1]);
+    if (far < FLY_MIN_M) return false;
+    let pad: Place | null = null;
+    let padM = Math.min(LAND_MAX_M, far / 2);
+    for (const q of this.graph.placesIn(bboxAround(goal[0], goal[1], LAND_MAX_M))) {
+      if (!LAND_KINDS.has(q.class)) continue;
+      const m = distanceM(q.lat, q.lon, goal[0], goal[1]);
+      if (m < padM) [pad, padM] = [q, m];
+    }
+    if (!pad) return false;
+    const node = this.graph.nearestNode(pad.lat, pad.lon);
+    const at = node === null ? null : this.graph.nodes.get(node)!;
+    if (node === null || !at || distanceM(at[0], at[1], pad.lat, pad.lon) > SNAP_M) return false;
+    const m = distanceM(from[0], from[1], at[0], at[1]);
+    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m };
+    this.legFrom = from;
+    this.route = [];
+    this.routeArrives = false;
+    return true;
   }
 
   /** At a place he stays a minute (listeners may shorten it); a random spot is only a waypoint. */
@@ -483,6 +537,7 @@ export class Walker {
    */
   walkLeftM(): number | null {
     if (!this.goal || !this.here()) return null;
+    if (this.flight) return this.flight.left_m + distanceM(this.flight.to[0], this.flight.to[1], this.goal[0], this.goal[1]);
     if (this.toNode === null && this.route.length === 0) {
       const p = this.position();
       return distanceM(p[0], p[1], this.goal[0], this.goal[1]);
@@ -506,6 +561,7 @@ export class Walker {
   /** His planned way to the goal: along the loaded streets, then a straight bit past them (null when the streets get there). */
   routeLine(): { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null {
     if (!this.goal || !this.here()) return null;
+    if (this.flight) return { streets: [], rest: [this.position(), [this.goal[0], this.goal[1]]] };
     const streets: LatLon[] = [this.position()];
     for (const id of [this.toNode, ...this.route]) {
       if (id === null) continue;
@@ -548,6 +604,11 @@ export class Walker {
   /** Current [lat, lon]. */
   position(): LatLon {
     if (this.travel) return this.travelPosition();
+    if (this.flight) {
+      const f = this.flight;
+      const t = 1 - f.left_m / Math.max(f.total_m, 0.001);
+      return [lerp(f.from[0], f.to[0], t), lerp(f.from[1], f.to[1], t)];
+    }
     const a = this.graph.nodes.get(this.fromNode!)!;
     if (this.toNode === null) return [a[0], a[1]];
     const b = this.graph.nodes.get(this.toNode)!;
@@ -576,7 +637,7 @@ export class Walker {
   }
 
   streetName(): string {
-    if (this.travel || this.fromNode === null) return "";
+    if (this.travel || this.flight || this.fromNode === null) return "";
     if (this.toNode !== null) return this.graph.edgeName(this.fromNode, this.toNode);
     if (this.prevNode !== null) return this.graph.edgeName(this.prevNode, this.fromNode);
     return "";
@@ -607,6 +668,7 @@ export class Walker {
       leg_from: this.legFrom,
       departing: this.departing,
       travel: this.travel,
+      flight: this.flight,
     };
   }
 
@@ -632,6 +694,7 @@ export class Walker {
     w.legFrom = d.leg_from;
     w.departing = d.departing;
     w.travel = d.travel;
+    w.flight = d.flight ?? null;
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
       if (id !== null && p && !graph.nodes.has(id)) graph.nodes.set(id, [p[0], p[1]]);
     }
@@ -662,4 +725,6 @@ export type WalkerSave = {
   leg_from: LatLon | null;
   departing: Plan | null;
   travel: Travel | null;
+  /** Missing in saves from before flying mounts. */
+  flight?: Flight | null;
 };

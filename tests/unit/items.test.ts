@@ -85,6 +85,26 @@ describe("items", () => {
     expect(cheapest.cars).toBeLessThanOrEqual(900_000);
   });
 
+  it("fantasy mounts: the dragon tops the cars, the others sit beside a vehicle of their tier", () => {
+    expect(Items.cheapest("dragons").price).toBe(4_000_000);
+    expect(Items.nextVehicle("car")).toMatchObject({ name: "Dragon", kind: "dragons" });
+    expect(Items.nextVehicle("dragon")).toBeNull();
+    expect(Items.nextVehicle("tortoise")).toMatchObject({ name: "Scooter" });
+    expect(Items.nextVehicle("broom")).toMatchObject({ name: "Hatchback" });
+    expect(Items.nextVehicle("carpet")).toMatchObject({ name: "Dragon" });
+    const best = Items.MATERIALS.at(-1)!;
+    const carpet = Items.build(Items.KINDS.carpets[0]!, best, []);
+    const car = Items.build(Items.KINDS.cars[0]!, Items.MATERIALS[0]!, []);
+    expect(Items.power(carpet)).toBeGreaterThan(Items.power(car));
+    expect(Items.power(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []))).toBeGreaterThan(Items.power(Items.build(Items.KINDS.cars[0]!, best, [])));
+  });
+
+  it("a living mount has no material in its name", () => {
+    expect(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[3]!, [Items.SUFFIXES[5]!]).name).toBe("Dragon of the Hare");
+    expect(Items.build(Items.KINDS.tortoises[0]!, Items.MATERIALS[0]!, []).name).toBe("Giant Tortoise");
+    expect(Items.build(Items.KINDS.carpets[0]!, Items.MATERIALS[4]!, []).name).toBe("Silk Flying Carpet");
+  });
+
   it("a car outranks any bike", () => {
     const bike = Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS.at(-1)!, [Items.PREFIXES[0]!, Items.SUFFIXES[0]!]);
     const car = Items.build(Items.KINDS.cars[0]!, Items.MATERIALS[0]!, []);

@@ -118,7 +118,7 @@ describe("map scene", () => {
 
   it("shows his face, with his most pressing need over his head", () => {
     scene.draw(0.25, 250);
-    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null });
+    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null, mount: "" });
     game.stats.meters.fullness = 10;
     scene.draw(0.25, 250);
     expect(map.look!.bubble).toBe("🍔");
