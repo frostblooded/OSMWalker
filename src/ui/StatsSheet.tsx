@@ -3,7 +3,7 @@
 // gear slot, the bag and his buffs. Items with a story open to show it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
-import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
@@ -105,22 +105,27 @@ function Goal({ name, has, needs }: { name: string; has: number; needs: number }
   );
 }
 
-export function StatsSheet({ stats: s }: { stats: Stats }) {
+/** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
+export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: boolean }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
   const kept = s.keptTreasures();
   const goal = s.vehicleGoal();
+  // With a dragon and no next vehicle: its gold on a day it hasn't eaten.
+  const feed = goal ? 0 : s.vehicleSaving();
   return (
     <>
       <Card icon="⭐" title={`Level ${s.level}`} right={euro(s.cents)}>
+        {s.keepsakes.title && <KV k="🎖 Title" v={s.keepsakes.title} />}
         <KV k="XP" v={`${Math.floor(s.xp)} / ${need}`} />
         <Bar share={s.xp / need} color="#e8730c" />
-        <KV k="Speed" v={speed(s.speedMps())} />
+        <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
-      {(goal || s.savingFor > 0) && (
+      {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
-          {goal && <Goal name={`🚲 ${goal.name}`} has={s.cents} needs={goal.cents + KEEP_CENTS} />}
+          {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
+          {feed > 0 && <Goal name="🐉 Dragon's gold" has={s.cents} needs={feed} />}
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}

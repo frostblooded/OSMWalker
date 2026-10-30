@@ -3,6 +3,7 @@
 // on the device, no network), and what they and the weather (weather.ts) do
 // to him: which places pull him, how fast he gets thirsty or tired, how fast
 // he walks, and which actions he can do. Pure.
+import type { Need } from "./goals";
 import { isOpen } from "./opening";
 import type { Place } from "./stats";
 import type { Vehicle } from "./speeds";
@@ -179,4 +180,11 @@ export function weatherPerH(sky: Sky | null): { thirstMult: number; energy: numb
 /** His speed's share in this weather: SNOW_SPEED on foot or by bike in snow, else 1. */
 export function speedShare(sky: Sky | null, vehicle: Vehicle): number {
   return sky?.weather?.kind === "snow" && (vehicle === "" || vehicle === "bike") ? SNOW_SPEED : 1;
+}
+
+/** `need` for `place` under the sky: no pull and no urgency while it is closed, and pull scaled by placeWeight otherwise. */
+export function skyNeed(need: Need, place: Pick<Place, "class" | "subclass">, sky: Sky | null): Need {
+  const w = placeWeight(place, sky);
+  if (w === 1) return need;
+  return w === 0 ? { ...need, pull: 0, urgent: false, bottom: false } : { ...need, pull: need.pull * w };
 }

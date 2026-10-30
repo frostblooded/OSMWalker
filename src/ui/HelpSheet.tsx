@@ -7,9 +7,11 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GameData } from "../game/game";
 import type { Section } from "./help";
-import { HELP_URL } from "./helpUrl";
 
 type Help = typeof import("./help");
+
+/** Where the Help text lives; a new address whenever the text changes. */
+export const HELP_URL = `${import.meta.env.BASE_URL}data/help.txt?v=${__HELP_VERSION__}`;
 
 let text: Promise<string> | null = null;
 const fetchText = () => {

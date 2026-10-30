@@ -2,8 +2,6 @@
 // stopped, new places and cities, and his money and level at the start. When
 // a new week starts (Monday at midnight) the old one becomes the recap,
 // shown once in the While you were away sheet.
-import { dayStart } from "./day";
-
 export const WEEK_S = 7 * 86400;
 
 export type Tally = {
@@ -21,6 +19,12 @@ export type Tally = {
   level: number;
 };
 export type Recap = Tally & { endCents: number; endLevel: number };
+
+/** Unix seconds of the last midnight before `t`, in a time zone `biasMin` minutes from UTC. */
+export function dayStart(t: number, biasMin: number): number {
+  const local = t + biasMin * 60;
+  return local - (((local % 86400) + 86400) % 86400) - biasMin * 60;
+}
 
 /** Unix seconds of the last Monday midnight before `t`, in a time zone `biasMin` minutes from UTC. */
 export function weekStart(t: number, biasMin: number): number {

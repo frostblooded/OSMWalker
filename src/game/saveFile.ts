@@ -5,7 +5,7 @@
 // sign postcards with. The last weather forecast is kept under WEATHER_KEY.
 import { DebugLog, type Entry } from "../core/debugLog";
 import { Problems } from "../core/problems";
-import { Stats } from "../core/stats";
+import { Stats, type Place } from "../core/stats";
 import type { WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
@@ -34,6 +34,8 @@ export type Saved = {
   debugLog: DebugLog;
   /** Unix ms when it was saved, for the catch-up; 0 when an old save didn't record it. */
   savedAt: number;
+  /** Made-up places (core/poiGen.ts) by city, so a city keeps its own; empty in old saves. */
+  made: Record<string, Place[]>;
 };
 
 export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean };
@@ -49,6 +51,7 @@ type Stored = {
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
   saved_at?: number;
+  made_places?: Record<string, Place[]>;
 };
 type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean };
 
@@ -84,6 +87,7 @@ export class SaveFile {
       stats: g.stats.toJSON(),
       debug_log: g.debugLog.toJSON(),
       saved_at: g.savedAt,
+      made_places: g.made,
     };
     try {
       this.kv.setItem(SAVE_KEY, JSON.stringify(d));
@@ -122,11 +126,14 @@ export class SaveFile {
         origin: d.origin,
         zoom: d.zoom || DEFAULT_ZOOM,
         walker,
-        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes, where he is, item stories,
-        // the day's stops and the week.
+        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
+        // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
+        // his bond with you, golden bricks, his life story (the firsts already past marked done) and the storyteller (Classic, no tension).
+        // The day's stops that older saves carry are dropped.
         stats: Stats.fromJSON(d.stats),
         debugLog: DebugLog.fromJSON(d.debug_log),
         savedAt: d.saved_at ?? 0,
+        made: d.made_places ?? {},
       };
     } catch {
       return "The saved game was unreadable; starting over";

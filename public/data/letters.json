@@ -1,0 +1,27 @@
+{
+ "tiers": [
+  [
+   "Dear whoever keeps checking on me: I think someone is watching over me. Hello?",
+   "Dear unseen friend, I keep finding nice surprises. I suspect you. Thank you."
+  ],
+  [
+   "Dear friend, I told a pigeon about you today. It seemed impressed.",
+   "Dear friend, some days the streets feel kinder. I think that's you."
+  ],
+  [
+   "Dear friend, I saved you the best bench in the park. It's the one with the view.",
+   "Dear friend, wherever I walk next, I'll tell you about it. You always listen."
+  ],
+  [
+   "Dear friend, I don't know who you are, but you're the best part of every city.",
+   "Dear friend, if I ever see a dragon, you'll be the first to know."
+  ]
+ ],
+ "thanks": {
+  "snack": "Dear whoever keeps sending snacks: I was starving. Thank you.",
+  "coffee": "Dear whoever sends coffee: it found me at exactly the right moment.",
+  "umbrella": "Dear whoever keeps sending umbrellas, thank you. It has not rained once.",
+  "guide": "Dear friend, the city guide was great. I now know three facts about drains.",
+  "clover": "Dear friend, the clover worked. I found a coin, then a nicer coin."
+ }
+}

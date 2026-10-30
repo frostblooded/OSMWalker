@@ -1,21 +1,23 @@
 // While you were away: lets the hours the game was closed pass for him in one
 // go, without walking the map or loading any streets. He hops from place to
-// place by the usual goal odds (a straight line x ROAD_FACTOR of walking
-// each), does an action at each, rolls the trip dice as usual and pays and
-// rides like he would. In a city whose places aren't loaded he visits
-// made-up places of the usual kinds ("a cafe in Lyon"). The sky (sun,
-// season, weather, closed places) follows the hour he is in. Pure: the game
-// applies where he ends up.
-import { choose, needWeight, restMinutes, type Activities } from "./activities";
+// place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
+// a flight on a flying mount, see legM), does an action at each, rolls the
+// trip dice as usual and pays and rides like he would, and the storyteller
+// may bring an incident at a stop (see storyteller.ts). In a city whose
+// places aren't loaded he visits made-up places of the usual kinds ("a cafe
+// in Lyon"). The sky (sun, season, weather, closed places) follows the hour
+// he is in. Pure: the game applies where he ends up.
+import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
-import { distanceWeight, headingWeight, pickIndex, randomSpot, rankWeight, type Vec } from "./goals";
-import { euro, signed } from "./money";
+import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
+import { euro } from "./money";
 import { isOpen } from "./opening";
-import { placeWeight, type Sky } from "./sky";
+import { skyNeed, type Sky } from "./sky";
 import type { Rng } from "./rng";
+import { FLYERS } from "./speeds";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
-import { ARRIVE_M } from "./walker";
+import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
 export const MAX_AWAY_S = 24 * 3600;
@@ -69,6 +71,30 @@ export type CatchUpDeps = {
 };
 
 export type Line = { text: string; t: number };
+
+/** A leg of his way: meters flown, then meters on the streets, on foot when `afoot` (after a flyer lands). */
+export type Leg = { airM: number; groundM: number; afoot: boolean };
+
+/**
+ * His way from `from` to `to`: the streets (ROAD_FACTOR x the straight
+ * line), or on a flying mount, by the rules of walker.ts takeOff, a straight
+ * flight to a park or garden near `to` and a walk on foot from there.
+ * There are no streets here, so takeOff's check for a corner within SNAP_M
+ * of the park is left out.
+ */
+export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | null): Leg {
+  const line = distanceM(from[0], from[1], to[0], to[1]);
+  const streets: Leg = { airM: 0, groundM: line * ROAD_FACTOR, afoot: false };
+  if (!FLYERS.has(stats.getsAbout()) || line < FLY_MIN_M || !places) return streets;
+  let pad: Place | null = null;
+  let padM = Math.min(LAND_MAX_M, line * LAND_SHARE);
+  for (const q of places) {
+    if (!LAND_KINDS.has(q.class)) continue;
+    const m = distanceM(q.lat, q.lon, to[0], to[1]);
+    if (m < padM) [pad, padM] = [q, m];
+  }
+  return pad ? { airM: distanceM(from[0], from[1], pad.lat, pad.lon), groundM: padM * ROAD_FACTOR, afoot: true } : streets;
+}
 
 /** What happened, for the summary card. */
 export type Summary = {
@@ -142,14 +168,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     return (stats.sky = riding ? { ...sky, weather: null } : sky);
   };
 
-  /** Lets `minutes` pass, `walkedM` of them on foot (or in his vehicle). */
-  const pass = (minutes: number, walkedM: number) => {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
+  const pass = (minutes: number, walkedM: number, afoot = false) => {
     let left = minutes;
     while (left > 1e-9) {
       const m = Math.min(left, STEP_MIN);
       const w = (walkedM * m) / minutes;
       skyNow();
-      stats.passTime(m, w);
+      stats.passTime(m, w, afoot);
       if (w > 0) stats.walkFor(m, rng);
       elapsed += m * 60;
       left -= m;
@@ -172,31 +198,35 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     stats.history.breakTrail();
     stats.history.moveTo(at[0], at[1]);
   };
-  /** Walks `m` meters, or as far as the time left allows; false when time ran out first. */
-  const walk = (m: number) => {
+  /** Minutes a leg takes: the flight at his mount's speed, the streets at his speed then. */
+  const legMin = (leg: Leg) => (leg.airM / stats.speedMps() + leg.groundM / stats.speedMps(leg.afoot)) / 60;
+  /** Goes a leg, or as far as the time left allows; false when time ran out first. */
+  const walk = (leg: Leg) => {
     skyNow();
-    const min = m / stats.speedMps() / 60;
-    if (min > leftMin()) return false;
-    pass(min, m);
-    s.walkedM += m;
+    if (legMin(leg) > leftMin()) return false;
+    if (leg.airM) pass(leg.airM / stats.speedMps() / 60, leg.airM);
+    pass(leg.groundM / stats.speedMps(leg.afoot) / 60, leg.groundM, leg.afoot);
+    s.walkedM += leg.airM + leg.groundM;
     return true;
   };
 
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
+      stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       const place = pickPlace();
       if (!place) {
         // Everything near is closed: like the walker, he heads for a random spot and walks on.
         const spot = randomSpot(rng, city.bounds, here, heading);
-        if (!walk(distanceM(here[0], here[1], spot[0], spot[1]) * ROAD_FACTOR)) break;
+        if (!walk(legM(stats, here, spot, city.places))) break;
         moveTo(null, spot);
         yield;
         continue;
       }
-      if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * ROAD_FACTOR)) break;
+      if (!walk(legM(stats, here, [place.lat, place.lon], city.places))) break;
       moveTo(place, [place.lat, place.lon]);
       const sky = skyNow();
       if (!isOpen(place, sky.clock, sky.holiday)) {
@@ -216,6 +246,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         stats.say(`Reached ${place.name}`);
         stats.care.open(stats);
       }
+      // A made-up place here ("a park in Lyon") is no real park to build at.
+      stats.bricksAt(city.places ? place : { ...place, made: true });
+      // Incidents roll on the card dice too, so they leave his walk the same.
+      stats.happen(place, sky.hour, deps.cardRng ?? rng);
       s.stops++;
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
@@ -240,6 +274,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       skipRoll = false;
       return false;
     }
+    if (anyUrgent(stats)) return false;
     const places = city.places ?? [];
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
     if (kind === "stay") return false;
@@ -255,21 +290,19 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return false;
     }
     // A trip that can't finish in the time left waits until the game is open.
-    const toStationM = distanceM(here[0], here[1], plan.station.lat, plan.station.lon) * ROAD_FACTOR;
+    const toStation = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
-    if (toStationM / stats.speedMps() / 60 + rideMin > leftMin()) return false;
+    if (legMin(toStation) + rideMin > leftMin()) return false;
     stats.savingFor = 0;
     stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
-    walk(toStationM);
+    walk(toStation);
     moveTo(plan.station, [plan.station.lat, plan.station.lon]);
     if (stats.cents < plan.fare) {
       stats.savingFor = plan.fare;
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    stats.say(`${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
     riding = true;
     pass(rideMin, 0);
     riding = false;
@@ -291,21 +324,25 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
     const sky = skyNow();
-    const needOf = (p: Place) => needWeight(activities.peek(p, city.code), stats) * placeWeight(p, sky);
-    const need = flat.kinds.map(needOf);
+    const need = flat.kinds.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
-    let far = false;
+    const [keep, r] = urgentRules(need, rng.randf());
+    let any = false;
     const weights = real.map((_, i) => {
+      const n = need[flat.kind[i]!]!;
+      if (keep && !keep(n)) return 0;
       const v: Vec = [flat.x[i]! - hx, flat.y[i]! - hy];
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
-      far = true;
-      return flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * need[flat.kind[i]!]!;
+      any = true;
+      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
     });
-    const pick = (places: Place[], w: number[]) => (w.some((x) => x > 0) ? places[pickIndex(w, rng.randf())]! : null);
-    if (far) return pick(real, weights);
+    const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
+    if (any) return pick(real, weights, r);
     const made = madeUp();
-    return pick(made, made.map((p) => rankWeight(p) * distanceWeight(distanceM(here[0], here[1], p.lat, p.lon)) * headingWeight(heading, offsetM(here[0], here[1], p.lat, p.lon)) * needOf(p)));
+    const madeNeed = made.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
+    return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }
 
   function madeUp(): Place[] {

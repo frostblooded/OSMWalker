@@ -1,10 +1,9 @@
 // What the screens show about him, worked out once from the game: his look
-// on the map, the day ribbon, the soundscape, the top card (what he is
-// doing, where he goes, how long until he moves again, why he waits, the
-// sky) and the facts Debug lists. Plain data, so the screens only lay it out
-// and the numbers are tested without a browser.
+// on the map, the soundscape, the top card (what he is doing, where he goes,
+// how long until he moves again, why he waits, the sky) and the facts Debug lists.
+// Plain data, so the screens only lay it out and the numbers are tested
+// without a browser.
 import { distanceM, type BBox } from "../core/geo";
-import * as Day from "../core/day";
 import * as Looks from "../core/look";
 import type { Season, Sky } from "../core/sky";
 import { soundscape, type Soundscape } from "../core/soundscape";
@@ -108,20 +107,8 @@ export function doing(g: Game): string {
 /** His face, bubble and pose: the goal's kind while he walks, what he does while he stays, nothing on a trip. */
 export function look(g: Game): Looks.Look {
   const w = g.walker!;
-  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null };
-  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null);
-}
-
-/** The day ribbon: today's stops as icons, oldest first, and how many earlier ones don't fit. */
-export function ribbon(g: Game, biasMin: number): { icons: string[]; more: number } {
-  const r = Day.ribbon(g.stats.stops, g.stats.now(), biasMin);
-  return {
-    icons: r.kinds.map((k) => {
-      const [c = "", sub = ""] = k.split("/");
-      return Looks.placeIcon({ class: c, subclass: sub });
-    }),
-    more: r.more,
-  };
+  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "" };
+  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout());
 }
 
 /** What the city sound plays now. */

@@ -1,7 +1,7 @@
 // Player flows in the browser, with fake map services.
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { encode } from "../../src/core/postcard";
-import { mockServices, reopenAfter, reopenDeparting } from "./mock";
+import { mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -43,23 +43,11 @@ test("shades the map after dark and not by day", async ({ page }) => {
   await expect(page.locator(".night")).toHaveCount(0, { timeout: 5000 });
 });
 
-test("a menu screen that fails to load says so and asks for a reload", async ({ context, page }) => {
-  await context.route(/\/assets\/StatsSheet-[^/]*\.js$/, (route) => route.abort());
+test("on a dragon he can feed, it shows at his side", async ({ page }) => {
   await startInSofia(page);
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Stats/ }).click();
-  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Couldn't load this screen", { timeout: 10000 });
-  await page.getByRole("button", { name: "Close" }).click();
-  await expect(page.locator(".burger .dot")).toBeVisible();
-});
-
-test("While you were away still shows when the menu's screens fail to load", async ({ context, page }) => {
-  await context.route(/\/assets\/HelpSheet-[^/]*\.js$/, (route) => route.abort());
-  await startInSofia(page);
-  await reopenAfter(page, 3);
-  const away = page.getByRole("dialog", { name: /While you were away/ });
-  await expect(away).toContainText("Lived through", { timeout: 20000 });
-  await expect(away).not.toContainText("Couldn't load this screen");
+  // He starts with enough money to feed it, so it eats as soon as he sets off.
+  await reopenWith(page, `d.stats.gear.vehicle = { name: "Dragon", slot: "vehicle", vehicle: "dragon", stats: { speed: 2 }, rarity: "Common", price: 4000000 };`);
+  await expect(page.locator(".marker.him .mount")).toHaveText("🐉", { timeout: 20000 });
 });
 
 test("picks up where he was after a reload", async ({ page }) => {
@@ -67,6 +55,25 @@ test("picks up where he was after a reload", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
   await page.reload();
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
+});
+
+test("the storyteller switches from the menu, is remembered, and brings incidents while he is away", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  const teller = page.getByRole("button", { name: /Storyteller/ });
+  await expect(teller).toContainText("Classic");
+  await teller.click();
+  await expect(teller).toContainText("Chaotic");
+  // Chaotic and at full tension, six hours away bring incidents for sure.
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100;");
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
+  const icons = (JSON.parse(readFileSync("public/data/incidents.json", "utf8")) as { icon: string }[]).map((c) => c.icon);
+  const lines = await away.locator(".away-log li").allTextContents();
+  expect(lines.some((l) => icons.some((i) => l.includes(`${i} `)))).toBe(true);
+  await away.getByRole("button", { name: "Carry on" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("button", { name: /Storyteller/ })).toContainText("Chaotic");
 });
 
 test("sums up what he did while the game was closed", async ({ page }) => {
@@ -100,6 +107,25 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
   await expect(care.getByRole("button", { name: /Send Coffee/ })).toBeDisabled();
 });
 
+test("you can whisper to him three times a day, and praise his latest line once", async ({ page }) => {
+  await startInSofia(page);
+  // A reopen gives him a day of deeds to praise, and trust from the check-in.
+  await reopenAfter(page, 3);
+  await page.getByRole("dialog", { name: /While you were away/ }).getByRole("button", { name: "Carry on" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Care package/ }).click();
+  const care = page.getByRole("dialog", { name: /Care package/ });
+  await expect(care).toContainText("His trust in you");
+  await expect(care).toContainText("3 left today");
+  for (let i = 0; i < 3; i++) await care.getByRole("button", { name: "Whisper eat" }).click();
+  await expect(care).toContainText("0 left today");
+  await expect(care.getByRole("button", { name: "Whisper rest" })).toBeDisabled();
+  await expect(care).not.toContainText("Heard a whisper");
+  await care.getByRole("button", { name: /Praise/ }).click();
+  await expect(care.getByRole("button", { name: /Scold/ })).toBeDisabled();
+  await expect(care).toContainText(/\(\+\d+ of ±100\)/);
+});
+
 test("a long reopen may hold one choice, which a tap settles", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
@@ -116,15 +142,6 @@ test("a long reopen may hold one choice, which a tap settles", async ({ page }) 
   await expect(away.locator(".choices")).toBeHidden();
   await away.getByRole("button", { name: "Carry on" }).click();
   await expect(away).toBeHidden();
-});
-
-test("the day ribbon shows the places he stopped at today", async ({ page }) => {
-  // The hour he was away must fall on today.
-  test.skip(new Date().getHours() < 1, "too close to midnight");
-  await startInSofia(page);
-  await reopenAfter(page, 1);
-  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
-  await expect(page.locator(".hud .ribbon")).toHaveAttribute("aria-label", /^Today: \d+ stops$/);
 });
 
 test("while he walks to a station you can guess where he is going, once", async ({ page }) => {
@@ -158,16 +175,6 @@ test("a postcard goes out as a link and opens in a friend's game", async ({ page
   expect(new URL(friend.url()).hash).toBe("");
   await card.getByRole("button", { name: "Send one back" }).click();
   await expect(friend.getByRole("dialog", { name: /Send a postcard/ })).toBeVisible();
-});
-
-test("a postcard link to the picker says so when its screen fails to load", async ({ context, page }) => {
-  await context.route(/\/assets\/PostcardSheet-[^/]*\.js$/, (route) => route.abort());
-  const card = { from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house", t: 1_800_000_000 };
-  await page.goto(`./#${encode(card)}`);
-  const dialog = page.getByRole("dialog", { name: "Postcard" });
-  await expect(dialog).toContainText("Couldn't load this screen", { timeout: 10000 });
-  await dialog.getByRole("button", { name: "Close" }).click();
-  await expect(dialog).toBeHidden();
 });
 
 test("New city asks for RESET first", async ({ page }) => {

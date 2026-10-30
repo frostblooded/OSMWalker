@@ -8,8 +8,8 @@ import { SaveFile } from "../game/saveFile";
 import { Api, type SearchPlace } from "../net/api";
 import { StreetClient } from "../streets/client";
 import { GameScreen } from "./GameScreen";
-import { Loading, useLazy } from "./lazy";
 import { Picker } from "./Picker";
+import { ReceivedSheet } from "./PostcardSheet";
 
 const api = new Api();
 let game: Promise<Game> | null = null;
@@ -43,11 +43,6 @@ export function App() {
   const [playing, setPlaying] = useState(false);
   const [resuming, setResuming] = useState(hasSave);
   const [msg, setMsg] = useState<Msg>();
-  // The postcard screens load only when a link brings a postcard, so their code stays off the startup path.
-  const cards = useLazy(() => import("./PostcardSheet"), "the postcard", (t) => void getGame().then((game) => game.problems.warn(t), () => undefined));
-  useEffect(() => {
-    if (received && !playing) cards.start();
-  }, [received, playing]);
 
   useEffect(() => {
     if (resuming) {
@@ -102,16 +97,7 @@ export function App() {
       {received && (
         <div class="dialog-bg">
           <div class="dialog" role="dialog" aria-label="Postcard">
-            {cards.mod ? (
-              <cards.mod.ReceivedSheet card={received} onDone={() => setReceived(null)} />
-            ) : (
-              <>
-                <Loading failed={cards.failed} />
-                <button class="btn" onClick={() => setReceived(null)}>
-                  Close
-                </button>
-              </>
-            )}
+            <ReceivedSheet card={received} onDone={() => setReceived(null)} />
           </div>
         </div>
       )}
