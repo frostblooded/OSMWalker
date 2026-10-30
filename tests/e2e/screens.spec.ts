@@ -100,6 +100,21 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   const sheet = page.getByRole("dialog", { name: /Collection/ });
   for (const t of ["Completion", "Globetrotter", "Landmark cards", "City cards"]) await expect(sheet).toContainText(t);
   await expect(sheet.locator(".dex-tile.gold")).toContainText("Alexander Nevsky Cathedral");
+  // No word on a tile is split across lines.
+  const split = await sheet.locator(".dex-tile .small").evaluateAll((spans) =>
+    spans.flatMap((el) => {
+      const text = el.firstChild!;
+      const words: string[] = [];
+      for (const m of (text.textContent ?? "").matchAll(/\S+/g)) {
+        const r = document.createRange();
+        r.setStart(text, m.index!);
+        r.setEnd(text, m.index! + m[0].length);
+        if (r.getClientRects().length > 1) words.push(m[0]);
+      }
+      return words;
+    }),
+  );
+  expect(split).toEqual([]);
   await sheet.getByRole("tab", { name: /Places/ }).click();
   for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /World/ }).click();

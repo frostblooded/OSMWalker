@@ -208,12 +208,12 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 .tile { background: var(--zebra); border: 2px solid var(--ink); border-radius: var(--r-small); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
 .tile b { font-size: var(--title); }
-/* Collection: tabs, then dex grids. A found tile has a frame in its rarity colour, doubled for foil and gold (named in its detail too); an unfound one is a dimmed ?. */
+/* Collection: tabs, then dex grids. Tiles are wide enough for a whole word; a word breaks only if it is longer than the tile. A found tile has a frame in its rarity colour, doubled for foil and gold (named in its detail too); an unfound one is a dimmed ?. */
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s2); }
 .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: var(--tap-big); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); font-size: var(--heading); padding: var(--s1) 0; }
 .tab.on { background: var(--accent); color: #fff; box-shadow: var(--lip); }
-.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--s2); margin-top: var(--s2); }
-.dex-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; min-width: 0; padding: var(--s1); border: 3px solid var(--ink); border-radius: var(--r-small); background: var(--paper); font-size: var(--heading); overflow-wrap: anywhere; text-align: center; }
+.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); margin-top: var(--s2); }
+.dex-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; min-width: 0; padding: var(--s1); border: 3px solid var(--ink); border-radius: var(--r-small); background: var(--paper); font-size: var(--heading); overflow-wrap: break-word; hyphens: manual; text-align: center; }
 .dex-tile .small { line-height: 1.2; }
 .dex-tile.unfound { background: var(--zebra); border-style: dashed; color: var(--dim); }
 .dex-tile.foil, .dex-tile.gold { border-style: double; border-width: 6px; }
