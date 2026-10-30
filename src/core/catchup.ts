@@ -1,7 +1,7 @@
 // While you were away: lets the hours the game was closed pass for him in one
 // go, without walking the map or loading any streets. He hops from place to
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
-// just the line on a flying mount, each), does an action at each, rolls the
+// a flight on a flying mount, see legM), does an action at each, rolls the
 // trip dice as usual and pays and rides like he would. In a city whose places
 // aren't loaded he visits made-up places of the usual kinds ("a cafe in
 // Lyon"). Pure: the game applies where he ends up.
@@ -13,7 +13,7 @@ import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
-import { ARRIVE_M } from "./walker";
+import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
 export const MAX_AWAY_S = 24 * 3600;
@@ -68,8 +68,23 @@ export type CatchUpDeps = {
 
 export type Line = { text: string; t: number };
 
-/** How much longer than the straight line his way is: none on a flying mount (see walker.ts takeOff), else ROAD_FACTOR for the streets. */
-export const roadFactor = (stats: Stats) => (FLYERS.has(stats.getsAbout()) ? 1 : ROAD_FACTOR);
+/**
+ * Meters of his way from `from` to `to`: the streets (ROAD_FACTOR x the
+ * straight line), or on a flying mount, by the rules of walker.ts takeOff, a
+ * straight flight to a park or garden near `to` and the streets from there.
+ */
+export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | null): number {
+  const line = distanceM(from[0], from[1], to[0], to[1]);
+  if (!FLYERS.has(stats.getsAbout()) || line < FLY_MIN_M || !places) return line * ROAD_FACTOR;
+  let pad: Place | null = null;
+  let padM = Math.min(LAND_MAX_M, line * LAND_SHARE);
+  for (const q of places) {
+    if (!LAND_KINDS.has(q.class)) continue;
+    const m = distanceM(q.lat, q.lon, to[0], to[1]);
+    if (m < padM) [pad, padM] = [q, m];
+  }
+  return pad ? distanceM(from[0], from[1], pad.lat, pad.lon) + padM * ROAD_FACTOR : line * ROAD_FACTOR;
+}
 
 /** What happened, for the summary card. */
 export type Summary = {
@@ -183,7 +198,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       const place = pickPlace();
-      if (!walk(distanceM(here[0], here[1], place.lat, place.lon) * roadFactor(stats))) break;
+      if (!walk(legM(stats, here, [place.lat, place.lon], city.places))) break;
       moveTo(place, [place.lat, place.lon]);
       stats.stop(place);
       if (city.places) {
@@ -236,7 +251,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return false;
     }
     // A trip that can't finish in the time left waits until the game is open.
-    const toStationM = distanceM(here[0], here[1], plan.station.lat, plan.station.lon) * roadFactor(stats);
+    const toStationM = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
     if (toStationM / stats.speedMps() / 60 + rideMin > leftMin()) return false;
     stats.savingFor = 0;

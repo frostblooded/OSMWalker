@@ -1,8 +1,8 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
-import { catchUp, MADE_UP_KINDS, roadFactor, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
-import { bboxAround } from "../../src/core/geo";
+import { catchUp, legM, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
+import { bboxAround, distanceM } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
@@ -44,13 +44,20 @@ describe("catch-up", () => {
     expect(MAX_AWAY_S).toBe(24 * 3600);
   });
 
-  it("on a flying mount he goes the straight line; on a sulking dragon or on foot, the streets", () => {
+  it("on a flying mount he flies to a park near a far goal, like the watched walk; else the streets", () => {
     const stats = new Stats();
-    expect(roadFactor(stats)).toBe(ROAD_FACTOR);
+    const goal: [number, number] = [0, 0.02];
+    const park = place("Park", "park", "park", 0, 0.018);
+    const line = distanceM(0, 0, 0, 0.02);
+    const flown = distanceM(0, 0, 0, 0.018) + distanceM(0, 0.018, 0, 0.02) * ROAD_FACTOR;
+    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(line * ROAD_FACTOR, 6);
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
-    expect(roadFactor(stats)).toBe(ROAD_FACTOR);
+    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(line * ROAD_FACTOR, 6);
     stats.feedDragon(new Rng(1));
-    expect(roadFactor(stats)).toBe(1);
+    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(flown, 6);
+    expect(legM(stats, [0, 0], goal, [])).toBeCloseTo(line * ROAD_FACTOR, 6);
+    expect(legM(stats, [0, 0], goal, null)).toBeCloseTo(line * ROAD_FACTOR, 6);
+    expect(legM(stats, [0, 0], [0, 0.002], [place("Park", "park", "park", 0, 0.0019)])).toBeCloseTo(distanceM(0, 0, 0, 0.002) * ROAD_FACTOR, 6);
   });
 
   it("lets the time pass for his body", () => {

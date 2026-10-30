@@ -932,6 +932,24 @@ describe("flying mounts", () => {
     expect(foot.flight).toBeNull();
   });
 
+  it("comes down at the nearest corner when his mount stops flying mid-air", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.flies = false;
+    w.advance(1);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(1);
+  });
+
+  it("waking in the air with no hospital to go to, he stands on the corner he was landing on", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.wakeAt(null, null)).toBe(false);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.isResting()).toBe(true);
+  });
+
   it("keeps a flight in the save", () => {
     const w = flyer([park, far]);
     w.advance(300);

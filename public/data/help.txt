@@ -65,7 +65,7 @@ Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
 ## Fantasy mounts {mounts}
-Now and then the real map has a little magic in it. Four mounts can be had, each from a real place of the right kind:
+Now and then the real map has a little magic in it. These mounts can be had, each from a real place of the right kind:
 - a giant tortoise from a pet shop: {TORTOISE_KMH} km/h, and he never tires on it,
 - a broomstick from a hardware or DIY shop: {BROOM_KMH} km/h,
 - a flying carpet from a carpet shop: {CARPET_KMH} km/h,
@@ -73,9 +73,9 @@ Now and then the real map has a little magic in it. Four mounts can be had, each
 
 The tortoise, broomstick and carpet sit beside the bike, scooter and car: each ranks with that vehicle, so he swaps one for the other only when the new one is stronger (a better material). A pet, hardware or carpet shop only has one in {MOUNT_STOCK_PCT} of the time he asks. The dragon is the top tier, above any car: from {CHEAP_DRAGON}, it is what he saves up for once he has a car (see Saving for a vehicle).
 
-Flyers (the broomstick, the carpet and the dragon) don't follow the streets. When his goal is at least {FLY_MIN_M} m away and a park or garden is loaded near it (at most {LAND_MAX_M} m from the goal, and at most {LAND_SHARE_PCT} as far from it as he is), he flies there in a straight line, lands, and walks the rest. Otherwise he goes by the streets like anyone else. While you're away he flies the straight line to each place too. On the map his mount shows at his side.
+Flyers (the broomstick, the carpet and the dragon) don't follow the streets. When his goal is at least {FLY_MIN_M} m away and a park or garden is loaded near it (at most {LAND_MAX_M} m from the goal, and at most {LAND_SHARE_PCT} as far from it as he is), he flies there in a straight line, lands, and walks the rest. Otherwise he goes by the streets like anyone else. While you're away the same rules decide when he flies. On the map his mount shows at his side.
 
-A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly, and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
+A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, before he moves on (also while you're away); if he hasn't got it, the dragon sulks and won't fly (if it starts to sulk in the air, he comes down at the nearest corner), and he walks until he can pay. Nothing is lost. On a day it is fed it brings back treasure {DRAGON_TREASURE_PCT} of the time, worth {DRAGON_TREASURE_MIN} to {DRAGON_TREASURE_MAX}. Riding a broomstick takes {BROOM_EFFORT_PCT} of the walking energy per km, a carpet {CARPET_EFFORT_PCT} and a dragon {DRAGON_EFFORT_PCT}.
 ## Places of note {places}
 His goals are named places from the map: shops, cafes, restaurants, parks, museums, churches, stations and many more. Only places inside the current city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere.
 

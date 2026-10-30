@@ -383,6 +383,12 @@ export class Walker {
         if (this.travel.left_m <= 0) this.land();
         continue;
       }
+      if (this.flight && !this.flies) {
+        // His mount stopped flying (a dragon that now sulks): he comes down at the nearest corner and walks.
+        const p = this.position();
+        this.startAt(this.graph.nearestNode(p[0], p[1]) ?? this.flight.node);
+        continue;
+      }
       if (this.flight) {
         const f = this.flight;
         const fly = meters * scale;

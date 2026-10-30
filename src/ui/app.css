@@ -170,7 +170,7 @@ h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weigh
 /* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
 .him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
 .him .bubble[hidden] { display: none; }
-.him .mount { position: absolute; right: -14px; bottom: -8px; font-size: 20px; }
+.him .mount { position: absolute; right: calc(-1 * var(--s3)); bottom: calc(-1 * var(--s2)); font-size: 20px; }
 .him .mount[hidden] { display: none; }
 .him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
 .him .bubble.rise { animation-name: rise; }

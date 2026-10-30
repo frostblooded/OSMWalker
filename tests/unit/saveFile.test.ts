@@ -158,7 +158,7 @@ describe("save file", () => {
     const back = f.read() as Saved;
     expect(back.stats.dragonFed).toBe("");
     expect(back.stats.dragonSulked).toBe("");
-    expect(back.walker.flight ?? null).toBeNull();
+    expect(back.walker.flight).toBeNull();
   });
 
   it("loads saves from before the bond, with starting trust and no lean", () => {
