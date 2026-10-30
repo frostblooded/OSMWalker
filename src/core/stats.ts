@@ -21,6 +21,7 @@ import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
 import { Rival, type Contest } from "./rival";
+import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
 import * as Kit from "./travelKit";
 import * as T from "./trips";
@@ -179,6 +180,10 @@ export class Stats {
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
   contests: readonly Contest[] = [];
+  /** The locals he knows, his partner, and a fellow traveller on a trip. */
+  friends = new Friends();
+  /** Names, faces and fellow travellers from data/friends.json; not saved, the game sets it. */
+  friendData: FriendData = { names: [], icons: [], companions: [] };
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -357,7 +362,9 @@ export class Stats {
    * Bulgaria") and returns its History line, the same while he plays and in
    * the catch-up. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if
    * caught (CAUGHT_CHANCE), is fined FINE_MULT times the fare, as much as he
-   * has. Rolls its own dice from the station and time, so the walk's stay the same.
+   * has. His partner comes along, or maybe a fellow traveller who pays back
+   * part of what he paid (never of a fine). Rolls its own dice from the
+   * station and time, so the walk's stay the same.
    */
   ride(fare: number, mode: string, station: string, to: string): string {
     let paid = fare;
@@ -370,10 +377,13 @@ export class Stats {
         how = caught ? " without a ticket, got caught and was fined" : " without a ticket";
       }
     }
+    // His partner comes along, or maybe a fellow traveller who splits the fare he paid (not a fine); own dice, so the dodge's stay the same.
+    const { back, with: company } = this.friends.board(how ? 0 : paid, this.friendData, new Rng(seedOf(`${to}${station}${this.now()}`)));
+    paid -= back;
     this.cents -= paid;
-    if (mode === "bike") return `Cycled off to ${to}`;
-    if (mode === "hitch") return `Hitchhiked to ${to}`;
-    return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
+    if (mode === "bike") return `Cycled off to ${to}${company}`;
+    if (mode === "hitch") return `Hitchhiked to ${to}${company}`;
+    return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${company}${paid ? ` (${signed(-paid)})` : ""}`;
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
@@ -796,7 +806,8 @@ export class Stats {
 
   /**
    * Maybe an incident at a stop at `place` at `hour`, when the storyteller
-   * says so (Luck makes bad ones rarer), or else a meeting with his rival.
+   * says so (Luck makes bad ones rarer), or else a meeting with his rival,
+   * or else one with a friend or his fellow traveller.
    * Returns its feed line, or "". Without a deck the stories are off and
    * nothing rolls, so the dice stay the same as without one.
    */
@@ -809,7 +820,9 @@ export class Stats {
       return (this.incidentLine = Inc.play(card, this, place.name, rng));
     }
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
-    return met && (this.incidentLine = met);
+    if (met) return (this.incidentLine = met);
+    const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
+    return f && (this.incidentLine = this.say(f));
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -856,7 +869,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
     };
   }
 
@@ -889,6 +902,8 @@ export class Stats {
     s.story = Storyteller.fromJSON(d.story);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
+    // A save from before friends: he hasn't met anyone yet.
+    s.friends = Friends.fromJSON(d.friends);
     return s;
   }
 }

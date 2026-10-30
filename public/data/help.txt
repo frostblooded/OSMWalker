@@ -579,6 +579,14 @@ Some meetings are a friendly chat instead: {FRIENDLY_PCT} of them, plus {FRIENDL
 Viktor remembers. He brings up where they last met in another city, and every contest makes his feelings {FEELING_STEP} colder while every chat makes them {FEELING_STEP} warmer (from -{FEELING_MAX} to {FEELING_MAX}). At -{FEELING_AT} he is a Nemesis; at {FEELING_AT} a Friendly rival.
 
 For {SEEN_MIN} minutes after a meeting he shows on the map beside him, as a smaller round {RIVAL_ICON} on a cream badge. His card on the Stats sheet keeps the score.
+## Friends and a partner {friends}
+He makes friends by himself. At a kind of place where he knows no one who hangs out there, each stop has a {FRIEND_NEW_PCT} chance he gets talking with a local, who then hangs out at that kind of place in that city. Back at such a place, a stop has a {FRIEND_SEE_PCT} chance he runs into one of them again, and each meeting adds a heart 💗, up to {HEARTS_MAX}. Friends only come at a stop where no incident happens and Viktor doesn't turn up.
+
+From {MEET_UP_AT} hearts a friend also meets up with him on purpose anywhere in their city: a {MEET_UP_PCT} chance at each stop. He keeps up to {FRIENDS_PER_CITY} friends in each city; a new one takes the place of the one with the fewest hearts.
+
+The first friend to reach {HEARTS_MAX} hearts becomes his partner, for good. His partner comes along on every trip, and is never forgotten to make room. The Stats sheet lists his friends with their hearts.
+## Travel companions {companions}
+Until he has a partner, a fellow traveller joins him on {COMPANION_PCT} of his trips: a student, a retired sailor, a backpacker and others. They split the fare he paid ({SPLIT_PCT} of it back to him, never of a fine) and chat at his next {COMPANION_STOPS} quiet stops (no incident or Viktor), then go their own way at the one after. While one is along, the traveller takes those stops: no friends turn up, and no second traveller joins.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -605,6 +613,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
+- Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.

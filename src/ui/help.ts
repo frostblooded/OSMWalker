@@ -32,6 +32,7 @@ import * as Problems from "../core/problems";
 import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
+import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
@@ -518,6 +519,16 @@ export function values(data: GameData): Record<string, string> {
     FEELING_AT: num(Rival.FEELING_AT),
     FEELING_STEP: num(Rival.FEELING_STEP),
     SEEN_MIN: num(Rival.SEEN_MIN),
+    FRIEND_NEW_PCT: pct(Friends.NEW_CHANCE),
+    FRIEND_SEE_PCT: pct(Friends.SEE_CHANCE),
+    HEARTS_MAX: num(Friends.HEARTS_MAX),
+    MEET_UP_AT: num(Friends.MEET_UP_AT),
+    MEET_UP_PCT: pct(Friends.MEET_UP_CHANCE),
+    FRIENDS_PER_CITY: num(Friends.PER_CITY),
+    COMPANION_PCT: pct(Friends.COMPANION_CHANCE),
+    SPLIT_PCT: pct(Friends.SPLIT),
+    COMPANION_STOPS: num(Friends.COMPANION_STOPS),
+    FRIENDS_SHOWN: num(Friends.SHOWN),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
