@@ -18,12 +18,13 @@ import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
+import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Incident } from "../core/incidents";
+import * as Q from "../core/quests";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { FLYERS } from "../core/speeds";
@@ -55,7 +56,7 @@ export const CATCHUP_SLICE_MS = 8;
 /** Cities whose made-up places the save keeps; the oldest is dropped first. */
 export const MADE_CITIES = 20;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; quests?: Q.Bank };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -233,6 +234,7 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
+    w.questGoal = () => this.questGoal();
     w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
@@ -270,6 +272,7 @@ export class Game {
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
       this.checkCity();
+      this.rollBoard();
     }
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
@@ -295,6 +298,14 @@ export class Game {
     this.stats.collect(place, this.cardRng);
     // Incidents roll on the card dice, so they leave his walk the same.
     this.stats.happen(place, this.hour(), this.cardRng);
+    // Quests roll on the card dice too; a quest step or event takes the place of an action.
+    const story = Q.questStop(this.stats, place, this.storyPlaces(), this.hour(), this.cardRng);
+    if (story !== null) {
+      this.doing = { name: this.stats.quests.active ? "On a quest" : "Helping out", min: story };
+      this.walker!.restFor(story);
+      this.changed();
+      return;
+    }
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
@@ -365,6 +376,8 @@ export class Game {
 
   /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
   private planTrip(): Plan | null {
+    // He finishes the quest he is on before he leaves the city.
+    if (this.stats.quests.active) return null;
     const plan = this.journey.consider(this.where(), this.stats);
     this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
     return plan;
@@ -436,7 +449,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the forecasts, the incident deck, the quest bank and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -444,6 +457,7 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
+    this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -583,7 +597,7 @@ export class Game {
     }
     w.departing = null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null };
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0 };
     const steps = catchUpSteps(this.stats, city, w.position(), coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
@@ -875,13 +889,77 @@ export class Game {
     this.changed();
   }
 
+  /** The places of his city that quests and events can use: loaded real ones and the made-up ones. */
+  private storyPlaces(): Place[] {
+    const w = this.walker;
+    return w?.bounds && !w.isTraveling() ? w.graph.placesIn(w.bounds) : [];
+  }
+
+  /** Rolls the city's quest board (core/quests.ts) once enough of its places are loaded, so its icons show before his first quest. */
+  private rollBoard(): void {
+    const q = this.stats.quests;
+    if (q.city === this.city || !q.bank.quests.length) return;
+    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng);
+    if (q.city === this.city) this.changed();
+  }
+
+  /** A quest step or world event to walk to (core/quests.ts). */
+  private questGoal(): Place | null {
+    const w = this.walker!;
+    if (w.isTraveling()) return null;
+    this.rollBoard();
+    return Q.questGoal(this.stats, this.storyPlaces(), w.position(), this.cardRng);
+  }
+
+  /** The quest and event icons: the board's quest givers, the step he is on, and the events near him. */
+  questIcons(): MapIcon[] {
+    const q = this.stats.quests;
+    if (q.city !== this.city) return [];
+    const out: MapIcon[] = q.board.slice(0, ICON_CAP.quest).map((o) => ({ id: `quest:${o.key}`, at: [o.at.lat, o.at.lon], icon: "quest", label: q.kind(o.kind)?.title ?? "Quest", kind: "quest" }));
+    const t = q.active?.target;
+    if (t) out.push({ id: `quest:${q.active!.key}`, at: [t.lat, t.lon], icon: "quest-step", label: q.kind(q.active!.kind)?.title ?? "Quest", kind: "quest", pulse: true });
+    for (const e of q.events.filter((x) => x.ends > this.stats.now()).slice(0, ICON_CAP.event)) out.push({ id: `event:${e.id}`, at: [e.at.lat, e.at.lon], icon: "event", label: q.eventKind(e.kind)?.title ?? "Event", kind: "event", ends_at: Math.floor(e.ends / 60) });
+    return out;
+  }
+
+  /** What a tapped quest or event icon tells you, or null for another icon. */
+  storyCard(id: string): { icon: string; title: string; text: string; state: "open" | "nudged" | "on" } | null {
+    const q = this.stats.quests;
+    const town = this.city.split(",")[0]!;
+    if (id.startsWith("event:")) {
+      const e = q.events.find((x) => `event:${x.id}` === id);
+      const k = e && q.eventKind(e.kind);
+      if (!e || !k) return null;
+      const left = Math.max(Math.round((e.ends - this.stats.now()) / 60), 0);
+      return { icon: k.icon, title: k.title, text: `${Q.fill(k.text[e.line] ?? k.text[0]!, { place: e.at.name, town })} ${left} min left.`, state: q.nudge === e.id ? "nudged" : "open" };
+    }
+    if (!id.startsWith("quest:")) return null;
+    const key = id.slice("quest:".length);
+    if (q.active?.key === key) {
+      const card = q.describe(q.active, town);
+      const k = q.kind(q.active.kind)!;
+      return card && { ...card, text: `${card.text} He is on it: step ${q.active.step + 1} of ${k.steps.length}${q.active.target ? `, at ${q.active.target.name}` : ""}.`, state: "on" };
+    }
+    const o = q.board.find((x) => x.key === key);
+    const card = o && q.describe(o, town);
+    return card ? { ...card, state: q.nudge === key ? "nudged" : "open" } : null;
+  }
+
+  /** Go help: he takes the tapped quest next, or joins the tapped event, once he is free. Optional; he does fine without it. */
+  nudge(id: string): void {
+    const q = this.stats.quests;
+    q.nudge = id.replace(/^(quest|event):/, "");
+    q.rev++;
+    this.changed();
+  }
+
   /** The game icons around him (core/mapIcons.ts): made-up places, travel hubs and his monuments, none on a ride. */
   placeIcons(): MapIcon[] {
     const w = this.walker;
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city)];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

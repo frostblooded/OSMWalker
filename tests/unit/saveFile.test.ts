@@ -149,6 +149,19 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.story).toMatchObject({ style: "classic", tension: 0, luckyMin: 0, recent: [] });
   });
 
+  it("loads saves from before quests: no board, nothing done, so his city rolls a board again", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const s = saved();
+    s.stats.quests.done = ["q:Ana:0"];
+    f.write(s);
+    expect((f.read() as Saved).stats.quests.done).toEqual(["q:Ana:0"]);
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.quests;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

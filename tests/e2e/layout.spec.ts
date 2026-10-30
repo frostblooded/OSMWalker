@@ -102,6 +102,13 @@ async function check(page: Page, name: string) {
   expect.soft(await sideways(page), `${name} at ${width} px: sideways scroll`).toBeLessThanOrEqual(0);
 }
 
+/** The save change that rests him at a corner (so the map holds still) and puts one quest, The Lost Dog, on his city's board about 80 map px east of him (a map px is 360 / (512 * 2^zoom) degrees of longitude). */
+const QUEST_NEXT_TO_HIM = `const at = d.walker.from_pos;
+d.walker.progress_m = 0; d.walker.rest_m = d.walker.rest_total_m = 1e6;
+d.stats.quests = { city: d.city, board: [{ key: "lost_dog:Ana:0", kind: "lost_dog", giver: "Ana", item: 0, twist: -1,
+  at: { name: "Test Park", class: "park", subclass: "park", lat: at[0], lon: at[1] + (80 * 360) / (512 * 2 ** d.zoom) } }],
+  active: null, events: [], done: [], log: [], since: 0, wait: 4, nudge: "" };`;
+
 async function openMenuItem(page: Page, name: RegExp) {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name }).click();
@@ -176,6 +183,20 @@ for (const width of [360, 412]) {
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
       await check(page, "stats-story");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      // A quest on the board about 80 px east of him: tap its icon for its card. The map's real scale moves it a little, so taps sweep along his row.
+      await reopenWith(page, QUEST_NEXT_TO_HIM, "quest-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      const card = page.getByRole("dialog", { name: /The Lost Dog/ });
+      await expect(async () => {
+        const him = (await page.locator(".marker.him").boundingBox())!;
+        for (let dx = 28; dx <= 160 && !(await card.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 + dx, him.y + him.height / 2);
+        await expect(card).toBeVisible({ timeout: 500 });
+      }).toPass({ timeout: 20000 });
+      await check(page, "quest-card");
+      await card.getByRole("button", { name: /Go help/ }).click();
+      await check(page, "quest-card-nudged");
+      await card.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });

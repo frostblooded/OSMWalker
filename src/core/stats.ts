@@ -1,7 +1,7 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls), and the
-// storyteller that paces the incidents that happen to him.
+// storyteller that paces the incidents that happen to him, and his quests.
 // Time passes in game minutes, which are real minutes while the app is open.
 import * as B from "./bond";
 import * as Br from "./bricks";
@@ -18,6 +18,7 @@ import type { Item, Slot } from "./items";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import * as Speeds from "./speeds";
+import { Quests } from "./quests";
 import { Storyteller } from "./storyteller";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
@@ -166,6 +167,8 @@ export class Stats {
   week = new Week();
   /** Paces the incidents. */
   story = new Storyteller();
+  /** His quests, the city's quest board and the world events near him. */
+  quests = new Quests();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -771,7 +774,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), story: this.story.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), story: this.story.toJSON(), quests: this.quests.toJSON(),
     };
   }
 
@@ -801,6 +804,8 @@ export class Stats {
     s.week = Week.fromJSON(d.week);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
+    // A save from before quests starts with none, and rolls the board of the city he is in.
+    s.quests = Quests.fromJSON(d.quests);
     return s;
   }
 }

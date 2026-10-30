@@ -206,3 +206,19 @@ test("after a week turns over, the away sheet opens with his week", async ({ pag
   await expect(away).toContainText("His week", { timeout: 20000 });
   await expect(away).toContainText("cafe ×5");
 });
+
+test("the city rolls a quest board, the Stats sheet shows it, and he goes on quests while he is away", async ({ page }) => {
+  await startInSofia(page);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").stats?.quests?.board?.length ?? 0), { timeout: 30000 }).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const stats = page.getByRole("dialog", { name: /Stats/ });
+  await expect(stats).toContainText("On the board");
+  await stats.getByRole("button", { name: /Close/ }).click();
+  // Six hours away, ready for his next quest: he takes one on and walks it.
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.quests.since = 9;");
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
+  const lines = await away.locator(".away-log li").allTextContents();
+  expect(lines.some((l) => l.includes("📜 New quest:"))).toBe(true);
+});
