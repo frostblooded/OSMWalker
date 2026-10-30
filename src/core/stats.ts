@@ -15,6 +15,7 @@ import * as Mg from "./magic";
 import * as Mn from "./midnight";
 import * as Po from "./portals";
 import * as Gi from "./giants";
+import * as Fa from "./fairy";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -201,6 +202,7 @@ export class Stats {
   finds = new Mn.Finds();
   portals = new Po.Portals();
   giants = new Gi.Sightings();
+  rings = new Fa.Rings();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -941,6 +943,33 @@ export class Stats {
     if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
   }
 
+  /** Right after reaching `place` at local `hour`: at dawn a fairy ring in a real park or garden may take him for a nap (see fairy.ts). Returns the nap's minutes, or 0. He wakes rested with a fairy gift (worn if an upgrade, else bagged) or Magic and a strange story. Its own dice, so his walk stays the same. */
+  fairyAt(place: Place, hour: number): number {
+    const t = this.now();
+    if (!Fa.isRingPlace(place) || !Fa.isDawn(hour)) return 0;
+    const rng = new Rng(seedOf(`fairy${t}${place.name}`));
+    if (!this.rings.takes(t, rng.randf())) return 0;
+    const min = rng.randiRange(Fa.NAP_MIN_MIN, Fa.NAP_MAX_MIN);
+    const h = Math.round(min / 60);
+    this.applyFx(Fa.NAP_FX);
+    this.say(`🍄 Lay down in a ring of mushrooms in ${place.name} at dawn, and woke ${h} hours later, rested`);
+    if (rng.randf() < Fa.GIFT_CHANCE) {
+      const { item: gift, base } = Fa.fairyGift(this.level, rng);
+      gift.story = { from: this.where.city, t, countries: this.where.code ? [this.where.code] : [], km: 0 };
+      this.rings.note(t, { gift: base });
+      if (this.isUpgrade(gift)) this.equip(gift);
+      else this.bagAdd(gift);
+      this.say(`🎁 In his hand: a ${gift.rarity} ${gift.name}, a fairy gift`);
+    } else {
+      const story = rng.pick(Fa.STORIES);
+      this.rings.note(t, { story: story.id });
+      this.applyFx({ magic: Fa.STORY_MAGIC });
+      this.say(`✨ ${story.say} (Magic +${Fa.STORY_MAGIC})`);
+    }
+    this.milestone("fairy", `Napped in a fairy ring in ${place.name} and woke ${h} hours later`);
+    return min;
+  }
+
   /** Right after reaching `place`: a portal place may open (see portals.ts) unless he is on a quest. Returns the city it takes him to, never one he has been to, or null. Its own dice, so his walk stays the same. */
   portalAt(place: Place, trips: T.Trips): T.City | null {
     const t = this.now();
@@ -1080,7 +1109,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
@@ -1117,6 +1146,7 @@ export class Stats {
     s.finds = Mn.Finds.fromJSON(d.finds);
     s.portals = Po.Portals.fromJSON(d.portals);
     s.giants = Gi.Sightings.fromJSON(d.giants);
+    s.rings = Fa.Rings.fromJSON(d.rings);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);

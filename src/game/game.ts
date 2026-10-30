@@ -316,6 +316,13 @@ export class Game {
     this.stats.meetAt(place);
     this.stats.magicAt(place);
     this.stats.giantAt(place);
+    const nap = this.stats.fairyAt(place, this.hour());
+    if (nap) {
+      this.doing = { name: "Asleep in a fairy ring", min: nap };
+      this.walker!.restFor(nap);
+      this.changed();
+      return;
+    }
     const door = this.stats.portalAt(place, this.trips);
     if (door) {
       this.doing = null;
