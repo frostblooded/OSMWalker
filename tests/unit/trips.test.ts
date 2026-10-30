@@ -138,10 +138,45 @@ describe("planTrip", () => {
   });
 
   it("says how much is needed", () => {
-    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99)).toEqual({
-      error: `can't afford the bus to Smallton: needs ${euro(smalltonFare)}, has €0.03`,
-      short_of: smalltonFare,
+    const far = city("Farton", 2, 0);
+    const fare = T.fare("bus", distanceM(0, 0, 2, 0) * T.ROAD_FACTOR);
+    expect(fare).toBeGreaterThan(T.HITCH_BELOW);
+    expect(trips().planTrip(far, [0, 0], [BUS_STATION], T.HITCH_BELOW, false, 0.99)).toEqual({
+      error: `can't afford the bus to Farton: needs ${euro(fare)}, has ${euro(T.HITCH_BELOW)}`,
+      short_of: fare,
     });
+  });
+
+  it("hitchhikes for free when broke instead of saving up", () => {
+    const plan = trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99);
+    expect(plan).toMatchObject({ mode: "hitch", fare: 0, station: { name: "the road out of town" } });
+  });
+
+  it("takes the train from a railway station for a long road trip, and the bus for a short one", () => {
+    const rail: Place = { ...BUS_STATION, name: "Central Station", class: "railway", subclass: "station" };
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION, rail], 100_000, false, 0.99)).toMatchObject({ mode: "train", station: { name: "Central Station" } });
+    expect(trips().planTrip(city("Neartown", 0.5, 0), [0, 0], [BUS_STATION, rail], 100_000, false, 0.99)).toMatchObject({ mode: "bus" });
+  });
+
+  it("sometimes takes the ferry from a ferry terminal, straight over the water", () => {
+    const ferry: Place = { ...BUS_STATION, name: "Harbour", class: "ferry_terminal", subclass: "ferry_terminal" };
+    const c = city("Smallton", 1, 0);
+    const plan = trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE - 0.01);
+    expect(plan).toMatchObject({ mode: "ferry", distance_m: distanceM(0, 0, 1, 0) });
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE)).toMatchObject({ mode: "bus" });
+  });
+
+  it("cycles to a near town on his bike, for free", () => {
+    const near = city("Neartown", 0.2, 0);
+    expect(trips().planTrip(near, [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bike", fare: 0 });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bus" });
+  });
+
+  it("has a ride time and an icon for every way of travelling", () => {
+    for (const m of Object.keys(T.MODES) as T.Mode[]) expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
+    expect(T.fare("bike", 50_000)).toBe(0);
+    expect(T.fare("hitch", 50_000)).toBe(0);
+    expect(T.fare("train", 100_000)).toBe(Math.ceil(100 * T.TRAIN_PER_KM * 100));
   });
 });
 

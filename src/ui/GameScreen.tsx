@@ -11,6 +11,7 @@ import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
+import { MODES } from "../core/trips";
 import { STYLE } from "../core/storyteller";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
@@ -115,11 +116,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {h.ride ? rideIcon(h.ride.mode) : h.doing === "resting" ? "⏸" : "🚶"}
+              {h.ride ? MODES[h.ride.mode].icon : h.doing === "resting" ? "⏸" : "🚶"}
             </span>
             <div class="grow">
               <div class="city">{h.city} · {h.doing}</div>
-              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${h.ride.mode}` : streetLine(h.street, h.doing === "resting")}</div>
+              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${MODES[h.ride.mode].by}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
@@ -311,7 +312,6 @@ function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: strin
 /** The phrase box: a new GitHub issue with a form for a line he might say, which ships credited if accepted (see Help). */
 export const PHRASE_URL = `https://github.com/frostblooded/OSMWalker/issues/new?title=${encodeURIComponent("Line: ")}&body=${encodeURIComponent("Kind of place (cafe, park, museum...):\n\nThe line (a dry second sentence after what he did there):\n\nYour name for the credit (or leave empty):\n")}`;
 
-const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
 
 function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   if (!goal) return null;

@@ -7,7 +7,7 @@ import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import { HITCH_BELOW, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
@@ -283,10 +283,19 @@ describe("catch-up", () => {
 
   it("saves up when he can't afford a trip", () => {
     const stats = new Stats();
-    stats.cents = 0;
-    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0.1 }));
+    stats.cents = HITCH_BELOW;
+    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0 }));
     expect(s.cities).toEqual([]);
-    expect(stats.savingFor).toBeGreaterThan(0);
+    expect(stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+  });
+
+  it("hitchhikes when broke, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 0;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    expect(s.cities).toEqual(["Nexttown, A-land"]);
+    expect(s.lines.some((l) => l.text === "Hitchhiked to Nexttown, A-land")).toBe(true);
   });
 
   it("faints when he starves, and pays the hospital", () => {

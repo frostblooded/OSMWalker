@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { URGENT_AT } from "../../src/core/activities";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, type LatLon, type Plan } from "../../src/core/trips";
+import { HITCH_BELOW, parseAirports, parseCities, type LatLon, type Plan } from "../../src/core/trips";
 import { Trips } from "../../src/core/trips";
 import { Journey, type Where } from "../../src/game/journey";
 
@@ -60,11 +60,20 @@ describe("journey", () => {
   });
 
   it("saves up when the trip costs too much", () => {
+    const { j, stats } = journey(0);
+    stats.cents = HITCH_BELOW;
+    expect(j.consider(where(), stats)).toBeNull();
+    expect(stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+    expect(j.takeLog().no_trip).toContain("can't afford the plane to Farcity");
+  });
+
+  it("hitchhikes for free instead when broke", () => {
     const { j, stats } = journey(0.1);
     stats.cents = 1;
-    expect(j.consider(where(), stats)).toBeNull();
-    expect(stats.savingFor).toBeGreaterThan(1);
-    expect(j.takeLog().no_trip).toContain("can't afford the bus to Nexttown");
+    const plan = j.consider(where(), stats)!;
+    expect(plan).toMatchObject({ mode: "hitch", fare: 0 });
+    expect(j.board(plan, stats)).toBe("");
+    expect(stats.history.latest()).toBe("Hitchhiked to Nexttown, A-land");
   });
 
   it("warns when a trip rolls but there is nowhere to go", () => {

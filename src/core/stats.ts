@@ -23,6 +23,7 @@ import * as Speeds from "./speeds";
 import { Rival, type Contest } from "./rival";
 import { Storyteller } from "./storyteller";
 import * as Kit from "./travelKit";
+import * as T from "./trips";
 import { jetLag, timeZones } from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
@@ -371,6 +372,8 @@ export class Stats {
       }
     }
     this.cents -= paid;
+    if (mode === "bike") return `Cycled off to ${to}`;
+    if (mode === "hitch") return `Hitchhiked to ${to}`;
     return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
   }
 
@@ -424,6 +427,35 @@ export class Stats {
     if (!lag) return "";
     this.addBuff(lag);
     return `Jet-lagged after flying across ${zones} time zone${zones === 1 ? "" : "s"}`;
+  }
+
+  /**
+   * Landed in `to` after `distM` by `mode`: a night train leaves him rested,
+   * cycling tires him, and a hitched lift may go badly or be a great story
+   * (its own dice from the town and time, so the walk's stay the same). The
+   * feed line, or "".
+   */
+  landRide(mode: T.Mode, distM: number, to: string): string {
+    if (mode === "train" && distM >= T.SLEEPER_FROM_M) {
+      this.meters.energy = 100;
+      return "Slept in a berth on the night train and woke up rested";
+    }
+    if (mode === "bike") {
+      const km = distM / 1000;
+      this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * km });
+      return `Tired legs after cycling ${Math.round(km)} km`;
+    }
+    if (mode !== "hitch") return "";
+    const r = new Rng(seedOf(`hitch${to}${this.now()}`)).randf();
+    if (r < T.HITCH_BAD) {
+      this.applyFx(T.HITCH_BAD_FX);
+      return "The driver let him off miles short, and he walked the last stretch";
+    }
+    if (r < T.HITCH_BAD + T.HITCH_GOOD) {
+      this.applyFx(T.HITCH_GOOD_FX);
+      return "The driver told stories the whole way: a ride to remember";
+    }
+    return "A quiet lift with a friendly driver";
   }
 
   /** Starts a timed effect, replacing one of the same name. */

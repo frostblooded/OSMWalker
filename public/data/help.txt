@@ -383,7 +383,7 @@ The first goal after you choose a city never rolls the dice. The country he is i
 
 While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
 
-A trip is never free: he first walks to a bus station, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares).
+He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Only cycling and hitchhiking are free (see Other ways to travel). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
 ## Stations and getting there {stations}
@@ -392,7 +392,7 @@ How he goes depends on the distance in a straight line:
 - from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
 - over {PLANE_ALWAYS_KM} km he always flies.
 
-By road he takes the bus from the nearest bus station among the places loaded around him. If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+By road he takes the bus from the nearest bus station among the places loaded around him, or the train or a ferry instead (see Other ways to travel). If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
 To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide, plus the made-up ones of big cities, see Made-up places), and lands at the airport nearest the new city. If there is no airport at either end, he goes by road, and the other way round.
 
@@ -401,11 +401,22 @@ The bus and the car follow the real road route (from the OSRM route planner) at 
 Fares are in euros and never free (though a rascal may skip a bus ticket: see Kind or rascal):
 - bus: {BUS_PER_KM} per km of road,
 - plane: {PLANE_BASE} plus {PLANE_PER_KM} per km flown,
-- car: fuel at {FUEL_PER_KM} per km of road.
+- car: fuel at {FUEL_PER_KM} per km of road,
+- train: {TRAIN_PER_KM} per km of road,
+- ferry: {FERRY_PER_KM} per km over the water,
+- cycling and hitchhiking: free (see Other ways to travel).
 
 Road distance is the straight line x {ROAD_FACTOR}. So 300 km by bus costs about {BUS_300}, and a 1,500 km flight about {PLANE_1500}, before his souvenirs or the daily forecast make it cheaper (see Souvenirs and Daily forecast).
 
-He pays at the station. If the dice send him on a trip he can't pay for, he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+He pays at the station. If the dice send him on a trip he can't pay for, he hitchhikes when he has less than {HITCH_BELOW}; otherwise he stays this time and saves up: until he has the fare, money is a need of at least {SAVING_URGE} urge (see His needs), and spending counts {SAVING_SPEND_PCT} as much. The next trip roll he can pay for takes him. He also saves the same way for his next vehicle (see Saving for a vehicle), so paid work can stay favoured after he has the fare. If he spends too much on the way to the station, he turns back and saves up the same way.
+## Other ways to travel {modes}
+Besides the bus, the plane and his own car, he picks other ways on his own when the places around him allow it:
+- 🚲 Bike: on a bike, he cycles to a town under {CYCLE_MAX_KM} km away instead of taking a station, for free, at {BIKE_ROAD_KMH} km/h. He arrives tired: {BIKE_EFFORT_KM} energy per km.
+- ⛴ Ferry: with a ferry terminal loaded, a trip by road of up to {FERRY_MAX_KM} km goes by ferry {FERRY_PCT} of the time. It sails straight over the water at {FERRY_KMH} km/h and lands in the new city's centre.
+- 🚆 Train: with a railway station loaded, a road trip of at least {TRAIN_FROM_KM} km goes by train instead of the bus, at {TRAIN_KMH} km/h. From {SLEEPER_FROM_KM} km it is a night train: he sleeps in a berth and arrives with full energy.
+- 👍 Hitchhiking: with less than {HITCH_BELOW} and no fare he can pay, he doesn't wait to save up. He walks to the road out of town and thumbs a free lift at {HITCH_KMH} km/h, counting the wait. {HITCH_BAD_PCT} of lifts go badly ({HITCH_BAD_FX}), {HITCH_GOOD_PCT} are a great story ({HITCH_GOOD_FX}), and the rest are just a quiet ride.
+
+A car owner always drives (see Stations and getting there). Rides of every kind go {RIDE_SPEEDUP} times faster than real and are capped the same way.
 ## Packing for a trip {packing}
 As he boards for another city he packs a travel kit on his own, by need, and pays for it on top of the fare:
 {KIT_LIST}

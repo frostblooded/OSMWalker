@@ -1,7 +1,8 @@
-// Packing a travel kit before a trip (src/core/travelKit.ts, Stats.packForTrip), and jet lag after a flight (Stats.landFlight).
+// Packing a travel kit before a trip (src/core/travelKit.ts, Stats.packForTrip), and what a landing does to him (Stats.landFlight, Stats.landRide).
 import { describe, expect, it } from "vitest";
 import { Stats, KEEP_CENTS } from "../../src/core/stats";
 import { choose, KIT, list, PACK_BELOW } from "../../src/core/travelKit";
+import { SLEEPER_FROM_M } from "../../src/core/trips";
 
 const full = { health: 100, energy: 100, fullness: 100, mood: 70, hygiene: 100, thirst: 100 };
 
@@ -55,5 +56,41 @@ describe("Stats.landFlight", () => {
     expect(s.buffNames()).toContain("Jet-lagged");
     expect(s.xpMult()).toBeLessThan(1);
     expect(new Stats().landFlight(23.4, 25)).toBe("");
+  });
+});
+
+describe("Stats.landRide", () => {
+  it("a night train leaves him rested, a short train ride doesn't", () => {
+    const s = new Stats();
+    s.meters.energy = 20;
+    expect(s.landRide("train", SLEEPER_FROM_M - 1, "Plovdiv")).toBe("");
+    expect(s.meters.energy).toBe(20);
+    expect(s.landRide("train", SLEEPER_FROM_M, "Varna")).toMatch(/night train/);
+    expect(s.meters.energy).toBe(100);
+  });
+
+  it("cycling tires him by the km", () => {
+    const s = new Stats();
+    expect(s.landRide("bike", 25_000, "Pernik")).toBe("Tired legs after cycling 25 km");
+    expect(s.meters.energy).toBeLessThan(100);
+  });
+
+  it("a hitched lift ends badly, well or quietly, the same for the same town and time", () => {
+    const seen = new Set<string>();
+    for (let t = 0; t < 200; t++) {
+      const s = new Stats();
+      s.now = () => t;
+      const line = s.landRide("hitch", 100_000, "Plovdiv");
+      const again = new Stats();
+      again.now = () => t;
+      expect(again.landRide("hitch", 100_000, "Plovdiv")).toBe(line);
+      seen.add(line);
+    }
+    expect(seen.size).toBe(3);
+  });
+
+  it("a bus, car, ferry or plane changes nothing here", () => {
+    const s = new Stats();
+    for (const m of ["bus", "car", "ferry", "plane"] as const) expect(s.landRide(m, SLEEPER_FROM_M * 2, "X")).toBe("");
   });
 });

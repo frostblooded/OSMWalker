@@ -9,11 +9,10 @@
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
-import { euro } from "./money";
 import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
+import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -255,7 +254,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult());
+    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult(), stats.vehicle() === "bike");
     if (!isPlan(plan)) {
       if (plan.short_of !== undefined) {
         stats.savingFor = plan.short_of;
@@ -268,7 +267,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
     if (legMin(toStation) + rideMin > leftMin()) return false;
     stats.savingFor = 0;
-    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
+    stats.say(headingLine(plan, dest.name));
     walk(toStation);
     moveTo(plan.station, [plan.station.lat, plan.station.lon]);
     if (stats.cents < plan.fare) {
@@ -292,6 +291,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const lag = stats.landFlight(plan.station.lon, plan.arrive[1]);
       if (lag) stats.say(lag);
     }
+    const rode = stats.landRide(plan.mode, plan.distance_m, city.name);
+    if (rode) stats.say(rode);
     skipRoll = true;
     return true;
   }
