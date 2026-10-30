@@ -14,7 +14,7 @@ const HOUR_SPAN_MS = 5400_000;
 export type WeatherKind = "clear" | "cloudy" | "fog" | "rain" | "snow" | "storm";
 export type Weather = { kind: WeatherKind; tempC: number };
 /** Hourly weather for one city: unix seconds, WMO weather codes and °C, plus the city's offset from UTC. */
-export type Forecast = { city: string; offsetS: number; fetchedMs: number; t: number[]; code: number[]; temp: number[] };
+export type WeatherForecast = { city: string; offsetS: number; fetchedMs: number; t: number[]; code: number[]; temp: number[] };
 
 export function weatherUrl(lat: number, lon: number): string {
   return `${OPEN_METEO_URL}?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}&hourly=temperature_2m,weather_code&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime`;
@@ -31,11 +31,11 @@ export function kindOf(code: number): WeatherKind {
 }
 
 /** The forecast in an Open-Meteo answer, or null if it isn't one. */
-export function parseForecast(data: unknown, city: string, fetchedMs: number): Forecast | null {
+export function parseForecast(data: unknown, city: string, fetchedMs: number): WeatherForecast | null {
   const d = data as { utc_offset_seconds?: unknown; hourly?: { time?: unknown; temperature_2m?: unknown; weather_code?: unknown } } | null;
   const h = d?.hourly;
   if (typeof d?.utc_offset_seconds !== "number" || !Array.isArray(h?.time) || !Array.isArray(h.temperature_2m) || !Array.isArray(h.weather_code)) return null;
-  const f: Forecast = { city, offsetS: d.utc_offset_seconds, fetchedMs, t: [], code: [], temp: [] };
+  const f: WeatherForecast = { city, offsetS: d.utc_offset_seconds, fetchedMs, t: [], code: [], temp: [] };
   h.time.forEach((t, i) => {
     const code = (h.weather_code as unknown[])[i];
     const temp = (h.temperature_2m as unknown[])[i];
@@ -48,7 +48,7 @@ export function parseForecast(data: unknown, city: string, fetchedMs: number): F
 }
 
 /** The weather at unix ms `ms`, from the nearest forecast hour; null when the forecast doesn't reach it. */
-export function weatherAt(f: Forecast | null, ms: number): Weather | null {
+export function weatherAt(f: WeatherForecast | null, ms: number): Weather | null {
   if (!f) return null;
   let best = -1;
   let bestD = HOUR_SPAN_MS;

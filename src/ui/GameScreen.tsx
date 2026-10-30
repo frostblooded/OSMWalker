@@ -8,6 +8,7 @@ import { Loop } from "../app/loop";
 import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
 import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
+import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
@@ -168,6 +169,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
           {s.care.guess && h.goal?.kind === "going" && h.goal.departing && <GuessRow guess={s.care.guess} onPick={(c) => game.pickGuess(c)} />}
+          <ForecastLine f={s.forecast()} />
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
             <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
@@ -380,6 +382,15 @@ function Waiting({ hud: h }: { hud: Hud }) {
     );
   }
   return null;
+}
+
+/** Today's forecast, one dim line (see core/forecast.ts). */
+function ForecastLine({ f }: { f: Forecast }) {
+  return (
+    <div class="dim small forecast" title="Today's forecast">
+      {f.icon} {words(f)}
+    </div>
+  );
 }
 
 /** Today's stops as small icons, newest on the right. */

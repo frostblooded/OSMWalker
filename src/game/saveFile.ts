@@ -6,7 +6,7 @@
 import { DebugLog, type Entry } from "../core/debugLog";
 import { Problems } from "../core/problems";
 import { Stats } from "../core/stats";
-import type { Forecast } from "../core/weather";
+import type { WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
 
@@ -138,16 +138,16 @@ export class SaveFile {
   }
 
   /** The last forecast, or null when there is none or it can't be read. */
-  readForecast(): Forecast | null {
+  readForecast(): WeatherForecast | null {
     try {
-      const f = JSON.parse(this.kv?.getItem(WEATHER_KEY) ?? "null") as Forecast | null;
+      const f = JSON.parse(this.kv?.getItem(WEATHER_KEY) ?? "null") as WeatherForecast | null;
       return f && Array.isArray(f.t) && Array.isArray(f.code) && Array.isArray(f.temp) ? f : null;
     } catch {
       return null;
     }
   }
 
-  writeForecast(f: Forecast): void {
+  writeForecast(f: WeatherForecast): void {
     try {
       this.kv?.setItem(WEATHER_KEY, JSON.stringify(f));
     } catch {

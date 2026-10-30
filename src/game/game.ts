@@ -21,12 +21,14 @@ import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
+import type { Forecast } from "../core/forecast";
+import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { offsetFromLon, placeWeight, skyAt, type Sky } from "../core/sky";
 import { Stats, type Action, type Place } from "../core/stats";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
-import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type Forecast } from "../core/weather";
+import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -49,7 +51,7 @@ export const DILEMMA_WAIT_MS = 500;
 /** The catch-up gives the page a break after this many ms of work, so no task gets long. */
 export const CATCHUP_SLICE_MS = 8;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -105,7 +107,7 @@ export class Game {
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
   /** Hourly weather for the city he is in (or was in), null until fetched. */
-  forecast: Forecast | null = null;
+  weather: WeatherForecast | null = null;
   /** True once the first wake has run, so screens know whether an away card is coming. */
   woke = false;
   /** True when this reopen earned a clover, for the summary card. */
@@ -148,7 +150,7 @@ export class Game {
     this.loader.onProblem = warn;
     deps.api.onProblem = warn;
     this.loadSettings();
-    this.forecast = this.file.readForecast();
+    this.weather = this.file.readForecast();
   }
 
   /** The bundled game data (actions, cities, airports). */
@@ -169,7 +171,7 @@ export class Game {
 
   /** The sky over him now, or at unix ms over a city: weather only where the forecast is for, and none while he rides. */
   sky(ms = this.now(), city = this.city, at: LatLon = this.origin): Sky {
-    const f = this.forecast?.city === city ? this.forecast : null;
+    const f = this.weather?.city === city ? this.weather : null;
     const sky = skyAt(ms, at[0], at[1], f?.offsetS ?? offsetFromLon(at[1]), this.walker?.isTraveling() ? null : weatherAt(f, ms));
     const pinned = this.deps.hour?.();
     return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
@@ -178,7 +180,7 @@ export class Game {
   /** Fetches the city's weather when the forecast is missing, for another city or over WEATHER_TTL_MS old. */
   refreshWeather(): Promise<void> {
     const now = this.now();
-    const fresh = this.forecast?.city === this.city && now - this.forecast.fetchedMs < WEATHER_TTL_MS;
+    const fresh = this.weather?.city === this.city && now - this.weather.fetchedMs < WEATHER_TTL_MS;
     if (!this.city || fresh || now < this.weatherRetryAt) return Promise.resolve();
     this.weatherBusy ??= (async () => {
       const city = this.city;
@@ -190,7 +192,7 @@ export class Game {
         return;
       }
       if (city !== this.city) return;
-      this.forecast = f;
+      this.weather = f;
       this.file.writeForecast(f);
       this.stats.sky = this.sky();
       this.changed();
@@ -321,7 +323,7 @@ export class Game {
       return;
     }
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
-    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng);
+    this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
     this.changed();
   }
@@ -453,10 +455,12 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the forecasts and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
+    this.stats.jokes = this.deps.data.jokes ?? {};
+    this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 

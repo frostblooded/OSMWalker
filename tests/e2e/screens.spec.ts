@@ -35,6 +35,14 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
 });
 
+test("The top card shows today's forecast once the game data is in", async ({ page }) => {
+  await startInSofia(page);
+  const line = page.locator(".hud .forecast");
+  await expect(line).toBeVisible();
+  await expect(line).not.toContainText("quiet day");
+  await expect(line).not.toContainText("{n}");
+});
+
 test("Help that couldn't load offers Try again", async ({ page }) => {
   let fail = true;
   await page.route("**/data/help.txt", (route) => (fail ? route.abort() : route.fallback()));

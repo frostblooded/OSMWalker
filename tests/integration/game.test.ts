@@ -9,6 +9,7 @@ import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
+import type { Forecast } from "../../src/core/forecast";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -118,6 +119,18 @@ describe("game", () => {
     const { g } = game({ fail: true });
     expect(await g.startCity("Sofia, Bulgaria", ...START, null)).toBe("Couldn't load streets. Check your connection and try again.");
     expect(g.problems.warnings.map((w) => w.text)).toContain("Couldn't load the streets where he starts in Sofia, Bulgaria");
+  });
+
+  it("hands his stats the jokes and forecasts, and jokes fit the kind of place", async () => {
+    const { g } = game({ places: [CAFE] });
+    const forecasts: Forecast[] = [{ id: "cafe", icon: "☕", text: "Cafés feel {n} as good today", effect: "mood", kind: "cafe", mult: 2 }];
+    Object.assign(g.data, { jokes: { cafe: ["Cafe joke."], _generic: ["Other joke."] }, forecasts });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.forecast().id).toBe("cafe");
+    run(g, 3 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
+    expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
 
   it("walks to a place, does something there and rests", async () => {
@@ -675,7 +688,7 @@ describe("game", () => {
       again.load();
       await again.wake();
       expect(weatherCalls()).toBe(1);
-      expect(again.forecast?.city).toBe("Sofia, Bulgaria");
+      expect(again.weather?.city).toBe("Sofia, Bulgaria");
       expect(again.away).not.toBeNull();
       expect(again.stats.sky?.weather?.kind).toBe("snow");
     });
@@ -735,7 +748,7 @@ describe("game", () => {
       now += 2 * 3600_000;
       const again = new Game({ ...(first.g as unknown as { deps: GameDeps }).deps, api: offline, storage: first.storage });
       again.problems.quiet = true;
-      expect(again.forecast?.city).toBe("Sofia, Bulgaria");
+      expect(again.weather?.city).toBe("Sofia, Bulgaria");
       again.load();
       expect(again.stats.sky?.weather).toEqual({ kind: "snow", tempC: -2 });
       run(again, 2);

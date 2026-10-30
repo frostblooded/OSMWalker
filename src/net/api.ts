@@ -7,7 +7,7 @@ import * as CityFacts from "../core/cityFacts";
 import type { BBox, Tile } from "../core/geo";
 import type { OverpassData } from "../core/graph";
 import { TILE_ZOOM } from "../core/ofm";
-import { parseForecast, weatherUrl, type Forecast } from "../core/weather";
+import { parseForecast, weatherUrl, type WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 
 /** Public Overpass servers, tried in order; the main one is often busy (429/504). */
@@ -273,7 +273,7 @@ export class Api {
   }
 
   /** Hourly weather around `lat`, `lon` from a day ago to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
-  async forecast(city: string, lat: number, lon: number, nowMs: number): Promise<Forecast | null> {
+  async forecast(city: string, lat: number, lon: number, nowMs: number): Promise<WeatherForecast | null> {
     const url = weatherUrl(lat, lon);
     const data = await this.getJson(url, 20);
     const f = data === null ? null : parseForecast(data, city, nowMs);
