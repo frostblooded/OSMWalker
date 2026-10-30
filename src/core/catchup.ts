@@ -68,14 +68,18 @@ export type CatchUpDeps = {
 
 export type Line = { text: string; t: number };
 
+/** A leg of his way: meters flown, then meters on the streets, on foot when `afoot` (after a flyer lands). */
+export type Leg = { airM: number; groundM: number; afoot: boolean };
+
 /**
- * Meters of his way from `from` to `to`: the streets (ROAD_FACTOR x the
- * straight line), or on a flying mount, by the rules of walker.ts takeOff, a
- * straight flight to a park or garden near `to` and the streets from there.
+ * His way from `from` to `to`: the streets (ROAD_FACTOR x the straight
+ * line), or on a flying mount, by the rules of walker.ts takeOff, a straight
+ * flight to a park or garden near `to` and a walk on foot from there.
  */
-export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | null): number {
+export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | null): Leg {
   const line = distanceM(from[0], from[1], to[0], to[1]);
-  if (!FLYERS.has(stats.getsAbout()) || line < FLY_MIN_M || !places) return line * ROAD_FACTOR;
+  const streets: Leg = { airM: 0, groundM: line * ROAD_FACTOR, afoot: false };
+  if (!FLYERS.has(stats.getsAbout()) || line < FLY_MIN_M || !places) return streets;
   let pad: Place | null = null;
   let padM = Math.min(LAND_MAX_M, line * LAND_SHARE);
   for (const q of places) {
@@ -83,7 +87,7 @@ export function legM(stats: Stats, from: LatLon, to: LatLon, places: Place[] | n
     const m = distanceM(q.lat, q.lon, to[0], to[1]);
     if (m < padM) [pad, padM] = [q, m];
   }
-  return pad ? distanceM(from[0], from[1], pad.lat, pad.lon) + padM * ROAD_FACTOR : line * ROAD_FACTOR;
+  return pad ? { airM: distanceM(from[0], from[1], pad.lat, pad.lon), groundM: padM * ROAD_FACTOR, afoot: true } : streets;
 }
 
 /** What happened, for the summary card. */
@@ -152,13 +156,13 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   };
   const leftMin = () => (coveredS - elapsed) / 60;
 
-  /** Lets `minutes` pass, `walkedM` of them on foot (or in his vehicle). */
-  const pass = (minutes: number, walkedM: number) => {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
+  const pass = (minutes: number, walkedM: number, afoot = false) => {
     let left = minutes;
     while (left > 1e-9) {
       const m = Math.min(left, STEP_MIN);
       const w = (walkedM * m) / minutes;
-      stats.passTime(m, w);
+      stats.passTime(m, w, afoot);
       if (w > 0) stats.walkFor(m, rng);
       elapsed += m * 60;
       left -= m;
@@ -181,12 +185,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     stats.history.breakTrail();
     stats.history.moveTo(at[0], at[1]);
   };
-  /** Walks `m` meters, or as far as the time left allows; false when time ran out first. */
-  const walk = (m: number) => {
-    const min = m / stats.speedMps() / 60;
-    if (min > leftMin()) return false;
-    pass(min, m);
-    s.walkedM += m;
+  /** Minutes a leg takes: the flight at his mount's speed, the streets at his speed then. */
+  const legMin = (leg: Leg) => (leg.airM / stats.speedMps() + leg.groundM / stats.speedMps(leg.afoot)) / 60;
+  /** Goes a leg, or as far as the time left allows; false when time ran out first. */
+  const walk = (leg: Leg) => {
+    if (legMin(leg) > leftMin()) return false;
+    if (leg.airM) pass(leg.airM / stats.speedMps() / 60, leg.airM);
+    pass(leg.groundM / stats.speedMps(leg.afoot) / 60, leg.groundM, leg.afoot);
+    s.walkedM += leg.airM + leg.groundM;
     return true;
   };
 
@@ -251,12 +257,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return false;
     }
     // A trip that can't finish in the time left waits until the game is open.
-    const toStationM = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
+    const toStation = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
-    if (toStationM / stats.speedMps() / 60 + rideMin > leftMin()) return false;
+    if (legMin(toStation) + rideMin > leftMin()) return false;
     stats.savingFor = 0;
     stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
-    walk(toStationM);
+    walk(toStation);
     moveTo(plan.station, [plan.station.lat, plan.station.lon]);
     if (stats.cents < plan.fare) {
       stats.savingFor = plan.fare;

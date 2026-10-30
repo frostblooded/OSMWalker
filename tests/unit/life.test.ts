@@ -470,6 +470,15 @@ describe("speed", () => {
     expect(stats.cents).toBe(S.DRAGON_TREASURE_MIN);
   });
 
+  it("after a flyer lands he walks: walking speed and effort", () => {
+    stats.equip(vehicle("broom", 50));
+    expect(stats.speedMps(true)).toBeCloseTo(Speeds.WALK);
+    const walker = new Stats();
+    walker.passTime(0, 1000);
+    stats.passTime(0, 1000, true);
+    expect(stats.meters.energy).toBeCloseTo(walker.meters.energy);
+  });
+
   it("a giant tortoise never tires him", () => {
     stats.equip(vehicle("tortoise"));
     stats.passTime(0, 5000);

@@ -48,16 +48,33 @@ describe("catch-up", () => {
     const stats = new Stats();
     const goal: [number, number] = [0, 0.02];
     const park = place("Park", "park", "park", 0, 0.018);
-    const line = distanceM(0, 0, 0, 0.02);
-    const flown = distanceM(0, 0, 0, 0.018) + distanceM(0, 0.018, 0, 0.02) * ROAD_FACTOR;
-    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(line * ROAD_FACTOR, 6);
+    const streets = { airM: 0, groundM: distanceM(0, 0, 0, 0.02) * ROAD_FACTOR, afoot: false };
+    const flown = { airM: distanceM(0, 0, 0, 0.018), groundM: distanceM(0, 0.018, 0, 0.02) * ROAD_FACTOR, afoot: true };
+    expect(legM(stats, [0, 0], goal, [park])).toEqual(streets);
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
-    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(line * ROAD_FACTOR, 6);
+    expect(legM(stats, [0, 0], goal, [park])).toEqual(streets);
     stats.feedDragon(new Rng(1));
-    expect(legM(stats, [0, 0], goal, [park])).toBeCloseTo(flown, 6);
-    expect(legM(stats, [0, 0], goal, [])).toBeCloseTo(line * ROAD_FACTOR, 6);
-    expect(legM(stats, [0, 0], goal, null)).toBeCloseTo(line * ROAD_FACTOR, 6);
-    expect(legM(stats, [0, 0], [0, 0.002], [place("Park", "park", "park", 0, 0.0019)])).toBeCloseTo(distanceM(0, 0, 0, 0.002) * ROAD_FACTOR, 6);
+    const leg = legM(stats, [0, 0], goal, [park]);
+    expect(leg.airM).toBeCloseTo(flown.airM, 6);
+    expect(leg.groundM).toBeCloseTo(flown.groundM, 6);
+    expect(leg.afoot).toBe(true);
+    expect(legM(stats, [0, 0], goal, [])).toEqual(streets);
+    expect(legM(stats, [0, 0], goal, null)).toEqual(streets);
+    expect(legM(stats, [0, 0], [0, 0.002], [place("Park", "park", "park", 0, 0.0019)]).airM).toBe(0);
+  });
+
+  it("while he is away his dragon eats each day, or sulks when he is broke", () => {
+    const dragon = () => {
+      const s = new Stats();
+      s.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+      return s;
+    };
+    const fed = catchUp(dragon(), HOME, [0, 0], 3600, START_MS, deps());
+    expect(fed.lines.filter((l) => l.text.startsWith("Fed his dragon"))).toHaveLength(1);
+    const broke = dragon();
+    broke.cents = 0;
+    const s = catchUp(broke, HOME, [0, 0], 3600, START_MS, deps());
+    expect(s.lines.some((l) => l.text.startsWith("His dragon sulks"))).toBe(true);
   });
 
   it("lets the time pass for his body", () => {

@@ -255,10 +255,10 @@ export class Game {
     const before = w.totalM;
     // His dragon eats before he moves, so a fed one flies from the first step of the day.
     if (this.stats.feedDragon(this.rng)) this.changed();
-    w.speedMps = this.stats.speedMps();
+    w.speedMps = this.stats.speedMps(w.afoot);
     w.flies = FLYERS.has(this.stats.getsAbout());
     w.advance(s * SPEED_MPS);
-    this.stats.passTime(s / 60, w.totalM - before);
+    this.stats.passTime(s / 60, w.totalM - before, w.afoot);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.track();
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.

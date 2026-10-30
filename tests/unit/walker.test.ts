@@ -917,6 +917,9 @@ describe("flying mounts", () => {
     w.advance(distanceM(42, lonOf(1), 42, lonOf(3)));
     expect(w.flight).toBeNull();
     expect(w.fromNode).toBe(3);
+    // He walks the rest on foot, until his next goal.
+    expect(w.afoot).toBe(true);
+    expect(roundTrip(w, longStreet(6)).afoot).toBe(true);
     w.advance(distanceM(42, lonOf(3), 42, lonOf(4)) + 1);
     expect(w.isResting()).toBe(true);
     expect(w.totalM).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)), 0);

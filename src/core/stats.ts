@@ -212,20 +212,20 @@ export class Stats {
     return line;
   }
 
-  /** Speed percent from his gear; a sulking dragon's doesn't count. */
-  speedBonus(): number {
+  /** Speed percent from his gear; his vehicle's doesn't count while he is `afoot` or his dragon sulks. */
+  speedBonus(afoot = false): number {
     let v = 0;
-    const sulks = this.sulking();
-    for (const [slot, item] of Object.entries(this.gear)) if (!(sulks && slot === "vehicle")) v += item?.stats.speed ?? 0;
+    const noRide = afoot || this.sulking();
+    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle")) v += item?.stats.speed ?? 0;
     return v;
   }
 
-  /** Meters per second: walking or his vehicle (see getsAbout), +1% a level above 1 and gear's speed percent, slower when tired. */
-  speedMps(): number {
-    const v = this.getsAbout();
+  /** Meters per second: walking (`afoot`, as after a flyer lands) or his vehicle (see getsAbout), +1% a level above 1 and gear's speed percent, slower when tired. */
+  speedMps(afoot = false): number {
+    const v = afoot ? "" : this.getsAbout();
     const base = v ? Speeds.FOR_VEHICLE[v] : Speeds.WALK;
     const tired = 0.5 + 0.5 * Math.min(this.meters.energy / TIRED_ENERGY, 1);
-    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus() / 100) * tired;
+    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus(afoot) / 100) * tired;
   }
 
   /** The next vehicle he saves up for, or null once he has a dragon. */
@@ -379,8 +379,8 @@ export class Stats {
     return this.buffs.map((b) => b.name);
   }
 
-  /** Lets `minutes` pass, `walkedM` of them on the move. */
-  passTime(minutes: number, walkedM: number): void {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
+  passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
     this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
     this.week.walked(walkedM);
@@ -390,7 +390,7 @@ export class Stats {
       thirst: -THIRST_PER_H * h,
       hygiene: -HYGIENE_PER_H * h,
       mood: -(MOOD_PER_H + (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
-      energy: (-ENERGY_PER_KM * EFFORT[this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000,
+      energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
     for (const b of this.buffs) {

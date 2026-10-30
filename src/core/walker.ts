@@ -92,6 +92,8 @@ export class Walker {
   /** True while he rides a flying mount; set by the game. */
   flies = false;
   flight: Flight | null = null;
+  /** True from a flyer's landing until the next goal: he walks the rest on foot. */
+  afoot = false;
 
   prevNode: number | null = null;
   fromNode: number | null = null;
@@ -146,6 +148,7 @@ export class Walker {
   }
 
   setGoal(lat: number, lon: number): void {
+    this.afoot = false;
     this.place = null;
     this.goal = [lat, lon];
     this.goalNode = null;
@@ -399,6 +402,8 @@ export class Walker {
         if (f.left_m > 0) return 0;
         meters -= m / scale;
         this.startAt(f.node);
+        // The game sets his walking speed from the next step on.
+        this.afoot = true;
         continue;
       }
       if (this.restM > 0) {
@@ -676,6 +681,7 @@ export class Walker {
       departing: this.departing,
       travel: this.travel,
       flight: this.flight,
+      afoot: this.afoot,
     };
   }
 
@@ -702,6 +708,7 @@ export class Walker {
     w.departing = d.departing;
     w.travel = d.travel;
     w.flight = d.flight ?? null;
+    w.afoot = d.afoot ?? false;
     // The corner he lands on, so the walk goes on before the streets there reload.
     if (w.flight && !graph.nodes.has(w.flight.node)) graph.nodes.set(w.flight.node, [w.flight.to[0], w.flight.to[1]]);
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
@@ -736,4 +743,5 @@ export type WalkerSave = {
   travel: Travel | null;
   /** Missing in saves from before flying mounts. */
   flight?: Flight | null;
+  afoot?: boolean;
 };
