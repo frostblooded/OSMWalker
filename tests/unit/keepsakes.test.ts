@@ -59,6 +59,17 @@ describe("landmark cards", () => {
   });
 });
 
+describe("made-up places", () => {
+  it("give no cards, Placedex kinds, souvenirs or crawl progress", () => {
+    const before = JSON.stringify(stats.keepsakes);
+    const xp = stats.xp;
+    stats.collect({ ...place("Wizard's tower at Old Fort", "wizard_tower", "wizard_tower", 1), made: true }, rolls(0.001));
+    stats.collect({ ...place("Sofia inn", "lodging", "guest_house", 1), made: true }, rolls(0.001));
+    expect(JSON.stringify(stats.keepsakes)).toBe(before);
+    expect(stats.xp).toBe(xp);
+  });
+});
+
 describe("placedex", () => {
   it("rates kinds by the sweep, with unseen kinds Legendary", () => {
     const dex = JSON.parse(dataFile("placedex.json")) as K.Dex;

@@ -67,7 +67,7 @@ If no places have loaded yet, he heads for a random spot in the city box instead
 
 He counts as arrived when he is within {ARRIVE_M} m of the place.
 ## Made-up places {made_places}
-The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions.
+The real map comes first, but a city sometimes lacks what he needs, and quests need somewhere to happen. So once the streets around him have loaded in a new city, the game adds a few places of its own. They show on the map with the game's own round icons (see Map icons) and work like any other place: he picks them as goals and does their actions. They give no cards, souvenirs, Placedex entries or crawl progress, since those are for real places.
 
 Must-haves fill gaps. If none of the loaded places is one of these, the city gets one near its centre, on a street:
 - a bus station ("Plovdiv coach station"), so he can leave,

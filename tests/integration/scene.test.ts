@@ -100,6 +100,9 @@ describe("map scene", () => {
     scene.draw(0.25, 250);
     expect(map.icons.map((i) => i.icon)).toEqual(["board"]);
     expect(map.icons[0]!.id).toBe("x:notice_board:0");
+    w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
+    scene.draw(0.25, 250);
+    expect(map.icons).toEqual([]);
   });
 
   it("leaves room for the panels from the start", () => {
