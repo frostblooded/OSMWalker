@@ -82,6 +82,29 @@ test("while he walks to a station you can guess where he is going, once", async 
   await expect(guess).toBeHidden();
 });
 
+test("a postcard goes out as a link and opens in a friend's game", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Send a postcard/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Send a postcard/ });
+  await sheet.getByLabel("Your name").fill("Ivan");
+  await sheet.getByRole("button", { name: /Share postcard/ }).click();
+  await expect(sheet).toContainText("Link copied");
+  const url = await page.evaluate(() => navigator.clipboard.readText());
+  expect(url).toMatch(/#postcard=[\w-]+$/);
+
+  // Same browser, so the "friend" has a game going too and can reply.
+  const friend = await context.newPage();
+  await friend.goto(url);
+  const card = friend.getByRole("dialog", { name: "Postcard" });
+  await expect(card).toContainText("A postcard from Ivan in Sofia", { timeout: 20000 });
+  await expect(card).toContainText("Level");
+  expect(new URL(friend.url()).hash).toBe("");
+  await card.getByRole("button", { name: "Send one back" }).click();
+  await expect(friend.getByRole("dialog", { name: /Send a postcard/ })).toBeVisible();
+});
+
 test("New city asks for RESET first", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

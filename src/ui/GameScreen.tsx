@@ -10,6 +10,7 @@ import type { Sound } from "../app/sound";
 import { hud, ribbon, sound, type Goal, type Hud } from "../game/hud";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
+import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { AwaySheet } from "./AwaySheet";
@@ -19,14 +20,15 @@ import { DebugSheet } from "./DebugSheet";
 import { biasMin, countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
+import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
 
-export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
+export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
   const scene = useRef<MapScene | null>(null);
@@ -177,6 +179,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             <button class="btn" onClick={() => setSheet("care")}>
               🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
             </button>
+            <button class="btn" onClick={() => setSheet("postcard")}>
+              📮 Send a postcard
+            </button>
             <button
               class="btn"
               onClick={() => {
@@ -225,6 +230,23 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "care" && (
         <SheetBox title="🎁 Care package" onClose={close} full>
           <CareSheet care={s.care} now={game.now()} onSend={(id) => game.sendGift(id)} />
+        </SheetBox>
+      )}
+      {sheet === "postcard" && (
+        <SheetBox title="📮 Send a postcard" onClose={close} full>
+          <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
+        </SheetBox>
+      )}
+      {received && sheet === null && !game.away && (
+        <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
+          <ReceivedSheet
+            card={received}
+            onReply={() => {
+              onReceivedDone?.();
+              setSheet("postcard");
+            }}
+            onDone={() => onReceivedDone?.()}
+          />
         </SheetBox>
       )}
       {sheet === "help" && (
