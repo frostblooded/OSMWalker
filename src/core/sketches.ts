@@ -18,6 +18,8 @@ export const GRADE: Record<Quality, [icon: string, cents: number]> = {
 };
 /** Sketches kept in his sketchbook; a better one pushes the worst out, and he sells it. */
 export const KEPT = 8;
+/** A roll spans this many grades. */
+export const SPREAD = 3;
 /** Each art level lifts the roll this many grades' worth. */
 export const PER_LEVEL = 0.3;
 /** Being Inspired (see emotion.ts) lifts the roll this many grades. */
@@ -30,16 +32,19 @@ export const PREFIX = `${ICON} Sketched `;
 
 export type Sketch = { of: string; q: Quality; t: number };
 
-/** The quality of a sketch at art `level`, `inspired` or not, on a roll `r` in [0, 1): three grades wide, lifted by both. */
+/** The quality of a sketch at art `level`, `inspired` or not, on a roll `r` in [0, 1): SPREAD grades wide, lifted by both. */
 export function quality(level: number, inspired: boolean, r: number): Quality {
-  const i = Math.floor(r * 3 + level * PER_LEVEL + (inspired ? INSPIRED : 0));
+  const i = Math.floor(r * SPREAD + level * PER_LEVEL + (inspired ? INSPIRED : 0));
   return QUALITY[Math.min(Math.max(i, 0), QUALITY.length - 1)]!;
 }
 
-/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, without what it cost or paid and anything after, or null with nothing to draw. */
-export function subject(lines: string[], rng: Rng): string | null {
+/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, without what it cost or paid and anything after, or a deadpan joke at its end (any of `jokes`), or null with nothing to draw. */
+export function subject(lines: string[], rng: Rng, jokes: readonly string[] = []): string | null {
   const fit = lines.slice(-LOOK_BACK).filter((l) => !l.startsWith(PREFIX));
-  return fit.length ? rng.pick(fit).replace(/ \([+−-]?€.*$/, "") : null;
+  if (!fit.length) return null;
+  const line = rng.pick(fit).replace(/ \([+−-]?€.*$/, "");
+  const joke = jokes.find((j) => line.endsWith(` ${j}`));
+  return joke ? line.slice(0, -joke.length - 1) : line;
 }
 
 const rank = (q: Quality) => QUALITY.indexOf(q);

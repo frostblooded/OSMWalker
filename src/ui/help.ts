@@ -397,6 +397,7 @@ export function values(data: GameData): Record<string, string> {
     SKETCH_ACTIONS: [...new Set(Object.values(data.actions).flat().filter((a) => a.skill === "art").map((a) => a.name.toLowerCase()))].join(", "),
     SKETCH_LOOK_BACK: num(Sketch.LOOK_BACK),
     SKETCH_GRADES: Sketch.QUALITY.map((q) => `${Sketch.GRADE[q][0]} ${q}`).join(", "),
+    SKETCH_SPREAD: num(Sketch.SPREAD),
     SKETCH_PER_LEVEL: num(Sketch.PER_LEVEL),
     SKETCH_FLOOR_MAX: Sketch.quality(Skills.SKILL_MAX, false, 0),
     SKETCH_INSPIRED: Sketch.INSPIRED === 1 ? "a whole grade" : `${num(Sketch.INSPIRED)} grades`,

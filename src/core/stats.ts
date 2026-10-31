@@ -1884,7 +1884,7 @@ export class Stats {
   sketch(skip: string): void {
     const t = this.now();
     const rng = new Rng(seedOf(`sketch${t}`));
-    const of = Sc.subject(this.history.entries.map((e) => e.text).filter((l) => l !== skip), rng);
+    const of = Sc.subject(this.history.entries.map((e) => e.text).filter((l) => l !== skip), rng, Object.values(this.jokes).flat());
     if (!of) return;
     const q = Sc.quality(this.skills.level("art"), this.emotion() === "inspired", rng.randf());
     const made = { of, q, t };
