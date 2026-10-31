@@ -307,7 +307,7 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
-      // The timer at 20 s, so the reopen's choice doesn't close mid-shot on a busy machine.
+      // The choice timer at 20 s (remembered), so the away dilemma doesn't decide itself mid-shot on a busy machine.
       await openMenuItem(page, /Choice timer/);
       await page.getByRole("button", { name: /Choice timer/ }).click();
       await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
