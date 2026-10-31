@@ -8,6 +8,7 @@
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as Bl from "./bills";
+import * as Bk from "./bucket";
 import * as Bz from "./business";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
@@ -296,6 +297,8 @@ export class Stats {
   business = new Bz.Business();
   /** His lottery ticket and wins. */
   lottery = new Lt.Lottery();
+  /** His bucket list (see bucket.ts). */
+  bucket = new Bk.Bucket();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
@@ -733,6 +736,7 @@ export class Stats {
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
+    this.dreams(t);
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.takings();
@@ -1299,6 +1303,39 @@ export class Stats {
       if (s === code && COUNTRY_MARKS.includes(n)) this.milestone(`countries${n}`, `Had walked in ${n} countries`);
     }
     for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
+    if (was.city !== city) this.dreams(this.now());
+  }
+
+  /** What his bucket list's game dreams count (see bucket.ts). */
+  facts(): Bk.Facts {
+    return {
+      city: this.where.city,
+      level: this.level,
+      countries: this.keepsakes.seen.filter((c) => !c.includes(":")).length,
+      car: this.vehicle() === "car" ? 1 : 0,
+      dragon: this.vehicle() === "dragon" ? 1 : 0,
+      dishes: this.pantry.dishes.length,
+      fluent: this.languages.list().filter((l) => this.languages.learned(l.lang) && l.level >= Lang.FLUENT).length,
+      prize: this.lottery.prizes,
+      business: this.business.owned.length,
+      monument: this.bricks.built.length,
+      skill: Math.max(...SKILLS.map((k) => this.skills.level(k))),
+    };
+  }
+
+  /** Ticks off what he has done on his bucket list (XP, mood, a line in his life story), then fills it up again, saying what is new once one was ticked off. Own dice. */
+  dreams(t: number): void {
+    const f = this.facts();
+    const ticked = this.bucket.tick(f, t);
+    for (const d of ticked) {
+      this.applyFx({ mood: Bk.DREAM_MOOD });
+      this.addXp(Bk.DREAM_XP);
+      this.milestone(`dream_${d.id}`, `Ticked off his bucket list: ${d.text}`);
+      this.say(`📝 ${d.icon} Ticked off his bucket list: ${d.text}! (+${Bk.DREAM_XP} XP)`);
+    }
+    const added = this.bucket.fill(f, new Rng(seedOf(`bucket${t}:${this.bucket.done.length}`)));
+    // His first dreams go on the list quietly: the Stats sheet shows them.
+    if (ticked.length && added.length) this.say(`📝 New on his bucket list: ${Bk.listOf(added.map((d) => d.text[0]!.toLowerCase() + d.text.slice(1)))}`);
   }
 
   /** Cents off a fare for his souvenirs: FARE_CUT for every SOUVENIRS_PER_CUT, up to FARE_CUT_MAX. */
@@ -1687,7 +1724,7 @@ export class Stats {
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
-      business: this.business.toJSON(), lottery: this.lottery.toJSON(),
+      business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(),
       careers: this.careers.toJSON(),
       life: this.life.toJSON(),
     };
@@ -1767,6 +1804,7 @@ export class Stats {
     // A save from before side businesses and the lottery: none owned, no ticket.
     s.business = Bz.Business.fromJSON(d.business);
     s.lottery = Lt.Lottery.fromJSON(d.lottery);
+    s.bucket = Bk.Bucket.fromJSON(d.bucket);
     // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
     s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;
