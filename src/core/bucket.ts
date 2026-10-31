@@ -23,7 +23,7 @@ export const DREAM_MOOD = 15;
 /** A city with a sight on his list weighs this many times its size when he picks where to travel, and at least DREAM_SHARE of all the cities he could go to. */
 export const DREAM_PULL = 3;
 export const DREAM_SHARE = 0.05;
-/** What counts for "a car or something faster": a carpet is as fast, and a dragon faster, so he never buys a car after them. */
+/** What counts for "a car or something faster": a carpet and a dragon are faster, so he never buys a car after them. */
 export const CAR_OR_BETTER: readonly Vehicle[] = ["car", "carpet", "dragon"];
 
 export const GOALS: Dream[] = [
