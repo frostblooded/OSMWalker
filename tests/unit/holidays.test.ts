@@ -22,7 +22,8 @@ describe("holidays", () => {
 
   it("know a two-letter code for every country in cities.tsv", () => {
     const codes = new Set(dataFile("cities.tsv").split("\n").filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t")[1]!));
-    expect([...codes].filter((c) => !/^[A-Z]{2}$/.test(iso2(c)))).toEqual([]);
+    // Northern Cyprus and Somaliland have no code of their own, and the Republic's or Somalia's holidays are not theirs.
+    expect([...codes].filter((c) => !/^[A-Z]{2}$/.test(iso2(c)))).toEqual(["CYN", "SOL"]);
   });
 
   it("keep only country-wide public holidays", () => {

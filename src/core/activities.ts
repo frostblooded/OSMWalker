@@ -133,16 +133,12 @@ export class Activities {
 
   /** Actions for `place` (null for a random spot) in `country`, with the holiday ones on a public holiday. */
   forPlace(place: Partial<Place> | null, country = "", holiday = false): Action[] {
-    return [...this.usual(place), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
+    return [...this.usual(place), ...local(place, this.flavour[country] ?? {}), ...(holiday ? (this.data._holiday ?? []) : [])];
   }
 
   /** Like forPlace, without noting places that have no actions of their own yet. */
-  peek(place: Partial<Place> | null, country = "", holiday = false): Action[] {
-    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
-  }
-
-  private festive(holiday: boolean): Action[] {
-    return holiday ? (this.data._holiday ?? []) : [];
+  peek(place: Partial<Place> | null, country = ""): Action[] {
+    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {})];
   }
 
   private usual(place: Partial<Place> | null, note = true): Action[] {

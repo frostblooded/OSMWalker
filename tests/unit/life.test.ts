@@ -715,7 +715,7 @@ describe("activities", () => {
     const acts = new Activities({ cafe: [{ name: "Coffee", min: 1 }], _spot: [{ name: "Sit", min: 1 }], _holiday: [{ name: "Parade", min: 1 }] });
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }).map((a) => a.name)).toEqual(["Coffee"]);
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "", true).map((a) => a.name)).toEqual(["Coffee", "Parade"]);
-    expect(acts.peek(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
+    expect(acts.forPlace(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
     expect(bundled().data._holiday?.length).toBeGreaterThan(2);
   });
 
