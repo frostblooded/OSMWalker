@@ -21,6 +21,9 @@ import * as Crawl from "../core/crawl";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Beliefs from "../core/beliefs";
+import * as Clothes from "../core/clothes";
+import * as Coffee from "../core/coffee";
 import * as Comforts from "../core/comforts";
 import * as Emo from "../core/emotion";
 import * as Diary from "../core/diary";
@@ -581,6 +584,30 @@ export function values(data: GameData): Record<string, string> {
     WEARY_PCT: pct(Perks.WEARY_CUT),
     LUCKY_FIND: num(Perks.LUCKY_FIND),
     PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
+    COFFEE_ACTIONS: [...new Set(Object.values(data.actions).flatMap((l) => (Array.isArray(l) ? l : [])).filter((a) => a.coffee).map((a) => a.name.toLowerCase()))].join(", "),
+    CUP_HABIT: num(Coffee.CUP_HABIT),
+    DAY_FADE: num(Coffee.DAY_FADE),
+    HOOKED: num(Coffee.HOOKED),
+    CRAVE_H: String(Coffee.CRAVE_H),
+    ACHE_H: String(Coffee.ACHE_H),
+    CRAVE_PULL: num(Coffee.CRAVE_PULL),
+    QUIT_AFTER: String(Coffee.QUIT_AFTER),
+    QUIT_DAYS: String(Coffee.QUIT_DAYS),
+    QUIT_PULL: num(Coffee.QUIT_PULL),
+    HEADACHE: `${Coffee.HEADACHE[1]} ${Coffee.HEADACHE[0]}, ${feel(Coffee.HEADACHE)}`,
+    RAIN_WEAR: num(Clothes.RAIN_WEAR),
+    THIN_PCT: pct(Clothes.THIN_AT),
+    WEAR_KM: String(Clothes.WEAR_KM),
+    TATTERED_CHA: num(Clothes.TATTERED_CHA),
+    TATTERED: `${Clothes.TATTERED[1]} ${Clothes.TATTERED[0]} (${feel(Clothes.TATTERED)})`,
+    TATTERED_PULL: num(Clothes.TATTERED_PULL),
+    BELIEF_PCT: pct(Beliefs.BELIEF_CHANCE),
+    MAX_BELIEFS: String(Beliefs.MAX_BELIEFS),
+    BELIEF_LIST: Beliefs.BELIEFS.map((b) => `- ${b.icon} ${b.name}: takes root at ${b.seeds.map(Mind.noun).join(" or ")}; ${[b.kinds.length ? `pulls to ${b.kinds.map(Mind.noun).join(", ")}` : "", b.likes ? `favours ${b.likes}` : ""].filter(Boolean).join(", and ")}.`).join("\n"),
+    BELIEF_PULL: num(Beliefs.BELIEF_PULL),
+    BELIEF_LEAN: num(Beliefs.BELIEF_LEAN),
+    BELIEF_MOOD: `+${Beliefs.BELIEF_MOOD[0]} an hour for ${Beliefs.BELIEF_MOOD[1]} hour`,
+    FADE_DAYS: String(Beliefs.FADE_DAYS),
     BED_LIST: comfortLines(data.actions, "bed", Comforts.BEDS),
     HOME_BED: `${Comforts.HOME_BED[1]} ${Comforts.HOME_BED[0]} (${feel(Comforts.HOME_BED)})`,
     MEAL_LIST: comfortLines(data.actions, "meal", Comforts.MEALS),
