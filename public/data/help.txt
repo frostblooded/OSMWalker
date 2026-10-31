@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear, ×{QUIRK_PULL} for each of his quirks there (see Quirks). So do his emotion, ×{EMO_PULL} for its kinds of place (see Emotions), and his tastes, ×{LIKE_PULL} for a kind he loves and ×{DISLIKE_PULL} for one he can't stand (see Hidden tastes). His spot weighs ×{SPOT_PULL} in the morning (see His spot). While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear, ×{QUIRK_PULL} for each of his quirks there (see Quirks). So do his emotion, ×{EMO_PULL} for its kinds of place (see Emotions), and his tastes, ×{LIKE_PULL} for a kind he loves and ×{DISLIKE_PULL} for one he can't stand (see Hidden tastes). Grim surroundings make green places weigh ×{BEAUTY_PULL} (see Beauty of surroundings). His spot weighs ×{SPOT_PULL} in the morning (see His spot). While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -286,7 +286,7 @@ Once a city knows him as a {RENT_TIER_NAME} (see Fame), he rents a flat there, n
 
 Each morning while he rents, if he could pay {HOME_PRICE} and still keep what he saves up for, and never less than his reserve, he buys it, wherever he is (not while you whisper Save). Then there is no more rent. Each morning in his home city after that, he puts up one thing from his travels: the dearest item in his bag from another city that isn't treasured or stolen, up to {HOME_THINGS}. Things he puts up stay there for good.
 
-A night at a hostel or hotel in his home city is a night in his own bed instead: free, and it adds mood +{HOME_MOOD}, plus {HOME_MOOD_PER_THING} for each thing up. From anywhere else, {HOME_TRIP_PCT} of his trips take him home (see Trips to other cities). A house with a chimney marks his home on the map, and the Home card on the Stats sheet shows it. He retires there, and his heir keeps it (see Retiring).
+A night at a hostel or hotel in his home city is a night in his own bed instead: free, and it adds mood +{HOME_MOOD}, plus {HOME_MOOD_PER_THING} for each thing up, and its own moodlet (see Where he sleeps). From anywhere else, {HOME_TRIP_PCT} of his trips take him home (see Trips to other cities). A house with a chimney marks his home on the map, and the Home card on the Stats sheet shows it. He retires there, and his heir keeps it (see Retiring).
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At rank 1 of its career a job with no attribute need and no skill pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he works he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_RANK_PCT} more for every rank above 1 in the job's career (see Careers),
@@ -384,7 +384,7 @@ Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 an
 ## Moodlets {moodlets}
 On top of the usual drift, named moodlets nudge his mood a little every hour while they last: "Wish come true", "Rattled", "Scared of the dog park". Each has its own mood an hour and a time left. The same moodlet again starts its time over instead of adding up, and he keeps at most {MAX_MOODLETS}.
 
-Most moodlets also count towards an emotion (see Emotions). The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
+His bed, his meals and his surroundings bring moodlets too (see Where he sleeps, Meals and Beauty of surroundings). Most moodlets also count towards an emotion (see Emotions). The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
 ## Wants and fears {wants}
 He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}) for up to {LONG_H} hours, as his city may have none, and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
 
@@ -416,13 +416,25 @@ An emotion pulls his goal ×{EMO_PULL} towards its kinds of place, and when sad,
 ## Hidden tastes {tastes}
 Every walker is born with {LIKES} kinds of place he loves and {DISLIKES} he can't stand, picked at random from {TASTE_KINDS}. Nobody knows them at first, not even him: the first time he does something at one, the feed says so ("Turns out he loves zoos"), and the Character card on the Stats sheet lists it from then on.
 
-Known or not, a kind he loves pulls his goal ×{LIKE_PULL} and one he can't stand ×{DISLIKE_PULL} (see Picking the next goal). Each visit to a kind he loves gives {LIKE_MOOD}; one he can't stand gives {DISLIKE_MOOD}, which counts towards Tense (see Emotions).
+Known or not, a kind he loves pulls his goal ×{LIKE_PULL} and one he can't stand ×{DISLIKE_PULL} (see Picking the next goal). Each visit to a kind he loves gives {LIKE_MOOD}; one he can't stand gives {DISLIKE_MOOD}, which counts towards Tense (see Emotions). The Know thyself badge counts the tastes he has found out (see Badges and titles).
 ## Lifetime rewards {perks}
 Wishes that come true give lifetime points: {POINTS_LONG} for a long want, {POINTS_SHORT} for a short one, {POINTS_SHAKE} for cheering up, {POINTS_FACE} for facing a fear (see Wants and fears). Each level gives {LEVEL_POINTS}.
 
 He spends them himself on lasting perks, as soon as he has enough for one. When he can afford more than one he takes the one tied to his best attribute (perks with no attribute count his average), the cheaper on a tie:
 {PERK_LIST}
-The Character card on the Stats sheet shows his points, the price of the cheapest perk left, and the perks he has.
+The Character card on the Stats sheet shows his points, the price of the cheapest perk left, and the perks he has. The Lifetime rewards badge counts his perks (see Badges and titles).
+## Beauty of surroundings {beauty}
+While the game is open, every {BEAUTY_EVERY_MIN} minutes he looks around him (not on a trip to another city). Each kind of land the map draws up to {BEAUTY_M} m either side of him counts: +1 for {NICE_LAND}; -1 for {GRIM_LAND}. Places of an old town within {BEAUTY_M} m ({OLD_TOWN}) add +1 once. Above 0 he feels {PRETTY}; below 0 {GRIM}; at 0 nothing changes. One takes the place of the other. Only what is on screen counts, so with the map dragged away from him, only the places count. The time the game is closed has no surroundings.
+
+While he feels Grim surroundings, green places ({GREEN_KINDS}) pull his goal ×{BEAUTY_PULL} (see Picking the next goal).
+## Where he sleeps {beds}
+Each nap or night leaves a moodlet for how good the bed was:
+{BED_LIST}
+A night in his own bed (see His home) gives {HOME_BED} instead. The Five-star sleeper badge counts his hotel nights (see Badges and titles).
+## Meals {meals}
+A meal better or worse than plain leaves a moodlet:
+{MEAL_LIST}
+Every other meal is plain and leaves none. A quest may end with a meal or a night someone treats him to, with its moodlet (see Quests). The Gourmet badge counts his lavish meals, treats too (see Badges and titles).
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -914,7 +926,7 @@ Quests are the heart of his life. Every city has a board of them, rolled the fir
 
 After every {QUEST_EVERY_MIN} to {QUEST_EVERY_MAX} stops he takes one on, likelier one near him, and does its steps back to back (a step at a place closed for the night waits for morning, see Opening hours): first the quest giver, then {STEPS_MORE_MIN} to {STEPS_MORE_MAX} more places of the right kinds (a pharmacy, then the neighbour's café), each picked among the {STEP_CHOICES} nearest that fit. Each step takes {STEP_MIN} minutes instead of an action. An urgent need (see His needs) comes first: he eats or sleeps, then carries on. He doesn't set off on a trip while he is on a quest; if a free ride takes him away anyway, the quest stays behind, along with the city's board and events.
 
-At its middle step, where a twist may come, it goes on at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}). Otherwise it fails there and ends early with no reward, and it doesn't come back either; the Quests card counts only those he finished. One that goes on pays its money, XP and effects at the end, now and then with a thank-you item for his bag. Some also teach: a supper club trains his cooking, a chess game his chess (see Skills), and a translation errand adds hours to the local language (see Languages). Events can teach too, such as a cook-off. Nothing waits for you.
+At its middle step, where a twist may come, it goes on at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}). Otherwise it fails there and ends early with no reward, and it doesn't come back either; the Quests card counts only those he finished. One that goes on pays its money, XP and effects at the end, now and then with a thank-you item for his bag. Some also teach: a supper club trains his cooking, a chess game his chess (see Skills), and a translation errand adds hours to the local language (see Languages). Some end with a treat, a lavish dinner or a night in a hotel suite, with its moodlet (see Meals and Where he sleeps). Events can teach too, such as a cook-off. Nothing waits for you.
 
 On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between (once its place is open, see Opening hours). It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last {CARD_RECENT}. The {LOG_MAX} newest quests and events are kept.
 
@@ -1059,13 +1071,14 @@ Debug (in the menu) is for testing and curious players.
 
 Severe problems are ones that could leave him stuck. Once the streets all around him have loaded, the game checks the city box for a way out (a bus station, an airport or a gas station) and for a place that pays him. Missing ones are normally made up (see Made-up places), so this only shows when that fails, for example when the game is offline before it has kept that part of its code. If one is missing, a red ⛔ line stays in the top card until the city has it or he leaves. A city without a gas station is flagged too.
 
-At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city, what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
+At the top of Debug, coloured boxes list what looks wrong with the city right now. Cards below show the city (with his last look around: its beauty, the land the map drew and how long the map took, see Beauty of surroundings), what has loaded (street squares, places, trivia), the ways out and places that pay, and the trip dice.
 
 Then come three logs, closed at first: the city's trivia, Problems (the last {MAX_SEVERE} severe problems, {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: every dice roll, the odds and why. A random spot counts as a warning, unless it is only because every place near enough is closed. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
 
 City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
 
 Its buttons change the game right away:
+- Look around makes him look at his surroundings now.
 - New goal ends any stop or trip and picks a new goal now, rolling the trip dice again.
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.

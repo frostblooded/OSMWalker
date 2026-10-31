@@ -21,6 +21,7 @@ import * as Crawl from "../core/crawl";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Comforts from "../core/comforts";
 import * as Emo from "../core/emotion";
 import * as Diary from "../core/diary";
 import * as Mail from "../core/mail";
@@ -240,6 +241,20 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (!a.steal && Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
   return [...names].join(", ");
 }
+
+/** One Help line per bed or meal tier (see comforts.ts): its moodlet, and the actions in data/actions.json that have it, once each. */
+function comfortLines(actions: GameData["actions"], key: "bed" | "meal", tiers: Record<string, Comforts.Feel>): string {
+  return Object.entries(tiers)
+    .map(([tier, f]) => {
+      const names = new Set<string>();
+      for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (a[key] === tier) names.add(a.name.toLowerCase());
+      return `- ${f[1]} ${f[0]} (${feel(f)}): ${[...names].join(", ")}.`;
+    })
+    .join("\n");
+}
+
+/** A moodlet's mood an hour and hours, in words. */
+const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hours`}`;
 
 /** What a life stage changes, in words. */
 function stageText(st: Life.Stage): string {
@@ -566,6 +581,18 @@ export function values(data: GameData): Record<string, string> {
     WEARY_PCT: pct(Perks.WEARY_CUT),
     LUCKY_FIND: num(Perks.LUCKY_FIND),
     PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
+    BED_LIST: comfortLines(data.actions, "bed", Comforts.BEDS),
+    HOME_BED: `${Comforts.HOME_BED[1]} ${Comforts.HOME_BED[0]} (${feel(Comforts.HOME_BED)})`,
+    MEAL_LIST: comfortLines(data.actions, "meal", Comforts.MEALS),
+    BEAUTY_EVERY_MIN: String(Comforts.BEAUTY_EVERY_S / 60),
+    BEAUTY_M: String(Comforts.BEAUTY_M),
+    NICE_LAND: Comforts.NICE_LAND.join(", "),
+    GRIM_LAND: Comforts.GRIM_LAND.join(", "),
+    OLD_TOWN: Comforts.OLD_TOWN.map(Mind.noun).join(", "),
+    PRETTY: `${Comforts.PRETTY[1]} ${Comforts.PRETTY[0]} (${feel(Comforts.PRETTY)})`,
+    GRIM: `${Comforts.GRIM[1]} ${Comforts.GRIM[0]} (${feel(Comforts.GRIM)})`,
+    GREEN_KINDS: Comforts.GREEN_KINDS.map(Mind.noun).join(", "),
+    BEAUTY_PULL: num(Comforts.BEAUTY_PULL),
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
     DIARY_LINES: String(Diary.DAY_LINES),
     FRIEND_LETTER_PCT: pct(Mail.LETTER_CHANCE),
