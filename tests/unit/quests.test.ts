@@ -105,6 +105,29 @@ describe("the capitals' own quests", () => {
     expect(Q.stepPlaces(paris.steps[1]!, [sights[0]!])).toEqual([sights[0]]);
     expect(Q.stepPlaces(paris.steps[1]!, sights)).toEqual([eiffel]);
   });
+
+  it("only take a landmark of the step's kinds: an Eiffel café isn't the tower", () => {
+    const cafe = place("Café Eiffel", "cafe", 2);
+    expect(Q.stepPlaces(paris.steps[1]!, [cafe, sights[0]!])).toEqual([sights[0]]);
+  });
+
+  it("know their city however a search spells it", () => {
+    expect(Q.sameCity("Sofia, Bulgaria", "Sofia, Sofia City, Bulgaria")).toBe(true);
+    expect(Q.sameCity("Bogota, Colombia", "Bogotá, Bogotá D.C., Colombia")).toBe(true);
+    expect(Q.sameCity("Washington,  D.C., United States of America", "Washington, District of Columbia, United States")).toBe(true);
+    expect(Q.sameCity("London, United Kingdom", "London, Ontario, Canada")).toBe(false);
+    const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] });
+    s.quests.roll("Paris, Île-de-France, France", 20_000, [...TOWN, ...sights], new Rng(3));
+    expect(s.quests.board[0]?.key).toBe("eiffel");
+  });
+
+  it("don't make a board ready in another city that only has their giver kinds", () => {
+    const music = one({ id: "band", city: "Paris, France", steps: [{ at: ["music"], say: ["At {PLACE}."] }, { at: ["cafe"], say: ["At {PLACE}."] }] });
+    const shops = Array.from({ length: Q.BOARD_PLACES }, (_, i) => place(`Music ${i}`, "music", i % 6));
+    const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), music], events: [] });
+    s.quests.roll("Lyon, France", 300_000, shops, new Rng(3));
+    expect(s.quests.rolled).toBe(false);
+  });
 });
 
 describe("the board", () => {
@@ -217,6 +240,8 @@ describe("going on a quest", () => {
     expect(f.s.history.latest()).toBe("🧪 Test quest fails: Worse.");
     expect(f.s.quests.log.at(-1)).toMatchObject({ good: false });
     expect([f.s.quests.finished, f.s.quests.done.length]).toEqual([0, 1]);
+    // The count stays the same after a reload.
+    expect(Stats.fromJSON(JSON.parse(JSON.stringify(f.s.toJSON()))).quests.finished).toBe(0);
   });
 
   it("drops everything for an urgent need, then carries on", () => {

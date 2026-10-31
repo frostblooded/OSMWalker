@@ -122,11 +122,23 @@ const placeOf = (s: Spot, places: readonly Place[]): Place => places.find((p) =>
 /** False while `s` is shut by the sky he lives under (opening.ts); true with no sky. */
 const openNow = (stats: Stats, s: Pick<Place, "class" | "subclass">) => !stats.sky || isOpen(s, stats.sky.clock, stats.sky.holiday);
 
-/** The places that suit `step`: its named landmarks when any is loaded, else places of its kinds. */
+/** The places that suit `step`: its named landmarks (of its kinds) when any is loaded, else any place of its kinds. */
 export function stepPlaces(step: Step, places: readonly Place[]): Place[] {
-  const names = step.name?.map((n) => n.toLowerCase());
-  const named = names ? places.filter((p) => names.some((n) => p.name.toLowerCase().includes(n))) : [];
-  return named.length ? named : places.filter((p) => isKind(p, step.at));
+  const kind = places.filter((p) => isKind(p, step.at));
+  const names = step.name?.map(fold);
+  const named = names ? kind.filter((p) => names.some((n) => fold(p.name).includes(n))) : [];
+  return named.length ? named : kind;
+}
+
+/** Lower case without accents, so "Bogotá" and "Bogota" match. */
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** True when a quest's `city` ("Paris, France", from cities.tsv) is `here`, which a search may spell "Paris, Île-de-France, France": the same name first and the same country last. */
+export function sameCity(city: string, here: string): boolean {
+  const a = city.split(",").map((x) => fold(x.trim()));
+  const b = here.split(",").map((x) => fold(x.trim()));
+  const [ca, cb] = [a.at(-1)!, b.at(-1)!];
+  return a[0] === b[0] && (ca.startsWith(cb) || cb.startsWith(ca));
 }
 
 /** How many quests a city of `pop` people has on its board. */
@@ -195,25 +207,27 @@ export class Quests {
     }
     if (this.rolled || !this.bank.quests.length) return;
     // Bridges can load before shops and cafés, and no quest starts at one: they don't count.
-    const givers = [...new Set(this.bank.quests.flatMap((k) => k.steps[0]!.at))];
+    const mine = this.bank.quests.filter((k) => !k.city || sameCity(k.city, city));
+    const givers = [...new Set(mine.flatMap((k) => k.steps[0]!.at))];
     if (places.filter((p) => p.class !== BRIDGE).length < BOARD_PLACES || !places.some((p) => isKind(p, givers))) return;
     this.rolled = true;
     this.rev++;
     const done = new Set(this.done);
     const n = boardSize(pop);
+    let fantasy = 0;
     // The city's own quests come first; each is done once for good, so its key is its id.
-    for (const k of this.bank.quests) {
-      if (k.city !== city || done.has(k.id) || this.board.length >= n) continue;
+    for (const k of mine) {
+      if (!k.city || done.has(k.id) || this.board.length >= n || (k.fantasy && fantasy >= Math.floor(n * FANTASY_SHARE))) continue;
       const at = stepPlaces(k.steps[0]!, places);
       if (!at.length) continue;
       const twist = k.twists.length && rng.randf() < 0.5 ? rng.randiRange(0, k.twists.length - 1) : -1;
       this.board.push({ key: k.id, kind: k.id, giver: rng.pick(this.bank.names), item: rng.randiRange(0, k.items.length - 1), twist, at: spotOf(rng.pick(at)) });
+      if (k.fantasy) fantasy++;
     }
     const kinds = this.bank.quests.filter((k) => !k.city);
     if (!kinds.length) return;
     const byKind = indexKinds(places);
     const used = new Set<string>();
-    let fantasy = 0;
     for (let tries = 0; this.board.length < n && tries < n * 6; tries++) {
       const k = rng.pick(kinds);
       if (used.has(k.id) && used.size < kinds.length) continue;
@@ -246,7 +260,8 @@ export class Quests {
     q.active = o.active && typeof o.active === "object" ? o.active : null;
     q.events = Array.isArray(o.events) ? o.events : [];
     q.done = Array.isArray(o.done) ? o.done.filter((k): k is string => typeof k === "string").slice(-DONE_MAX) : [];
-    q.finished = Math.max(Number(o.finished) || 0, q.done.length);
+    // Failed quests are done but not finished; a save from before the tally counts what it remembers.
+    q.finished = typeof o.finished === "number" ? o.finished : q.done.length;
     q.log = Array.isArray(o.log) ? o.log.slice(-LOG_MAX) : [];
     q.since = Number(o.since) || 0;
     q.wait = Number(o.wait) || QUEST_EVERY_MAX;
@@ -399,7 +414,7 @@ function stepTarget(stats: Stats, a: Active, places: readonly Place[], here: Lat
   const k = stats.quests.kind(a.kind);
   const step = k?.steps[a.step];
   if (!step) return a.at;
-  const kind = stepPlaces(step, places).filter((p) => distanceM(here[0], here[1], p.lat, p.lon) > 30);
+  const kind = stepPlaces(step, places.filter((p) => distanceM(here[0], here[1], p.lat, p.lon) > 30));
   const open = kind.filter((p) => openNow(stats, p));
   const fit = (open.length ? open : kind)
     .map((p) => [p, distanceM(here[0], here[1], p.lat, p.lon)] as const)
