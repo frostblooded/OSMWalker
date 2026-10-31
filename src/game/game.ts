@@ -468,10 +468,14 @@ export class Game {
    * settles. When none can open (timer Off, or one already open) he picks at
    * once, so it lands before the action he then chooses, as in the catch-up.
    */
+  /** True while a story moment (storyAsk) is open; saves wait for it. */
+  private storyOpen = false;
   private storyAsk: Ask = (m, his, settle) => {
     if (this.momentS <= 0 || this.moment) return settle({ id: his(), you: false });
+    this.storyOpen = true;
     void this.ask(m, { his }).then((p) => {
       settle(p);
+      this.storyOpen = false;
       this.save();
       this.changed();
     });
@@ -796,6 +800,8 @@ export class Game {
 
   save(): void {
     this.saveSettings();
+    // Not while a story moment is open: the save would hold the story's start without its end.
+    if (this.storyOpen) return;
     const w = this.walker;
     if (!w) return;
     if (this.waking) return;

@@ -215,6 +215,31 @@ describe("incidents in his life", () => {
     expect(tapped.incidentLine).toBe("🧪 At Cafe. Sings: coins fly.");
   });
 
+  it("asks a contest with Viktor at a stop with no incident; its result becomes the incident line", () => {
+    const s = new Stats();
+    s.where.city = "Sofia, Bulgaria";
+    s.contests = JSON.parse(dataFile("rival.json"));
+    Object.assign(s.rival, { town: "Sofia, Bulgaria", inTown: true });
+    s.incidents = [card({})];
+    let settle: ((p: Pick) => void) | null = null;
+    const opening = s.happen(cafe, 12, fixed(0.5, 0, 0.99, 0), (_m, _his, done) => (settle = done));
+    expect(opening).toMatch(/^🎩 Viktor .* at Cafe\.$/);
+    expect(s.incidentLine).toBe(opening);
+    settle!({ id: "won", you: true });
+    expect(s.rival.wins).toBe(1);
+    expect(s.incidentLine).not.toBe(opening);
+    expect(s.incidentLatest()).toBe(true);
+    // Settled at once (the timer Off), the result line is the incident line.
+    const now = new Stats();
+    now.where.city = "Sofia, Bulgaria";
+    now.contests = s.contests;
+    Object.assign(now.rival, { town: "Sofia, Bulgaria", inTown: true });
+    now.incidents = [card({})];
+    now.happen(cafe, 12, fixed(0.5, 0, 0.99, 0), (_m, his, done) => done({ id: his(), you: false }));
+    expect(now.incidentLine).toMatch(/^🎩 Played by himself: /);
+    expect(now.incidentLatest()).toBe(true);
+  });
+
   it("happens at a stop when the tension is high, and eases it", () => {
     const s = new Stats();
     s.incidents = [card({ tone: "good", id: "g" }), card({ tone: "odd", id: "o" }), card({ id: "b" })];

@@ -1765,8 +1765,11 @@ export class Stats {
    * says so (Luck makes bad ones rarer), or else his club night if one is on
    * (or an invitation to one), or else a meeting with his rival, or else one
    * with a friend or his fellow traveller.
-   * Returns its feed line, or "". Without a deck the stories are off and
-   * nothing rolls, so the dice stay the same as without one.
+   * Returns its feed line, or "". With `ask` (the game, while you watch) a
+   * choice or a contest opens as a timed moment: then it returns "" or the
+   * contest's opening, and its result line comes when it settles. Without a
+   * deck the stories are off and nothing rolls, so the dice stay the same as
+   * without one.
    */
   happen(place: Pick<Place, "name" | "class" | "lat" | "lon"> & { made?: unknown }, hour: number, rng: Rng, ask?: M.Ask): string {
     this.petAt(place);

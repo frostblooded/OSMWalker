@@ -3,7 +3,8 @@
 // While Viktor is in town a stop may bring a meeting: a contest for the same
 // thing (a job, a table, a chess game), or now and then a friendly chat.
 // Viktor remembers every meeting, levels up when he wins, and over many
-// meetings a grudge or a friendship forms. All of it plays out by itself.
+// meetings a grudge or a friendship forms. All of it plays out by itself;
+// while you watch, a contest opens as a mini-game you may play.
 // Pure; Stats owns one.
 import { GAME_ATTR, type GameId, type Moment, type Pick } from "./moments";
 import type { Rng } from "./rng";

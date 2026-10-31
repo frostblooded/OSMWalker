@@ -180,6 +180,28 @@ describe("game", () => {
     expect(g.stats.incidentLatest()).toBe(true);
   });
 
+  it("saves nothing while a story choice is open, though the place's own moment settles at once", async () => {
+    const { g, storage } = game({ places: [CAFE], moments: true });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 3 * 3600 && g.moment?.m.id !== "incident:busker"; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment?.m.id).toBe("incident:busker");
+    await Promise.resolve();
+    // The cafe's own moment came while it was open, so he picked it himself.
+    expect(g.stats.history.latest()).toMatch(/Decided by himself/);
+    const before = storage.getItem(SAVE_KEY);
+    g.save();
+    expect(storage.getItem(SAVE_KEY)).toBe(before);
+    g.settleMoment("0");
+    await Promise.resolve();
+    expect(storage.getItem(SAVE_KEY)).not.toBe(before);
+    expect(storage.getItem(SAVE_KEY)).toContain("A busker at Cafe Near. Sings: coins fly.");
+  });
+
   it("with the Choice timer Off, a story choice settles at once, before the action he then chooses", async () => {
     const { g } = game({ places: [CAFE] });
     const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
