@@ -6,6 +6,7 @@
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
+import { hisPick, momentOf, settle as settleCard, type Pick as CardPick } from "../core/workCards";
 import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
@@ -463,15 +464,29 @@ export class Game {
       return;
     }
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
+    this.stats.askCards = true;
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
+    this.stats.askCards = false;
     this.walker!.restFor(restMinutes(action));
-    this.askAt(place, restMinutes(action) * 60);
+    // A chance card at work takes the place of the place's own moment.
+    if (this.stats.workCard) this.askCard(restMinutes(action) * 60);
+    else this.askAt(place, restMinutes(action) * 60);
     this.changed();
   }
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
   private askAt(place: Place, maxS: number): void {
     this.askPlaceMoment(this.stats.momentAt(place), place.name, momentDice(this.stats.now(), place.name), maxS);
+  }
+
+  /** The chance card at work that just came up (workCards.ts), open at most `maxS` seconds; if you don't tap, he picks on its own dice, as in the catch-up. */
+  private askCard(maxS: number): void {
+    const { d, dice } = this.stats.workCard!;
+    this.stats.workCard = null;
+    void this.ask(momentOf(d.card), { maxS, his: () => hisPick(this.stats, d.card, dice) }).then((p) => {
+      this.stats.say(settleCard(this.stats, d, p.id as CardPick, p.you, dice));
+      this.save();
+    });
   }
 
   /** As he boards for `plan`: maybe a moment on the way. */
