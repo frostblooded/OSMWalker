@@ -90,6 +90,8 @@ export const JET_LAG_XP = 0.9;
 export type Kind = "stay" | "city" | "country";
 export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch" | "walk" | "portal";
 export type City = { name: string; code: string; country: string; lat: number; lon: number; pop: number; bounds?: BBox };
+/** The city's "Name, Country" key, the name trips give it and city quests match on. */
+export const cityKey = (c: City): string => `${c.name}, ${c.country}`;
 export type Airport = Place & { iata: string; code: string };
 export type LatLon = [number, number];
 export type Plan = {

@@ -38,7 +38,7 @@ import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, cityKey, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
@@ -498,7 +498,7 @@ export class Game {
   }
 
   private onLanded(dest: City, t: Travel): void {
-    this.city = `${dest.name}, ${dest.country}`;
+    this.city = cityKey(dest);
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
     this.placeStats();
@@ -701,7 +701,8 @@ export class Game {
     // A ride longer than the time away (a long walk, say) goes on when you are back.
     const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0 };
+    const near = this.trips.cityNear(this.origin[0], this.origin[1]);
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: near ? cityKey(near) : "" };
     const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
@@ -1022,7 +1023,8 @@ export class Game {
     const q = this.stats.quests;
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
-    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng);
+    const near = this.trips.cityNear(this.origin[0], this.origin[1]);
+    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, near ? cityKey(near) : "");
     if (q.rev !== rev) this.changed();
   }
 

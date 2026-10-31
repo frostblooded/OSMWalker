@@ -83,7 +83,7 @@ describe("the capitals' own quests", () => {
 
   it("go on their city's board first, and send him to the named landmark", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] });
-    s.quests.roll("Paris, France", 20_000, [...TOWN, ...sights], new Rng(3));
+    s.quests.roll("Paris, France", 20_000, [...TOWN, ...sights], new Rng(3), "Paris, France");
     expect(s.quests.board.map((o) => o.key)).toEqual(["eiffel", "a:Ana:0"]);
     s.quests.since = 9;
     s.quests.nudge = "eiffel";
@@ -94,11 +94,31 @@ describe("the capitals' own quests", () => {
 
   it("never show up in another city, and are done once for good", () => {
     const { s } = fresh({ names: ["Ana", "Bo"], quests: [one({ id: "a" }), paris], events: [] });
-    s.quests.roll("Lyon, France", 300_000, [...TOWN, ...sights], new Rng(3));
+    s.quests.roll("Lyon, France", 300_000, [...TOWN, ...sights], new Rng(3), "Lyon, France");
     expect(s.quests.board.some((o) => o.kind === "eiffel")).toBe(false);
     s.quests.done = ["eiffel"];
-    s.quests.roll("Paris, France", 300_000, [...TOWN, ...sights], new Rng(3));
+    s.quests.roll("Paris, France", 300_000, [...TOWN, ...sights], new Rng(3), "Paris, France");
     expect(s.quests.board.some((o) => o.kind === "eiffel")).toBe(false);
+  });
+
+  it("send him on to a place of the same kind when he already stands at the landmark", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [paris], events: [] });
+    const all = [...TOWN, ...sights];
+    s.quests.roll("Paris, France", 20_000, all, new Rng(3), "Paris, France");
+    s.quests.since = 9;
+    const giver = Q.questGoal(s, all, HERE, new Rng(3))!;
+    Q.questStop(s, giver, all, 12, new Rng(3));
+    expect(Q.questGoal(s, all, [eiffel.lat, eiffel.lon], new Rng(3))).toBe(sights[0]);
+  });
+
+  it("count toward the fantasy share, so a small board gets no magic city quest", () => {
+    const magic = one({ id: "paris_magic", city: "Paris, France", fantasy: true });
+    const { s } = fresh({ names: ["Ana", "Bo", "Cy", "Di", "Eve", "Fay"], quests: [one({ id: "a" }), magic], events: [] });
+    s.quests.roll("Paris, France", 5_000, TOWN, new Rng(3), "Paris, France");
+    expect(s.quests.board.some((o) => o.key === "paris_magic")).toBe(false);
+    s.quests.city = "";
+    s.quests.roll("Paris, France", 300_000, TOWN, new Rng(3), "Paris, France");
+    expect(s.quests.board[0]?.key).toBe("paris_magic");
   });
 
   it("stand in a place of the same kind while the landmark isn't loaded", () => {
@@ -111,21 +131,28 @@ describe("the capitals' own quests", () => {
     expect(Q.stepPlaces(paris.steps[1]!, [cafe, sights[0]!])).toEqual([sights[0]]);
   });
 
-  it("know their city however a search spells it", () => {
-    expect(Q.sameCity("Sofia, Bulgaria", "Sofia, Sofia City, Bulgaria")).toBe(true);
-    expect(Q.sameCity("Bogota, Colombia", "Bogotá, Bogotá D.C., Colombia")).toBe(true);
-    expect(Q.sameCity("Washington,  D.C., United States of America", "Washington, District of Columbia, United States")).toBe(true);
-    expect(Q.sameCity("London, United Kingdom", "London, Ontario, Canada")).toBe(false);
+  it("go by the listed city's key, however a search spells the start city", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] });
-    s.quests.roll("Paris, Île-de-France, France", 20_000, [...TOWN, ...sights], new Rng(3));
+    s.quests.roll("Paris, Île-de-France, France", 20_000, [...TOWN, ...sights], new Rng(3), "Paris, France");
     expect(s.quests.board[0]?.key).toBe("eiffel");
+    const other = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] }).s;
+    other.quests.roll("Paris, Texas, United States", 20_000, [...TOWN, ...sights], new Rng(3), "Paris, United States of America");
+    expect(other.quests.board.some((o) => o.key === "eiffel")).toBe(false);
+  });
+
+  it("are kept done for good, however many template quests he finishes after", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] });
+    s.quests.done = ["eiffel", ...Array.from({ length: Q.DONE_MAX + 5 }, (_, i) => `a:Ana:${i}`)];
+    const back = Q.Quests.fromJSON(JSON.parse(JSON.stringify(s.quests.toJSON())));
+    expect(back.done).toContain("eiffel");
+    expect(back.done.filter((k) => k.includes(":")).length).toBe(Q.DONE_MAX);
   });
 
   it("don't make a board ready in another city that only has their giver kinds", () => {
     const music = one({ id: "band", city: "Paris, France", steps: [{ at: ["music"], say: ["At {PLACE}."] }, { at: ["cafe"], say: ["At {PLACE}."] }] });
     const shops = Array.from({ length: Q.BOARD_PLACES }, (_, i) => place(`Music ${i}`, "music", i % 6));
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), music], events: [] });
-    s.quests.roll("Lyon, France", 300_000, shops, new Rng(3));
+    s.quests.roll("Lyon, France", 300_000, shops, new Rng(3), "Lyon, France");
     expect(s.quests.rolled).toBe(false);
   });
 });

@@ -133,13 +133,9 @@ export function stepPlaces(step: Step, places: readonly Place[]): Place[] {
 /** Lower case without accents, so "Bogotá" and "Bogota" match. */
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** True when a quest's `city` ("Paris, France", from cities.tsv) is `here`, which a search may spell "Paris, Île-de-France, France": the same name first and the same country last. */
-export function sameCity(city: string, here: string): boolean {
-  const a = city.split(",").map((x) => fold(x.trim()));
-  const b = here.split(",").map((x) => fold(x.trim()));
-  const [ca, cb] = [a.at(-1)!, b.at(-1)!];
-  return a[0] === b[0] && (ca.startsWith(cb) || cb.startsWith(ca));
-}
+
+/** The done keys kept: every city quest (its key is its id, with no ":"), and the newest DONE_MAX of the rest. */
+const remember = (done: string[]) => [...done.filter((k) => !k.includes(":")), ...done.filter((k) => k.includes(":")).slice(-DONE_MAX)];
 
 /** How many quests a city of `pop` people has on its board. */
 export function boardSize(pop: number): number {
@@ -193,8 +189,8 @@ export class Quests {
     return { icon: k.icon, title: k.title, text: fill(k.steps[0]!.say[0]!, { giver: o.giver, item: k.items[o.item], place: o.at.name, town }) };
   }
 
-  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board, events and quest at once. */
-  roll(city: string, pop: number, places: readonly Place[], rng: Rng): void {
+  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board, events and quest at once. `listed` is the city's cities.tsv "Name, Country" key ("" when it isn't listed): only quests of that city join the board. */
+  roll(city: string, pop: number, places: readonly Place[], rng: Rng, listed = ""): void {
     if (this.city !== city) {
       // Another city's board, events and quest stay behind (a free ride can take him away mid-quest).
       this.city = city;
@@ -207,7 +203,7 @@ export class Quests {
     }
     if (this.rolled || !this.bank.quests.length) return;
     // Bridges can load before shops and cafés, and no quest starts at one: they don't count.
-    const mine = this.bank.quests.filter((k) => !k.city || sameCity(k.city, city));
+    const mine = this.bank.quests.filter((k) => !k.city || k.city === listed);
     const givers = [...new Set(mine.flatMap((k) => k.steps[0]!.at))];
     if (places.filter((p) => p.class !== BRIDGE).length < BOARD_PLACES || !places.some((p) => isKind(p, givers))) return;
     this.rolled = true;
@@ -259,7 +255,7 @@ export class Quests {
     q.board = Array.isArray(o.board) ? o.board : [];
     q.active = o.active && typeof o.active === "object" ? o.active : null;
     q.events = Array.isArray(o.events) ? o.events : [];
-    q.done = Array.isArray(o.done) ? o.done.filter((k): k is string => typeof k === "string").slice(-DONE_MAX) : [];
+    q.done = Array.isArray(o.done) ? remember(o.done.filter((k): k is string => typeof k === "string")) : [];
     // Failed quests are done but not finished; a save from before the tally counts what it remembers.
     q.finished = typeof o.finished === "number" ? o.finished : q.done.length;
     q.log = Array.isArray(o.log) ? o.log.slice(-LOG_MAX) : [];
@@ -403,7 +399,7 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
     q.finished++;
   }
   log(stats, { icon: k.icon, title: k.title, good: !failed });
-  q.done = [...q.done, a.key].slice(-DONE_MAX);
+  q.done = remember([...q.done, a.key]);
   q.active = null;
   q.since = 0;
   q.wait = rng.randiRange(QUEST_EVERY_MIN, QUEST_EVERY_MAX);
