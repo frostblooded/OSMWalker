@@ -27,6 +27,7 @@ import { Problems } from "../core/problems";
 import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
 import * as R from "../core/repute";
 import { Rng, seedOf } from "../core/rng";
+import * as Notes from "../core/sightNotes";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { DiaryData } from "../core/diary";
 import type { MailData } from "../core/mail";
@@ -42,10 +43,10 @@ import type { Contest } from "../core/rival";
 import type { Borders } from "../core/border";
 import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
-import type { Dex } from "../core/keepsakes";
+import { isLandmark, type Dex } from "../core/keepsakes";
 import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
-import { Stats, type Action, type Place } from "../core/stats";
+import { Stats, visitKey, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, cityKey, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
@@ -126,6 +127,9 @@ export class Game {
   /** Holiday lists by "CC:year" (from the device, then Nager.Date), and lists being fetched. */
   private holidayBook: HolidayBook;
   private holidayFetches = new Map<string, Promise<void>>();
+  /** When he last looked sights up (unix ms, the past hour), and whether a lookup is under way (see readUp). */
+  private noteAsks: number[] = [];
+  private noteBusy = false;
   /** Two-letter country codes (see loadIso2). */
   private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
@@ -414,6 +418,7 @@ export class Game {
     this.stats.care.open(this.stats);
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
+    void this.readUp(place);
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
@@ -533,6 +538,40 @@ export class Game {
     this.cityFacts = CityFacts.actions(rows);
     this.factsOf = asked;
     if (this.cityFacts.length === 0) this.problems.warn(`No Wikidata trivia for ${this.city}`);
+  }
+
+  /**
+   * At a big real sight he hasn't looked up yet, reads up on it in the
+   * background (sightNotes.ts): English Wikipedia, then the one in the
+   * country's language. One lookup at a time, Notes.PER_HOUR an hour; a
+   * failed request leaves the sight to try again another time.
+   */
+  private async readUp(place: Place): Promise<void> {
+    const key = visitKey(place);
+    if (place.made || !isLandmark(place) || place.rank > Notes.NOTE_RANK || this.noteBusy || this.stats.sightNotes.knows(key)) return;
+    const asks = Notes.ask(this.noteAsks, this.now());
+    if (!asks) return;
+    this.noteAsks = asks;
+    this.noteBusy = true;
+    // A new city or game while the answer is on its way gets nothing from it.
+    const stats = this.stats;
+    try {
+      const lang = this.deps.data.words?.countries[this.country];
+      const wikis = ["en", ...(lang && Notes.wikiOf(lang) !== "en" ? [Notes.wikiOf(lang)] : [])];
+      for (const wiki of wikis) {
+        const data = await this.deps.api.sightNote(wiki, place.lat, place.lon);
+        if (data === null || this.stats !== stats) return;
+        const note = Notes.pick(data, place.name);
+        if (note) {
+          stats.noteRead(key, place.name, note);
+          this.changed();
+          return;
+        }
+      }
+      stats.sightNotes.missed(key);
+    } finally {
+      this.noteBusy = false;
+    }
   }
 
   /** True when no places of note are loaded in the city box. */
