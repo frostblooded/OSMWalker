@@ -18,7 +18,8 @@ export const POSE_EVERY_S = 60;
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
 /** `mount`: the fantasy mount he rides, beside his face, or ""; `pet`: his pet on his other side, or ""; `aura`: a halo or horns at very good or very bad karma (repute.ts AURA_AT). */
-export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string; aura?: Aura };
+/** `say` is his words in a speech bubble, for a few seconds after a beat (see beats.ts). */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string; aura?: Aura; say?: string };
 export type Aura = "halo" | "horns";
 
 /** A halo at karma AURA_AT or more, horns at -AURA_AT or less. */

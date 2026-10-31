@@ -1,0 +1,2317 @@
+{
+"beats": [
+{
+"id": "pigeon",
+"icon": "🐦",
+"at": "walk",
+"text": "A pigeon eyed his snack on {STREET}",
+"say": "Shoo, pigeon!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "busker",
+"icon": "🎸",
+"at": "walk",
+"text": "A busker on {STREET} played his favourite song",
+"say": "I love this one!",
+"fx": {
+"mood": 3
+}
+},
+{
+"id": "lost_tourist",
+"icon": "🗺",
+"at": "walk",
+"text": "A lost tourist asked him the way, and he pointed confidently",
+"say": "That way. I think.",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "dog_sniff",
+"icon": "🐕",
+"at": "walk",
+"text": "A dog on {STREET} sniffed his shoes with great interest",
+"say": "Good dog!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "cat_follow",
+"icon": "🐈",
+"at": "walk",
+"text": "A street cat followed him for half a block",
+"say": "Hello, kitty",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "shoelace",
+"icon": "👟",
+"at": "walk",
+"text": "His shoelace came undone on {STREET}",
+"say": "Not again…",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "puddle",
+"icon": "💧",
+"at": "walk",
+"text": "He hopped over a puddle and nearly made it",
+"say": "Whoops",
+"fx": {
+"hygiene": -1
+}
+},
+{
+"id": "wave_kid",
+"icon": "👋",
+"at": "walk",
+"text": "A kid on a balcony waved at him, and he waved back",
+"say": "Hi there!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "smell_bread",
+"icon": "🥖",
+"at": "walk",
+"text": "The smell of fresh bread drifted down {STREET}",
+"say": "Mmm, bread…",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "scooter",
+"icon": "🛴",
+"at": "walk",
+"text": "A scooter whizzed past a bit too close",
+"say": "Hey, careful!",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "pothole",
+"icon": "🕳",
+"at": "walk",
+"text": "He nearly stepped into a pothole on {STREET}",
+"say": "Phew"
+},
+{
+"id": "old_man_chess",
+"icon": "♟",
+"at": "walk",
+"text": "Two old men argued over a chess move on a bench",
+"say": "Knight to f3!",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "street_art",
+"icon": "🎨",
+"at": "walk",
+"text": "He stopped to admire a mural on {STREET}",
+"say": "Pretty!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "coin_heads",
+"icon": "🪙",
+"at": "walk",
+"text": "He flipped a coin to choose left or right. Heads",
+"say": "Heads it is"
+},
+{
+"id": "selfie",
+"icon": "🤳",
+"at": "walk",
+"text": "He photobombed a couple's selfie by accident",
+"say": "Sorry!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "delivery",
+"icon": "🛵",
+"at": "walk",
+"text": "A delivery rider asked him for directions",
+"say": "Second left",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "balloon",
+"icon": "🎈",
+"at": "walk",
+"text": "A red balloon floated over the rooftops of {CITY}",
+"say": "Where's it going?",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "whistle",
+"icon": "🎶",
+"at": "walk",
+"text": "He whistled a tune he can't name",
+"say": "La la la…",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "bench_rest",
+"icon": "🪑",
+"at": "walk",
+"text": "He sat on a bench for a moment to watch {CITY} go by",
+"say": "Nice spot",
+"fx": {
+"energy": 1
+}
+},
+{
+"id": "window_shop",
+"icon": "🪟",
+"at": "walk",
+"text": "He looked into a shop window at things he can't afford",
+"say": "One day…"
+},
+{
+"id": "flyer",
+"icon": "📄",
+"at": "walk",
+"text": "Someone handed him a flyer for a concert",
+"say": "Maybe I'll go"
+},
+{
+"id": "church_bell",
+"icon": "🔔",
+"at": "walk",
+"text": "Church bells rang across {CITY}",
+"say": "Already?"
+},
+{
+"id": "ant_line",
+"icon": "🐜",
+"at": "walk",
+"text": "He stepped around a line of ants carrying crumbs",
+"say": "Busy little guys",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "squirrel",
+"icon": "🐿",
+"at": "walk",
+"text": "A squirrel stared at him from a tree",
+"say": "What are you looking at?",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "grandma",
+"icon": "👵",
+"at": "walk",
+"text": "He helped an old lady carry her shopping across {STREET}",
+"say": "Here you go",
+"fx": {
+"mood": 3,
+"karma": 1
+}
+},
+{
+"id": "double_take",
+"icon": "😮",
+"at": "walk",
+"text": "He thought he saw an old friend, but it was a stranger",
+"say": "Oh. Never mind"
+},
+{
+"id": "map_check",
+"icon": "🧭",
+"at": "walk",
+"text": "He checked his map, turned it upside down and checked again",
+"say": "Hmm…"
+},
+{
+"id": "bus_miss",
+"icon": "🚏",
+"at": "walk",
+"text": "A city bus pulled away just as he reached the stop",
+"say": "Didn't want it anyway"
+},
+{
+"id": "graffiti",
+"icon": "✍",
+"at": "walk",
+"text": "He read a funny bit of graffiti on {STREET}",
+"say": "Ha!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "sneeze",
+"icon": "🤧",
+"at": "walk",
+"text": "He sneezed three times in a row",
+"say": "Achoo!"
+},
+{
+"id": "hum_neighbour",
+"icon": "🎵",
+"at": "walk",
+"text": "Someone was practising the piano behind an open window",
+"say": "Not bad",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "wrong_turn",
+"icon": "↩",
+"at": "walk",
+"text": "He took a wrong turn and had to double back",
+"say": "Oops",
+"fx": {
+"energy": -1
+}
+},
+{
+"id": "market_stall",
+"icon": "🍎",
+"at": "walk",
+"text": "A stallholder gave him a free taste of fruit",
+"say": "Thank you!",
+"fx": {
+"fullness": 2,
+"mood": 1
+}
+},
+{
+"id": "drop_phone",
+"icon": "📱",
+"at": "walk",
+"text": "He fumbled his phone and caught it just in time",
+"say": "Saved it!"
+},
+{
+"id": "chalk_game",
+"icon": "🔢",
+"at": "walk",
+"text": "He hopped through a chalk hopscotch on the pavement",
+"say": "One, two, three!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "parade_honk",
+"icon": "📯",
+"at": "walk",
+"text": "A wedding convoy drove past, honking",
+"say": "Congratulations!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "spider_web",
+"icon": "🕸",
+"at": "walk",
+"text": "He walked face first into a spider web",
+"say": "Bleh!",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "flowers_balcony",
+"icon": "🌸",
+"at": "walk",
+"text": "Flower boxes made {STREET} smell lovely",
+"say": "Smells nice",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "boules",
+"icon": "⚪",
+"at": "walk",
+"text": "He watched a game of boules in a square",
+"say": "Ooh, close one",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "lost_glove",
+"icon": "🧤",
+"at": "walk",
+"text": "He put a lost glove on a railing so its owner could find it",
+"say": "There you go",
+"fx": {
+"karma": 1
+}
+},
+{
+"id": "cyclist_bell",
+"icon": "🚲",
+"at": "walk",
+"text": "A cyclist rang a bell at him and he jumped aside",
+"say": "Sorry!"
+},
+{
+"id": "street_sign",
+"icon": "🪧",
+"at": "walk",
+"text": "He tried to pronounce a street sign out loud",
+"say": "{STREET}… right?",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "ice_cream_kid",
+"icon": "🍦",
+"at": "walk",
+"text": "A kid dropped an ice cream and he looked away politely",
+"say": "Oh no…"
+},
+{
+"id": "queue",
+"icon": "🧍",
+"at": "walk",
+"text": "He walked past a long queue and wondered what it was for",
+"say": "What's in there?"
+},
+{
+"id": "bird_song",
+"icon": "🐦",
+"at": "walk",
+"text": "A blackbird sang on a lamp post",
+"say": "Pretty song",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "construction",
+"icon": "🚧",
+"at": "walk",
+"text": "Roadworks closed half of {STREET}",
+"say": "Always roadworks",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "free_wifi",
+"icon": "📶",
+"at": "walk",
+"text": "His phone found free wifi for a moment",
+"say": "Ooh, wifi!"
+},
+{
+"id": "high_five",
+"icon": "✋",
+"at": "walk",
+"text": "A stranger gave him a high five for no reason",
+"say": "Yeah!",
+"fx": {
+"mood": 3
+}
+},
+{
+"id": "statue_pose",
+"icon": "🗿",
+"at": "walk",
+"text": "He copied a statue's pose for a second",
+"say": "Like this?",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "window_cat",
+"icon": "🐱",
+"at": "walk",
+"text": "A cat watched him from a windowsill",
+"say": "Hello up there",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "puddle_splash",
+"icon": "🚗",
+"at": "walk",
+"text": "A car splashed a puddle right next to him",
+"say": "Hey!",
+"fx": {
+"hygiene": -2,
+"mood": -1
+}
+},
+{
+"id": "lucky_penny",
+"icon": "🍀",
+"at": "walk",
+"text": "He found a lucky clover between the paving stones",
+"say": "Lucky!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "shop_bell",
+"icon": "🛎",
+"at": "walk",
+"text": "A shop door's bell jingled as he walked by",
+"say": "Ding!"
+},
+{
+"id": "bus_wave",
+"icon": "🚌",
+"at": "walk",
+"text": "He waved at a bus driver, who waved back",
+"say": "Hi!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "lady_dog_names",
+"icon": "🐩",
+"at": "walk",
+"text": "A lady introduced her three dogs to him by name",
+"say": "Nice to meet you all",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "stroll_couple",
+"icon": "💑",
+"at": "walk",
+"text": "An old couple walked by holding hands",
+"say": "Aww",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "frisbee",
+"icon": "🥏",
+"at": "walk",
+"text": "A frisbee landed at his feet, and he threw it back",
+"say": "Got it!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "trash_bin",
+"icon": "🗑",
+"at": "walk",
+"text": "He picked up a can and put it in a bin",
+"say": "Keep {CITY} tidy",
+"fx": {
+"karma": 1
+}
+},
+{
+"id": "street_vendor",
+"icon": "🌰",
+"at": "walk",
+"text": "Roasted chestnuts smelled great on {STREET}",
+"say": "Smells like winter",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "posters",
+"icon": "📰",
+"at": "walk",
+"text": "He read old posters peeling off a wall",
+"say": "Missed that one"
+},
+{
+"id": "tourist_photo",
+"icon": "📷",
+"at": "walk",
+"text": "Tourists asked him to take their photo",
+"say": "Say cheese!",
+"fx": {
+"mood": 1,
+"xp": 2
+}
+},
+{
+"id": "puzzle_door",
+"icon": "🚪",
+"at": "walk",
+"text": "He pushed a door that said pull",
+"say": "Oops"
+},
+{
+"id": "ringtone",
+"icon": "📳",
+"at": "walk",
+"text": "Everyone checked their phones at the same ringtone",
+"say": "Not mine"
+},
+{
+"id": "kids_race",
+"icon": "🏃",
+"at": "walk",
+"text": "Two kids raced him to the corner and won",
+"say": "You win!",
+"fx": {
+"mood": 2,
+"energy": -1
+}
+},
+{
+"id": "music_car",
+"icon": "🔊",
+"at": "walk",
+"text": "A car drove by with loud music, and he nodded along",
+"say": "Tune!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "fountain_coin",
+"icon": "⛲",
+"at": "walk",
+"text": "He watched someone toss a coin into a fountain",
+"say": "Make a wish"
+},
+{
+"id": "neighbours_talk",
+"icon": "🗣",
+"at": "walk",
+"text": "He overheard neighbours gossiping in a doorway",
+"say": "Oh really?"
+},
+{
+"id": "cobbles",
+"icon": "🧱",
+"at": "walk",
+"text": "The cobblestones of {STREET} were hard on his feet",
+"say": "Ouch",
+"fx": {
+"energy": -1
+}
+},
+{
+"id": "rooftop_view",
+"icon": "🏙",
+"at": "walk",
+"text": "He caught a view of {CITY}'s rooftops between two buildings",
+"say": "Wow",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "street_dance",
+"icon": "💃",
+"at": "walk",
+"text": "A street dancer drew a small crowd",
+"say": "Look at that!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "bookstall",
+"icon": "📚",
+"at": "walk",
+"text": "He flipped through books at a street stall",
+"say": "Interesting…",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "gum_shoe",
+"icon": "🩴",
+"at": "walk",
+"text": "He stepped in chewing gum",
+"say": "Ugh, gum",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "cake_window",
+"icon": "🎂",
+"at": "walk",
+"text": "He pressed his nose to a bakery window",
+"say": "So many cakes…",
+"fx": {
+"fullness": -1
+}
+},
+{
+"id": "helping_bike",
+"icon": "🔧",
+"at": "walk",
+"text": "He helped someone put their bike chain back on",
+"say": "Good as new",
+"fx": {
+"karma": 1,
+"xp": 2
+}
+},
+{
+"id": "alarm",
+"icon": "🚨",
+"at": "walk",
+"text": "A car alarm went off, and nobody looked",
+"say": "Typical"
+},
+{
+"id": "bubbles",
+"icon": "🫧",
+"at": "walk",
+"text": "Soap bubbles floated across {STREET}",
+"say": "Bubbles!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "fruit_drop",
+"icon": "🍊",
+"at": "walk",
+"text": "An orange rolled off a cart and he caught it for the seller",
+"say": "Catch!",
+"fx": {
+"karma": 1
+}
+},
+{
+"id": "hat_wind",
+"icon": "🎩",
+"at": "walk",
+"text": "A gust nearly took someone's hat, and he caught it",
+"say": "Got it!",
+"fx": {
+"karma": 1,
+"mood": 1
+}
+},
+{
+"id": "door_hold",
+"icon": "🚪",
+"at": "walk",
+"text": "He held a door for a stranger with a pram",
+"say": "After you",
+"fx": {
+"karma": 1
+}
+},
+{
+"id": "street_quiz",
+"icon": "❓",
+"at": "walk",
+"text": "A student with a clipboard asked him survey questions",
+"say": "Hmm, three?",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "misheard",
+"icon": "👂",
+"at": "walk",
+"text": "Someone called a name that sounded like his",
+"say": "Me? No…"
+},
+{
+"id": "tiny_dog_bark",
+"icon": "🐶",
+"at": "walk",
+"text": "A tiny dog barked at him like a lion",
+"say": "Easy, tiger",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "crossword",
+"icon": "📝",
+"at": "walk",
+"text": "He glanced at a man's crossword and knew an answer",
+"say": "Seven down is 'atlas'",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "smell_coffee",
+"icon": "☕",
+"at": "walk",
+"text": "Coffee smell poured out of a café door",
+"say": "Mmm, coffee",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "shadow",
+"icon": "🌗",
+"at": "walk",
+"text": "He noticed his own shadow walking beside him",
+"say": "Hi, me"
+},
+{
+"id": "motorcade",
+"icon": "🚓",
+"at": "walk",
+"text": "A police car sped past with its siren on",
+"say": "Wonder what that was"
+},
+{
+"id": "shop_cat",
+"icon": "😺",
+"at": "walk",
+"text": "A shop cat sat in the doorway like it owned the street",
+"say": "Your highness",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "tree_shade",
+"icon": "🌳",
+"at": "walk",
+"text": "He walked under a big old tree on {STREET}",
+"say": "Nice shade",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "bike_lock",
+"icon": "🔒",
+"at": "walk",
+"text": "A bike was locked to a lamp post with only its wheel left",
+"say": "Poor bike"
+},
+{
+"id": "child_question",
+"icon": "🧒",
+"at": "walk",
+"text": "A child asked him why the sky is blue",
+"say": "Uh… science?"
+},
+{
+"id": "echo",
+"icon": "📣",
+"at": "walk",
+"text": "He shouted hello into an echoing underpass",
+"say": "Hellooo!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "rain_umbrella",
+"icon": "☂",
+"at": "walk",
+"text": "A stranger shared an umbrella with him for a block",
+"say": "Thanks!",
+"fx": {
+"mood": 2
+},
+"sky": "wet"
+},
+{
+"id": "rain_run",
+"icon": "🌧",
+"at": "walk",
+"text": "He ran from one awning to the next to dodge the rain",
+"say": "Go go go!",
+"fx": {
+"energy": -1
+},
+"sky": "wet"
+},
+{
+"id": "rain_puddle_kid",
+"icon": "🌧",
+"at": "walk",
+"text": "Kids stomped in puddles and he joined in, just once",
+"say": "Splash!",
+"fx": {
+"mood": 2,
+"hygiene": -1
+},
+"sky": "wet"
+},
+{
+"id": "rain_smell",
+"icon": "🌦",
+"at": "walk",
+"text": "He breathed in the smell of rain on warm stone",
+"say": "Petrichor",
+"fx": {
+"mood": 1
+},
+"sky": "wet"
+},
+{
+"id": "rain_drip",
+"icon": "💦",
+"at": "walk",
+"text": "A drip from a gutter landed right on his neck",
+"say": "Brr!",
+"fx": {
+"mood": -1
+},
+"sky": "wet"
+},
+{
+"id": "snow_ball",
+"icon": "❄",
+"at": "walk",
+"text": "Someone's snowball missed him by an inch",
+"say": "Ha, missed!",
+"fx": {
+"mood": 1
+},
+"sky": "snow"
+},
+{
+"id": "snow_angel",
+"icon": "⛄",
+"at": "walk",
+"text": "He saw a tiny snowman on a car bonnet",
+"say": "Cute!",
+"fx": {
+"mood": 2
+},
+"sky": "snow"
+},
+{
+"id": "snow_slip",
+"icon": "🧊",
+"at": "walk",
+"text": "He slid on a patch of ice and kept his balance",
+"say": "Whoa!",
+"sky": "snow"
+},
+{
+"id": "sun_squint",
+"icon": "😎",
+"at": "walk",
+"text": "He squinted into the sun and grinned",
+"say": "Lovely day",
+"fx": {
+"mood": 2
+},
+"sky": "sunny"
+},
+{
+"id": "sun_cafe_tables",
+"icon": "☀",
+"at": "walk",
+"text": "Every café table on {STREET} was full in the sun",
+"say": "Busy today",
+"sky": "sunny"
+},
+{
+"id": "sun_cat",
+"icon": "🐈",
+"at": "walk",
+"text": "A cat lay flat out in a patch of sunshine",
+"say": "Living the dream",
+"fx": {
+"mood": 1
+},
+"sky": "sunny"
+},
+{
+"id": "hot_shade",
+"icon": "🥵",
+"at": "walk",
+"text": "He crossed the street just to walk in the shade",
+"say": "So hot…",
+"fx": {
+"thirst": -2
+},
+"sky": "hot"
+},
+{
+"id": "hot_sprinkler",
+"icon": "💦",
+"at": "walk",
+"text": "A sprinkler caught him, and it felt great",
+"say": "Ahh, cool!",
+"fx": {
+"mood": 2,
+"thirst": 1
+},
+"sky": "hot"
+},
+{
+"id": "hot_icecream_van",
+"icon": "🍦",
+"at": "walk",
+"text": "An ice cream van played its tune nearby",
+"say": "Tempting…",
+"sky": "hot"
+},
+{
+"id": "cold_breath",
+"icon": "🥶",
+"at": "walk",
+"text": "He could see his breath in the cold air",
+"say": "Brrr",
+"sky": "cold"
+},
+{
+"id": "cold_hands",
+"icon": "🧤",
+"at": "walk",
+"text": "He blew on his hands to warm them up",
+"say": "Freezing!",
+"fx": {
+"energy": -1
+},
+"sky": "cold"
+},
+{
+"id": "cold_chestnut",
+"icon": "🌰",
+"at": "walk",
+"text": "A chestnut seller's fire looked so warm",
+"say": "Toasty",
+"fx": {
+"mood": 1
+},
+"sky": "cold"
+},
+{
+"id": "night_stars",
+"icon": "✨",
+"at": "walk",
+"text": "He spotted a few stars above {CITY}'s lights",
+"say": "Make a wish",
+"fx": {
+"mood": 2
+},
+"sky": "night"
+},
+{
+"id": "night_neon",
+"icon": "🌃",
+"at": "walk",
+"text": "Neon signs buzzed along {STREET}",
+"say": "Pretty at night",
+"fx": {
+"mood": 1
+},
+"sky": "night"
+},
+{
+"id": "night_owl",
+"icon": "🦉",
+"at": "walk",
+"text": "An owl hooted somewhere in the dark",
+"say": "Who's there?",
+"sky": "night"
+},
+{
+"id": "night_quiet",
+"icon": "🌙",
+"at": "walk",
+"text": "{STREET} was so quiet he could hear his own steps",
+"say": "Spooky…",
+"sky": "night"
+},
+{
+"id": "night_kebab",
+"icon": "🥙",
+"at": "walk",
+"text": "A late-night kebab shop glowed on the corner",
+"say": "Maybe later",
+"sky": "night"
+},
+{
+"id": "night_moon",
+"icon": "🌕",
+"at": "walk",
+"text": "The moon rose over the rooftops",
+"say": "Big moon tonight",
+"fx": {
+"mood": 1
+},
+"sky": "night"
+},
+{
+"id": "morning_bins",
+"icon": "🚛",
+"at": "walk",
+"text": "A rubbish truck clanked down {STREET}",
+"say": "Noisy!",
+"sky": "day"
+},
+{
+"id": "day_school",
+"icon": "🏫",
+"at": "walk",
+"text": "School bells rang and kids poured onto the street",
+"say": "So many!",
+"sky": "day"
+},
+{
+"id": "window_clouds",
+"icon": "☁",
+"at": "ride",
+"text": "He watched the clouds slide under the wing",
+"say": "Like cotton",
+"fx": {
+"mood": 2
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "snack_trolley",
+"icon": "🥨",
+"at": "ride",
+"text": "The trolley came by with pretzels",
+"say": "Pretzels, please",
+"fx": {
+"fullness": 2
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "turbulence",
+"icon": "✈",
+"at": "ride",
+"text": "A bit of turbulence rattled the cabin",
+"say": "Hold on!",
+"fx": {
+"mood": -1
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "crying_baby",
+"icon": "👶",
+"at": "ride",
+"text": "A baby cried three rows back",
+"say": "Poor thing",
+"fx": {
+"energy": -1
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "ear_pop",
+"icon": "👂",
+"at": "ride",
+"text": "His ears popped as the plane climbed",
+"say": "Pop!",
+"modes": [
+"plane"
+]
+},
+{
+"id": "seat_neighbour_plane",
+"icon": "💬",
+"at": "ride",
+"text": "His seat neighbour told him their whole life story",
+"say": "Wow, really?",
+"fx": {
+"xp": 3
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "pilot_joke",
+"icon": "🎙",
+"at": "ride",
+"text": "The pilot made a joke over the speakers",
+"say": "Ha!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "map_screen",
+"icon": "🗺",
+"at": "ride",
+"text": "He watched the little plane crawl across the map screen",
+"say": "Almost there",
+"modes": [
+"plane"
+]
+},
+{
+"id": "aisle_dance",
+"icon": "🧍",
+"at": "ride",
+"text": "He did the aisle shuffle to let someone out",
+"say": "Sorry, sorry",
+"modes": [
+"plane"
+]
+},
+{
+"id": "sunset_wing",
+"icon": "🌅",
+"at": "ride",
+"text": "The sun set over the wing in orange and pink",
+"say": "Beautiful",
+"fx": {
+"mood": 3
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "nap_plane",
+"icon": "😴",
+"at": "ride",
+"text": "He nodded off with his mouth open",
+"say": "Zzz…",
+"fx": {
+"energy": 3
+},
+"modes": [
+"plane"
+]
+},
+{
+"id": "tray_table",
+"icon": "🍽",
+"at": "ride",
+"text": "His tray table refused to stay up",
+"say": "Come on…",
+"modes": [
+"plane"
+]
+},
+{
+"id": "bus_window",
+"icon": "🚌",
+"at": "ride",
+"text": "Fields and villages slid past the bus window",
+"say": "So green",
+"fx": {
+"mood": 1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_stop_village",
+"icon": "🏘",
+"at": "ride",
+"text": "The bus stopped in a tiny village for a minute",
+"say": "Where are we?",
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_driver_radio",
+"icon": "📻",
+"at": "ride",
+"text": "The driver's radio played old hits",
+"say": "Classic!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_snore",
+"icon": "😪",
+"at": "ride",
+"text": "The man next to him snored all the way",
+"say": "Seriously…",
+"fx": {
+"energy": -1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_sandwich",
+"icon": "🥪",
+"at": "ride",
+"text": "He ate a squashed sandwich from his pocket",
+"say": "Still good",
+"fx": {
+"fullness": 2
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_bump",
+"icon": "🕳",
+"at": "ride",
+"text": "The bus hit a bump and everyone bounced",
+"say": "Whee!",
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_chat",
+"icon": "💬",
+"at": "ride",
+"text": "A grandma offered him a sweet and a chat",
+"say": "Thank you!",
+"fx": {
+"mood": 2,
+"fullness": 1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_cows",
+"icon": "🐄",
+"at": "ride",
+"text": "Cows watched the bus go by",
+"say": "Moo",
+"fx": {
+"mood": 1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "bus_rest_stop",
+"icon": "⛽",
+"at": "ride",
+"text": "The bus took a short break at a petrol station",
+"say": "Stretch time",
+"fx": {
+"energy": 1
+},
+"modes": [
+"bus"
+]
+},
+{
+"id": "train_window",
+"icon": "🚆",
+"at": "ride",
+"text": "Hills rolled past the train window",
+"say": "Lovely view",
+"fx": {
+"mood": 2
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "train_tea",
+"icon": "🍵",
+"at": "ride",
+"text": "He bought a tea from the trolley",
+"say": "Ahh",
+"fx": {
+"thirst": 3
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "train_tunnel",
+"icon": "🌑",
+"at": "ride",
+"text": "The train dived into a long tunnel",
+"say": "Dark!",
+"modes": [
+"train"
+]
+},
+{
+"id": "train_cards",
+"icon": "🃏",
+"at": "ride",
+"text": "A family in his carriage played cards and dealt him in",
+"say": "Snap!",
+"fx": {
+"mood": 2
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "train_conductor",
+"icon": "🎫",
+"at": "ride",
+"text": "The conductor punched his ticket with a flourish",
+"say": "Thanks!",
+"modes": [
+"train"
+]
+},
+{
+"id": "train_rhythm",
+"icon": "🎶",
+"at": "ride",
+"text": "The rhythm of the rails nearly put him to sleep",
+"say": "Clack-clack…",
+"fx": {
+"energy": 2
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "train_river",
+"icon": "🌉",
+"at": "ride",
+"text": "The train crossed a big river on a high bridge",
+"say": "Whoa, high!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "train_station_small",
+"icon": "🚉",
+"at": "ride",
+"text": "The train paused at a tiny station with flower pots",
+"say": "Cute station",
+"modes": [
+"train"
+]
+},
+{
+"id": "train_book",
+"icon": "📖",
+"at": "ride",
+"text": "He read a chapter of a book someone left on the seat",
+"say": "Page-turner",
+"fx": {
+"xp": 3
+},
+"modes": [
+"train"
+]
+},
+{
+"id": "ferry_gulls",
+"icon": "🕊",
+"at": "ride",
+"text": "Seagulls followed the ferry, begging",
+"say": "No chips for you",
+"fx": {
+"mood": 1
+},
+"modes": [
+"ferry"
+]
+},
+{
+"id": "ferry_wind",
+"icon": "🌬",
+"at": "ride",
+"text": "The sea wind messed up his hair",
+"say": "Fresh!",
+"fx": {
+"mood": 2
+},
+"modes": [
+"ferry"
+]
+},
+{
+"id": "ferry_dolphin",
+"icon": "🐬",
+"at": "ride",
+"text": "Someone shouted about dolphins, but he missed them",
+"say": "Where?!",
+"modes": [
+"ferry"
+]
+},
+{
+"id": "ferry_waves",
+"icon": "🌊",
+"at": "ride",
+"text": "The ferry rocked on a big wave",
+"say": "Uh-oh, my tummy",
+"fx": {
+"mood": -1
+},
+"modes": [
+"ferry"
+]
+},
+{
+"id": "ferry_deck",
+"icon": "🛳",
+"at": "ride",
+"text": "He stood at the rail and watched the land shrink",
+"say": "Bye, land",
+"fx": {
+"mood": 1
+},
+"modes": [
+"ferry"
+]
+},
+{
+"id": "ferry_lighthouse",
+"icon": "🗼",
+"at": "ride",
+"text": "They passed a lighthouse on the rocks",
+"say": "Ahoy!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"ferry"
+]
+},
+{
+"id": "car_singalong",
+"icon": "🎤",
+"at": "ride",
+"text": "He sang along to the car radio, loudly",
+"say": "♪ Don't stop me now ♪",
+"fx": {
+"mood": 2
+},
+"modes": [
+"car"
+]
+},
+{
+"id": "car_traffic",
+"icon": "🚗",
+"at": "ride",
+"text": "He sat in a short traffic jam",
+"say": "Come on, move",
+"fx": {
+"mood": -1
+},
+"modes": [
+"car"
+]
+},
+{
+"id": "car_view",
+"icon": "🏞",
+"at": "ride",
+"text": "The road curved along a beautiful valley",
+"say": "Wow",
+"fx": {
+"mood": 2
+},
+"modes": [
+"car"
+]
+},
+{
+"id": "car_snack",
+"icon": "🍫",
+"at": "ride",
+"text": "He ate a chocolate bar at a red light",
+"say": "Fuel",
+"fx": {
+"fullness": 1
+},
+"modes": [
+"car"
+]
+},
+{
+"id": "car_wrong_exit",
+"icon": "↪",
+"at": "ride",
+"text": "He nearly took the wrong exit",
+"say": "Phew, no",
+"modes": [
+"car"
+]
+},
+{
+"id": "car_tractor",
+"icon": "🚜",
+"at": "ride",
+"text": "He got stuck behind a tractor for a while",
+"say": "Slow and steady",
+"modes": [
+"car"
+]
+},
+{
+"id": "bike_hill",
+"icon": "⛰",
+"at": "ride",
+"text": "He pedalled up a long hill",
+"say": "Almost… there…",
+"fx": {
+"energy": -2
+},
+"modes": [
+"bike"
+]
+},
+{
+"id": "bike_downhill",
+"icon": "🚲",
+"at": "ride",
+"text": "He freewheeled down a long hill",
+"say": "Wheee!",
+"fx": {
+"mood": 3
+},
+"modes": [
+"bike"
+]
+},
+{
+"id": "bike_bug",
+"icon": "🪰",
+"at": "ride",
+"text": "A bug flew into his mouth",
+"say": "Pfft!",
+"fx": {
+"mood": -1
+},
+"modes": [
+"bike"
+]
+},
+{
+"id": "bike_tractor_wave",
+"icon": "🚜",
+"at": "ride",
+"text": "A farmer on a tractor waved at him",
+"say": "Hello!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"bike"
+]
+},
+{
+"id": "bike_sheep",
+"icon": "🐑",
+"at": "ride",
+"text": "Sheep watched him ride past",
+"say": "Baa to you too",
+"fx": {
+"mood": 1
+},
+"modes": [
+"bike"
+]
+},
+{
+"id": "hitch_stories",
+"icon": "💬",
+"at": "ride",
+"text": "The driver told him stories from the road",
+"say": "No way!",
+"fx": {
+"mood": 2,
+"xp": 3
+},
+"modes": [
+"hitch"
+]
+},
+{
+"id": "hitch_dog",
+"icon": "🐕",
+"at": "ride",
+"text": "The driver's dog put its head on his lap",
+"say": "Good boy",
+"fx": {
+"mood": 3
+},
+"modes": [
+"hitch"
+]
+},
+{
+"id": "hitch_music",
+"icon": "📻",
+"at": "ride",
+"text": "The driver's music taste was… interesting",
+"say": "Uh, nice",
+"modes": [
+"hitch"
+]
+},
+{
+"id": "hitch_snack",
+"icon": "🍪",
+"at": "ride",
+"text": "The driver shared a box of biscuits",
+"say": "Thanks!",
+"fx": {
+"fullness": 2
+},
+"modes": [
+"hitch"
+]
+},
+{
+"id": "hitch_quiet",
+"icon": "🤐",
+"at": "ride",
+"text": "The driver didn't say a single word",
+"say": "…",
+"modes": [
+"hitch"
+]
+},
+{
+"id": "trail_field",
+"icon": "🌾",
+"at": "ride",
+"text": "He walked past a field of sunflowers",
+"say": "So tall!",
+"fx": {
+"mood": 2
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_sign",
+"icon": "🪧",
+"at": "ride",
+"text": "A road sign said it's still a long way",
+"say": "Keep going",
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_farm_dog",
+"icon": "🐕",
+"at": "ride",
+"text": "A farm dog barked at him from behind a fence",
+"say": "I'm just passing!",
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_apple",
+"icon": "🍎",
+"at": "ride",
+"text": "He picked an apple from a tree by the road",
+"say": "Crunchy",
+"fx": {
+"fullness": 2
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_truck",
+"icon": "🚛",
+"at": "ride",
+"text": "A truck honked hello as it passed",
+"say": "Hi!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_blister",
+"icon": "🦶",
+"at": "ride",
+"text": "He felt a blister coming on",
+"say": "Ouch",
+"fx": {
+"mood": -1
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_hiker",
+"icon": "🥾",
+"at": "ride",
+"text": "He met another hiker and they walked together a bit",
+"say": "Where are you headed?",
+"fx": {
+"mood": 2
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_stream",
+"icon": "💧",
+"at": "ride",
+"text": "He splashed his face in a cold stream",
+"say": "Refreshing!",
+"fx": {
+"hygiene": 1,
+"thirst": 2
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "trail_view",
+"icon": "⛰",
+"at": "ride",
+"text": "The road topped a hill with a view for miles",
+"say": "Wow!",
+"fx": {
+"mood": 3
+},
+"modes": [
+"walk"
+]
+},
+{
+"id": "taxi_driver_talk",
+"icon": "🚕",
+"at": "ride",
+"text": "The taxi driver had strong opinions about football",
+"say": "Uh-huh…",
+"modes": [
+"taxi"
+]
+},
+{
+"id": "taxi_radio",
+"icon": "📻",
+"at": "ride",
+"text": "The taxi radio played folk music",
+"say": "Catchy",
+"fx": {
+"mood": 1
+},
+"modes": [
+"taxi"
+]
+},
+{
+"id": "taxi_shortcut",
+"icon": "🛣",
+"at": "ride",
+"text": "The driver took a mysterious shortcut",
+"say": "Is this right?",
+"modes": [
+"taxi"
+]
+},
+{
+"id": "taxi_city_view",
+"icon": "🏙",
+"at": "ride",
+"text": "{CITY} flashed past the taxi window",
+"say": "Bye, {CITY}",
+"fx": {
+"mood": 1
+},
+"modes": [
+"taxi"
+]
+},
+{
+"id": "taxi_meter",
+"icon": "💶",
+"at": "ride",
+"text": "He watched the taxi meter tick up nervously",
+"say": "Uh-oh",
+"fx": {
+"mood": -1
+},
+"modes": [
+"taxi"
+]
+},
+{
+"id": "metro_busker",
+"icon": "🎻",
+"at": "ride",
+"text": "A violinist played in the metro carriage",
+"say": "Bravo!",
+"fx": {
+"mood": 2
+},
+"modes": [
+"metro"
+]
+},
+{
+"id": "metro_crowd",
+"icon": "🚇",
+"at": "ride",
+"text": "The metro was packed like a tin of sardines",
+"say": "Squeeze…",
+"fx": {
+"mood": -1
+},
+"modes": [
+"metro"
+]
+},
+{
+"id": "metro_map",
+"icon": "🗺",
+"at": "ride",
+"text": "He counted the stops on the metro map",
+"say": "Three more",
+"modes": [
+"metro"
+]
+},
+{
+"id": "metro_seat",
+"icon": "💺",
+"at": "ride",
+"text": "He gave his metro seat to an old man",
+"say": "Please, sit",
+"fx": {
+"karma": 1
+},
+"modes": [
+"metro"
+]
+},
+{
+"id": "metro_doors",
+"icon": "🚪",
+"at": "ride",
+"text": "He just made it through the closing metro doors",
+"say": "Made it!",
+"fx": {
+"mood": 1
+},
+"modes": [
+"metro"
+]
+},
+{
+"id": "ride_daydream",
+"icon": "💭",
+"at": "ride",
+"text": "He daydreamed about what {CITY} will be like… or was it the next city?",
+"say": "Hmm…"
+},
+{
+"id": "ride_postcard",
+"icon": "✉",
+"at": "ride",
+"text": "He wrote a postcard in his head",
+"say": "Dear Mum…"
+},
+{
+"id": "ride_stretch",
+"icon": "🙆",
+"at": "ride",
+"text": "He stretched his legs as far as they would go",
+"say": "Ahh",
+"fx": {
+"energy": 1
+}
+},
+{
+"id": "ride_playlist",
+"icon": "🎧",
+"at": "ride",
+"text": "He made a travel playlist on his phone",
+"say": "Perfect",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "ride_count",
+"icon": "🔢",
+"at": "ride",
+"text": "He counted red cars to pass the time. Twelve",
+"say": "Thirteen!"
+},
+{
+"id": "rest_people",
+"icon": "👀",
+"at": "rest",
+"text": "He people-watched at {PLACE}",
+"say": "Interesting crowd",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "rest_music",
+"icon": "🎵",
+"at": "rest",
+"text": "A song he loves came on at {PLACE}",
+"say": "My song!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "rest_staff_smile",
+"icon": "😊",
+"at": "rest",
+"text": "Someone at {PLACE} smiled at him",
+"say": "Hi!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "rest_overhear",
+"icon": "👂",
+"at": "rest",
+"text": "He overheard a strange conversation at {PLACE}",
+"say": "Did they just say…?"
+},
+{
+"id": "rest_spill",
+"icon": "🫗",
+"at": "rest",
+"text": "Someone spilled a drink near him at {PLACE}",
+"say": "Close call"
+},
+{
+"id": "rest_phone",
+"icon": "📱",
+"at": "rest",
+"text": "He checked his phone. No messages",
+"say": "Nobody loves me",
+"fx": {
+"mood": -1
+}
+},
+{
+"id": "rest_selfie",
+"icon": "🤳",
+"at": "rest",
+"text": "He took a selfie at {PLACE}",
+"say": "Cheese!",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "rest_stretch",
+"icon": "🙆",
+"at": "rest",
+"text": "He stretched and cracked his back at {PLACE}",
+"say": "Ahh",
+"fx": {
+"energy": 1
+}
+},
+{
+"id": "rest_kid_stare",
+"icon": "🧒",
+"at": "rest",
+"text": "A little kid stared at him at {PLACE}",
+"say": "Boo!"
+},
+{
+"id": "rest_dog_visit",
+"icon": "🐕",
+"at": "rest",
+"text": "Someone's dog came over to say hi at {PLACE}",
+"say": "Hello, buddy!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "rest_notebook",
+"icon": "📓",
+"at": "rest",
+"text": "He wrote a few lines in his notebook at {PLACE}",
+"say": "Note to self…",
+"fx": {
+"xp": 2
+}
+},
+{
+"id": "rest_queue",
+"icon": "🧍",
+"at": "rest",
+"text": "He waited behind someone who couldn't decide at {PLACE}",
+"say": "Any day now…"
+},
+{
+"id": "rest_wifi",
+"icon": "📶",
+"at": "rest",
+"text": "He asked for the wifi password at {PLACE}",
+"say": "Thanks!"
+},
+{
+"id": "rest_compliment",
+"icon": "💐",
+"at": "rest",
+"text": "Someone at {PLACE} liked his shoes",
+"say": "Oh, thanks!",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "rest_lost_found",
+"icon": "🧷",
+"at": "rest",
+"text": "He handed in a lost scarf at {PLACE}",
+"say": "Someone left this",
+"fx": {
+"karma": 1
+}
+},
+{
+"id": "think_food",
+"icon": "🍔",
+"at": "any",
+"text": "His stomach rumbled loudly",
+"say": "So hungry…",
+"low": "fullness"
+},
+{
+"id": "think_food2",
+"icon": "🍕",
+"at": "any",
+"text": "He couldn't stop thinking about pizza",
+"say": "Pizza…",
+"low": "fullness"
+},
+{
+"id": "think_thirst",
+"icon": "🥤",
+"at": "any",
+"text": "His mouth felt dry as sand",
+"say": "Water…",
+"low": "thirst"
+},
+{
+"id": "think_tired",
+"icon": "🥱",
+"at": "any",
+"text": "He yawned so wide his jaw clicked",
+"say": "Need a nap",
+"low": "energy"
+},
+{
+"id": "think_tired2",
+"icon": "😴",
+"at": "any",
+"text": "His eyelids felt heavy",
+"say": "Just five minutes…",
+"low": "energy"
+},
+{
+"id": "think_sad",
+"icon": "🌧",
+"at": "any",
+"text": "He felt a bit blue for no reason",
+"say": "Sigh",
+"low": "mood"
+},
+{
+"id": "think_sad2",
+"icon": "😔",
+"at": "any",
+"text": "He missed home a little",
+"say": "Wish I was home",
+"low": "mood"
+},
+{
+"id": "think_smell",
+"icon": "🧼",
+"at": "any",
+"text": "He sniffed his own shirt and winced",
+"say": "I need a shower",
+"low": "hygiene"
+},
+{
+"id": "think_hurt",
+"icon": "🤕",
+"at": "any",
+"text": "His knee ached a little with every step",
+"say": "Ow, ow",
+"low": "health"
+},
+{
+"id": "think_joke",
+"icon": "😄",
+"at": "any",
+"text": "He remembered a joke and laughed out loud",
+"say": "Ha! Good one",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "think_plan",
+"icon": "💭",
+"at": "any",
+"text": "He made big plans for tomorrow",
+"say": "Tomorrow, for sure"
+},
+{
+"id": "think_song",
+"icon": "🎶",
+"at": "any",
+"text": "A song got stuck in his head",
+"say": "Na na na…"
+},
+{
+"id": "think_grateful",
+"icon": "🙏",
+"at": "any",
+"text": "He felt grateful for a good day",
+"say": "Life is good",
+"fx": {
+"mood": 2
+}
+},
+{
+"id": "think_question",
+"icon": "🤔",
+"at": "any",
+"text": "He wondered who decides the names of streets",
+"say": "Who, though?"
+},
+{
+"id": "think_memory",
+"icon": "🕰",
+"at": "any",
+"text": "He remembered his first day out walking",
+"say": "Good times",
+"fx": {
+"mood": 1
+}
+},
+{
+"id": "think_dream",
+"icon": "🌠",
+"at": "any",
+"text": "He wondered what it would be like to fly",
+"say": "One day…"
+},
+{
+"id": "think_lists",
+"icon": "📋",
+"at": "any",
+"text": "He made a mental list of places to see in {CITY}",
+"say": "So much to see"
+}
+],
+"comments": [
+{
+"id": "near_later",
+"text": "He walked past {NEAR} and made a note to come back",
+"say": "Maybe later"
+},
+{
+"id": "near_peek",
+"text": "He peeked into {NEAR} as he passed",
+"say": "Ooh, nice"
+},
+{
+"id": "near_heard",
+"text": "He'd heard good things about {NEAR}",
+"say": "Next time!"
+},
+{
+"id": "near_busy",
+"text": "{NEAR} looked busy today",
+"say": "Popular place"
+},
+{
+"id": "near_name",
+"text": "He liked the name of {NEAR}",
+"say": "Good name"
+},
+{
+"id": "near_smell",
+"text": "Something smelled good near {NEAR}",
+"say": "What's that smell?"
+},
+{
+"id": "near_photo",
+"text": "He took a photo of {NEAR} for later",
+"say": "Click"
+},
+{
+"id": "near_point",
+"text": "He pointed at {NEAR} like he'd discovered it",
+"say": "Look!"
+}
+]
+}

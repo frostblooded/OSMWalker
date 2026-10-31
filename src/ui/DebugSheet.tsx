@@ -102,6 +102,9 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
         <button class="btn" onClick={act(() => g.debugMoment())}>
           ⏱ Try a moment
         </button>
+        <button class="btn" onClick={act(() => g.debugBeat())}>
+          💬 Little moment now
+        </button>
       </Card>
       <Card icon="📜" title="Logs">
         <Collapsible title="🧠 Trivia" right={g.cityFacts.length}>

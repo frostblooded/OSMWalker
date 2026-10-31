@@ -902,6 +902,13 @@ Left to himself, he picks by his karma (see Karma), and his History says "Decide
 
 Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped; once the car has caught up, closing the game leaves the choice to him.
 # 📖 Stories
+## Little moments {beats}
+Something small happens to him about once a minute, while you watch. Whenever his History has had nothing new for a while (a random {BEAT_MIN_S} to {BEAT_MAX_S} seconds, so it never ticks like a clock), a little moment fills the gap: a pigeon after his snack, a busker playing his song, a stranger sharing an umbrella in the rain. He says a few words in a speech bubble at his side for {SAY_S} seconds, and the moment goes in his History, most with a small nudge to his meters (a little mood, energy, XP or karma).
+
+There are {BEAT_COUNT} of them, and each fits what he is doing: on the street, at the place he stays at, and on board a plane, bus, train, ferry, car, bike, hitched lift or long walk, and in a taxi or the metro to the station. Some only come in rain, snow, sun, heat, cold or at night, and some are thoughts when a meter is under {LOW_AT} (hungry, thirsty, tired, glum, smelly or hurt). Walking past a named place within {BEAT_NEAR_M} m, {COMMENT_PCT} of the time he has a word about it instead. The last {BEAT_RECENT} moments don't come again while another one fits. A timed moment that is open pauses them (see Timed moments). They don't happen while you are away.
+
+The Collection counts the different ones he has had (the People-watcher feat, see Collection).
+
 ## The storyteller {storyteller}
 A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds {WEALTH_PER_H} more an hour, up to {WEALTH_CAP}.
 
