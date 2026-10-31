@@ -8,7 +8,7 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
-import type { Place } from "../../src/core/stats";
+import { visitKey, type Place } from "../../src/core/stats";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
@@ -480,6 +480,73 @@ describe("game", () => {
     await settle(again);
     expect(again.holiday?.name).toBe("Liberation Day");
     expect(asked).toHaveLength(1);
+  });
+
+  it("reads up on a big sight once, English Wikipedia first and then the country's, and tries again after a failed request", async () => {
+    const MUSEUM: Place = { name: "Национален исторически музей", class: "museum", subclass: "museum", rank: 1, lat: 42.6885, lon: 23.3215 };
+    const asked: string[] = [];
+    let down = true;
+    const api = new Api(async (url) => {
+      if (!url.includes("wikipedia.org")) return new Response("", { status: 503 });
+      asked.push(url.split(".wikipedia")[0]!.slice(8));
+      if (down) return new Response("", { status: 503 });
+      const title = url.startsWith("https://en.") ? "National History Museum (Bulgaria)" : "Национален исторически музей";
+      return new Response(JSON.stringify({ query: { pages: { "1": { title, extract: "Най-големият музей (основан 1973) в България.", index: 1 } } } }));
+    });
+    let now = Date.UTC(2026, 9, 31, 10);
+    const { g, storage } = game({ api, places: [MUSEUM], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const read = () => g.stats.history.entries.filter((e) => e.text.startsWith("📖")).map((e) => e.text);
+    // Walks a minute at a time until `done`, at most 10 hours.
+    const walk = async (done: () => boolean) => {
+      for (let i = 0; i < 600 && !done(); i++) {
+        run(g, 60);
+        now += 60_000;
+        await tick();
+      }
+    };
+    // While Wikipedia is down he asks again at a later visit.
+    await walk(() => asked.length > 1);
+    expect(asked.length).toBeGreaterThan(1);
+    expect(read()).toEqual([]);
+    expect(new Set(asked)).toEqual(new Set(["en"]));
+    expect(g.stats.sightNotes.knows(visitKey(MUSEUM))).toBe(false);
+    down = false;
+    // The English article has another name, so the Bulgarian one is read.
+    await walk(() => read().length > 0);
+    expect(read()).toEqual(["📖 Read up on Национален исторически музей: Най-големият музей в България."]);
+    expect(asked.slice(-2)).toEqual(["en", "bg"]);
+    // Two more visits ask nothing more.
+    const n = asked.length;
+    const visits = () => g.stats.history.entries.filter((e) => e.text.startsWith("Reached")).length;
+    const was = visits();
+    await walk(() => visits() >= was + 2);
+    expect(visits()).toBeGreaterThanOrEqual(was + 2);
+    expect(asked).toHaveLength(n);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    expect(again.stats.sightNotes.read).toEqual([visitKey(MUSEUM)]);
+  });
+
+  it("drops a sight note that comes back after a new city was started", async () => {
+    const MUSEUM: Place = { name: "National Gallery", class: "museum", subclass: "museum", rank: 1, lat: 42.6885, lon: 23.3215 };
+    let answer = (_: Response) => {};
+    const api = new Api(async (url) => {
+      if (!url.includes("wikipedia.org")) return new Response("", { status: 503 });
+      return new Promise<Response>((r) => (answer = r));
+    });
+    const { g } = game({ api, places: [MUSEUM] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 120 && g.stats.history.entries.length < 2; i++) run(g, 60);
+    const old = g.stats;
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats).not.toBe(old);
+    answer(new Response(JSON.stringify({ query: { pages: { "1": { title: "National Gallery", extract: "A gallery.", index: 1 } } } })));
+    await tick();
+    await tick();
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("📖"))).toBe(false);
+    expect(g.stats.sightNotes.read).toEqual([]);
   });
 
   it("keeps the walk across a save", async () => {

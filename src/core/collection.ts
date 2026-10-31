@@ -471,6 +471,7 @@ export const FEATS: Feat[] = [
   { id: "dreamer", tab: "world", icon: "📝", name: "Dreamer", what: "{n} dreams ticked off his bucket list", tiers: [1, 10, 30], title: "Dreamer", count: (s) => s.bucket.done.length },
   { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
+  { id: "notes", tab: "world", icon: "📖", name: "Well read", what: "{n} sights read up on", tiers: [5, 25, 100], title: "Well read", count: (s) => s.sightNotes.read.length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },

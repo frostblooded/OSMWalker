@@ -64,6 +64,7 @@ import type { Vehicle } from "./speeds";
 import * as V from "./visas";
 import { Week } from "./week";
 import { WORD_WIT, WORD_XP, Words, type WordBook } from "./words";
+import { NOTE_WIT, NOTE_XP, SightNotes } from "./sightNotes";
 import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
@@ -224,6 +225,8 @@ export class Stats {
   wordBook: WordBook | null = null;
   /** The local words he has learned. */
   words = new Words();
+  /** The sights he read up on (sightNotes.ts). */
+  sightNotes = new SightNotes();
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** His shifts and ranks in each career. */
@@ -322,6 +325,10 @@ export class Stats {
   incidentLine = "";
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
+  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); off, as in the catch-up, he picks by himself. Not saved. */
+  askCards = false;
+  /** A chance card at work waiting for your tap, and its dice, for the game to ask; not saved. */
+  workCard: { d: Work.Drawn; dice: Rng } | null = null;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
   now = () => Math.floor(Date.now() / 1000);
   /** The sky over him (season, sun, weather); the game and the catch-up set it, null when unknown. */
@@ -1184,7 +1191,12 @@ export class Stats {
     const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
-    if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (earned && Ca.isShift(action)) {
+      const dice = new Rng(seedOf(`work${this.now()}${where}`));
+      const d = this.askCards ? Work.drawCard(earned, dice) : null;
+      if (d) this.workCard = { d, dice };
+      else if (!this.askCards) this.sayIf(Work.draw(this, earned, dice));
+    }
     if (action.career && Ca.isShift(action)) this.promote(action.career, where);
     return line;
   }
@@ -1642,6 +1654,13 @@ export class Stats {
     this.addBuff(Mg.LEY_CHARM);
   }
 
+  /** He read up on the sight `name` (visit key `key`): the first sentence of its article in the feed, and a little wiser. */
+  noteRead(key: string, name: string, note: string): void {
+    this.sightNotes.noted(key);
+    this.applyFx({ wit: NOTE_WIT, xp: NOTE_XP });
+    this.say(`📖 Read up on ${name}: ${note}`);
+  }
+
   /** Right after reaching `place`: now and then a local word that fits it (words.ts). Its own dice, so his walk stays the same. */
   wordAt(place: Pick<Place, "class" | "name">): void {
     if (!this.wordBook) return;
@@ -1864,7 +1883,7 @@ export class Stats {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
-      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(),
       pets: this.pets.toJSON(),
       home: this.home.toJSON(),
       visas: this.visas.toJSON(),
@@ -1942,6 +1961,8 @@ export class Stats {
     s.townies = Townies.fromJSON(d.townies);
     // A save from before local words: none learned yet.
     s.words = Words.fromJSON(d.words);
+    // A save from before sight notes: none read yet.
+    s.sightNotes = SightNotes.fromJSON(d.sightNotes);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     // A save from before the diary is already on today, so its day starts now.
     if (!s.diary.today.date) Object.assign(s.diary.today, { date: s.anniversaries.day, city: s.where.city });

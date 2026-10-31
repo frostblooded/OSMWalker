@@ -78,6 +78,7 @@ import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import * as Words from "../core/words";
+import * as Notes from "../core/sightNotes";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -748,6 +749,11 @@ export function values(data: GameData): Record<string, string> {
     WORD_PCT: pct(Words.LEARN_CHANCE),
     WORD_WIT: num(Words.WORD_WIT),
     WORD_XP: num(Words.WORD_XP),
+    NOTE_RANK: num(Notes.NOTE_RANK),
+    NOTE_RADIUS: num(Notes.RADIUS_M),
+    NOTE_WIT: num(Notes.NOTE_WIT),
+    NOTE_XP: num(Notes.NOTE_XP),
+    NOTE_PER_HOUR: num(Notes.PER_HOUR),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
