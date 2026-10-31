@@ -113,8 +113,11 @@ describe("the real help", () => {
     expect(page("careers").body).toContain("There are 9 careers, each with 5 ranks:");
     expect(page("careers").body).toMatch(/^- ☕ Café \(cafe, bakery\): Dishwasher, Barista, Head barista, Café manager, Café owner$/m);
     expect(page("careers").body).toContain("rank 2 after 1 shift in a career, rank 3 after 12 shifts, rank 4 after 70 and the top rank after 180");
-    expect(page("careers").body).toContain('such as "Run the morning rush" for a Head barista. It pays 1.25x, 1.5x, 1.8x, 2.2x the career\'s base wage');
+    expect(page("careers").body).toContain('such as "Run the morning rush" for a Head barista. It lists 1.25x, 1.5x, 1.8x, 2.2x the career\'s base wage at ranks 2 to 5, and gets the rank pay above on top');
     expect(page("careers").body).toContain("its jobs weigh 1.5 times as much");
+    expect(page("careers").body).toContain("- 🔧 Transport (bicycle, parking, fuel, car, harbor, ferry terminal):");
+    expect(page("needs").body).toContain("- Career rank: a rank's own shift needs exactly that rank");
+    expect(page("sheet").body).toContain("- Careers: each career he has worked in");
     expect(page("choosing").body).toContain("- A job in his best career: x1.5 (see Careers).");
     expect(page("wages").body).toContain("with charm 10 it pays 20% more");
     expect(page("saving").body).toContain("on foot, a Bike for €150");

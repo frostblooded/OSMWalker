@@ -151,4 +151,4 @@ export class Careers {
 const placeName = (key: string) => key.split("/").at(-1)!.replace(/_/g, " ");
 
 /** One Help line per career: where he works in it and its ranks. */
-export const helpList = () => CAREERS.map((c) => `- ${c.icon} ${c.name} (${c.at.map(placeName).join(", ")}): ${c.ranks.join(", ")}`).join("\n");
+export const helpList = () => CAREERS.map((c) => `- ${c.icon} ${c.name} (${[...new Set(c.at.map(placeName))].join(", ")}): ${c.ranks.join(", ")}`).join("\n");

@@ -233,6 +233,7 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Level: some need a minimum level.
+- Career rank: a rank's own shift needs exactly that rank in its career (see Careers).
 - Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
 - Season: some only happen in one season, such as mulled wine in winter (see Seasons).
 - Weather: some need wet weather (rain, snow or a storm), snow, heat, frost or sunshine, such as building a snowman (see Weather).
@@ -255,11 +256,11 @@ For example a café job with no attribute need pays {WAGE_RANK3} its listed wage
 His paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds) count toward the career of the place. He climbs by himself, and you never have to do anything. There are {CAREER_COUNT} careers, each with {TOP_RANK} ranks:
 {CAREER_LIST}
 
-He is promoted to rank 2 after {SHIFTS_R2} shift in a career, rank 3 after {SHIFTS_R3} shifts, rank 4 after {SHIFTS_R4} and the top rank after {SHIFTS_R5}. In a city with plenty of work the top takes a couple of days of open time. The feed says each promotion ("Promoted to Barista in his Café career!"), and his life story notes his first promotion and every top rank he reaches.
+He is promoted to rank 2 after {SHIFTS_R2} shift in a career, rank 3 after {SHIFTS_R3} shifts, rank 4 after {SHIFTS_R4} and the top rank after {SHIFTS_R5}. The feed says each promotion ("Promoted to Barista in his Café career!"), and his life story notes his first promotion and every top rank he reaches.
 
 Every rank pays more:
 - the career's jobs pay {WAGE_RANK_PCT} more for every rank above 1 (see Wages),
-- from rank 2, its places offer a shift of his rank, such as {CAREER_EXAMPLE}. It pays {RANK_PAY_LIST} the career's base wage at ranks 2 to 5, and a new rank's shift takes the place of the last one.
+- from rank 2, its places offer a shift of his rank, such as {CAREER_EXAMPLE}. It lists {RANK_PAY_LIST} the career's base wage at ranks 2 to 5, and gets the rank pay above on top, like the career's other jobs. A new rank's shift takes the place of the last one.
 
 He leans to his best career, the one he has worked most shifts in: its jobs weigh {CAREER_PULL} times as much when he picks what to do at a place (see How he chooses). It doesn't change where he walks.
 
@@ -744,6 +745,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
+- Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
