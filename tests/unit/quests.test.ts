@@ -175,6 +175,19 @@ describe("going on a quest", () => {
     expect(Q.questGoal(s, TOWN, HERE, new Rng(4))?.class).toBe("cafe");
   });
 
+  it("picks an open place for a step at night when one fits", () => {
+    const f = fresh({ names: ["Ana"], quests: [one({ steps: [{ at: ["post"], say: ["At {PLACE}."] }, { at: ["cafe", "bar"], say: ["At {PLACE}."] }] })], events: [] });
+    f.s.quests.roll("Testville", 300_000, TOWN, new Rng(3));
+    f.s.quests.since = 9;
+    f.s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock: 19 };
+    Q.questStop(f.s, Q.questGoal(f.s, TOWN, HERE, new Rng(4))!, TOWN, 12, new Rng(4));
+    f.s.sky = { ...f.s.sky, clock: 22 };
+    for (let seed = 1; seed <= 20; seed++) {
+      f.s.quests.active!.target = null;
+      expect(Q.questGoal(f.s, TOWN, HERE, new Rng(seed * 7919))?.class).toBe("bar");
+    }
+  });
+
   it("takes the quest you nudged first, without waiting", () => {
     const f = fresh({ names: ["Ana"], quests: [one({ id: "a" }), one({ id: "b" }), one({ id: "c" })], events: [] });
     f.s.quests.roll("Testville", 300_000, TOWN, new Rng(6));
