@@ -718,7 +718,7 @@ export class Stats {
       .sort((a, b) => Items.power(b) - Items.power(a))[0];
     const me = { gen: this.life.gen, born: this.life.born || t, retired: t, by, title: this.life.title(), level: this.level, km: this.life.km, cities: this.records.cities.length || 1, home, heirloom: heirloom?.name ?? "" };
     // The retirement line goes only in his copy, so a retirement that can't start yet (see game.ts) leaves his life story as it was.
-    const ancestor: L.Ancestor = { ...me, letter: L.letter(me), chronicle: [...this.chronicle.lines, { t, text: `Retired in ${home.split(",")[0]}` }] };
+    const ancestor: L.Ancestor = { ...me, letter: L.letter(me), chronicle: [...this.chronicle.lines, { t, text: `Retired in ${home.split(",")[0]}` }], countries: this.records.countries.length, best: { ...this.records.best } };
     const heir = new Stats();
     heir.now = this.now;
     heir.onSay = this.onSay;
