@@ -7,8 +7,8 @@ const live = process.env.LIVE_URL;
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
-  // Every core of the CI runner (4); the default is half.
-  workers: process.env.CI ? "100%" : undefined,
+  // One browser per core; the default is half.
+  workers: "100%",
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     ...devices["Pixel 7"],
