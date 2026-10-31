@@ -5,15 +5,11 @@
 // is a small buff or a small loss. He takes his own pick when nobody taps.
 // Who they are and what each pick does is data (data/creatures.json).
 import { Rng, seedOf } from "./rng";
-import type { Moment } from "./moments";
+import { riskOdds, type Moment } from "./moments";
 import type { Action, Attr, Fx } from "./stats";
 
 /** The odds a creature shows up when he reaches a place it lives at, until he has met one today. */
 export const CREATURE_CHANCE = 0.15;
-/** The odds a risky pick (the troll's riddle) works, and how much each point of its attribute above 1 adds, up to RISK_CAP. */
-export const RISK_BASE = 0.5;
-export const RISK_PER_POINT = 0.05;
-export const RISK_CAP = 0.9;
 
 export type Outcome = {
   /** What he says happened; {PLACE} is the place's name. */
@@ -39,9 +35,6 @@ export type Creature = {
   /** An option that may fail: it works more often the higher `attr` (see riskOdds), and `miss` happens when it doesn't. */
   risky?: { option: string; attr: Attr; miss: Outcome };
 };
-
-/** The odds a risky pick works with `points` of its attribute. */
-export const riskOdds = (points: number) => Math.min(RISK_BASE + RISK_PER_POINT * Math.max(points - 1, 0), RISK_CAP);
 
 /** The creature of `kinds` that lives at places of this class, if any. */
 export const creatureOf = (kinds: readonly Creature[], cls: string): Creature | undefined => kinds.find((c) => c.at.includes(cls));

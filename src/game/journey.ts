@@ -66,9 +66,7 @@ export class Journey {
       return null;
     }
     stats.savingFor = 0;
-    // Where to stays a surprise until he boards, so it can be guessed (core/guess.ts).
-    // From the place, not the dice: a trip home may be abroad on a "city" roll or at home on a "country" one.
-    stats.say(heading(plan, dest.code !== at.country ? "somewhere abroad" : `somewhere in ${dest.country}`));
+    stats.say(heading(plan, dest.name));
     this.pending = plan;
     if (plan.mode !== "plane" && plan.mode !== "ferry") void this.fetchRoad(plan);
     return plan;

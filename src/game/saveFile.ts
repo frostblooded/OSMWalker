@@ -7,6 +7,7 @@
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Holiday } from "../core/holidays";
 import { Problems } from "../core/problems";
+import { MOMENT_S, MOMENT_TIMERS } from "../core/moments";
 import { Stats, type Place } from "../core/stats";
 import type { WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
@@ -45,7 +46,7 @@ export type Saved = {
   made: Record<string, Place[]>;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean; momentS: number };
 
 /** The stored form; its keys never change, so older saves still load. */
 type Stored = {
@@ -60,7 +61,7 @@ type Stored = {
   saved_at?: number;
   made_places?: Record<string, Place[]>;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean; moment_s?: number };
 
 export function safeStorage(): KV | null {
   try {
@@ -161,7 +162,7 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma, momentS: MOMENT_TIMERS.includes(d.moment_s as never) ? d.moment_s! : MOMENT_S };
     } catch {
       return "Settings were unreadable; using defaults";
     }
@@ -187,7 +188,7 @@ export class SaveFile {
 
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName, always_dilemma: s.alwaysDilemma };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName, always_dilemma: s.alwaysDilemma, moment_s: s.momentS };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.

@@ -43,3 +43,22 @@ describe("mini-game scores", () => {
     expect(() => optionFor(shop, "nope")).toThrow();
   });
 });
+
+describe("a mini-game nobody plays", () => {
+  const game: Moment = { ...shop, game: "taps", lean: "str" };
+  it("scores the middle option, never the worst", () => {
+    expect(defaultPick(game, new Stats(), fixed(0))).toBe("haggle");
+    expect(defaultPick({ ...game, lean: undefined }, new Stats(), fixed(0))).toBe("haggle");
+    // Without a lean of its own, the game's attribute: tapping fast is Strength.
+    const s = new Stats();
+    s.attrs.str = 5;
+    expect(defaultPick({ ...game, lean: undefined }, s, fixed(0))).toBe("browse");
+  });
+
+  it("scores the best option with his attribute's odds", () => {
+    const s = new Stats();
+    s.attrs.str = 5;
+    expect(defaultPick(game, s, fixed(4 * LEAN_PER_POINT - 0.01))).toBe("browse");
+    expect(defaultPick(game, s, fixed(4 * LEAN_PER_POINT))).toBe("haggle");
+  });
+});

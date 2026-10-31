@@ -18,18 +18,19 @@ import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
-import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
+import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
 import * as R from "../core/repute";
-import { Rng } from "../core/rng";
+import { Rng, seedOf } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { DiaryData } from "../core/diary";
 import type { MailData } from "../core/mail";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
+import { momentDice, tripMoment, type PlaceMoment, type PlaceMoments } from "../core/placeMoments";
 import { type Ancestor, ELDER, walkerName } from "../core/life";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { WordBook } from "../core/words";
@@ -62,6 +63,8 @@ const iso2Module = () => (iso2Load ??= import("../core/iso2"));
 /** Street cells loaded with no places of note before the city counts as having none. */
 export const NO_PLACES_CELLS = 3;
 export const SAVE_EVERY_S = 5;
+/** The Debug button's moments in turn: a plain choice (""), then each mini-game. */
+export const DEBUG_MOMENTS = ["", "timing", "cards", "taps", "odd"] as const;
 /** Longest step that counts as walking, so a stall never jumps him ahead. */
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
@@ -79,7 +82,7 @@ export const RIVAL_OFFSET_DEG = 0.0003;
 /** After the heir's streets failed to load, retiring waits this long before trying again. */
 export const RETIRE_RETRY_MS = 60_000;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData; moments?: PlaceMoments };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -136,6 +139,10 @@ export class Game {
   sound = false;
   /** Debug switch: every reopen after a long absence brings a dilemma. */
   alwaysDilemma = false;
+  /** Seconds a timed moment waits for your tap (the Settings button); 0 is Off: he always picks himself. */
+  momentS = MOMENT_S;
+  /** The timed moment waiting for your tap, with its seconds left; he stands still until it is settled. */
+  moment: { m: Moment; left: number; total: number; done: (p: Pick) => void; his: () => string; played?: string } | null = null;
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
@@ -164,6 +171,10 @@ export class Game {
   private retryRetireAt = 0;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
+  /** How many moments the Debug button has opened, so the next is another kind. */
+  private debugMoments = 0;
+  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS); Infinity until the away card shows it. */
+  dilemmaLeft = 0;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
   /** The Collection's badge rules, loaded once he is awake so they stay out of startup JS and off the reopen; null if they failed. */
@@ -336,6 +347,14 @@ export class Game {
   step(dt: number): void {
     const w = this.walker;
     if (!w || this.waking || this.retiring) return;
+    // The away card's dilemma waits the moment timer too, then he decides.
+    if (this.dilemma?.picked === null && (this.dilemmaLeft -= dt) <= 0) this.leaveDilemma();
+    // A timed moment holds him where he is until you tap or its time runs out.
+    if (this.moment) {
+      this.moment.left -= dt;
+      if (this.moment.left <= 0) this.settleMoment(null);
+      return;
+    }
     if (!w.isTraveling()) {
       const here = w.position();
       this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
@@ -352,8 +371,6 @@ export class Game {
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
-    // A trip called off before boarding (a faint, a new goal) takes its guess with it.
-    if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
     const leaving = this.stats.life.leaving;
     if (leaving) void this.retire(leaving);
@@ -409,7 +426,6 @@ export class Game {
     const door = this.stats.portalAt(place, this.trips);
     if (door) {
       this.doing = null;
-      this.stats.care.guess = null;
       this.stats.history.breakTrail();
       this.walker!.rideNow(door, "portal");
       return;
@@ -443,7 +459,28 @@ export class Game {
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
+    this.askAt(place, restMinutes(action) * 60);
     this.changed();
+  }
+
+  /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
+  private askAt(place: Place, maxS: number): void {
+    this.askPlaceMoment(this.stats.momentAt(place), place.name, momentDice(this.stats.now(), place.name), maxS);
+  }
+
+  /** As he boards for `plan`: maybe a moment on the way. */
+  private askTrip(plan: Plan): void {
+    const dice = momentDice(this.stats.now(), plan.city.name);
+    this.askPlaceMoment(tripMoment(this.stats.placeMoments, dice), plan.city.name, dice);
+  }
+
+  /** Asks moment `m` at `where` ({PLACE} in its text) and applies the pick, on its own `dice`, so it goes as in the catch-up (Stats.byHimself) and his walk stays the same. */
+  private askPlaceMoment(m: PlaceMoment | null, where: string, dice: Rng, maxS?: number): void {
+    if (!m) return;
+    void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", where) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
+      this.stats.settleMoment(m, where, p.id, p.you, dice);
+      this.save();
+    });
   }
 
   /** Health at zero: he wakes at the nearest known hospital, poorer. */
@@ -502,20 +539,11 @@ export class Game {
     return { here: w.position(), city: this.city, country: this.country, places: w.bounds ? w.graph.placesIn(w.bounds) : [], noPlaces: this.noPlaces() };
   }
 
-  /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
+  /** The trip dice on a new goal. */
   private planTrip(): Plan | null {
     // He finishes the quest he is on before he leaves the city.
     if (this.stats.quests.active) return null;
-    const plan = this.journey.consider(this.where(), this.stats);
-    this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
-    return plan;
-  }
-
-  /** The player's guess about where he is going; settled when he boards. */
-  pickGuess(choice: string): void {
-    if (!this.stats.care.pickGuess(choice)) return;
-    this.save();
-    this.changed();
+    return this.journey.consider(this.where(), this.stats);
   }
 
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */
@@ -523,10 +551,9 @@ export class Game {
     const why = this.journey.board(plan, this.stats);
     if (why) {
       this.debugLog.add({ no_trip: why });
-      this.stats.care.guess = null;
       return false;
     }
-    this.stats.care.reveal(this.stats);
+    this.askTrip(plan);
     this.changed();
     return true;
   }
@@ -554,6 +581,13 @@ export class Game {
     this.loader.setGraph(this.walker!.graph);
     this.save();
     this.changed();
+  }
+
+  /** Debug button: opens a place moment now, a plain choice and then each mini-game in turn (DEBUG_MOMENTS). */
+  debugMoment(): void {
+    const kind = DEBUG_MOMENTS[this.debugMoments++ % DEBUG_MOMENTS.length];
+    const m = Object.values(this.stats.placeMoments).find((x) => (x.game ?? "") === kind);
+    this.askPlaceMoment(m ?? null, this.city.split(",")[0]!, momentDice(this.stats.now(), "debug"));
   }
 
   /** Debug button: makes him a stage older at once (as an elder, due to retire). */
@@ -600,6 +634,7 @@ export class Game {
     this.stats.mailData = this.deps.data.mail ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.creatureKinds = this.deps.data.creatures ?? [];
+    this.stats.placeMoments = this.deps.data.moments ?? {};
     this.stats.spellKinds = this.deps.data.spells ?? [];
     this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
     this.stats.contests = this.deps.data.contests ?? [];
@@ -835,6 +870,10 @@ export class Game {
           const here = w.position();
           return this.trips.pick(kind, this.country, here[0], here[1], this.rng, this.stats.bucket.pull());
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
+      // Its time starts when the card shows (dilemmaShown).
+      this.dilemmaLeft = Infinity;
+      // With the timer Off he decides at once, and the card shows what he chose.
+      if (!this.momentS) this.leaveDilemma();
     } finally {
       this.waking = false;
       this.woken();
@@ -927,6 +966,12 @@ export class Game {
     this.changed();
   }
 
+  /** The away card's choice is on screen: its time starts now, if it hasn't yet. Returns the seconds left. */
+  dilemmaShown(): number {
+    if (this.dilemmaLeft === Infinity) this.dilemmaLeft = this.momentS;
+    return this.dilemmaLeft;
+  }
+
   /** Your pick on the summary card's dilemma. */
   chooseDilemma(pick: number): void {
     const d = this.dilemma;
@@ -938,8 +983,48 @@ export class Game {
 
   /** The page is hidden or closed: nothing waits for you, so he settles an open dilemma, then the game saves. */
   leave(): void {
+    this.settleMoment(null);
     this.leaveDilemma();
     this.save();
+  }
+
+  /**
+   * Shows timed moment `m` and resolves with the option you tap, or with his
+   * own pick (`his`, by default defaultPick) once momentS seconds pass, or
+   * `maxS` if that is sooner, or the page is left. Off (momentS 0), or with
+   * another moment already open, he picks at once. He stands still while it
+   * is open.
+   */
+  ask(m: Moment, opts: { maxS?: number; his?: () => string } = {}): Promise<Pick> {
+    const his = opts.his ?? (() => defaultPick(m, this.stats, new Rng(seedOf(`ask${this.now()}${m.id}`))));
+    const wait = Math.min(this.momentS, opts.maxS ?? Infinity);
+    if (wait <= 0 || this.moment) return Promise.resolve({ id: his(), you: false });
+    return new Promise((done) => {
+      this.moment = { m, left: wait, total: wait, done, his };
+      this.changed();
+    });
+  }
+
+  /** Settles the open moment with your pick `id`; null when time runs out: the result of a mini-game you started (see play), else his own pick. */
+  settleMoment(id: string | null): void {
+    const o = this.moment;
+    if (!o || (id !== null && !o.m.options.some((x) => x.id === id))) return;
+    this.moment = null;
+    const mine = id ?? o.played;
+    o.done(mine === undefined ? { id: o.his(), you: false } : { id: mine, you: true });
+    this.changed();
+  }
+
+  /** A mini-game you are playing scores option `id` so far: what you get if time runs out before you finish. */
+  play(id: string): void {
+    if (this.moment?.m.options.some((x) => x.id === id)) this.moment.played = id;
+  }
+
+  /** The Settings button: the next moment timer of MOMENT_TIMERS. */
+  nextMomentTimer(): void {
+    this.momentS = MOMENT_TIMERS[(MOMENT_TIMERS.indexOf(this.momentS as never) + 1) % MOMENT_TIMERS.length]!;
+    this.saveSettings();
+    this.changed();
   }
 
   /** He decides an open dilemma by himself: the card is closing, the page is being left, or a new reopen replaces it. True when he did. */
@@ -958,8 +1043,7 @@ export class Game {
     if (d.city && pick === 0 && w?.isTraveling()) [pick, by] = [1, "him"];
     const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     if (!o.trip || !d.city || !w) return;
-    // A free ride replaces a trip he is still walking to the station for, and its guess.
-    this.stats.care.guess = null;
+    // A free ride replaces a trip he is still walking to the station for.
     this.stats.history.breakTrail();
     w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
   }
@@ -1004,11 +1088,12 @@ export class Game {
     this.sound = s.sound;
     this.postcardName = s.postcardName;
     this.alwaysDilemma = s.alwaysDilemma;
+    this.momentS = s.momentS;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName, alwaysDilemma: this.alwaysDilemma });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName, alwaysDilemma: this.alwaysDilemma, momentS: this.momentS });
   }
 
   setShowCityArea(on: boolean): void {
