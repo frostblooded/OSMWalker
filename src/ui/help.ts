@@ -586,7 +586,7 @@ export function values(data: GameData): Record<string, string> {
     MEAL_LIST: comfortLines(data.actions, "meal", Comforts.MEALS),
     BEAUTY_EVERY_MIN: String(Comforts.BEAUTY_EVERY_S / 60),
     BEAUTY_M: String(Comforts.BEAUTY_M),
-    NICE_LAND: Comforts.NICE_LAND.map((k) => k.replace("_", " ")).join(", "),
+    NICE_LAND: Comforts.NICE_LAND.join(", "),
     GRIM_LAND: Comforts.GRIM_LAND.join(", "),
     OLD_TOWN: Comforts.OLD_TOWN.map(Mind.noun).join(", "),
     PRETTY: `${Comforts.PRETTY[1]} ${Comforts.PRETTY[0]} (${feel(Comforts.PRETTY)})`,

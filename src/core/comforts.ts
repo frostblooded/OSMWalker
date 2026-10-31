@@ -32,11 +32,11 @@ export const MEALS: Record<Meal, Feel> = {
 
 /** How often he looks around him while the game is open, in seconds. */
 export const BEAUTY_EVERY_S = 180;
-/** How far around him the map and his places count, in metres. */
+/** How far around him the map (a square this far either side) and his places count, in metres. */
 export const BEAUTY_M = 150;
 /** Land under him that cheers him, and land that gets him down (OpenMapTiles classes of landcover, landuse, park, water and transportation). */
-export const NICE_LAND = ["park", "wood", "grass", "garden", "water", "beach", "sand", "nature_reserve"];
-export const GRIM_LAND = ["industrial", "quarry", "landfill", "railway", "motorway", "trunk"];
+export const NICE_LAND = ["park", "wood", "grass", "water", "sand"];
+export const GRIM_LAND = ["industrial", "quarry", "railway", "motorway", "trunk"];
 /** Places nearby that make an old town: they count like nice land, once. */
 export const OLD_TOWN = ["castle", "monument", "memorial"];
 export const PRETTY: Feel = ["Pretty surroundings", "🌷", 2, 0.25];

@@ -735,4 +735,14 @@ describe("game", () => {
     expect(asked).toHaveLength(1);
     expect(g.stats.mind.moodlets.map((m) => m.name)).toContain(PRETTY[0]);
   });
+
+  it("counts a castle near him as an old town, even with no land drawn", async () => {
+    const castle: Place = { name: "Old Fort", class: "castle", subclass: "castle", rank: 1, lat: START[0] + 0.0005, lon: START[1] };
+    const { g } = game({ places: [castle] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    g.land = () => [];
+    g.lookAround();
+    expect(g.looked?.score).toBe(1);
+  });
 });

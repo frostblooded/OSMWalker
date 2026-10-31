@@ -443,14 +443,13 @@ export class MapView implements MapPort {
   }
 
   /**
-   * The kinds of land the map draws within `m` metres of `at` (see core/comforts.ts):
+   * The kinds of land the map draws in a square `m` metres either side of `at` (see core/comforts.ts):
    * water and parks by their tile layer, the rest by their class (wood, industrial,
    * motorway...). Only what is drawn on screen counts, so off screen it is none.
    */
   landAt(at: LatLon, m: number): string[] {
     const p = this.map.project([at[1], at[0]]);
-    const mPerPx = (40_075_016 * Math.cos((at[0] * Math.PI) / 180)) / (512 * 2 ** this.map.getZoom());
-    const r = Math.max(4, Math.min(200, m / mPerPx));
+    const r = Math.max(4, m * this.pxPerMeter(at[0]));
     const out = new Set<string>();
     for (const f of this.map.queryRenderedFeatures([
       [p.x - r, p.y - r],

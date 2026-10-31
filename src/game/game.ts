@@ -11,7 +11,7 @@ import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, t
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
-import { BEAUTY_EVERY_S, beautyOf } from "../core/comforts";
+import { BEAUTY_EVERY_S, BEAUTY_M, beautyOf } from "../core/comforts";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
@@ -418,7 +418,11 @@ export class Game {
     const t = performance.now();
     const land = this.land(at);
     const ms = performance.now() - t;
-    const score = beautyOf(land, w.graph.places.get(cellKey(cellOf(at[0], at[1]))) ?? [], at);
+    // The street cells the BEAUTY_M around him reach into, so a castle just across a cell's edge counts.
+    const d = BEAUTY_M / 111_000;
+    const keys = new Set([-d, d].flatMap((dy) => [-d, d].map((dx) => cellKey(cellOf(at[0] + dy, at[1] + dx / Math.cos((at[0] * Math.PI) / 180))))));
+    const near = [...keys].flatMap((k) => w.graph.places.get(k) ?? []);
+    const score = beautyOf(land, near, at);
     this.looked = { land, score, ms };
     this.stats.lookAround(score);
     this.changed();

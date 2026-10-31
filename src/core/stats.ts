@@ -487,7 +487,7 @@ export class Stats {
     return attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1;
   }
 
-  /** How hard his emotion and tastes pull him to a place of map class `kind`. */
+  /** How hard his emotion, tastes and grim surroundings pull him to a place of map class `kind`. */
   feelPull(kind: string): number {
     const grim = Cf.GREEN_KINDS.includes(kind) && this.mind.moodlets.some((m) => m.name === Cf.GRIM[0]);
     return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind) * (grim ? Cf.BEAUTY_PULL : 1);
