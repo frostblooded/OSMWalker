@@ -504,6 +504,7 @@
   "_spot": [
    {
     "name": "Siesta in the shade",
+    "sleep": true,
     "min": 15,
     "fx": {
      "xp": 3,
