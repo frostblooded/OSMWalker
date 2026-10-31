@@ -25,8 +25,7 @@ export function timingScore(at: number): number {
 export const TAPS = 12;
 export const tapScore = (taps: number) => Math.min(taps / TAPS, 1);
 
-/** Pick a card: three face down, one each of worst, middle and best, in random order. */
-/** Pick a card: one bad, one middling and one good. */
+/** Pick a card: one each of worst, middle and best, dealt face down in random order. */
 export const CARDS = [0, 0.5, 1];
 
 export function deal(rng: Rng): number[] {

@@ -19,7 +19,7 @@ export function MomentSheet({ m, left, onPick, onPlay }: Props) {
     <Card icon={m.game ? "🎮" : "🤔"} title={m.game ? "Mini-game" : "Choice"}>
       <div class="moment">
         <p>{m.ask}</p>
-      {/* The bar shrinks on the compositor; the game settles the moment when it runs out. */}
+        {/* The bar shrinks on the compositor; the game settles the moment when it runs out. */}
         <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
           <div style={{ animationDuration: `${drain}s` }} />
         </div>

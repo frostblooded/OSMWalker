@@ -24,10 +24,10 @@ When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or 
 
 He doesn't walk the map while you are away, so no streets have to load. Instead he hops from place to place by the usual rules:
 - he picks each place like any goal (see Picking the next goal), from the places already loaded in his city, and walks the straight line to it times {ROAD_FACTOR}, at his usual speed,
-- he does one action there and stays {STAY_MIN} minute (see What he does at places),
+- he does one action there and stays {STAY_MIN} minute (see What he does at places), and takes his own pick of its timed moment, so History says "Decided by himself" (see Timed moments),
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he takes on quests and joins world events as usual (see Quests),
-- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. As he boards he takes his own pick of the moment on the way. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
 
 While you are away day and night still follow the real sun and the season counts, and closed places stay closed (when every place near enough is closed he walks to a random spot instead), but the weather doesn't: the catch-up lives through those hours with no weather at all, so it can't rain on him while you're gone (see Weather).
 
@@ -196,7 +196,7 @@ Some actions have a risk: a chance that it goes differently, which adds to what 
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## Timed moments {moments}
-When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way may come too: a chatty passenger, a photo out of the window, the snack trolley or a nap.
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap.
 
 A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
 
@@ -210,7 +210,7 @@ At a choice he takes the usual option, unless his attribute tilts him to the bol
 Some options are a gamble, like walking out without paying or robbing a till: they work {RISK_BASE_PCT} of the time, plus {RISK_PER_POINT_PCT} for each point of Luck above 1, up to {RISK_CAP_PCT}. When one fails he is caught: he may pay a fine (only what he has), get hurt and lose mood. Kind and shady picks are meant to raise and lower his karma; until karma comes to the game they change only what they say.
 ## Mini-games {minigames}
 A mini-game's result picks one of its options, from worst to best:
-- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle (marked ✔) for the best result, in the light green around it for the middle one.
+- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle (marked ✔) for the best result, in the light green between the dashed lines for the middle one.
 - 🂠 Pick a card: {CARDS} cards lie face down, one bad, one middling and one good.
 - 👆 Tap fast: tap {TAPS} times before the bar runs out. If it runs out first, you get what your taps have scored so far.
 - 🔍 Odd one out: {ODD_CELLS} icons, one of them different. Tap it at once for the best result, after one wrong tap for the middle one; two wrong taps give the worst.
@@ -488,7 +488,7 @@ While no places of note are loaded in the city box, the odds double to {NO_PLACE
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
-As he boards, a moment on the way may come (see Timed moments).
+As he boards, a moment on the way comes (see Timed moments).
 
 He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
