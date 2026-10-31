@@ -185,6 +185,39 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.rival).toMatchObject({ level: 2, wins: 0, losses: 0, memory: [], inTown: false });
   });
 
+  it("loads saves from before visas: every country starts on Tourist", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.visas;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.visas).toMatchObject({ days: {}, code: "", stay: 0 });
+  });
+
+  it("loads saves from before pets: he has none", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.pets;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.pets).toMatchObject({ pet: null, past: [] });
+  });
+
+  it("loads saves from before his mind: no moodlets, wants or fears until the next tick fills his wants", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.mind;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    expect(stats.mind.toJSON()).toEqual({ moodlets: [], wants: [], fears: [] });
+    stats.passTime(1, 0);
+    expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -210,6 +243,21 @@ describe("save file", () => {
     expect(back.clubs.list).toEqual([]);
     expect(back.townies).toMatchObject({ day: "", done: {} });
     expect(back.anniversaries).toMatchObject({ born: 1234, day: "" });
+  });
+
+  it("loads saves from before skills, cooking and languages: none yet, an empty pantry, English only", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.skills;
+    delete d.stats.pantry;
+    delete d.stats.languages;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(Object.values(back.skills.steps)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(back.pantry).toMatchObject({ items: [], cooked: 0 });
+    expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
   });
 
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
@@ -264,6 +312,18 @@ describe("save file", () => {
     expect(back.keepsakes.cards.size).toBe(0);
     expect(back.keepsakes.souvenirs.size).toBe(0);
     expect(back.where).toEqual({ city: "", code: "", country: "" });
+    expect(back.cents).toBe(4321);
+  });
+
+  it("loads saves from before local words, with none learned yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.words;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.words.count()).toBe(0);
     expect(back.cents).toBe(4321);
   });
 

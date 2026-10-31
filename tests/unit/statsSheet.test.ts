@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, and what the sky does to him.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, and his skills, languages and pantry.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -7,6 +7,8 @@ import { euro } from "../../src/core/money";
 import { Rng } from "../../src/core/rng";
 import { skyAt, SNOW_SPEED } from "../../src/core/sky";
 import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
+import { PANTRY_MAX } from "../../src/core/cooking";
+import { stepsTo } from "../../src/core/skills";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import type { Spell } from "../../src/core/magic";
@@ -22,11 +24,43 @@ describe("Stats sheet", () => {
   it("lists his careers with his title and the shifts to the next rank", () => {
     const stats = new Stats();
     expect(shown(stats)).toContain("No shifts yet.");
-    stats.careers.shifts = { cafe: 41, bar: 180 };
+    stats.careers.shifts = { cafe: 41, bar: 150 };
     const text = shown(stats);
     expect(text).toContain("🍸 Bar · Bar managerTop rank");
-    expect(text).toContain("☕ Café · Head barista29 shifts to go");
+    expect(text).toContain("☕ Café · Head barista19 shifts to go");
     expect(text).toContain("Rank 5 / 5");
+  });
+
+  it("shows his wants, fears and the total that moves his mood", () => {
+    const stats = new Stats();
+    stats.now = () => 1_800_000_000;
+    stats.mind.wants = [{ kind: "long", place: "castle", until: 0 }, { kind: "short", place: "cafe", until: 1_800_000_000 + 2 * 3600 }];
+    stats.mind.fears = ["dog_park"];
+    stats.mind.wants.push({ kind: "face", place: "dog_park", until: 0 });
+    stats.mind.feel("Wish come true", "🌠", 3, 4);
+    const text = shown(stats);
+    expect(text).toContain("💭Mind");
+    expect(text).toContain("🌠 See a castle");
+    expect(text).toContain("✨ Go to a cafe2 h");
+    expect(text).toContain("😨 Wary of dog parks: face the dog park again");
+    expect(text).toContain("🙂 Mood ▸+2/h"); // -1 drift + 3
+  });
+
+  it("shows his pet, its level and km together, and the pets he had", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No pet yet");
+    const p = stats.pets.adopt("cat", stats.now(), "", new Rng(1));
+    expect(shown(stats)).toContain(`${p.name} the cat`);
+    expect(shown(stats)).toContain("No, grumpy");
+    stats.pets.pass(stats.now() + 86400 * 300);
+    expect(shown(stats)).toContain("Remembered");
+  });
+
+  it("tells a failed quest from an event that went badly", () => {
+    const stats = new Stats();
+    stats.quests.log.push({ icon: "🧪", title: "Lost cause", city: "X", t: 0, good: false }, { icon: "🌟", title: "Rough fair", city: "X", t: 1, good: false, event: true });
+    expect(shown(stats)).toContain("Lost cause✖ Failed");
+    expect(shown(stats)).toContain("Rough fairWent badly");
   });
 
   it("after a flyer lands, shows his walking speed", () => {
@@ -86,6 +120,23 @@ describe("Stats sheet", () => {
     expect(text).not.toContain("none yet");
   });
 
+  it("shows the local words he knows by language, with the last one", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("🗣Local wordsLearnednone so far");
+    stats.wordBook = { at: {}, languages: { bg: { name: "Bulgarian", words: [["здравей (zdravey)", "hello"], ["кафе (kafe)", "coffee"]] } }, countries: { BGR: "bg" } };
+    stats.words.known = { bg: ["hello", "coffee"] };
+    expect(shown(stats)).toContain("🗣Local words2Bulgarian 2 / 2кафе (kafe) = coffee");
+    // Past four languages, the ones with fewest words fold away.
+    for (const k of ["a", "b", "c", "d"]) {
+      stats.wordBook.languages[k] = { name: `Lang${k}`, words: [["x", "one"]] };
+      stats.words.known[k] = ["one"];
+    }
+    const text = shown(stats);
+    expect(text).toContain("Bulgarian 2 / 2");
+    expect(text).toContain("More languages ▸1");
+    expect(text).not.toContain("Langd");
+  });
+
   it("lists his clubs on the Friends card, with their city and night", () => {
     const stats = new Stats();
     stats.clubs.list = [{ kind: "chess", host: "x", city: "Sofia, Bulgaria", place: { name: "Café Rila", lat: 0, lon: 0 }, day: 2, hour: 19, joined: 0, last: "", nights: 0 }];
@@ -97,5 +148,18 @@ describe("Stats sheet", () => {
     expect(shown(stats)).not.toContain("From enchanted gear");
     stats.equip(Items.build(Items.KINDS.trinkets[0]!, Items.MATERIALS[0]!, [Items.ENCHANTMENTS.find((e) => e.name === "of the Moon")!]));
     expect(shown(stats)).toContain("🌙 From enchanted gear+2 a km");
+  });
+
+  it("shows each skill's level, the languages he speaks with the local one marked, and his pantry", () => {
+    const stats = new Stats();
+    stats.skills.steps.music = stepsTo(3);
+    stats.arrive("Lyon", "FRA", "France");
+    stats.languages.add("France's language", 6);
+    stats.pantry.items = ["bread", "cheese"];
+    const text = shown(stats);
+    expect(text).toContain("🎵 Music3");
+    expect(text).toContain("France's language · herebasic");
+    expect(text).toContain("Englishfluent");
+    expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
   });
 });

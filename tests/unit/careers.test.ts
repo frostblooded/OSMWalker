@@ -32,8 +32,8 @@ describe("ranks", () => {
 
   it("shows the way to the next rank, and the top rank as full", () => {
     const c = Careers.fromJSON({ shifts: { cafe: 41 } });
-    expect(c.standing(careerOf("cafe")!)).toEqual({ rank: 3, title: "Head barista", left: 29, share: (41 - 12) / (70 - 12) });
-    c.shifts.cafe = 180;
+    expect(c.standing(careerOf("cafe")!)).toEqual({ rank: 3, title: "Head barista", left: 19, share: (41 - 12) / (60 - 12) });
+    c.shifts.cafe = 150;
     expect(c.standing(careerOf("cafe")!)).toEqual({ rank: 5, title: "Café owner", left: 0, share: 1 });
   });
 
@@ -50,9 +50,9 @@ describe("places", () => {
     for (const c of CAREERS) for (const k of c.at) expect(DATA[k]?.some(isShift), `${c.id}: ${k}`).toBe(true);
   });
 
-  it("every kind of place with a shift belongs to a career, but for the fantasy places", () => {
+  it("every kind of place with a shift belongs to a career, but for the fantasy places and skill or language jobs", () => {
     const loose = Object.entries(DATA).filter(([k, l]) => l.some(isShift) && !careerAt(k)).map(([k]) => k);
-    expect(loose).toEqual(["guild_hall", "wizard_tower"]);
+    expect(loose.sort()).toEqual(["_spot", "guild_hall", "information", "place_of_worship", "wizard_tower"]);
   });
 
   it("tags the shifts of a career's places, not bets, and adds its rank shifts", () => {

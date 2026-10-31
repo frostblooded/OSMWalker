@@ -3,6 +3,8 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bills from "../core/bills";
+import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Careers from "../core/careers";
@@ -13,6 +15,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Mind from "../core/mind";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -35,6 +38,7 @@ import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
 import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
+import * as Pet from "../core/pet";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
@@ -44,6 +48,9 @@ import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
 import * as Anniv from "../core/anniversaries";
 import * as Clubs from "../core/clubs";
+import * as Cook from "../core/cooking";
+import * as Lang from "../core/languages";
+import * as Skills from "../core/skills";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
@@ -55,6 +62,7 @@ import * as Weather from "../core/weather";
 import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
+import * as Words from "../core/words";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -168,6 +176,40 @@ const crawlKinds = (c: K.Crawl) => {
   const words = Collection.CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
   return c.id === "sights" ? `${words} (see Landmark cards)` : words;
 };
+/** One Help line per skill: the actions that train it, and those that need a level of it. */
+const skillLines = (actions: Activities.ActionTable) => {
+  const all = Object.values(actions).flat();
+  return Skills.SKILLS.map((k) => {
+    const [icon, name] = Skills.SKILL[k];
+    const of = all.filter((a) => a.skill === k);
+    const names = (l: S.Action[]) => [...new Set(l.map((a) => a.name.toLowerCase()))];
+    const free = names(of.filter((a) => !a.needs?.[k]));
+    const gated = [...new Map(of.filter((a) => a.needs?.[k]).map((a) => [a.name, a] as const)).values()].sort((a, b) => a.needs![k]! - b.needs![k]!);
+    return `- ${icon} ${name}: ${free.join(", ")}${gated.length ? `; at level ${gated.map((a) => `${a.needs![k]} ${a.name.toLowerCase()}`).join(", at ")}` : ""}.`;
+  }).join("\n");
+};
+/** The level of `skill` the action named `name` needs; throws when it is gone, so Help can't quietly say 0. */
+const needOf = (actions: Activities.ActionTable, name: string, skill: Skills.Skill | "lang") => {
+  const n = Object.values(actions).flat().find((a) => a.name === name)?.needs?.[skill];
+  if (n === undefined) throw new Error(`Help: no "${name}" needing ${skill} in actions.json`);
+  return n;
+};
+/** What Help calls the shops that sell ingredients, by actions.json key. */
+const GROCERS: Record<string, string> = { grocery: "supermarkets", "shop/convenience": "corner shops", bakery: "bakeries", butcher: "butchers" };
+/** The language level guiding and translating need; throws if the two differ, as Help names one. */
+const guideLevel = (actions: Activities.ActionTable) => {
+  const [g, t] = [needOf(actions, "Guide a walking tour", "lang"), needOf(actions, "Translate for travellers", "lang")];
+  if (g !== t) throw new Error("Help: guiding and translating need different language levels");
+  return Lang.LANG_LEVELS[g]!;
+};
+/** "- bakeries: bread," per kind of shop that sells ingredients. */
+const groceryLines = (actions: Activities.ActionTable) =>
+  Object.entries(actions)
+    .flatMap(([k, l]) => l.filter((a) => a.groceries).map((a) => `- ${GROCERS[k] ?? k.split("/").at(-1)!.replaceAll("_", " ")}: ${Cook.listOf(a.groceries!)}`))
+    .join(",\n")
+    .concat(".");
+const recipeLines = () =>
+  Cook.RECIPES.map((r) => `- ${r.icon} ${r.name[0]!.toUpperCase()}${r.name.slice(1)} (cooking ${r.level}): ${Cook.listOf(r.uses)}, ${Object.entries(r.fx).map(([k, v]) => `+${num(v)} ${k === "str" ? "strength" : k === "magic" ? "Magic" : k}`).join(", ")}.`).join("\n");
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
@@ -210,6 +252,31 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    VISA_LIST: Visas.VISAS.map((v) => `- ${v.name}${v.from ? ` (after ${v.from} days)` : " (at first)"}: ${v.stay === Infinity ? "stays as long as he likes" : `stays of up to ${v.stay} days`}, ${v.pay ? `+${pct(v.pay)}` : "no extra"} pay`).join("\n"),
+    VISA_URGE: num(Visas.VISA_URGE),
+    VISA_PAY_MAX: pct(Visas.VISAS.at(-1)!.pay),
+    VISA_PUSH: num(Visas.VISA_PUSH),
+    BILLS_L1: euro(Bills.billsAt(1)),
+    BILLS_L10: euro(Bills.billsAt(10)),
+    BILLS_L30: euro(Bills.billsAt(30)),
+    ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
+    PET_FOOD: euro(Pet.PET_FOOD),
+    PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
+    PET_MOOD_PER_LEVEL: num(Pet.PET_MOOD_PER_LEVEL),
+    PET_KM_2: num(Pet.kmFor(2)),
+    PET_KM_3: num(Pet.kmFor(3)),
+    PET_MAX_LEVEL: num(Pet.PET_MAX_LEVEL),
+    PET_KM_MAX: num(Pet.kmFor(Pet.PET_MAX_LEVEL)),
+    DOG_FIND_PCT: pct(Pet.DOG_FIND_PER_LEVEL),
+    CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
+    PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
+    PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
+    PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
+    PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
+    MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
@@ -340,6 +407,24 @@ export function values(data: GameData): Record<string, string> {
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
+    WANT_PULL: num(Mind.WANT_PULL),
+    FEAR_PULL: num(Mind.FEAR_PULL),
+    SHORT_H: num(Mind.SHORT_H),
+    SHAKE_H: num(Mind.SHAKE_H),
+    FEAR_PCT: pct(Mind.FEAR_CHANCE),
+    MAX_FEARS: String(Mind.MAX_FEARS),
+    MAX_MOODLETS: String(Mind.MAX_MOODLETS),
+    WANT_XP_LONG: String(Mind.WANT_XP.long),
+    WANT_XP_SHORT: String(Mind.WANT_XP.short),
+    WANT_XP_SHAKE: String(Mind.WANT_XP.shake),
+    WANT_XP_FACE: String(Mind.WANT_XP.face),
+    WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
+    WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    WISH_MOOD_SHAKE: `+${Mind.WANT_MOOD.shake[0]} an hour for ${Mind.WANT_MOOD.shake[1]} hours`,
+    RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
+    SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
+    FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
+    LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
@@ -376,6 +461,7 @@ export function values(data: GameData): Record<string, string> {
     SHEET_TALL_PCT: String(Math.round(Snap.TALL * 100)),
     SHEET_CLOSE_PCT: String(Math.round(Snap.CLOSE_AT * 100)),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
+    POSE_EVERY_S: String(Looks.POSE_EVERY_S),
     LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
@@ -521,6 +607,12 @@ export function values(data: GameData): Record<string, string> {
     JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
     JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
+    WORD_COUNTRIES: num(Object.keys(data.words?.countries ?? {}).length),
+    WORD_LANGUAGES: num(Object.keys(data.words?.languages ?? {}).length),
+    WORD_EACH: num(Math.round(Object.values(data.words?.languages ?? {}).reduce((n, l) => n + l.words.length, 0) / Math.max(Object.keys(data.words?.languages ?? {}).length, 1))),
+    WORD_PCT: pct(Words.LEARN_CHANCE),
+    WORD_WIT: num(Words.WORD_WIT),
+    WORD_XP: num(Words.WORD_XP),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
@@ -610,21 +702,23 @@ export function values(data: GameData): Record<string, string> {
     BOARD_MID_POP: num(Quests.BOARD_MID_POP),
     STEPS_MORE_MIN: num(Math.min(...bank.quests.map((q) => q.steps.length)) - 1),
     STEPS_MORE_MAX: num(Math.max(...bank.quests.map((q) => q.steps.length)) - 1),
-    QUEST_KINDS: String(bank.quests.length),
-    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy).length),
+    QUEST_KINDS: String(bank.quests.filter((q) => !q.city).length),
+    CITY_QUESTS: String(bank.quests.filter((q) => q.city).length),
+    CITY_CITIES: String(new Set(bank.quests.flatMap((q) => (q.city ? [q.city] : []))).size),
+    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy && !q.city).length),
     FANTASY_PCT: pct(Quests.FANTASY_SHARE),
-    QUEST_VARIANTS: num(Math.floor(bank.quests.reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
+    QUEST_VARIANTS: num(Math.floor(bank.quests.filter((q) => !q.city).reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
     QUEST_EVERY_MIN: num(Quests.QUEST_EVERY_MIN),
     QUEST_EVERY_MAX: num(Quests.QUEST_EVERY_MAX),
     STEP_CHOICES: num(Quests.STEP_CHOICES),
     STEP_MIN: num(Quests.STEP_MIN),
-    WORSE_PCT: pct(Quests.WORSE_SHARE),
     LOG_MAX: num(Quests.LOG_MAX),
     CARD_RECENT: num(Quests.CARD_RECENT),
     EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
     EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
     EVENT_MAX: num(Quests.EVENT_MAX),
     EVENT_KINDS: String(bank.events.length),
+    EVENT_FANTASY: String(bank.events.filter((e) => e.fantasy).length),
     FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
     FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
     LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
@@ -667,6 +761,30 @@ export function values(data: GameData): Record<string, string> {
     CLUB_MAX: num(Clubs.MAX_CLUBS),
     CLUB_NIGHT_H: num(Clubs.NIGHT_H),
     CLUB_LIST: Clubs.helpList(),
+    SKILL_MAX: num(Skills.SKILL_MAX),
+    SKILL_STEP: num(Skills.SKILL_STEP),
+    SKILL_L4: num(Skills.stepsTo(4)),
+    SKILL_L10: num(Skills.stepsTo(Skills.SKILL_MAX)),
+    PRACTICE_MIN: num(Skills.PRACTICE_MIN),
+    PRACTICE_MIN_2X: num(Skills.PRACTICE_MIN * 2),
+    CONCERT_AT: num(needOf(data.actions, "Play a street concert", "music")),
+    LANGS_SHOWN: num(Lang.LANGS_SHOWN),
+    GUIDE_LEVEL: guideLevel(data.actions),
+    GROCERY_LIST: groceryLines(data.actions),
+    SKILLS_SHOWN: num(Skills.SKILLS_SHOWN),
+    SKILL_FX_PCT: pct(Skills.SKILL_FX),
+    SKILL_FX_MAX_PCT: pct(Skills.SKILL_FX * Skills.SKILL_MAX),
+    SKILL_LEAN_MAX: num(1 + Skills.SKILL_LEAN),
+    PHOTO_SHINE_PCT: pct(Skills.PHOTO_SHINE),
+    SKILL_LIST: skillLines(data.actions),
+    PANTRY_MAX: num(Cook.PANTRY_MAX),
+    GROCERIES_WEIGHT: num(Activities.GROCERIES_WEIGHT),
+    RECIPE_LIST: recipeLines(),
+    LANG_LIST: Lang.LANG_LEVELS.slice(1).map((l, i) => `- ${l}: ${num(Lang.LANG_HOURS[i + 1]!)} hour${Lang.LANG_HOURS[i + 1] === 1 ? "" : "s"}`).join(",\n"),
+    LANG_CHAT_H: num(Lang.CHAT_H),
+    LANG_CHARM: num(Lang.LANG_CHARM),
+    LANG_CHARM_MAX: num(Lang.LANG_CHARM * Lang.FLUENT),
+    FLUENT: Lang.LANG_LEVELS[Lang.FLUENT]!,
     NEWS_PCT: pct(Townies.NEWS_CHANCE),
     NEWS_AT: num(Townies.NEWS_AT),
     PARTY_AT: num(Anniv.PARTY_AT),

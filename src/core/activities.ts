@@ -10,6 +10,7 @@ import { KIND_DEED_WEIGHT } from "./bond";
 import { CAREER_PULL, careerAt, isShift, rankShift, TOP_RANK } from "./careers";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
+import { SKILL_LEAN, SKILL_MAX } from "./skills";
 import { ATTRS, visitKey, type Action, type Attr, type Meter, type Place, type Stats } from "./stats";
 
 export type ActionTable = Record<string, Action[]>;
@@ -23,6 +24,8 @@ export const SAVING_SPEND_MULT = 0.5;
 /** Extra weight for browsing the shop of his next vehicle once he can afford it, and how much more that shop pulls his goal. */
 export const GOAL_SHOP_WEIGHT = 4;
 export const GOAL_SHOP_PULL = 200;
+/** Extra weight for buying ingredients, so he cooks now and then (he only buys what a recipe lacks, see cooking.ts). */
+export const GROCERIES_WEIGHT = 2;
 /** Extra weight for a country's own actions, so they come up often. */
 export const FLAVOUR_WEIGHT = 2;
 /** Below this a meter is a need. Its urge is the square of how far below it is, so it is mild at first and steep near empty. */
@@ -162,18 +165,24 @@ function local(place: Partial<Place> | null, table: ActionTable): Action[] {
   return [];
 }
 
-/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him, and how little it hurts what he needs. */
+/** 1, up to 1 + SKILL_LEAN at SKILL_MAX, for an action that trains a skill he has. */
+export function skillLean(action: Action, stats: Stats): number {
+  return action.skill ? 1 + (SKILL_LEAN * stats.skills.level(action.skill)) / SKILL_MAX : 1;
+}
+
+/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him (attributes and skills), and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
+  if (action.groceries) w += GROCERIES_WEIGHT;
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (action.career && action.career === stats.careers.best()) w *= CAREER_PULL;
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
-  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * harm(action, stats);
+  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * harm(action, stats);
 }
 
 /**
@@ -202,6 +211,12 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
     bottom ||= fixesUrgent(a, stats, BOTTOM_AT);
   }
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
+}
+
+/** `need` with its pull times how his wants and fears pull him to a place of `p`'s kind (see mind.ts). */
+export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
+  const m = stats.mind.pull(p.class);
+  return m === 1 ? need : { ...need, pull: need.pull * m };
 }
 
 /** True while any meter he feels (see Stats.felt) is under URGENT_AT, so he stays to fix it rather than set off on a trip. */

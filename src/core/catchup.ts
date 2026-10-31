@@ -9,7 +9,7 @@
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
-import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, exploreWeight, minded, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
@@ -18,7 +18,7 @@ import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
+import { cityBounds, cityKey, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -54,7 +54,7 @@ export const MADE_UP_KINDS: { class: string; subclass: string; label: string; we
 ];
 
 /** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. `pop` sizes its quest board. */
-export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number };
+export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number; /** The cities.tsv "Name, Country" key, when he's in a listed city: city quests match on it. */ key?: string };
 
 export type CatchUpDeps = {
   activities: Activities;
@@ -217,7 +217,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name);
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -253,6 +253,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
+      stats.wordAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
       const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;
@@ -303,7 +304,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     }
     if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
-    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
+    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;
@@ -337,7 +338,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
 
   /** Lands in `dest` at `at` after `distM` by `mode` from longitude `fromLon`, as the watched game does on landing. */
   function landIn(dest: City, mode: Mode, fromLon: number, at: LatLon, distM: number): void {
-    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
+    city = { name: cityKey(dest), code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
@@ -355,7 +356,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
     const sky = skyNow();
-    const need = flat.kinds.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const need = flat.kinds.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
@@ -371,7 +372,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);
     const made = madeUp();
-    const madeNeed = made.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const madeNeed = made.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
     const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
     return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }

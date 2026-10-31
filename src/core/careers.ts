@@ -9,7 +9,7 @@ import type { Action } from "./stats";
 import { SHIFT_MIN } from "./workCards";
 
 /** Shifts in a career he needs in all to reach each rank, from rank 1 (index 0) up. */
-export const SHIFTS_TO = [0, 1, 12, 70, 180] as const;
+export const SHIFTS_TO = [0, 1, 12, 60, 150] as const;
 export const TOP_RANK = SHIFTS_TO.length;
 /** A career's jobs pay this share more for every rank above 1. */
 export const WAGE_PER_RANK = 0.1;
