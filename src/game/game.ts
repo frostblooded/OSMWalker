@@ -13,6 +13,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
+import { getCrawler, setCrawler } from "../core/ruins";
 import { distanceM, type BBox } from "../core/geo";
 import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
@@ -878,6 +879,8 @@ export class Game {
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
     // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
+    // Ruin crawls during the time away need core/crawl.ts too; without it ruins are just castles this time.
+    const crawl = getCrawler() ? null : import("../core/crawl").then((m) => setCrawler(m.explore), () => undefined);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       // The catch-up takes no weather, so the reopen doesn't wait for it; it comes in for the watched game.
@@ -887,9 +890,9 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      // The code table comes in the same short wait, so the catch-up knows the holidays kept on the device; it never waits on the network for a list.
+      // The code table and the ruin crawl rooms come in the same short wait, so the catch-up knows the holidays kept on the device and can crawl; it never waits on the network for a list.
       const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
-      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
+      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()]), crawl && Promise.race([crawl, shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
