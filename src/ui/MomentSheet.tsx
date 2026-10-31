@@ -13,13 +13,15 @@ const HOW: Record<GameId, string> = { timing: "Tap Stop when the marker is in th
 type Props = { m: Moment; left: number; onPick: (id: string) => void; onPlay: (id: string) => void };
 
 export function MomentSheet({ m, left, onPick, onPlay }: Props) {
+  // The bar drains once from the time left at first; a new duration on each redraw would make it jump ahead.
+  const [drain] = useState(left);
   return (
     <Card icon={m.game ? "🎮" : "🤔"} title={m.game ? "Mini-game" : "Choice"}>
       <div class="moment">
         <p>{m.ask}</p>
       {/* The bar shrinks on the compositor; the game settles the moment when it runs out. */}
         <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
-          <div style={{ animationDuration: `${left}s` }} />
+          <div style={{ animationDuration: `${drain}s` }} />
         </div>
         {m.game ? <Game m={m} onPick={onPick} onPlay={onPlay} /> : <Choices m={m} onPick={onPick} />}
         <p class="dim small">Or wait, and he {m.game ? "plays it himself" : "decides by himself"}.</p>
@@ -59,7 +61,9 @@ function Timing({ onScore }: { onScore: (s: number) => void }) {
     <>
       <div class="sweep" aria-hidden="true">
         <span class="near" style={{ width: `${NEAR * 200}%` }} />
-        <span class="bull" style={{ width: `${BULL * 200}%` }} />
+        <span class="bull" style={{ width: `${BULL * 200}%` }}>
+          ✔
+        </span>
         {/* Out and back like sweepAt: each way takes half a sweep. */}
         <span class="track" style={{ animationDuration: `${SWEEP_S / 2}s` }}>
           <span class="needle" />

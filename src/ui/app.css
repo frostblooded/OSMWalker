@@ -251,13 +251,13 @@ a.btn { color: inherit; text-decoration: none; }
 .hit mark { background: none; color: var(--link); font-weight: 800; }
 .sheet .body > .card { box-shadow: none; border-width: 2px; }
 /* Timed moments (MomentSheet.tsx): the time left drains on the compositor; the timing bar's marker sweeps out and back. */
-.moment > * + * { margin-top: var(--s3); }
+.card .moment > * + * { margin-top: var(--s3); }
 .moment-time > div { transform-origin: left; animation: drain linear forwards; }
 @keyframes drain { to { transform: scaleX(0); } }
 .sweep { position: relative; height: 32px; border-radius: 8px; background: var(--zebra); border: 2px solid var(--ink); overflow: hidden; }
 .sweep .near, .sweep .bull { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
 .sweep .near { background: var(--warning); opacity: 0.35; }
-.sweep .bull { background: var(--ok); }
+.sweep .bull { background: var(--ok); display: grid; place-items: center; font-size: 14px; color: var(--paper); }
 .sweep .track { position: absolute; inset: 0; animation: sweep linear infinite alternate; }
 .sweep .needle { position: absolute; top: 0; bottom: 0; left: -2px; width: 4px; background: var(--ink); }
 @keyframes sweep { to { transform: translateX(100%); } }

@@ -11,6 +11,7 @@ import { placeIcon } from "../core/look";
 import { euro, signed } from "../core/money";
 import type { Recap, Week } from "../core/week";
 import { biasMin, dist, duration } from "./format";
+import { useEffect, useState } from "preact/hooks";
 import { Card, Collapsible, KV } from "./kit";
 
 export function AwaySheet({
@@ -20,8 +21,9 @@ export function AwaySheet({
   dilemma,
   dilemmaS,
   onChoose,
+  onShown,
   onDone,
-}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onDone: () => void }) {
+}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onShown: () => void; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -33,7 +35,7 @@ export function AwaySheet({
         {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
-      {dilemma && <DilemmaCard d={dilemma} leftS={dilemmaS} onChoose={onChoose} />}
+      {dilemma && <DilemmaCard d={dilemma} leftS={dilemmaS} onChoose={onChoose} onShown={onShown} />}
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
         <KV k="✨ New places" v={s.firstVisits} />
@@ -105,14 +107,17 @@ function weekText(start: number): string {
 }
 
 /** The one choice this reopen offers: tap an option before the bar runs out (`leftS`), or he decides by himself. */
-function DilemmaCard({ d, leftS, onChoose }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void }) {
+function DilemmaCard({ d, leftS, onChoose, onShown }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void; onShown: () => void }) {
+  // Its time starts when you see it, and the bar drains once from there (see MomentSheet).
+  useEffect(onShown, []);
+  const [drain] = useState(leftS);
   return (
     <Card icon={d.icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
       <p>{d.ask}</p>
       {d.picked === null ? (
         <>
           <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(leftS)} seconds to choose`}>
-            <div style={{ animationDuration: `${leftS}s` }} />
+            <div style={{ animationDuration: `${drain}s` }} />
           </div>
           <div class="choices dilemma">
             {d.labels.map((n, i) => (

@@ -10,8 +10,6 @@ import type { Action, Attr, Fx } from "./stats";
 
 /** The odds a creature shows up when he reaches a place it lives at, until he has met one today. */
 export const CREATURE_CHANCE = 0.15;
-// A risky pick (the troll's riddle) works by the shared odds of moments.ts.
-export { RISK_BASE, RISK_CAP, RISK_PER_POINT, riskOdds } from "./moments";
 
 export type Outcome = {
   /** What he says happened; {PLACE} is the place's name. */

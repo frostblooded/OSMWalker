@@ -161,7 +161,7 @@ export class Game {
   dilemma: Dilemma | null = null;
   /** How many moments the Debug button has opened, so the next is another kind. */
   private debugMoments = 0;
-  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS). */
+  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS); Infinity until the away card shows it. */
   dilemmaLeft = 0;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
@@ -451,7 +451,7 @@ export class Game {
   private askPlaceMoment(m: PlaceMoment | null, where: string, dice: Rng, maxS?: number): void {
     if (!m) return;
     void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", where) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
-      this.stats.settleMoment(m, where, p.id, p.you, dice.randf());
+      this.stats.settleMoment(m, where, p.id, p.you, dice);
       this.save();
     });
   }
@@ -717,7 +717,8 @@ export class Game {
           const here = w.position();
           return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
-      this.dilemmaLeft = this.momentS;
+      // Its time starts when the card shows (dilemmaShown).
+      this.dilemmaLeft = Infinity;
       // With the timer Off he decides at once, and the card shows what he chose.
       if (!this.momentS) this.leaveDilemma();
     } finally {
@@ -812,6 +813,11 @@ export class Game {
   }
 
   /** Your pick on the summary card's dilemma. */
+  /** The away card's choice is on screen: its time starts now. */
+  dilemmaShown(): void {
+    if (this.dilemmaLeft === Infinity) this.dilemmaLeft = this.momentS;
+  }
+
   chooseDilemma(pick: number): void {
     const d = this.dilemma;
     if (!d || d.picked !== null) return;

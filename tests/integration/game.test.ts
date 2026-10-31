@@ -18,7 +18,8 @@ import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { MOMENT_S, MOMENT_TIMERS } from "../../src/core/moments";
 import { Rng, seedOf } from "../../src/core/rng";
-import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
+import { momentDice } from "../../src/core/placeMoments";
+import { FULLNESS_PER_H, ON_THE_TRAIL, Stats, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { DEBUG_MOMENTS, Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
@@ -427,6 +428,27 @@ describe("game", () => {
       await tick();
       expect(again.moment).toBeNull();
       expect(again.stats.history.entries.some((e) => e.text.startsWith("☕ Decided by himself:"))).toBe(true);
+    });
+
+    it("goes as in the catch-up when untouched: same line, money and free item", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      // Every result of the cafe's moment gives a free item, so its dice matter.
+      const cafe = g.stats.placeMoments.cafe!;
+      const outcomes = Object.fromEntries(Object.entries(cafe.outcomes).map(([k, o]) => [k, { ...o, item: "improvised" as const }]));
+      g.stats.placeMoments = { ...g.stats.placeMoments, cafe: { ...cafe, outcomes } };
+      toMoment(g);
+      const away = Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON())));
+      away.placeMoments = g.stats.placeMoments;
+      const t = g.stats.now();
+      away.byHimself(away.placeMoments.cafe!, "Cafe Near", momentDice(t, "Cafe Near"));
+      // Watched, it settles when the timer runs out.
+      g.stats.now = () => t + MOMENT_S;
+      run(g, MOMENT_S);
+      await tick();
+      const items = (s: Stats) => [...Object.values(s.gear), ...s.bag].map((i) => i?.name);
+      expect(g.stats.history.entries.at(-1)!.text).toBe(away.history.entries.at(-1)!.text);
+      expect([g.stats.cents, items(g.stats)]).toEqual([away.cents, items(away)]);
     });
 
     it("never opens with the timer Off, and steps through the timers in Settings, kept on the device", async () => {
@@ -1122,10 +1144,17 @@ describe("game", () => {
       expect(other.stats.history.latest()).toMatch(/^Decided by himself: /);
     });
 
-    it("decides by himself once the moment timer runs out, or at once with it Off", async () => {
+    it("decides by himself once the moment timer runs out after the card shows, or at once with it Off", async () => {
       const { again } = await reopenDilemma("bread");
-      expect(again.dilemmaLeft).toBe(MOMENT_S);
-      run(again, MOMENT_S - 1);
+      // Behind another sheet the card isn't seen yet, so its time hasn't started.
+      run(again, 60);
+      expect(again.dilemma).toMatchObject({ picked: null });
+      again.dilemmaShown();
+      run(again, 1);
+      // Shown again (the card reopened), it keeps counting down.
+      again.dilemmaShown();
+      expect(again.dilemmaLeft).toBe(MOMENT_S - 1);
+      run(again, MOMENT_S - 2);
       expect(again.dilemma).toMatchObject({ picked: null });
       run(again, 1);
       expect(again.dilemma).toMatchObject({ by: "him" });

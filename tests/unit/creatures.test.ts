@@ -1,7 +1,8 @@
 // Place creatures: who lives where, how often they show up, and what each pick does.
 import { describe, expect, it } from "vitest";
 import { FEATS, SETS } from "../../src/core/collection";
-import { CREATURE_CHANCE, Creatures, creatureOf as kindAt, RISK_CAP, riskOdds, type Creature } from "../../src/core/creatures";
+import { CREATURE_CHANCE, Creatures, creatureOf as kindAt, type Creature } from "../../src/core/creatures";
+import { RISK_CAP, riskOdds } from "../../src/core/moments";
 import { signed } from "../../src/core/money";
 import { BRIDGE } from "../../src/core/ofm";
 import { ODD_KINDS } from "../../src/core/poiGen";

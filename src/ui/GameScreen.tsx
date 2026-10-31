@@ -306,14 +306,14 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
-      {game.moment && <MomentBox game={game} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
           <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
-            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />}
+            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onShown={() => game.dilemmaShown()} onDone={() => game.dismissAway()} />}
           </Lazy>
         </SheetBox>
       )}
+      {game.moment && <MomentBox game={game} />}
     </div>
   );
 }

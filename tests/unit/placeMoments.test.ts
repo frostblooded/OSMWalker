@@ -3,7 +3,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RISK_CAP } from "../../src/core/moments";
 import { momentFor, type PlaceMoments } from "../../src/core/placeMoments";
+import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
+
+/** Dice whose first roll (a risky option's) is `r`. */
+const roll = (r: number) => {
+  const d = new Rng(1);
+  const next = d.randf.bind(d);
+  let first = true;
+  d.randf = () => (first ? ((first = false), r) : next());
+  return d;
+};
 
 const TABLE: PlaceMoments = {
   cafe: {
@@ -39,36 +49,36 @@ describe("settling a pick", () => {
   it("pays, applies its effects and says what he did, with the place's name", () => {
     const s = new Stats();
     s.cents = 10000;
-    const line = s.settleMoment(TABLE.cafe!, "Café Nero", "tip", true, 0.5);
+    const line = s.settleMoment(TABLE.cafe!, "Café Nero", "tip", true, roll(0.5));
     expect(line).toBe("☕ Tipped the barista at Café Nero (-€2)");
     expect(s.cents).toBe(9800);
   });
 
   it("says when he decided by himself", () => {
-    expect(new Stats().settleMoment(TABLE.cafe!, "Café Nero", "chat", false, 0.5)).toBe("☕ Decided by himself: Chatted with the barista at Café Nero");
+    expect(new Stats().settleMoment(TABLE.cafe!, "Café Nero", "chat", false, roll(0.5))).toBe("☕ Decided by himself: Chatted with the barista at Café Nero");
   });
 
   it("lets a risky pick fail, less often with more of its attribute", () => {
     const s = new Stats();
     s.cents = 10000;
     const health = s.meters.health;
-    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, 0.49)).toContain("Walked out of Nero without paying (+€5)");
-    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, 0.5)).toContain("Got caught leaving Nero");
+    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, roll(0.49))).toContain("Walked out of Nero without paying (+€5)");
+    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, roll(0.5))).toContain("Got caught leaving Nero");
     expect(s.meters.health).toBe(health - 5);
     s.attrs.luck = 100;
-    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, RISK_CAP - 0.01)).toContain("Walked out");
+    expect(s.settleMoment(TABLE.cafe!, "Nero", "dash", true, roll(RISK_CAP - 0.01))).toContain("Walked out");
   });
 
   it("never pays more than he has", () => {
     const s = new Stats();
     s.cents = 50;
-    s.settleMoment(TABLE.cafe!, "Nero", "tip", true, 0.5);
+    s.settleMoment(TABLE.cafe!, "Nero", "tip", true, roll(0.5));
     expect(s.cents).toBe(0);
   });
 
   it("gives a free item, worn when better", () => {
     const s = new Stats();
-    const line = s.settleMoment(TABLE["shop/kiosk"]!, "Kiosk 7", "great", true, 0.5);
+    const line = s.settleMoment(TABLE["shop/kiosk"]!, "Kiosk 7", "great", true, roll(0.5));
     expect(line).toMatch(/and got a free .+/);
     expect(Object.values(s.gear).length + s.bag.length).toBe(1);
   });
@@ -96,6 +106,8 @@ describe("the bundled moments", () => {
       // His attribute leans him to the first option, so it is neither his default nor a crime.
       if (m.lean) expect([m.default, m.risky?.option], k).not.toContain(m.options[0]!.id);
       if (m.game) expect(m.lean, `${k}: a mini-game has no lean`).toBeUndefined();
+      // Untouched, a mini-game gives the middle result (defaultPick), never the worst.
+      if (m.game) expect([m.options.length, m.default], k).toEqual([3, m.options[1]!.id]);
     }
   });
 

@@ -1009,11 +1009,11 @@ export class Stats {
 
   /**
    * Applies pick `pick` of moment `m` at the place named `where`, chosen by
-   * you or (`you` false) by himself; `r` is a risky option's roll. Returns
-   * the feed line.
+   * you or (`you` false) by himself, on the moment's own `dice` (a risky
+   * option's roll, then a free item). Returns the feed line.
    */
-  settleMoment(m: PM.PlaceMoment, where: string, pick: string, you: boolean, r: number): string {
-    const o = PM.outcomeOf(m, pick, (a) => this.attr(a), r);
+  settleMoment(m: PM.PlaceMoment, where: string, pick: string, you: boolean, dice: Rng): string {
+    const o = PM.outcomeOf(m, pick, (a) => this.attr(a), dice.randf());
     const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
     const net = (o.gain ?? 0) - paid;
     this.cents += net;
@@ -1021,7 +1021,7 @@ export class Stats {
     if (o.buff) this.addBuff(o.buff);
     let got = "";
     if (o.item) {
-      const item = Items.make(o.item, this.level, new Rng(seedOf(`moment${this.now()}${where}`)), this.attr("luck"));
+      const item = Items.make(o.item, this.level, dice, this.attr("luck"));
       item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
       if (this.isUpgrade(item)) this.equip(item);
       else this.bagAdd(item);
@@ -1032,7 +1032,7 @@ export class Stats {
 
   /** Moment `m` at `where` with nobody to ask (the catch-up): he takes his own pick, on `dice` (placeMoments.ts momentDice). */
   byHimself(m: PM.PlaceMoment | null, where: string, dice: Rng): void {
-    if (m) this.settleMoment(m, where, M.defaultPick(m, this, dice), false, dice.randf());
+    if (m) this.settleMoment(m, where, M.defaultPick(m, this, dice), false, dice);
   }
 
   /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
