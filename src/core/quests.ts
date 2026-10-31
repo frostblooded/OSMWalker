@@ -9,8 +9,9 @@
 // reward. World events (Guild Wars 2's dynamic events) pop up at real
 // places near him with a timer: he joins one when he is free, it goes well
 // or badly, and either way a follow-up may come next; one he misses plays
-// out without him. Nothing here waits for you. Pure; Stats owns one Quests, and the game and the catch-up
-// both call questGoal before a goal and questStop at each stop.
+// out without him. Nothing here waits for you. Pure; Stats owns one Quests,
+// and the game and the catch-up both call questGoal before a goal and
+// questStop at each stop.
 import { anyUrgent } from "./activities";
 import { distanceM } from "./geo";
 import * as Items from "./items";

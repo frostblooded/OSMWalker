@@ -46,8 +46,10 @@ describe("the quest bank", () => {
     const share = (list: { fantasy?: boolean }[]) => list.filter((x) => x.fantasy).length / list.length;
     expect(share(BANK.quests)).toBeGreaterThan(0.2);
     expect(share(BANK.quests)).toBeLessThan(0.3);
-    expect(share(BANK.events)).toBeGreaterThan(0.2);
-    expect(share(BANK.events)).toBeLessThan(0.3);
+    // Only events that aren't follow-ups pop up on their own, so the share is of those.
+    const starters = BANK.events.filter((e) => !e.follow);
+    expect(share(starters)).toBeGreaterThan(0.2);
+    expect(share(starters)).toBeLessThan(0.3);
     expect(BANK.quests.some((q) => q.id === "treasure_map")).toBe(true);
     expect(BANK.events.length).toBeGreaterThanOrEqual(40);
   });
