@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as CC from "../../src/core/cityCards";
 import * as C from "../../src/core/collection";
 import * as Items from "../../src/core/items";
+import { HOME_THINGS } from "../../src/core/home";
 import { TOWER_KIND } from "../../src/core/poiGen";
+import { VISAS } from "../../src/core/visas";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
 import { parseCities } from "../../src/core/trips";
@@ -161,5 +163,25 @@ describe("the sheet's numbers", () => {
     const next = collected(stats);
     expect(next).not.toBe(first);
     expect(next.entries.get("countries")!.filter((e) => e.got).map((e) => e.id)).toEqual(["BGR"]);
+  });
+});
+
+describe("a life of his own", () => {
+  it("fills with a pet, a fairy pet, a flat, his own full home and visas, and its feats count them", () => {
+    const s = new Stats();
+    const got = () => Object.fromEntries(set("settled").entries(s).map((e) => [e.id, e.got]));
+    expect(Object.values(got()).some(Boolean)).toBe(false);
+    expect([feat("homebody").count(s), feat("citizen").count(s)]).toEqual([0, 0]);
+    s.pets.adopt("dog", 0, "", new Rng(1));
+    s.pets.pet!.fairy = true;
+    s.home.rent("Sofia, Bulgaria", "BG", [0, 0], 0);
+    expect(got()).toMatchObject({ pet: true, fairy: true, rent: true, own: false, full: false });
+    s.home.bought = 1;
+    s.home.things = Array.from({ length: HOME_THINGS }, (_, i) => ({ name: `T${i}`, slot: "trinket", stats: {}, rarity: "Common", price: 1 }) as Items.Item);
+    s.visas.days = { BG: VISAS[1].from };
+    expect(got()).toMatchObject({ own: true, full: true, long: true, citizen: false });
+    s.visas.days.RO = VISAS[3].from;
+    expect(got().citizen).toBe(true);
+    expect([feat("homebody").count(s), feat("citizen").count(s)]).toEqual([HOME_THINGS, 1]);
   });
 });

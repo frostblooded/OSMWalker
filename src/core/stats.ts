@@ -1129,7 +1129,8 @@ export class Stats {
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
     let text = home ? "🏡 Slept at home in his own bed" : action.name;
     const risk = action.risk;
-    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult()) {
+    // At home the risk's roll still happens, so the walk's dice stay the same, but nothing goes wrong in his own bed.
+    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult() && !home) {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;

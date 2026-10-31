@@ -105,6 +105,17 @@ describe("his home", () => {
     expect(s.home.mood()).toBe(Hm.HOME_MOOD + 2 * Hm.HOME_MOOD_PER_THING);
   });
 
+  it("nothing goes wrong on a night at home, though the risk's roll still happens", () => {
+    const s = inSofia(1000, 10_000);
+    s.cents = 10_000;
+    const rolls: number[] = [];
+    const rng = { randf: () => (rolls.push(0), 0), randiRange: (lo: number) => lo, pick: <T>(l: readonly T[]) => l[0]! } as unknown as Rng;
+    s.do({ ...HOSTEL, risk: { p: 1, text: "and a bunkmate stole 10c", cost: 0.1 } } as Action, "Hostel Mostel", rng, "lodging");
+    expect(s.cents).toBe(10_000);
+    expect(s.history.latest()).toBe("🏡 Slept at home in his own bed");
+    expect(rolls.length).toBeGreaterThan(0);
+  });
+
   it("a nap at a museum, or a hostel in another city, isn't at home", () => {
     const s = inSofia(1000, 10_000);
     nextDay(s);
