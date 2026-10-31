@@ -159,14 +159,16 @@ function local(place: Partial<Place> | null, table: ActionTable): Action[] {
 /** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him, and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
-  if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
+  // Shoplifting costs nothing, so money doesn't sway it.
+  const buys = action.item && !action.steal;
+  if (buys) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.deed! < 0 && stats.bond.leaning() === "rascal") w += KIND_DEED_WEIGHT;
   if (action.bounty) w += BOUNTY_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
-    if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
+    if (action.cost !== undefined || buys) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
   return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * harm(action, stats);
 }

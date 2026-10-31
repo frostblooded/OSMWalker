@@ -199,6 +199,14 @@ describe("perks", () => {
     expect(s.canDo(steal, 12)).toBe(false);
     s.bond.lean = -LEAN_AT;
     expect(s.canDo(steal, 12)).toBe(true);
+    // Broke or saving, he still shoplifts: it costs nothing.
+    const cents0 = s.cents;
+    s.cents = 0;
+    expect(s.canDo(steal, 12)).toBe(true);
+    s.savingFor = 1_000_000;
+    expect(weight(steal, s)).toBe(1 + KIND_DEED_WEIGHT);
+    s.cents = cents0;
+    s.savingFor = 0;
     const cents = s.cents;
     s.do(steal, "Boutique", new Rng(3), "clothing_store");
     expect(s.cents).toBe(cents);

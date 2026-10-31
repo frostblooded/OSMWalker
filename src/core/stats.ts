@@ -718,7 +718,7 @@ export class Stats {
     if (action.steal && this.bond.leaning() !== "rascal") return false;
     if (action.bounty && !this.canPayOff()) return false;
     if (this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
-    if (action.item && this.cents <= KEEP_CENTS) return false;
+    if (action.item && !action.steal && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
