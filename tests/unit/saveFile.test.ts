@@ -254,6 +254,18 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before local words, with none learned yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.words;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.words.count()).toBe(0);
+    expect(back.cents).toBe(4321);
+  });
+
   it("loads saves from before records, with fresh ones", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

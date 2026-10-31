@@ -931,7 +931,6 @@ export class Stats {
     this.addBuff(Mg.LEY_CHARM);
   }
 
-  /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
   /** Right after reaching `place`: now and then a local word that fits it (words.ts). Its own dice, so his walk stays the same. */
   wordAt(place: Pick<Place, "class" | "name">): void {
     if (!this.wordBook) return;
@@ -941,6 +940,7 @@ export class Stats {
     this.say(`🗣 Learned a ${w.language} word at ${place.name}: "${w.word}" means ${w.meaning}`);
   }
 
+  /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
   magicAt(place: Pick<Place, "class" | "name" | "lat" | "lon">): void {
     const t = this.now();
     if (Mg.isLeyPlace(place) && this.lore.tap(visitKey(place), dayOf(t * 1000))) {

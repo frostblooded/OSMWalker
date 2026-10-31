@@ -160,6 +160,8 @@ describe("game", () => {
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.incidents).toHaveLength(2);
     plain.stats.story.tension = g.stats.story.tension = 100;
+    // One clock for both, so the dice seeded from the time (a local word, a spell, …) roll the same.
+    plain.stats.now = g.stats.now = () => 1_800_000_000;
     run(plain, 3 * 3600);
     run(g, 3 * 3600);
     const texts = g.stats.history.entries.map((e) => e.text);
