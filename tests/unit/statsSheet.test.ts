@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, and his skills, languages and pantry.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, his skills, languages and pantry, and his side income.
 // Also the Diary sheet: its days, newest first, with their dreams.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import { skyAt, SNOW_SPEED } from "../../src/core/sky";
 import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
 import { PANTRY_MAX } from "../../src/core/cooking";
 import { stepsTo } from "../../src/core/skills";
+import { BUSINESSES } from "../../src/core/business";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import { DiarySheet } from "../../src/ui/DiarySheet";
@@ -177,6 +178,25 @@ describe("Stats sheet", () => {
     expect(text).toContain("France's language · herebasic");
     expect(text).toContain("Englishfluent");
     expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
+  });
+
+  it("shows his side income: businesses and shares, what they took in, the next one, and the lottery", () => {
+    const stats = new Stats();
+    let text = shown(stats);
+    expect(text).toContain(`💹 Businesses0 / ${BUSINESSES.length}`);
+    expect(text).toContain("⏭ Next☕ Coffee cart · €300");
+    expect(text).toContain("🎟 Lottery0 draws, no prize yet");
+    stats.business.buy(BUSINESSES[0]!, "Sofia", 0);
+    stats.business.buyShare("Sofia", "Cafe Rila", 0);
+    stats.business.earned = 1234;
+    stats.lottery.ticket = 1;
+    text = shown(stats);
+    expect(text).toContain("Side income€10.80 a day");
+    expect(text).toContain(`💹 Businesses1 / ${BUSINESSES.length} · 🏠 1 share`);
+    expect(text).toContain("💵 Taken in€12.34");
+    expect(text).toContain("⏭ Next📰 Newspaper kiosk · €1,000");
+    expect(text).toContain("🎟 Lotterya ticket for the next draw");
+    expect(text).toContain("Owned ▸2");
   });
 });
 

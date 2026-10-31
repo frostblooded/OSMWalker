@@ -24,7 +24,7 @@
       "twists": ["The first shop is closed, so he tries the corner shop.", "The shopkeeper knew {GIVER}'s grandmother."],
       "good": ["{GIVER} sets a plate for him. It tastes like someone's childhood.", "The whole family claps when he walks in with {ITEM}."],
       "worse": ["He can't find the right one anywhere, and dinner goes ahead without it.", "Grandma's handwriting beats him; he gives the card back unread."],
-      "reward": { "eur": [5, 12], "xp": 35, "fx": { "fullness": 30, "mood": 8 } } },
+      "reward": { "skill": "cooking", "eur": [5, 12], "xp": 35, "fx": { "fullness": 30, "mood": 8 } } },
     { "id": "lost_dog", "icon": "🐕", "title": "The Lost Dog", "lean": "luck",
       "items": ["Biscuit, a small terrier", "Duke, a big shaggy mutt", "Pepper, a nervous greyhound", "Mochi, a fluffy spitz"],
       "steps": [
@@ -148,7 +148,7 @@
       "twists": ["It rains, so the game moves indoors.", "The other team's captain is the coach's ex."],
       "good": ["He scores the winner. {GIVER} lifts him off the ground.", "They win, and the team buys him a drink."],
       "worse": ["They lose 4-0, but he runs the furthest.", "He scores, for the wrong team."],
-      "reward": { "eur": [0, 10], "xp": 50, "fx": { "energy": -20, "hygiene": -15, "str": 0.3 } } },
+      "reward": { "skill": "sport", "eur": [0, 10], "xp": 50, "fx": { "energy": -20, "hygiene": -15, "str": 0.3 } } },
     { "id": "tower_climb", "icon": "🗼", "title": "The Best View", "lean": "str",
       "items": ["the sunrise", "the whole city", "the river", "the far hills"],
       "steps": [
@@ -170,7 +170,7 @@
       "twists": ["The shop has a cheaper one that looks the same.", "A rival chef is buying it up."],
       "good": ["{GIVER} names a dish after him, for one night.", "Dinner is a triumph, and he gets a plate."],
       "worse": ["Every shop is out of it, and the chef takes the dish off the menu.", "He brings the wrong spice, and the chef sends him off."],
-      "reward": { "eur": [8, 15], "xp": 35, "fx": { "fullness": 35 } } },
+      "reward": { "skill": "cooking", "eur": [8, 15], "xp": 35, "fx": { "fullness": 35 } } },
     { "id": "lost_tourist", "icon": "🧳", "title": "The Lost Tourist", "lean": "cha",
       "items": ["a jet-lagged backpacker", "a couple on honeymoon", "a school group", "a very old man with a map"],
       "steps": [
@@ -327,7 +327,7 @@
       "twists": ["The last one was a grandmaster, once.", "Someone moves a piece when he looks away."],
       "good": ["Two wins and a draw. {GIVER} pays up.", "He wins the last game in twelve moves."],
       "worse": ["He loses all three, but learns a trap.", "One win, two very fast losses."],
-      "reward": { "eur": [5, 20], "xp": 45, "fx": { "wit": 0.3 } } },
+      "reward": { "skill": "chess", "eur": [5, 20], "xp": 45, "fx": { "wit": 0.3 } } },
     { "id": "quiz_night", "icon": "❓", "title": "Quiz Night", "lean": "wit", "time": "evening",
       "items": ["the pub quiz", "the big charity quiz", "the music round", "the town history quiz"],
       "steps": [
@@ -405,7 +405,7 @@
       "twists": ["The client changes her mind twice.", "His sketch looks oddly like himself."],
       "good": ["The client loves it. {GIVER} pays him for the design.", "His rose goes up on the wall of designs."],
       "worse": ["The client went with an anchor anyway.", "{GIVER} says it's 'brave'."],
-      "reward": { "eur": [10, 30], "xp": 35, "fx": { "cha": 0.2 } } },
+      "reward": { "skill": "art", "eur": [10, 30], "xp": 35, "fx": { "cha": 0.2 } } },
     { "id": "old_photo", "icon": "📷", "title": "The Old Photograph", "lean": "wit",
       "items": ["a photo of a street in 1920", "a wedding photo from 1955", "a postcard of the square from 1900", "a photo of a shop that's long gone"],
       "steps": [
@@ -417,7 +417,7 @@
       "twists": ["The building is gone; a snack bar stands there now.", "Someone in the old photo looks just like {GIVER}."],
       "good": ["The two photos go up side by side.", "{GIVER} gives him a print of the old one."],
       "worse": ["Wrong street, but a lovely photo.", "He's not sure, and neither is {GIVER}."],
-      "reward": { "eur": [5, 15], "xp": 45, "fx": { "wit": 0.2, "mood": 8 } } },
+      "reward": { "skill": "photo", "eur": [5, 15], "xp": 45, "fx": { "wit": 0.2, "mood": 8 } } },
     { "id": "busker_crowd", "icon": "🎻", "title": "An Audience", "lean": "cha",
       "items": ["an old violinist", "a girl with a ukulele", "a one-man band", "a beatboxer"],
       "steps": [
@@ -428,7 +428,7 @@
       "twists": ["A police officer asks about a permit.", "It starts to drizzle."],
       "good": ["The hat fills with coins, and the musician shares.", "Someone films it and it goes everywhere."],
       "worse": ["Three people came, one of them a dog.", "They clap, then leave."],
-      "reward": { "eur": [3, 15], "xp": 35, "fx": { "mood": 15, "cha": 0.2 } } },
+      "reward": { "skill": "music", "eur": [3, 15], "xp": 35, "fx": { "mood": 15, "cha": 0.2 } } },
     { "id": "homecoming", "icon": "🏡", "title": "Word from Home", "lean": "cha",
       "items": ["her old school", "his father's bakery", "the church where she married", "the café where they met"],
       "steps": [
@@ -696,7 +696,52 @@
     {"id": "card_sharp", "icon": "🃏", "title": "The Card Sharp", "lean": "wit", "side": "rascal", "items": ["a marked deck", "a pair of loaded dice", "a mirror the size of a coin", "a sleeve with a hidden ace"], "steps": [{"at": ["bar", "billiards"], "say": ["{GIVER} at {PLACE} shows him {ITEM} and grins.", "At {PLACE} {GIVER} teaches him how {ITEM} works."]}, {"at": ["bar", "billiards", "chess"], "say": ["They sit down at {PLACE} with some tourists who think they're good.", "At {PLACE} the stakes go up."]}, {"at": ["bar", "cafe"], "say": ["They split the winnings at {PLACE}.", "At {PLACE} {GIVER} counts it twice."]}], "twists": ["One of the tourists is an off-duty detective.", "{GIVER} cheats him too, a little."], "good": ["They clean the table out and slip away laughing.", "He wins big and buys the whole bar a round. Then leaves fast."], "worse": ["They're caught on the second hand and thrown out.", "The tourists were better cheats than them."], "reward": {"eur": [30, 90], "xp": 35, "fx": {"wit": 0.2, "karma": -6}}},
     {"id": "ticket_tout", "icon": "🎟", "title": "Tickets, Get Your Tickets", "lean": "cha", "side": "rascal", "items": ["a stack of concert tickets", "tickets for the big match", "front-row seats that may not exist", "a roll of copied museum passes"], "steps": [{"at": ["theatre", "cinema", "stadium"], "say": ["{GIVER} outside {PLACE} has {ITEM} and needs a seller with a friendly face.", "At {PLACE} {GIVER} hands him {ITEM} and a price list."]}, {"at": ["railway", "attraction", "bus"], "say": ["He sells them to tourists at {PLACE} at twice the price.", "At {PLACE} he shouts 'Last ones!' every five minutes."]}, {"at": ["bar", "cafe"], "say": ["He meets {GIVER} at {PLACE} to settle up.", "At {PLACE} they divide the takings."]}], "twists": ["A real usher looks closely at one of the tickets.", "A family he sold to waves at him, delighted."], "good": ["Sold out! His cut is generous.", "Every ticket gone, and nobody noticed a thing."], "worse": ["Half the buyers come back angry. He refunds them.", "{GIVER} vanishes with the money."], "reward": {"eur": [25, 80], "xp": 30, "fx": {"cha": 0.2, "karma": -6}}},
     {"id": "moon_baker", "icon": "🌙", "title": "Bread for the Moon", "lean": "cha", "fantasy": true, "time": "night", "items": ["a crescent loaf", "a tray of moon rolls", "a silver-dusted bun"], "steps": [{"at": ["bakery", "cafe"], "say": ["{GIVER} at {PLACE} bakes {ITEM} once a year, for the moon.", "At {PLACE}, {GIVER} wraps {ITEM} in a cloth that glows a little."]}, {"at": ["lookout", "park", "bridge"], "say": ["He holds {ITEM} up to the sky at {PLACE}, feeling silly.", "At {PLACE} the moonlight leans down and takes a bite."]}, {"at": ["bakery", "cafe"], "say": ["Back at {PLACE}, he tells {GIVER} the moon ate it all."]}], "twists": ["The moon wants a second one."], "good": ["{GIVER} says the tides will be kind this year, and gives him the last roll.", "The moon shines brighter on him all night."], "worse": ["Clouds roll in. The moon never comes, and the loaf goes stale.", "A fox gets {ITEM} first."], "reward": {"eur": [5, 15], "xp": 60, "fx": {"magic": 10, "fullness": 15}}},
-    {"id": "lost_familiar", "icon": "🐈‍⬛", "title": "The Witch's Cat", "lean": "luck", "fantasy": true, "items": ["a black cat with green eyes", "a toad in a waistcoat", "an owl that won't stop talking"], "steps": [{"at": ["shop/second_hand", "shop/antiques", "wizard_tower", "storyteller"], "say": ["{GIVER} at {PLACE} has lost {ITEM}, her familiar.", "At {PLACE}, {GIVER} asks if he has seen {ITEM}."]}, {"at": ["cemetery", "garden", "park"], "say": ["At {PLACE} he finds paw prints that glow faintly."]}, {"at": ["shop/pet", "restaurant", "bar"], "say": ["{ITEM} is at {PLACE}, eating someone's dinner and looking innocent."]}, {"at": ["shop/second_hand", "shop/antiques", "wizard_tower", "storyteller"], "say": ["He brings {ITEM} back to {GIVER} at {PLACE}."]}], "twists": ["The familiar insists on walking the rest of the way on its own."], "good": ["{GIVER} blesses his shoes; he walks lighter for days.", "The familiar purrs a small spell of luck at him."], "worse": ["{ITEM} gives him the slip at the next corner.", "It turns out {ITEM} didn't want to be found."], "reward": {"eur": [5, 20], "xp": 70, "fx": {"luck": 0.4, "magic": 8}}}
+    {"id": "lost_familiar", "icon": "🐈‍⬛", "title": "The Witch's Cat", "lean": "luck", "fantasy": true, "items": ["a black cat with green eyes", "a toad in a waistcoat", "an owl that won't stop talking"], "steps": [{"at": ["shop/second_hand", "shop/antiques", "wizard_tower", "storyteller"], "say": ["{GIVER} at {PLACE} has lost {ITEM}, her familiar.", "At {PLACE}, {GIVER} asks if he has seen {ITEM}."]}, {"at": ["cemetery", "garden", "park"], "say": ["At {PLACE} he finds paw prints that glow faintly."]}, {"at": ["shop/pet", "restaurant", "bar"], "say": ["{ITEM} is at {PLACE}, eating someone's dinner and looking innocent."]}, {"at": ["shop/second_hand", "shop/antiques", "wizard_tower", "storyteller"], "say": ["He brings {ITEM} back to {GIVER} at {PLACE}."]}], "twists": ["The familiar insists on walking the rest of the way on its own."], "good": ["{GIVER} blesses his shoes; he walks lighter for days.", "The familiar purrs a small spell of luck at him."], "worse": ["{ITEM} gives him the slip at the next corner.", "It turns out {ITEM} didn't want to be found."], "reward": {"eur": [5, 20], "xp": 70, "fx": {"luck": 0.4, "magic": 8}}},
+    { "id": "lost_ticket", "icon": "🎟", "title": "The Winning Ticket", "lean": "luck",
+      "items": ["a winning lottery ticket", "a ticket with five numbers ticked", "last week's lucky ticket", "a scratchcard worth a fortune"],
+      "steps": [
+        { "at": ["shop/kiosk", "shop/newsagent", "shop/convenience"], "say": ["{GIVER} at {PLACE} is in tears: {ITEM} blew out of her hand.", "At {PLACE}, {GIVER} turns out every pocket looking for {ITEM}."] },
+        { "at": ["park", "bus", "fountain"], "say": ["He follows the wind's way to {PLACE} and searches the gutters.", "A pigeon at {PLACE} is sitting on something papery."] },
+        { "at": ["shop/kiosk", "shop/newsagent", "shop/convenience"], "say": ["Back at {PLACE}, he hands it over; the kiosk checks the numbers twice."] }
+      ],
+      "twists": ["Someone else is already in the queue, claiming it is theirs.", "The ticket turns out to be for tonight's draw, not last week's."],
+      "good": ["It's real. {GIVER} gives him a share and a hug.", "{GIVER} wins and insists he takes a lucky ticket of his own."],
+      "worse": ["It went through a puddle; the numbers are gone.", "It was last month's ticket all along."],
+      "reward": { "eur": [10, 40], "xp": 45, "fx": { "luck": 0.3, "mood": 10 } } },
+    { "id": "cart_partner", "icon": "☕", "title": "A Cart of One's Own", "lean": "cha",
+      "items": ["a coffee cart", "a hot-dog stand", "a flower barrow", "a little lemonade stall"],
+      "steps": [
+        { "at": ["cafe", "shop/coffee", "park"], "say": ["{GIVER} at {PLACE} has saved for {ITEM} but doesn't know where to put it.", "At {PLACE}, {GIVER} shows him plans for {ITEM}, scribbled on napkins."] },
+        { "at": ["town_hall", "office/government", "information"], "say": ["He queues at {PLACE} for a street-trading permit.", "At {PLACE} a clerk stamps four forms and loses a fifth."] },
+        { "at": ["railway", "bus", "attraction"], "say": ["He counts passers-by at {PLACE} for an hour: the best pitch in town.", "At {PLACE} he finds a corner where the queue would never end."] },
+        { "at": ["cafe", "shop/coffee", "park"], "say": ["Back at {PLACE}, he helps {GIVER} open for the first time."] }
+      ],
+      "twists": ["The best pitch already belongs to a grumpy rival.", "{GIVER} asks if he'd like a share in it."],
+      "good": ["The first day sells out. {GIVER} gives him the first takings.", "A queue forms before they're even open."],
+      "worse": ["The permit takes until spring.", "It rains all day and nobody stops."],
+      "reward": { "eur": [15, 35], "xp": 50, "fx": { "cha": 0.2, "wit": 0.2 } } },
+    { "id": "phrasebook", "icon": "💬", "title": "Lost in Translation", "lean": "wit",
+      "items": ["a menu nobody can read", "a tourist's lost phrasebook", "a letter in the local language", "the instructions for a ticket machine"],
+      "steps": [
+        { "at": ["information", "lodging", "railway"], "say": ["{GIVER} at {PLACE} waves {ITEM} at him, completely lost.", "At {PLACE}, {GIVER} asks if he speaks the language. A little, he says."] },
+        { "at": ["library", "cafe", "bar"], "say": ["He works through it word by word at {PLACE}, with help from a waiter.", "At {PLACE} two locals argue happily over one word."] },
+        { "at": ["information", "lodging", "railway"], "say": ["He brings the answer back to {GIVER} at {PLACE}."] }
+      ],
+      "twists": ["One word means something very rude in the next town.", "It turns out to be a poem."],
+      "good": ["{GIVER} understands at last and buys him a coffee. He learned a few words himself.", "Everyone laughs at the right moment; his accent is getting better."],
+      "worse": ["He gets it backwards and they both end up at the wrong station.", "Nobody can agree what it says."],
+      "reward": { "lang": 2, "eur": [5, 15], "xp": 40, "fx": { "cha": 0.2 } } },
+    { "id": "supper_club", "icon": "🍽", "title": "The Supper Club", "lean": "cha", "time": "evening",
+      "items": ["a supper club for twelve", "a birthday dinner", "a neighbours' feast", "a dinner for the night shift"],
+      "steps": [
+        { "at": ["restaurant", "lodging", "cafe"], "say": ["{GIVER} at {PLACE} has promised {ITEM} and the cook has quit.", "At {PLACE}, {GIVER} begs him to help with {ITEM}."] },
+        { "at": ["grocery", "butcher", "bakery"], "say": ["He shops for twelve at {PLACE}.", "At {PLACE} he haggles for the last good tomatoes."] },
+        { "at": ["restaurant", "lodging", "cafe"], "say": ["He cooks all evening at {PLACE}, sleeves rolled up."] }
+      ],
+      "twists": ["One guest is a food critic.", "The oven only works on one side."],
+      "good": ["Every plate comes back clean. {GIVER} pays him and asks for the recipe.", "The guests clap for the cook."],
+      "worse": ["The stew burns, and they order pizza.", "Half the guests are vegetarian, which nobody said."],
+      "reward": { "skill": "cooking", "eur": [15, 40], "xp": 50, "fx": { "mood": 10, "fullness": 30 } } }
   ],
   "events": [
     { "id": "lamp_in_the_window", "fantasy": true, "icon": "🌙", "title": "A lamp in the window", "at": ["shop/antiques", "shop/second_hand"], "time": "midnight", "min": [10, 20], "lean": "luck", "text": ["A lamp is lit in the window of {PLACE}, long after closing.", "The door of {PLACE} stands ajar after midnight, and something inside glitters."], "win": { "say": "The owner lets him try a ring that tingles; a little Magic stays on his finger.", "xp": 15, "fx": { "magic": 10, "luck": 0.2 } }, "lose": { "say": "By the time he gets there the lamp is out and the door locked.", "xp": 5 }, "missed": "Someone saw a lamp in the window of {PLACE} after midnight." },
@@ -705,7 +750,7 @@
     { "id": "night_bus_singer", "icon": "🎤", "title": "The night bus singer", "at": ["bus"], "time": "night", "min": [10, 20], "lean": "cha", "text": ["A man at {PLACE} is singing to the empty stop, and he isn't bad at all.", "Someone at {PLACE} starts a song while everyone waits for the last bus."], "win": { "say": "He joins in on the chorus, and the whole stop claps when the bus pulls up.", "xp": 10, "fx": { "mood": 10 } }, "lose": { "say": "He gets the words wrong, and the singer gives him a long look.", "xp": 4 }, "missed": "People at {PLACE} say someone sang the whole stop to sleep last night." },
     { "id": "bakery_dawn", "icon": "🥖", "title": "The baker's first batch", "at": ["bakery"], "time": "night", "min": [10, 20], "lean": "str", "text": ["The light is on at {PLACE} long before opening; the baker is a pair of hands short.", "Flour dust drifts out of the back door of {PLACE} in the dark."], "win": { "say": "He kneads till his arms ache and leaves with a warm loaf.", "xp": 12, "fx": { "fullness": 20 } }, "lose": { "say": "He drops a whole tray, and the baker sends him home.", "xp": 4 }, "missed": "{PLACE} opened late today; the baker was alone at the ovens." },
     { "id": "cat_on_roof", "icon": "🐈", "title": "A cat on the roof", "at": ["shop", "cafe", "restaurant"], "min": [10, 20], "lean": "str", "text": ["A cat is crying on the roof above {PLACE}, and a small crowd is pointing.", "Someone's cat has climbed onto the awning of {PLACE} and won't come down."], "win": { "say": "He climbs up, and the cat walks into his arms as if it planned it.", "xp": 12, "fx": { "mood": 10 } }, "lose": { "say": "The cat jumps down on its own the moment he's halfway up.", "xp": 4 }, "missed": "The cat on {PLACE} came down by itself in the end." },
-    { "id": "street_chess", "icon": "♟", "title": "A chess game in the street", "at": ["park", "fountain"], "min": [10, 20], "lean": "wit", "text": ["Two old men play chess at {PLACE}, and one of them needs a partner.", "A board is set up at {PLACE} with a sign: 'beat me, win a coffee'."], "win": { "say": "He wins in twenty moves, and gets his coffee.", "eur": 3, "xp": 12 }, "lose": { "say": "He's checkmated before he finds his feet.", "xp": 5 }, "missed": "The chess player at {PLACE} beat everyone today." },
+    { "id": "street_chess", "icon": "♟", "title": "A chess game in the street", "at": ["park", "fountain"], "min": [10, 20], "lean": "wit", "text": ["Two old men play chess at {PLACE}, and one of them needs a partner.", "A board is set up at {PLACE} with a sign: 'beat me, win a coffee'."], "win": { "skill": "chess", "say": "He wins in twenty moves, and gets his coffee.", "eur": 3, "xp": 12 }, "lose": { "say": "He's checkmated before he finds his feet.", "xp": 5 }, "missed": "The chess player at {PLACE} beat everyone today." },
     { "id": "night_market", "icon": "🏮", "title": "A night market", "at": ["park", "fountain"], "time": "night", "min": [15, 25], "lean": "cha", "text": ["Stalls are going up at {PLACE} after dark, with lanterns and the smell of grilled corn.", "A night market fills {PLACE}; one stall-holder is shouting for help with a tent."], "win": { "say": "He helps put up the tent and is paid in grilled corn.", "xp": 10, "fx": { "fullness": 15, "mood": 5 } }, "lose": { "say": "The tent comes down on top of them both.", "xp": 4 }, "missed": "{PLACE} had a night market; he only saw the lanterns being packed." },
     { "id": "mushroom_circle", "fantasy": true, "icon": "🍄", "title": "A circle of mushrooms", "at": ["park", "garden"], "time": "morning", "min": [10, 20], "lean": "luck", "text": ["A perfect circle of mushrooms has come up overnight on the grass at {PLACE}.", "The dew at {PLACE} lies in a ring this morning, and the grass inside is dry."], "win": { "say": "He walks round it three times the right way, and the morning feels lucky.", "xp": 15, "fx": { "magic": 5, "luck": 0.2 } }, "lose": { "say": "A gardener mows it before he gets there.", "xp": 5 }, "missed": "People say a fairy ring came up at {PLACE} this morning." },
     { "id": "humming_stones", "fantasy": true, "icon": "✨", "title": "Humming stones", "at": ["monument", "memorial", "place_of_worship"], "time": "night", "min": [10, 20], "lean": "wit", "text": ["The old stones of {PLACE} are humming tonight.", "A faint glow runs along the ground at {PLACE}, where the ley lines meet."], "win": { "say": "He stands still and listens until the hum fills him up.", "xp": 20, "fx": { "magic": 15, "mood": 5 } }, "lose": { "say": "A bus goes past and the hum is gone.", "xp": 5 }, "missed": "People say the stones at {PLACE} hummed all night." },
@@ -806,7 +851,7 @@
       "missed": "The strike at {PLACE} is over." },
     { "id": "busker_needs_crowd", "icon": "🎸", "title": "A song for a crowd", "at": ["fountain", "attraction", "park"], "time": "evening", "min": [20, 40], "lean": "cha",
       "text": ["A street musician at {PLACE} is playing to no one."],
-      "win": { "say": "He gathers a crowd; the musician writes him into a song.", "xp": 20, "fx": { "mood": 15 } },
+      "win": { "skill": "music", "say": "He gathers a crowd; the musician writes him into a song.", "xp": 20, "fx": { "mood": 15 } },
       "lose": { "say": "The musician packs up and leaves town.", "xp": 5 },
       "missed": "The music at {PLACE} has stopped." },
     { "id": "rained_market", "icon": "☔", "title": "Market in the rain", "at": ["shop", "grocery"], "min": [20, 40], "lean": "str",
@@ -831,7 +876,7 @@
       "missed": "The flu queue at {PLACE} is finally shorter." },
     { "id": "wedding_photos", "icon": "💒", "title": "No photographer", "at": ["place_of_worship", "garden", "park"], "min": [20, 40], "lean": "luck",
       "text": ["A wedding at {PLACE}, and the photographer hasn't turned up.", "A bride at {PLACE} is close to tears: no photographer."],
-      "win": { "say": "He takes the photos; one is perfect. They give him cake.", "xp": 30, "fx": { "fullness": 15, "mood": 15 } },
+      "win": { "skill": "photo", "say": "He takes the photos; one is perfect. They give him cake.", "xp": 30, "fx": { "fullness": 15, "mood": 15 } },
       "lose": { "say": "All his photos are a bit blurry.", "xp": 10 },
       "missed": "The wedding at {PLACE} went ahead with phone pictures." },
     { "id": "ice_rink_opening", "icon": "⛸", "title": "Testing the ice", "at": ["ice_rink", "sports_centre"], "min": [30, 60], "lean": "luck",
@@ -933,6 +978,8 @@
     {"id": "lantern_walk", "icon": "🏮", "title": "The lantern walk", "at": ["bridge", "park", "harbor"], "time": "night", "min": [20, 45], "lean": "luck", "fantasy": true, "text": ["Paper lanterns drift along {PLACE} with nobody carrying them.", "Small lights bob over {PLACE}, in a line, as if they were going somewhere."], "win": {"say": "He follows them to the end and they settle like fireflies in his hair. He feels lucky.", "xp": 20, "fx": {"luck": 0.3, "mood": 12}}, "lose": {"say": "The lanterns go out one by one before he catches up.", "xp": 5}, "missed": "Lanterns floated over {PLACE} last night, and no one lit them."},
     {"id": "well_wish", "icon": "🪣", "title": "A wish comes up the well", "at": ["old_well", "fountain", "drinking_water"], "min": [15, 30], "lean": "cha", "fantasy": true, "text": ["A voice from {PLACE} asks for someone to make a wish, any wish.", "Coins jump out of {PLACE}, one at a time, as if it were giving change."], "win": {"say": "He wishes for a good day for the whole street. The water laughs and he finds a coin in his pocket.", "eur": [1, 10], "xp": 15, "fx": {"magic": 8, "mood": 10}}, "lose": {"say": "He wishes for a sandwich. The well sighs and goes quiet.", "xp": 5, "fx": {"fullness": 5}}, "missed": "Somebody's wish came true at {PLACE}, they say."},
     {"id": "statue_stretch", "icon": "🗿", "title": "The statue steps down", "at": ["monument", "memorial", "art_gallery"], "time": "night", "min": [10, 25], "lean": "str", "fantasy": true, "text": ["The statue at {PLACE} has climbed off its stand to stretch its legs.", "At {PLACE} the plinth is empty, and heavy stone footsteps head down the street."], "win": {"say": "He helps the statue back up before dawn. It nods once and freezes again, a little prouder.", "xp": 30, "fx": {"str": 0.2, "magic": 8}}, "lose": {"say": "By morning the statue is back, facing the wrong way, and the papers blame students.", "xp": 8}, "missed": "The statue at {PLACE} faces the other way this morning."},
-    {"id": "dragon_shadow", "icon": "🐉", "title": "A shadow over the roofs", "at": ["lookout", "castle", "attraction"], "min": [10, 20], "lean": "luck", "fantasy": true, "text": ["A great winged shadow sweeps over {PLACE}, and the birds go silent.", "Above {PLACE} something circles, far bigger than a gull."], "win": {"say": "He waves; a single warm scale drifts down into his hands.", "xp": 30, "fx": {"magic": 12, "luck": 0.2}}, "lose": {"say": "It's gone behind the clouds before he gets a proper look.", "xp": 8}, "missed": "Folk at {PLACE} swear they saw a dragon, but nobody has a photo."}
+    {"id": "dragon_shadow", "icon": "🐉", "title": "A shadow over the roofs", "at": ["lookout", "castle", "attraction"], "min": [10, 20], "lean": "luck", "fantasy": true, "text": ["A great winged shadow sweeps over {PLACE}, and the birds go silent.", "Above {PLACE} something circles, far bigger than a gull."], "win": {"say": "He waves; a single warm scale drifts down into his hands.", "xp": 30, "fx": {"magic": 12, "luck": 0.2}}, "lose": {"say": "It's gone behind the clouds before he gets a proper look.", "xp": 8}, "missed": "Folk at {PLACE} swear they saw a dragon, but nobody has a photo."},
+    {"id": "jackpot_fever", "icon": "🎟", "title": "Jackpot fever", "at": ["shop/kiosk", "shop/newsagent"], "min": [15, 30], "lean": "luck", "text": ["The jackpot has rolled over five times and the queue at {PLACE} goes round the corner.", "A chalkboard outside {PLACE}: JACKPOT TONIGHT, and a queue to match."], "win": {"say": "He keeps the queue's spirits up with a song; the kiosk owner slips him a lucky charm.", "xp": 15, "fx": {"luck": 0.2, "mood": 10}}, "lose": {"say": "The machine breaks down just as he reaches the front.", "xp": 5}, "missed": "Everyone in town queued at {PLACE} for the jackpot."},
+    {"id": "cook_off", "icon": "🥄", "title": "A cook-off", "at": ["park", "restaurant", "picnic_site"], "min": [20, 40], "lean": "wit", "text": ["Grills and pots line {PLACE}: a cook-off, and one team is a cook short.", "A banner over {PLACE}: the neighbourhood cook-off, all welcome."], "win": {"skill": "cooking", "say": "His dish takes second place and the judges ask for seconds.", "xp": 20, "fx": {"fullness": 25, "mood": 10}}, "lose": {"skill": "cooking", "say": "His soup is mostly salt, but he learns from the winners.", "xp": 8, "fx": {"fullness": 10}}, "missed": "There was a cook-off at {PLACE}; the smell is still in the air."}
   ]
 }

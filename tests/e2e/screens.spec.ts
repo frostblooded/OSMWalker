@@ -83,7 +83,7 @@ test("Stats shows his level, meters, attributes, skills, languages and gear", as
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "Saving for", "Bike", "Vitals", "Health", "🔮 Magic", "Spells", "none yet", "Attributes", "Strength", "Skills", "📷 Photography", "Languages", "English", "Gear", "Vehicle", "Bag", "🧺 Pantry", "Effects"]) await expect(sheet).toContainText(t);
+  for (const t of ["Level 1", "Saving for", "Bike", "Side income", "⏭ Next", "🎟 Lottery", "Vitals", "Health", "🔮 Magic", "Spells", "none yet", "Attributes", "Strength", "Skills", "📷 Photography", "Languages", "English", "Gear", "Vehicle", "Bag", "🧺 Pantry", "Effects"]) await expect(sheet).toContainText(t);
   // In Sofia, Bulgarian is his own language: fluent, and the one spoken here.
   await expect(sheet).toContainText("Bulgarian · herefluent");
   // He starts with €200, more than a €150 bike plus his €20 reserve.

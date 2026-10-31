@@ -23,6 +23,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { BUSINESSES, kindOf } from "../core/business";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { TOP_RANK, type Careers } from "../core/careers";
@@ -188,6 +189,35 @@ function LanguagesCard({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** His side income: the businesses and shares he owns (listed under Owned), what they have brought in, the next business he would buy, and his lottery ticket and wins. */
+function SideIncomeCard({ stats: s }: { stats: Stats }) {
+  const b = s.business;
+  const next = b.next();
+  const l = s.lottery;
+  const won = l.prizes ? `${l.prizes} ${l.prizes === 1 ? "prize" : "prizes"}, ${euro(l.won)}` : `${l.tickets} ${l.tickets === 1 ? "draw" : "draws"}, no prize yet`;
+  return (
+    <Card icon="💹" title="Side income" right={b.owned.length ? `${euro(b.perH() * 24)} a day` : undefined}>
+      <KV k="💹 Businesses" v={`${b.owned.length} / ${BUSINESSES.length}${b.shares.length ? ` · 🏠 ${b.shares.length} ${b.shares.length === 1 ? "share" : "shares"}` : ""}`} />
+      {b.earned > 0 && <KV k="💵 Taken in" v={euro(b.earned)} tone="ok" />}
+      {next && <KV k="⏭ Next" v={`${next.icon} ${cap(next.name)} · ${euro(next.cents)}`} />}
+      <KV k="🎟 Lottery" v={l.ticket ? "a ticket for the next draw" : won} />
+      {b.owned.length + b.shares.length > 0 && (
+        <Collapsible title="Owned" right={b.owned.length + b.shares.length}>
+          <div class="zebra">
+            {b.owned.map((o) => {
+              const k = kindOf(o.id)!;
+              return <KV key={o.id} k={`${k.icon} ${cap(k.name)}`} v={`${euro(k.perH * 24)} a day · ${o.city}`} />;
+            })}
+            {b.shares.map((x) => (
+              <KV key={x.city} k={`🏠 Share in ${x.place}`} v={`${x.city} · ${x.visits} ${x.visits === 1 ? "visit" : "visits"} today`} />
+            ))}
+          </div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
 /** Languages shown on the Local words card before the rest fold away. */
 const WORD_ROWS = 4;
 
@@ -295,6 +325,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}
+      <SideIncomeCard stats={s} />
       <Card icon="❤" title="Vitals">
         <div class="meters">
           {METERS.map((m) => {
