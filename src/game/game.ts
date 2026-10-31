@@ -478,11 +478,12 @@ export class Game {
   private storyOpen = false;
   /**
    * Asks a moment from inside a story rule (Stats.happen) and saves once it
-   * settles. When none can open (timer Off, or one already open) he picks at
-   * once, so it lands before the action he then chooses, as in the catch-up.
+   * settles. When none can open (timer Off, one already open, or the away
+   * card up) he picks at once, so it lands before the action he then
+   * chooses, as in the catch-up.
    */
   private storyAsk: Ask = (m, his, settle) => {
-    if (this.momentS <= 0 || this.moment) return settle({ id: his(), you: false });
+    if (this.momentS <= 0 || this.moment || this.away) return settle({ id: his(), you: false });
     this.storyOpen = true;
     void this.ask(m, { his }).then((p) => {
       settle(p);
