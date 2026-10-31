@@ -95,6 +95,14 @@ describe("the real help", () => {
     expect(sky).toContain("about 17.3% of nights have one");
   });
 
+  it("lists the art actions, grades and prices of sketches", () => {
+    const sk = page("sketches").body;
+    expect(sk).toContain("sketch an exhibit, sketch the passers-by");
+    expect(sk).toContain("🖍 awful, ✏ poor");
+    expect(sk).toContain("masterwork €40.");
+    expect(sk).toContain("never draws worse than fine");
+  });
+
   it("has no unused values", () => {
     const unused = Object.keys(Help.values(data)).filter((k) => !raw.includes(`{${k}}`));
     expect(unused).toEqual([]);

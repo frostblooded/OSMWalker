@@ -36,6 +36,17 @@
       "good": ["{GIVER} pins the chart up with his name on it.", "They find {ITEM} together and stand there grinning."],
       "worse": ["It was a plane. It was always a plane.", "He found {ITEM}, but the chart was upside down the whole time."],
       "reward": { "eur": [5, 15], "xp": 40, "fx": { "mood": 10 } } },
+    { "id": "portrait", "icon": "🖼", "title": "The Portrait", "lean": "wit",
+      "items": ["the café's front window", "the old tram stop", "the corner kiosk", "the fountain in the square"],
+      "steps": [
+        { "at": ["cafe", "bakery", "restaurant"], "say": ["{GIVER} at {PLACE} wants a drawing of {ITEM} for the wall, and has heard he sketches.", "At {PLACE}, {GIVER} slides him a napkin: could he draw {ITEM}?"] },
+        { "at": ["park", "garden", "fountain", "lookout"], "say": ["He sits at {PLACE} with his sketchbook and tries {ITEM} three ways.", "At {PLACE} he borrows a bench and a stranger's pencil, and gets {ITEM} down at last."] },
+        { "at": ["cafe", "bakery", "restaurant"], "say": ["He brings the drawing of {ITEM} back to {PLACE}."] }
+      ],
+      "twists": ["A pigeon sits on the page and won't move.", "The rain turns {ITEM} into watercolour."],
+      "good": ["{GIVER} frames it and hangs it over the till.", "{GIVER} pays him in coffee for life, or at least for the week."],
+      "worse": ["{GIVER} holds it up, then the other way up.", "It goes on the wall in the back, by the mop."],
+      "reward": { "skill": "art", "eur": [5, 15], "xp": 35, "fx": { "mood": 8 } } },
     { "id": "lost_dog", "icon": "🐕", "title": "The Lost Dog", "lean": "luck",
       "items": ["Biscuit, a small terrier", "Duke, a big shaggy mutt", "Pepper, a nervous greyhound", "Mochi, a fluffy spitz"],
       "steps": [

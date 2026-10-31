@@ -283,6 +283,19 @@ describe("going on a quest", () => {
     expect(s.skills.steps.cooking).toBe(QUEST_PRACTICE_MIN / PRACTICE_MIN);
   });
 
+  it("a quest that teaches art leaves a sketch of something else he did, not its own last line", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [one({ reward: { eur: 10, skill: "art" } })], events: [] });
+    s.quests.roll("Testville", 300_000, TOWN, new Rng(3));
+    const low = { randf: () => 0, randiRange: (lo: number) => lo, pick: <T>(l: readonly T[]) => l[0]! } as unknown as Rng;
+    for (let i = 0; i < Q.QUEST_EVERY_MAX; i++) Q.questStop(s, TOWN[4]!, TOWN, 12, low);
+    const giver = Q.questGoal(s, TOWN, HERE, low)!;
+    Q.questStop(s, giver, TOWN, 12, low);
+    Q.questStop(s, Q.questGoal(s, TOWN, HERE, low)!, TOWN, 12, low);
+    expect(s.sketches.made).toBe(1);
+    expect(s.sketches.kept[0]!.of).not.toMatch(/^🧪 Test quest: Good\./);
+    expect(s.history.latest()).toMatch(/^🎨 Sketched /);
+  });
+
   it("a quest that ends with a treat brings its meal's moodlet", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ reward: { eur: 10, meal: "lavish" } })], events: [] });
     s.quests.roll("Testville", 300_000, TOWN, new Rng(3));

@@ -8,6 +8,7 @@ import { useState } from "preact/hooks";
 import * as C from "../core/collection";
 import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
+import * as Sc from "../core/sketches";
 import type { Stats } from "../core/stats";
 import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
@@ -159,6 +160,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
         C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)
       )}
       {tab === "places" && <Ruins stats={s} />}
+      {tab === "places" && <Sketchbook stats={s} />}
     </>
   );
 }
@@ -180,6 +182,37 @@ function Ruins({ stats: s }: { stats: Stats }) {
         </div>
       ) : (
         <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>
+      )}
+    </Card>
+  );
+}
+
+/** Kept sketches the card shows open; the rest fold into More. */
+const SKETCHES_SHOWN = 4;
+
+/** The sketches he kept (core/sketches.ts), best first, each opening into what it shows. */
+function Sketchbook({ stats: s }: { stats: Stats }) {
+  const kept = s.sketches.best();
+  const rows = (list: Sc.Sketch[]) => (
+    <div class="zebra">
+      {list.map((k, i) => (
+        <Entry key={i} title={`${Sc.GRADE[k.q][0]} ${k.q} · ${dayOf(k.t * 1000)}`} lines={[k.of]} />
+      ))}
+    </div>
+  );
+  return (
+    <Card icon="🎨" title="Sketchbook" right={s.sketches.made}>
+      {kept.length ? (
+        <>
+          {rows(kept.slice(0, SKETCHES_SHOWN))}
+          {kept.length > SKETCHES_SHOWN && (
+            <Collapsible title="More" right={kept.length - SKETCHES_SHOWN}>
+              {rows(kept.slice(SKETCHES_SHOWN))}
+            </Collapsible>
+          )}
+        </>
+      ) : (
+        <p class="dim small">None yet. He sketches when he does something artistic (see Sketches in Help).</p>
       )}
     </Card>
   );
