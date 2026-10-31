@@ -822,6 +822,39 @@
       "good": ["Whatever it was, he walks off lighter.", "{GIVER} won't take any money: 'You'll know when you get there.'"],
       "worse": ["{GIVER} admits it was the same reading for everyone today.", "It rains on the way, and the hunch washes off."],
       "reward": { "xp": 35, "fx": {"mood": 10} } },
+    { "id": "baristas_blend", "icon": "☕", "title": "The Barista's Lost Blend", "lean": "wit",
+      "items": ["a tin with the last spoonful of a blend", "a handwritten roasting card", "a bag of beans with no label"],
+      "steps": [
+        { "at": ["cafe"], "say": ["At {PLACE} {GIVER} is down to {ITEM}: the house blend her grandfather roasted, and nobody knows what went in it.", "{GIVER} at {PLACE} pours him the last cup from {ITEM} and asks him to find it again."] },
+        { "at": ["shop/coffee", "grocery"], "say": ["At {PLACE} he sniffs a dozen beans and writes down three.", "At {PLACE} an old roaster remembers the blend, half of it."] },
+        { "at": ["cafe"], "say": ["Back at {PLACE}, {GIVER} roasts a test batch and the whole street smells of it.", "At {PLACE} they taste it side by side, and {GIVER} goes quiet."] }
+      ],
+      "twists": ["The secret turns out to be a pinch of cardamom.", "The roasting card was in the till all along."],
+      "good": ["It tastes just like it used to; {GIVER} names the blend after him.", "The queue goes round the corner the next morning."],
+      "worse": ["Close, but not it; {GIVER} keeps looking.", "It tastes of burnt toast, and they both laugh."],
+      "reward": { "eur": [5, 15], "xp": 35, "fx": {"mood": 8, "energy": 15} } },
+    { "id": "tailors_rush", "icon": "🧵", "title": "The Tailor's Rush Job", "lean": "cha",
+      "items": ["a wedding suit with no buttons yet", "a dress let out an inch too far", "a coat for a man who leaves tonight"],
+      "steps": [
+        { "at": ["shop/tailor", "clothing_store"], "say": ["At {PLACE} {GIVER} has pins in her mouth and {ITEM} due in two hours.", "{GIVER} at {PLACE} needs a runner: {ITEM} can't wait."] },
+        { "at": ["clothing_store", "shop/second_hand"], "say": ["At {PLACE} he finds the last matching buttons in the city.", "At {PLACE} he talks the owner out of a spool of the right thread."] },
+        { "at": ["shop/tailor", "clothing_store"], "say": ["Back at {PLACE}, {GIVER} sews like lightning while he holds the lamp.", "At {PLACE} {ITEM} is done with a minute to spare."] }
+      ],
+      "twists": ["The groom turns up early and has to be stalled.", "A button rolls under the counter and he crawls after it."],
+      "good": ["{GIVER} fits him for something of his own as a thank-you.", "{GIVER} hands him a piece off the rail: on the house."],
+      "worse": ["The buttons don't match, but nobody at the wedding notices.", "It is done, and an hour late."],
+      "reward": { "eur": [0, 10], "xp": 35, "item": "clothes" } },
+    { "id": "pilgrims_way", "icon": "🕯", "title": "The Pilgrim's Way", "lean": "luck", "fantasy": true,
+      "items": ["a candle that has burned for a hundred years", "a pilgrim's shell that hums near holy places", "a candle carried from far away that never goes out"],
+      "steps": [
+        { "at": ["place_of_worship"], "say": ["At {PLACE} {GIVER}, a pilgrim on the last leg, asks him to walk the city's part of the way with {ITEM}.", "{GIVER} at {PLACE} shows him {ITEM}: one more stamp to go."] },
+        { "at": ["monument", "memorial", "fountain"], "say": ["At {PLACE} they stop for the old blessing every pilgrim says.", "At {PLACE} {GIVER} tells him why they set out, a year ago."] },
+        { "at": ["place_of_worship"], "say": ["At {PLACE} the last stamp goes in, and {GIVER} lights {ITEM}.", "At {PLACE} the bells ring as they arrive."] }
+      ],
+      "twists": ["The flame leans towards the next stop, like a compass.", "A stranger joins them halfway, walks the rest in silence, and is gone at the end."],
+      "good": ["{GIVER} gives him the shell: for his own way, whatever it is.", "He doesn't say much on the way back, but he feels lighter."],
+      "worse": ["The office that stamps passports is shut till Monday.", "It pours, and they walk the last part soaked."],
+      "reward": { "xp": 40, "fx": {"mood": 12, "karma": 2} } },
     {"id": "travellers_tale", "icon": "📝", "title": "The Traveller's Photos", "lean": "cha", "items": ["a camera full of travel photos", "a battered travel journal", "a roll of film from far away"], "steps": [{"at": ["lodging", "cafe"], "say": ["At {PLACE}, {GIVER} has lost {ITEM}, with a year of travels on it.", "{GIVER} at {PLACE} is close to tears: {ITEM} is gone, and every far-off sight with it."]}, {"at": ["railway", "information", "bar"], "say": ["He asks around at {PLACE}, and someone saw {ITEM} left on a bench.", "At {PLACE} a cleaner hands over {ITEM} from the lost and found."]}, {"at": ["lodging", "cafe"], "say": ["Back at {PLACE}, {GIVER} shows him every photo, one sight after another.", "At {PLACE}, {GIVER} tells him about each place over a long coffee."]}], "twists": ["One photo is of a place on his own bucket list.", "The journal ends with a list of dreams, half of them ticked off."], "good": ["{GIVER} hugs him and says: go and see them yourself. He looks at his bucket list with new eyes.", "They swap bucket lists, and he promises to send a postcard from the first sight he ticks off."], "worse": ["The photos are all of the same cat; still, {GIVER} is grateful.", "Half the film is ruined, but the stories are not."], "reward": {"eur": [5, 20], "xp": 40, "fx": {"mood": 10}}}
   ],
   "events": [

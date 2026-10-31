@@ -15,6 +15,9 @@ import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import * as Ca from "./careers";
 import * as Cf from "./comforts";
+import * as Cl from "./clothes";
+import { Coffee, HEADACHE as CoffeeHeadache } from "./coffee";
+import { BELIEF_MOOD, Beliefs } from "./beliefs";
 import { Clubs } from "./clubs";
 import * as Cook from "./cooking";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
@@ -55,7 +58,7 @@ import { getCrawler, isRuin, Ruins } from "./ruins";
 import * as R from "./repute";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
-import { meets, speedShare, weatherPerH, type Season, type Sky, type WeatherNeed } from "./sky";
+import { isWet, meets, speedShare, weatherPerH, type Season, type Sky, type WeatherNeed } from "./sky";
 import * as Speeds from "./speeds";
 import { Quests } from "./quests";
 import { Rival, type Contest } from "./rival";
@@ -181,6 +184,10 @@ export type Action = {
   bed?: Cf.Bed;
   /** A meal better or worse than plain, and its moodlet (see comforts.ts). */
   meal?: Cf.Meal;
+  /** A cup of coffee, for his coffee habit (see coffee.ts). */
+  coffee?: boolean;
+  /** A tailor mends his worn clothes (see clothes.ts). */
+  mend?: boolean;
   /** The career (see careers.ts) this job counts for; a `rank` need is a rank in it. */
   career?: string;
   /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
@@ -309,6 +316,10 @@ export class Stats {
   perks = new Pk.Perks();
   /** His lavish meals and hotel nights, counted (see comforts.ts). */
   comforts = new Cf.Comforts();
+  /** His coffee habit (see coffee.ts). */
+  coffee = new Coffee();
+  /** What he believes in (see beliefs.ts). */
+  beliefs = new Beliefs();
   /** His quirks from habits, and his spot in each city. */
   quirks = new Qk.Quirks();
   spots = new Spots();
@@ -365,10 +376,11 @@ export class Stats {
   /** Hears every feed line as it is said; the catch-up collects them for its summary. */
   onSay: ((line: string, t: number) => void) | null = null;
 
-  /** An attribute with his gear's and buffs' bonuses, and for Charm a finished city card set and the local language; Charm counts less while he is dirty. */
+  /** An attribute with his gear's and buffs' bonuses, and for Charm a finished city card set and the local language; Charm counts less while he is dirty or in tattered clothes. */
   attr(name: Attr): number {
     let v = this.attrs[name];
-    for (const item of Object.values(this.gear)) v += item?.stats[name] ?? 0;
+    // A tattered piece adds nothing and costs Charm (see clothes.ts).
+    for (const item of Object.values(this.gear)) v += Cl.isTattered(item) ? (name === "cha" ? -Cl.TATTERED_CHA : 0) : (item?.stats[name] ?? 0);
     for (const b of this.buffs) v += b.attrs?.[name] ?? 0;
     if (name === "cha" && this.where.code && this.keepsakes.sets.includes(this.where.code)) v += CC.SET_CHARM;
     if (name === "cha") v += this.languages.charm(this.lang());
@@ -425,7 +437,7 @@ export class Stats {
   speedBonus(afoot = false): number {
     let v = 0;
     const noRide = afoot || this.sulking();
-    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle")) v += item?.stats.speed ?? 0;
+    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle") && !Cl.isTattered(item)) v += item?.stats.speed ?? 0;
     return v;
   }
 
@@ -496,10 +508,29 @@ export class Stats {
     return attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1;
   }
 
-  /** How hard his emotion, tastes and grim surroundings pull him to a place of map class `kind`. */
+  /** True while anything he wears is tattered (see clothes.ts). */
+  tattered(): boolean {
+    return Cl.WEAR_SLOTS.some((slot) => Cl.isTattered(this.gear[slot]));
+  }
+
+  /** How hard his emotion, tastes, grim surroundings, coffee, beliefs and tattered clothes pull him to a place of map class `kind`. */
   feelPull(kind: string): number {
     const grim = Cf.GREEN_KINDS.includes(kind) && this.mind.moodlets.some((m) => m.name === Cf.GRIM[0]);
-    return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind) * (grim ? Cf.BEAUTY_PULL : 1);
+    const tattered = Cl.CLOTHES_KINDS.includes(kind) && this.tattered();
+    return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind) * (grim ? Cf.BEAUTY_PULL : 1) * this.coffee.pull(kind, this.now()) * this.beliefs.pull(kind) * (tattered ? Cl.TATTERED_PULL : 1);
+  }
+
+  /** A tailor mends his clothes: every worn cloth piece he wears is as good as new (see clothes.ts). */
+  private mend(): void {
+    let n = 0;
+    for (const slot of Cl.WEAR_SLOTS) {
+      const item = this.gear[slot];
+      if (item?.wear) {
+        delete item.wear;
+        n++;
+      }
+    }
+    if (n) this.say(`🧵 His clothes are as good as new`);
   }
 
   /** A meal or a bed someone treats him to (a quest's reward): its moodlet, and it counts (see comforts.ts). */
@@ -522,7 +553,8 @@ export class Stats {
   equip(item: Item): void {
     const old = this.gear[item.slot];
     this.gear[item.slot] = item;
-    if (old) this.bagAdd(old);
+    if (old && Cl.isTattered(old) && !Items.isTreasured(old)) this.say(`🧵 Threw away his tattered ${old.name}`);
+    else if (old) this.bagAdd(old);
   }
 
   unequip(slot: Slot): void {
@@ -535,7 +567,8 @@ export class Stats {
 
   /** True when `item` beats what he wears in its slot. */
   isUpgrade(item: Item): boolean {
-    return Items.power(item) > Items.power(this.gear[item.slot]);
+    const worn = this.gear[item.slot];
+    return Items.power(item) > (Cl.isTattered(worn) ? 0 : Items.power(worn));
   }
 
   /** Buys and wears `item` if it is an upgrade he can afford; returns the feed line. */
@@ -746,8 +779,8 @@ export class Stats {
     return this.buffs.map((b) => b.name);
   }
 
-  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
-  passTime(minutes: number, walkedM: number, afoot = false): void {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about; `riding` a trip or hop, which wears no clothes). */
+  passTime(minutes: number, walkedM: number, afoot = false, riding = false): void {
     const t = this.now();
     if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
@@ -788,6 +821,15 @@ export class Stats {
     this.business.pass(h);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
+    if (walkedM && !riding && (afoot || !this.getsAbout())) {
+      const worn = Cl.wear(this.gear, walkedM / 1000, isWet(this.sky));
+      for (const l of worn.lines) this.say(l);
+      if (worn.tattered) this.mind.feel(...Cl.TATTERED);
+    }
+    if (this.coffee.pass(t)) {
+      this.mind.feel(...CoffeeHeadache);
+      this.say("🤕 A coffee headache: he hasn't had a cup all day");
+    }
     // His pet walks at his side on foot or by bike, and rides along otherwise.
     const pet = walkedM && PET_PACE.has(afoot ? "" : this.getsAbout()) ? this.pets.walked(walkedM) : 0;
     if (pet) this.say(`${this.pets.title()} reached level ${pet} (${Math.round(this.pets.pet!.km)} km walked together)`);
@@ -832,7 +874,7 @@ export class Stats {
     heir.life = this.life.heir(ancestor);
     heir.cents = START_CENTS + heir.life.perkCents();
     // A new walker owes the police nothing: what the old one stole is his heir's by right.
-    if (heirloom) heir.gear[heirloom.slot] = { ...heirloom, stolen: undefined };
+    if (heirloom) heir.gear[heirloom.slot] = { ...heirloom, stolen: undefined, wear: undefined };
     heir.keepsakes = this.keepsakes;
     heir.bricks = this.bricks;
     heir.care = this.care;
@@ -854,6 +896,9 @@ export class Stats {
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
     this.dreams(t, true);
+    this.sayIf(this.coffee.day(t));
+    for (const l of this.beliefs.day(t)) this.say(l);
+    if (this.tattered()) this.mind.feel(...Cl.TATTERED);
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.takings();
@@ -1195,6 +1240,11 @@ export class Stats {
       else this.treat({ bed: action.bed });
     }
     this.treat({ meal: action.meal });
+    if (action.coffee) {
+      this.sayIf(this.coffee.drink(this.now()));
+      this.mind.moodlets = this.mind.moodlets.filter((m) => m.name !== CoffeeHeadache[0]);
+    }
+    if (action.mend) this.mend();
     if (!kind) return line;
     // Its own dice, so the walk's stay the same.
     const { met, lines, feared } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
@@ -1208,6 +1258,9 @@ export class Stats {
     this.habit(kind);
     const points = met.reduce((n, w) => n + Pk.WANT_POINTS[w.kind], 0);
     if (points) for (const l of this.perks.earn(points, this.attrs)) this.say(l);
+    const belief = this.beliefs.did(kind, action, where || noun(kind), this.now(), () => new Rng(seedOf(`belief${this.now()}${where}`)));
+    for (const b of belief.lived) this.mind.feel(b.treat, b.icon, ...BELIEF_MOOD);
+    this.sayIf(belief.line);
     const taste = this.tastes.did(kind);
     if (taste) {
       this.mind.feel(...taste.moodlet);
@@ -1875,7 +1928,7 @@ export class Stats {
   /** Magic his enchanted gear gathers for each km he walks. */
   gearMagic(): number {
     let v = 0;
-    for (const item of Object.values(this.gear)) v += item?.stats.magic ?? 0;
+    for (const item of Object.values(this.gear)) if (!Cl.isTattered(item)) v += item?.stats.magic ?? 0;
     return v;
   }
 
@@ -2041,7 +2094,7 @@ export class Stats {
       home: this.home.toJSON(),
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
-      tastes: this.tastes.toJSON(), perks: this.perks.toJSON(), comforts: this.comforts.toJSON(),
+      tastes: this.tastes.toJSON(), perks: this.perks.toJSON(), comforts: this.comforts.toJSON(), coffee: this.coffee.toJSON(), beliefs: this.beliefs.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
       business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(), beats: this.beats.toJSON(),
       careers: this.careers.toJSON(),
@@ -2113,6 +2166,9 @@ export class Stats {
     s.perks = Pk.Perks.fromJSON(d.perks);
     // A save from before comforts: no lavish meals or hotel nights counted yet.
     s.comforts = Cf.Comforts.fromJSON(d.comforts);
+    // A save from before the coffee habit and beliefs: no cups and no beliefs yet. Gear from before clothes wear is as good as new.
+    s.coffee = Coffee.fromJSON(d.coffee);
+    s.beliefs = Beliefs.fromJSON(d.beliefs);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
