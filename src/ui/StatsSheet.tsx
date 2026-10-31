@@ -561,15 +561,19 @@ function SpotCard({ s }: { s: Stats }) {
 /** Letters his friends wrote him, newest first, and a gift waiting at one of his spots. */
 function MailCard({ s }: { s: Stats }) {
   const m = s.mail;
-  const recent = m.letters.slice(-MAIL_SHOWN).reverse();
+  const newest = [...m.letters].reverse();
+  const letter = (l: (typeof newest)[number]) => <Entry key={`${l.t}${l.from}`} title={`${l.icon} ${l.from}, ${l.city.split(",")[0]}`} lines={[l.text]} />;
   return (
     <Card icon="📬" title="Mailbox" right={m.letters.length || undefined}>
-      {recent.length ? (
-        <div class="zebra">
-          {recent.map((l) => (
-            <Entry key={`${l.t}${l.from}`} title={`${l.icon} ${l.from}, ${l.city.split(",")[0]}`} lines={[l.text]} />
-          ))}
-        </div>
+      {newest.length ? (
+        <>
+          <div class="zebra">{newest.slice(0, MAIL_SHOWN).map(letter)}</div>
+          {newest.length > MAIL_SHOWN && (
+            <Collapsible title="More" right={newest.length - MAIL_SHOWN}>
+              <div class="zebra">{newest.slice(MAIL_SHOWN).map(letter)}</div>
+            </Collapsible>
+          )}
+        </>
       ) : (
         <p class="dim small">No letters yet. Friends he made write from their cities.</p>
       )}

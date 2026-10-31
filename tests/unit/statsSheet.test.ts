@@ -42,6 +42,13 @@ describe("Stats sheet", () => {
     expect(text).toContain("📬Mailbox1");
     expect(text).toContain("👩 Ana, Porto");
     expect(text).toContain("🎁 Gifts wait at his spot inSofia");
+    // Past four letters, the older ones fold into More.
+    stats.mail.letters = Array.from({ length: 6 }, (_, i) => ({ from: `F${i}`, icon: "👩", city: "Porto, Portugal", text: "Hi", t: i }));
+    const many = shown(stats);
+    expect(many).toContain("📬Mailbox6");
+    expect(many).toContain("F5, Porto");
+    expect(many).toContain("More ▸2");
+    expect(many).not.toContain("F1, Porto");
   });
 
   it("shows his quirks, and his spot once he has one", () => {
