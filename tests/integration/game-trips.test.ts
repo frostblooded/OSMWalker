@@ -110,6 +110,27 @@ describe("game", () => {
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
   });
 
+  it("takes the metro to a far bus station in a big city, pays it and boards there", async () => {
+    const far: Place = { ...BUS, name: "East Bus", lat: 42.687, lon: 23.329 };
+    const { g } = game({ roll: 0.1, places: [far] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    const w = g.walker!;
+    expect(w.departing!.station.name).toBe("East Bus");
+    expect(w.flight!.mps).toBeGreaterThan(5);
+    expect(g.stats.history.latest()).toBe("🚇 Took the metro to East Bus (-€2)");
+    expect(hud(g)!.goal).toMatchObject({ kind: "going", departing: true, mps: w.flight!.mps });
+    let s = 0;
+    for (; s < 900 && !w.isTraveling(); s++) g.step(1);
+    expect(w.isTraveling()).toBe(true);
+    // About 1.1 km of road at metro speed.
+    expect(s).toBeLessThan(600);
+    expect(g.stats.history.entries.some((e) => /^Took the bus to Plovdiv.* from East Bus/.test(e.text))).toBe(true);
+  });
+
   it("as he boards, a moment on the way may ask you something, and he rides on once it is settled", async () => {
     const { g } = game({ roll: 0.1, places: [BUS], moments: true });
     await g.startCity("Sofia, Bulgaria", ...START, null);

@@ -6,12 +6,13 @@ import type { Place } from "../../src/core/stats";
 describe("goal weights", () => {
   it("weigh medium distances most", () => {
     expect(G.distanceWeight(G.GOAL_PEAK_M)).toBeCloseTo(1, 6);
-    expect(G.distanceWeight(100)).toBeLessThan(0.2);
-    expect(G.distanceWeight(2000)).toBeLessThan(0.12);
-    expect(G.distanceWeight(2000)).toBeGreaterThan(0.03);
-    expect(G.distanceWeight(5000)).toBeLessThan(0.01);
-    expect(G.distanceWeight(300)).toBeGreaterThan(0.6);
-    expect(G.distanceWeight(900)).toBeGreaterThan(0.6);
+    expect(G.GOAL_PEAK_M).toBe(200);
+    expect(G.distanceWeight(40)).toBeLessThan(0.2);
+    expect(G.distanceWeight(800)).toBeLessThan(0.12);
+    expect(G.distanceWeight(800)).toBeGreaterThan(0.03);
+    expect(G.distanceWeight(2000)).toBeLessThan(0.01);
+    expect(G.distanceWeight(120)).toBeGreaterThan(0.6);
+    expect(G.distanceWeight(360)).toBeGreaterThan(0.6);
     expect(G.distanceWeight(0)).toBe(G.distanceWeight(1));
   });
 

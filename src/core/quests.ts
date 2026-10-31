@@ -40,11 +40,11 @@ export const BOARD_PLACES = 20;
 /** Share of the board that may be light-fantasy quests. */
 export const FANTASY_SHARE = 0.25;
 /** Minutes a quest step or an event takes him. */
-export const STEP_MIN = 5;
+export const STEP_MIN = 2;
 /** A step's place is picked among the nearest this many that fit, so it is never across town. */
 export const STEP_CHOICES = 6;
 /** Chance per stop of a new world event near him, while fewer than EVENT_MAX run. */
-export const EVENT_CHANCE = 0.12;
+export const EVENT_CHANCE = 0.25;
 export const EVENT_MAX = 2;
 /** World events start at places this close to him, and he joins one this close. */
 export const EVENT_NEAR_M = 1200;
