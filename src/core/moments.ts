@@ -9,6 +9,13 @@ import type { Attr, Stats } from "./stats";
 /** How far his attribute tilts his own pick to the first option: this much a point above 1, up to LEAN_CAP. */
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
+/** The odds a risky option works, and how much each point of its attribute above 1 adds, up to RISK_CAP. */
+export const RISK_BASE = 0.5;
+export const RISK_PER_POINT = 0.05;
+export const RISK_CAP = 0.9;
+
+/** The odds a risky option works with `points` of its attribute. */
+export const riskOdds = (points: number) => Math.min(RISK_BASE + RISK_PER_POINT * Math.max(points - 1, 0), RISK_CAP);
 
 /** The mini-games a moment can be played as; without one it is a plain choice. */
 export type GameId = "timing" | "cards" | "taps" | "odd";
@@ -34,11 +41,25 @@ export function optionFor(m: Moment, id: string): MomentOption {
   return o;
 }
 
-/** His own pick when you don't choose: `default`, or the first option with odds that grow with his `lean` attribute. */
+/** The attribute each mini-game leans on when nobody plays it, unless the moment names its own. */
+export const GAME_ATTR: Record<GameId, Attr> = { timing: "cha", cards: "luck", taps: "str", odd: "wit" };
+
+/** The odds his leaning attribute gives: LEAN_PER_POINT a point above 1, up to LEAN_CAP. */
+function leanOdds(m: Moment, stats: Stats): number {
+  const a = m.lean ?? (m.game && GAME_ATTR[m.game]);
+  return a ? Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(a) - 1), LEAN_CAP)) : 0;
+}
+
+/**
+ * His own pick when you don't choose. A choice: `default`, or the first
+ * option with odds that grow with his `lean` attribute. A mini-game nobody
+ * plays scores him a middle result (never the worst), or the best with the
+ * same odds.
+ */
 export function defaultPick(m: Moment, stats: Stats, rng: Rng): string {
-  if (!m.lean) return m.default;
-  const lean = Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(m.lean) - 1), LEAN_CAP));
-  return rng.randf() < lean ? m.options[0]!.id : m.default;
+  const lean = leanOdds(m, stats);
+  if (m.game) return rng.randf() < lean ? m.options.at(-1)!.id : m.options[Math.floor((m.options.length - 1) / 2)]!.id;
+  return lean && rng.randf() < lean ? m.options[0]!.id : m.default;
 }
 
 /** The option a mini-game score (0 worst, 1 best) earns. */

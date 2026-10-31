@@ -11,6 +11,7 @@ import * as Br from "./bricks";
 import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
+import * as PM from "./placeMoments";
 import * as Mg from "./magic";
 import * as Mn from "./midnight";
 import * as Po from "./portals";
@@ -24,7 +25,7 @@ import * as Items from "./items";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
-import { defaultPick } from "./moments";
+import * as M from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
@@ -193,6 +194,8 @@ export class Stats {
   creatures = new Cr.Creatures();
   /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
   creatureKinds: readonly Cr.Creature[] = [];
+  /** The choice or mini-game at each kind of place (data/moments.json). */
+  placeMoments: PM.PlaceMoments = {};
   /** His Magic meter, 0 to Mg.MAGIC_MAX: ley lines fill it, spells spend it (magic.ts). */
   magic = 0;
   /** The spells he knows and the ley places he drew from today. */
@@ -917,7 +920,43 @@ export class Stats {
   /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
   meetAt(place: Pick<Place, "class" | "name">): void {
     const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+    if (c) this.meet(c, place.name, M.defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+  }
+
+  /** The moment at `place` when he starts an activity there, or null with none loaded. */
+  momentAt(place: Pick<Place, "class" | "subclass">): PM.PlaceMoment | null {
+    return PM.momentFor(this.placeMoments, place);
+  }
+
+  /**
+   * Applies pick `pick` of moment `m` at the place named `where`, chosen by
+   * you or (`you` false) by himself; `r` is a risky option's roll. Returns
+   * the feed line.
+   */
+  settleMoment(m: PM.PlaceMoment, where: string, pick: string, you: boolean, r: number): string {
+    const o = PM.outcomeOf(m, pick, (a) => this.attr(a), r);
+    const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
+    const net = (o.gain ?? 0) - paid;
+    this.cents += net;
+    if (o.fx) this.applyFx(o.fx);
+    if (o.buff) this.addBuff(o.buff);
+    let got = "";
+    if (o.item) {
+      const item = Items.make(o.item, this.level, new Rng(seedOf(`moment${this.now()}${where}`)), this.attr("luck"));
+      item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
+      if (this.isUpgrade(item)) this.equip(item);
+      else this.bagAdd(item);
+      got = ` and got a free ${item.rarity} ${item.name}`;
+    }
+    return this.say(`${m.icon} ${you ? "" : "Decided by himself: "}${o.say.replaceAll("{PLACE}", where)}${got}${net ? ` (${signed(net)})` : ""}`);
+  }
+
+  /** Right after starting an activity at `place` with nobody to ask (the catch-up): he takes his own pick. Its own dice, so his walk stays the same. */
+  momentByHimself(place: Pick<Place, "class" | "subclass" | "name">): void {
+    const m = this.momentAt(place);
+    if (!m) return;
+    const rng = new Rng(seedOf(`moment${this.now()}${place.name}`));
+    this.settleMoment(m, place.name, M.defaultPick(m, this, rng), false, rng.randf());
   }
 
   /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
