@@ -136,6 +136,25 @@ describe("save file", () => {
     expect(back.walker.bounds).not.toBeNull();
   });
 
+  it("loads saves from before life stages: born on his birthday, a backpacker of the first generation, with the walker's kilometres", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.life;
+    d.stats.anniversaries = { born: 1_790_000_000, day: "" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = f.read() as Saved;
+    expect(back.stats.life.born).toBe(1_790_000_000);
+    expect(back.stats.life.stage).toBe(0);
+    expect(back.stats.life.gen).toBe(1);
+    expect(back.stats.life.family).toEqual([]);
+    expect(back.stats.life.km).toBeCloseTo(0.123);
+    // A save with a life keeps its own kilometres.
+    f.write(back);
+    expect((f.read() as Saved).stats.life.km).toBeCloseTo(0.123);
+  });
+
   it("loads saves from before the storyteller: Classic, no tension, and keeps a chosen one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

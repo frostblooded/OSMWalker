@@ -3,7 +3,8 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks and his spot. Items with a story open to show it. His records close it.
+// moves his mood), his quirks and his spot. Items with a story open to show it. His life stage comes
+// second, and his records and family tree close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -31,6 +32,7 @@ import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skil
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
+import { FamilyTree, LifeCard } from "./Family";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -283,6 +285,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
         <KV k="Weekly bills" v={euro(billsAt(s.level))} />
       </Card>
+      <LifeCard life={s.life} now={s.now()} />
       <QuestCard q={s.quests} now={s.now()} />
       <CareersCard c={s.careers} />
       {(goal || feed > 0 || s.savingFor > 0) && (
@@ -386,6 +389,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <Records stats={s} />
+      <FamilyTree life={s.life} level={s.level} city={s.where.city} />
     </>
   );
 }

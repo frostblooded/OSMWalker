@@ -37,7 +37,7 @@ If he was on any ride to another city when you left, the ride goes on first. If 
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
-The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it. If his elder stage ran out while you were away, he lives only up to then (see Retiring).
 ## His week {recap}
 The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
 
@@ -64,7 +64,7 @@ His speed depends on how he gets about:
 
 He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
 
-Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy. In snow he goes at {SNOW_SPEED_PCT} of his speed on foot or by bike (see Weather).
+Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. As an elder he gets about {ELDER_SPEED_PCT} slower (see Life stages). When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy. In snow he goes at {SNOW_SPEED_PCT} of his speed on foot or by bike (see Weather).
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
 ## Fantasy mounts {mounts}
@@ -264,7 +264,8 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 - {WAGE_RANK_PCT} more for every rank above 1 in the job's career (see Careers),
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 - up to {VISA_PAY_MAX} more with a better visa in the country (see Visas),
-- {SKILL_FX_PCT} more for every level of the job's skill, such as music for a street concert, on top of the rest (see Skills).
+- {SKILL_FX_PCT} more for every level of the job's skill, such as music for a street concert, on top of the rest (see Skills),
+- {SETTLED_WAGE_PCT} more on top of that while he is settled (see Life stages).
 
 For example a café job with no attribute need and no skill pays {WAGE_RANK3} its listed wage at rank 3, and {WAGE_RANK5} at the top rank. His level doesn't raise pay; only working does. Only pay grows: prices stay the same. Bets, lucky finds (such as the coin by the ATM), skill and language jobs (see Skills and Languages) and jobs at places with no career get no rank pay. Selling items and money found while walking don't grow.
 ## Careers {careers}
@@ -458,7 +459,7 @@ A language he learned on the road (not his own, nor English) pays off in two way
 The Stats sheet lists the languages he speaks, his best first; past {LANGS_SHOWN} the rest fold into More.
 # ⭐ Progress
 ## XP and levels {xp}
-He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
+He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired, by his life stage ({STAGE_XP}, see Life stages) and by the family perk (see His heirs and the family).
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
@@ -479,6 +480,32 @@ When he beats a best he may say so in his History ("New record: … in one day!"
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
 Waking up costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
+# 🌱 Life and family
+## Life stages {stages}
+He grows older on the calendar, like a pet: every {STAGE_DAYS} days of real time he moves on to the next stage of his life, whether the game is open or closed. There are {STAGE_COUNT} stages, so a whole life lasts {LIFE_DAYS} days:
+{STAGE_LIST}
+
+The Stats sheet's second card shows his stage, his day of life, how long until the next stage, and how his care is going. A new stage says so in his History and his life story. Time away counts in full, even past the {MAX_AWAY_H} hours the catch-up lives through (see While you were away), so a long absence can move him on more than one stage at once. A game from before life stages counts his life from his birthday (see Anniversaries).
+## Care and his title {care_tiers}
+How well he was kept during a stage names the next one and nudges the attribute that stage brings, like a pet that grows up hearty or sickly:
+- Good: no faint and at most {GOOD_STARVE_H} hour at zero fullness or thirst. He becomes "Hearty" (a Hearty Veteran) and the new stage's attribute gets +{GOOD_NUDGE}.
+- Poor: {POOR_FAINTS} or more faints, or {POOR_STARVE_H} hours or more at zero fullness or thirst. He becomes "Weary" and that attribute loses {POOR_NUDGE_ABS} (never below 0).
+- Anything in between: just the stage's name, and no change.
+
+Each stage starts the count over. You never have to do anything: he looks after himself, and care packages (see Clovers and care packages) only help.
+## Retiring {retire}
+At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
+
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. A Retire you asked for on a ride works the same way once he lands. His heir then sets out from the favourite city, and while its streets load he stands still and says "🌅 Retiring in" that city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later; on a reopen the card then says he stopped to retire. If you retire him while he is on a ride, he says he will and retires once he lands.
+## His heirs and the family {family}
+Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words, wants and fears, spells and Magic, careers, skills, languages, pantry, quirks, spots, diary, Records, or your bond with him, so his karma, his fame in every city and the police start fresh too (see Karma). What the family keeps:
+- an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
+- the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
+- the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, the creatures, giants, fairy gifts, midnight finds and portals in the Collection, and golden bricks and monuments,
+- his pet, if he has one (see His pet),
+- your clovers, care packages and storyteller.
+
+Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).
@@ -673,7 +700,7 @@ He saves them for a monument with his name:
 
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
-History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -728,7 +755,7 @@ If the trip is called off before he boards (he can't pay, or he faints), the gue
 
 The whole card travels inside the link, after the #, so no server keeps it. When a friend opens it, their game shows "A postcard from Ivan in Sofia" (your name, or "a friend" if you left it empty), right away on the city picker, or in a game once its While you were away card and any open sheet are closed, with 📮 Send one back if they have a game going, or Start my own walk if they don't. Opening a postcard changes nothing in their game.
 ## One choice on reopen {dilemma}
-Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
+Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires, or is due to, brings none (see Retiring). Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
 
 When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} for each point of the attribute he leans on above 1, up to {LEAN_CAP_PCT}. Below 1 it stays even. The choices:
 {DILEMMA_LIST}
@@ -862,7 +889,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -878,6 +905,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
+- Life: his stage and day of life, how long until the next stage (or until he retires), how his care is going this stage, what the stage does, and the family perk (see Life stages).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
@@ -900,6 +928,8 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Effects: his buffs with the minutes they have left.
+- Records: his bests and totals (see Records).
+- Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
 
@@ -933,8 +963,9 @@ Its buttons change the game right away:
 - New goal ends any stop or trip and picks a new goal now, rolling the trip dice again.
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.
+- ⏩ A stage older (in the 🎂 Life stage card) makes him a stage older at once; as an elder it makes him due to retire (see Life stages).
 
-The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice (see One choice on reopen), for testing. The switch is remembered.
+The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires or is due to (see One choice on reopen), for testing. The switch is remembered.
 ## New city {new_city}
 New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 

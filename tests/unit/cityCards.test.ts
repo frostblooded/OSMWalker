@@ -79,6 +79,23 @@ describe("packs", () => {
     expect(stats.history.entries.some((e) => e.text.startsWith("Opened a free card pack: "))).toBe(true);
   });
 
+  it("an heir's pulls note which walker found them, and the binder says so", async () => {
+    const { SETS } = await import("../../src/core/collection");
+    stats.cityPool = pool;
+    stats.do(pack, "Kiosk", new Rng(2));
+    const first = new Set(stats.keepsakes.cityCards.keys());
+    const { heir } = stats.retire("age");
+    heir.cityPool = pool;
+    heir.cents = 10_000;
+    heir.do(pack, "Kiosk", new Rng(3));
+    const added = [...heir.keepsakes.cityCards].filter(([key]) => !first.has(key));
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.every(([, own]) => own.gen === 2)).toBe(true);
+    const infos = new Map(SETS.find((x) => x.id === "citycards")!.entries(heir).map((e) => [e.id, e.info]));
+    expect(infos.get(added[0]![0])).toContain("Walker II");
+    expect(infos.get([...first][0]!)).toContain("Walker I");
+  });
+
   it("can be bought at card shops, once the pool is known", () => {
     stats.cityPool = null;
     expect(stats.canDo(pack, 12)).toBe(false);

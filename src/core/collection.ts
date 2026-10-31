@@ -11,6 +11,7 @@ import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
 import { LEAN_AT, LEAN_MAX } from "./bond";
+import { walkerName } from "./life";
 import { MOUNT_ICON, placeIcon } from "./look";
 import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
@@ -118,6 +119,8 @@ const SOLD_AT: Record<Items.Kind, string> = {
   dragons: "the stable at a castle",
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** Which walker of the family found a card, once there is more than one. */
+const foundBy = (s: Stats, gen?: number) => (s.life.gen > 1 ? ` · ${walkerName(gen ?? 1)}` : "");
 
 export const SETS: CSet[] = [
   {
@@ -129,7 +132,7 @@ export const SETS: CSet[] = [
     entries: (s) =>
       [...s.keepsakes.cards]
         .sort((a, b) => b[1].t - a[1].t)
-        .map(([key, c]) => ({ id: key, icon: "🃏", name: c.name, got: true, info: `${c.rarity}${c.finish ? ` ${K.FINISH_NAME[c.finish]}` : ""} · ${K.kindLabel(c.kind)} · ${c.city}`, rarity: c.rarity, finish: c.finish })),
+        .map(([key, c]) => ({ id: key, icon: "🃏", name: c.name, got: true, info: `${c.rarity}${c.finish ? ` ${K.FINISH_NAME[c.finish]}` : ""} · ${K.kindLabel(c.kind)} · ${c.city}${foundBy(s, c.gen)}`, rarity: c.rarity, finish: c.finish })),
     facts: (s) => {
       const cards = [...s.keepsakes.cards.values()];
       return [
@@ -148,7 +151,7 @@ export const SETS: CSet[] = [
       [...(s.cityPool?.byCountry.values() ?? [])].flatMap((cards) =>
         cards.map((c, i) => {
           const own = s.keepsakes.cityCards.get(c.key);
-          return { id: c.key, icon: "🏙", name: c.name, got: !!own, info: own ? `${c.rarity}${own.finish ? ` ${K.FINISH_NAME[own.finish]}` : ""} · ${c.country}` : `${c.rarity} · its ${ordinal(i + 1)} city`, rarity: c.rarity, finish: own?.finish, group: c.country };
+          return { id: c.key, icon: "🏙", name: c.name, got: !!own, info: own ? `${c.rarity}${own.finish ? ` ${K.FINISH_NAME[own.finish]}` : ""} · ${c.country}${foundBy(s, own.gen)}` : `${c.rarity} · its ${ordinal(i + 1)} city`, rarity: c.rarity, finish: own?.finish, group: c.country };
         }),
       ),
     facts: (s) => [
