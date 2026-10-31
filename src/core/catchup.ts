@@ -18,7 +18,7 @@ import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
+import { cityBounds, cityKey, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -54,7 +54,7 @@ export const MADE_UP_KINDS: { class: string; subclass: string; label: string; we
 ];
 
 /** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. `pop` sizes its quest board. */
-export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number };
+export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number; /** The cities.tsv "Name, Country" key, when he's in a listed city: city quests match on it. */ key?: string };
 
 export type CatchUpDeps = {
   activities: Activities;
@@ -217,7 +217,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name);
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -338,7 +338,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
 
   /** Lands in `dest` at `at` after `distM` by `mode` from longitude `fromLon`, as the watched game does on landing. */
   function landIn(dest: City, mode: Mode, fromLon: number, at: LatLon, distM: number): void {
-    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
+    city = { name: cityKey(dest), code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);

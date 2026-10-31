@@ -44,6 +44,13 @@ describe("Stats sheet", () => {
     expect(shown(stats)).toContain("Remembered");
   });
 
+  it("tells a failed quest from an event that went badly", () => {
+    const stats = new Stats();
+    stats.quests.log.push({ icon: "🧪", title: "Lost cause", city: "X", t: 0, good: false }, { icon: "🌟", title: "Rough fair", city: "X", t: 1, good: false, event: true });
+    expect(shown(stats)).toContain("Lost cause✖ Failed");
+    expect(shown(stats)).toContain("Rough fairWent badly");
+  });
+
   it("after a flyer lands, shows his walking speed", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
