@@ -23,6 +23,16 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("lists his careers with his title and the shifts to the next rank", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No shifts yet.");
+    stats.careers.shifts = { cafe: 41, bar: 150 };
+    const text = shown(stats);
+    expect(text).toContain("🍸 Bar · Bar managerTop rank");
+    expect(text).toContain("☕ Café · Head barista19 shifts to go");
+    expect(text).toContain("Rank 5 / 5");
+  });
+
   it("shows his quirks, and his spot once he has one", () => {
     const stats = new Stats();
     stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };

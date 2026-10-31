@@ -162,6 +162,19 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
   });
 
+  it("loads saves from before careers: no shifts, every career at rank 1, and keeps his ranks", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const s = saved();
+    s.stats.careers.shifts.cafe = 12;
+    f.write(s);
+    expect((f.read() as Saved).stats.careers.rank("cafe")).toBe(3);
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.careers;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.careers.shifts).toEqual({});
+  });
+
   it("loads saves from before Viktor: they haven't met yet", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

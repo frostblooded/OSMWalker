@@ -3,9 +3,11 @@
 // places we have no actions for yet and "_spot" for random spots.
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
-// On a public holiday the "_holiday" actions join every place's.
+// Places of a career (see careers.ts) get its rank shifts, and their shifts
+// count for it. On a public holiday the "_holiday" actions join every place's.
 // Picks an action he can do, leaning towards what he needs.
 import { KIND_DEED_WEIGHT } from "./bond";
+import { CAREER_PULL, careerAt, isCareerShift, rankShift, TOP_RANK } from "./careers";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
 import { SKILL_LEAN, SKILL_MAX } from "./skills";
@@ -115,7 +117,13 @@ export class Activities {
   unknown: Record<string, { count: number; example: string }> = {};
 
   constructor(data: ActionTable = {}, flavour: Record<string, ActionTable> = {}) {
-    this.data = data;
+    this.data = { ...data };
+    for (const [key, list] of Object.entries(data)) {
+      const c = careerAt(key);
+      if (!c || !list.some(isCareerShift)) continue;
+      const ranks = Array.from({ length: TOP_RANK - 1 }, (_, i) => rankShift(c, i + 2));
+      this.data[key] = [...list.map((a) => (isCareerShift(a) ? { ...a, career: c.id } : a)), ...ranks];
+    }
     for (const [code, table] of Object.entries(flavour)) {
       this.flavour[code] = {};
       for (const [key, list] of Object.entries(table)) this.flavour[code][key] = list.map((a) => ({ ...a, flavour: true }));
@@ -170,6 +178,7 @@ export function weight(action: Action, stats: Stats): number {
   if (action.groceries) w += GROCERIES_WEIGHT;
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
+  if (action.career && action.career === stats.careers.best()) w *= CAREER_PULL;
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
