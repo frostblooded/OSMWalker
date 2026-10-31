@@ -20,11 +20,14 @@ import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as PM from "./placeMoments";
 import * as Mg from "./magic";
+import * as Emo from "./emotion";
 import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
 import { Diary, type DiaryData } from "./diary";
 import { Mailbox, type MailData } from "./mail";
 import { SPOT_DISCOUNT, Spots } from "./spot";
+import * as Pk from "./perks";
+import { Tastes } from "./tastes";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
 import * as Po from "./portals";
@@ -288,6 +291,10 @@ export class Stats {
   quests = new Quests();
   /** His moodlets, wants and fears. */
   mind = new Mind();
+  /** His hidden likes and dislikes, and which he has found out. */
+  tastes = new Tastes();
+  /** His lifetime points and the perks he spent them on. */
+  perks = new Pk.Perks();
   /** His quirks from habits, and his spot in each city. */
   quirks = new Qk.Quirks();
   spots = new Spots();
@@ -447,8 +454,35 @@ export class Stats {
   wageMult(action: Action): number {
     let m = 1 + (action.career ? Ca.WAGE_PER_RANK * (this.careers.rank(action.career) - 1) : 0);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
+    const attr = Emo.INFO[this.emotion()].attr;
+    const emo = attr && action.needs?.[attr] !== undefined ? 1 + Emo.EMO_BONUS : 1;
+    const tongue = this.perks.has("silver_tongue") ? 1 + Pk.SILVER_PAY : 1;
     if (action.skill) m *= this.skills.mult(action.skill);
-    return m * F.mult(this.forecast(), "wage") * this.visas.payMult(this.where.code) * this.life.info().wage;
+    return m * emo * tongue * F.mult(this.forecast(), "wage") * this.visas.payMult(this.where.code) * this.life.info().wage;
+  }
+
+  /** The emotion his moodlets, energy and mood add up to now (see emotion.ts). Kept until any of them changes, as a goal pick asks once a place. */
+  emotion(): Emo.Emotion {
+    const { energy, mood } = this.meters;
+    const c = this.emoCache;
+    const key = `${energy >= Emo.FULL_ENERGY}${mood <= Emo.SAD_MOOD}${mood < Emo.BORED_MOOD}`;
+    if (c && c.of === this.mind.moodlets && c.key === key) return c.e;
+    const e = Emo.emotionOf(this.mind.moodlets, energy, mood);
+    this.emoCache = { of: this.mind.moodlets, key, e };
+    return e;
+  }
+
+  private emoCache: { of: unknown; key: string; e: Emo.Emotion } | null = null;
+
+  /** EMO_PULL for an action that trains or needs his emotion's attribute, else 1. */
+  emoLean(action: Action): number {
+    const attr = Emo.INFO[this.emotion()].attr;
+    return attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1;
+  }
+
+  /** How hard his emotion and tastes pull him to a place of map class `kind`. */
+  feelPull(kind: string): number {
+    return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind);
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -633,7 +667,7 @@ export class Stats {
     }
     if (mode === "bike") {
       const km = distM / 1000;
-      this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * km });
+      this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * this.weary() * km });
       return `Tired legs after cycling ${Math.round(km)} km`;
     }
     if (mode === "walk") {
@@ -682,7 +716,7 @@ export class Stats {
       thirst: -THIRST_PER_H * sky.thirstMult * h,
       hygiene: -HYGIENE_PER_H * h,
       mood: (sky.mood - MOOD_PER_H - (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0) + this.pets.moodPerH(date)) * h,
-      energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000 + sky.energy * h,
+      energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * this.weary() * F.mult(this.forecast(), "effort") * walkedM) / 1000 + sky.energy * h,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
     this.age(minutes, t, walkedM, fx.health !== undefined);
@@ -702,6 +736,7 @@ export class Stats {
     this.sayIf(this.languages.add(lang, minutes / 60));
     fx.mood = (fx.mood ?? 0) + this.mind.pass(minutes);
     this.mind.refill(t, () => new Rng(seedOf(`want${t}`)));
+    this.tastes.roll(() => new Rng(seedOf(`tastes${t}`)));
     // Enchanted gear gathers Magic as he walks.
     fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
@@ -998,7 +1033,7 @@ export class Stats {
     let line = "";
     while (this.walkMin >= 1) {
       this.walkMin -= 1;
-      if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find") * this.pets.findMult()) continue;
+      if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find") * this.pets.findMult() * (this.perks.has("lucky_streak") ? Pk.LUCKY_FIND : 1)) continue;
       const n = rng.randiRange(FIND_MIN, FIND_MAX);
       this.cents += n;
       line = this.say(`Found ${euro(n)} on the street (${signed(n)})`);
@@ -1028,11 +1063,24 @@ export class Stats {
       this.say(`Reached level ${this.level}! ${best[0]!.toUpperCase()}${best.slice(1)} +1`);
       if (LEVEL_MARKS.includes(this.level)) this.milestone(`level${this.level}`, `Reached level ${this.level}`);
       this.keepsakes.freePacks++;
+      for (const l of this.perks.earn(Pk.LEVEL_POINTS, this.attrs)) this.say(l);
     }
   }
 
   xpMult(): number {
     return this.buffs.reduce((m, b) => m * b.xp_mult, 1) * this.life.perkXp() * this.life.info().xp;
+  }
+
+  /** Walking and cycling effort: less with Never weary. */
+  private weary(): number {
+    return this.perks.has("never_weary") ? 1 - Pk.WEARY_CUT : 1;
+  }
+
+  /** XP from `action` as a multiple: his emotion's bonus for its attribute (Happy: all), and Quick study. */
+  emoXpMult(action: Action): number {
+    const e = this.emotion();
+    const emo = e === "happy" ? 1 + Emo.HAPPY_XP : this.emoLean(action) > 1 ? 1 + Emo.EMO_BONUS : 1;
+    return emo * (this.perks.has("quick_study") ? 1 + Pk.STUDY_XP : 1);
   }
 
   /** Sets the city card pool (none when it is empty) and works out his finished sets from it again, as the city list can change between versions. */
@@ -1109,6 +1157,15 @@ export class Stats {
     if (feared) this.diary.note("fear", where || noun(kind));
     else if (this.mishap && where) this.diary.note("mishap", where);
     this.habit(kind);
+    const points = met.reduce((n, w) => n + Pk.WANT_POINTS[w.kind], 0);
+    if (points) for (const l of this.perks.earn(points, this.attrs)) this.say(l);
+    const taste = this.tastes.did(kind);
+    if (taste) {
+      this.mind.feel(...taste.moodlet);
+      this.sayIf(taste.line);
+    }
+    const emo = Emo.emoFrom(kind);
+    if (emo) this.mind.feel(...Emo.INFO[emo].moodlet!, ...Emo.EMO_MOODLET, emo);
     return line;
   }
 
@@ -1165,15 +1222,16 @@ export class Stats {
     // A regular's discount at his spot.
     const regular = !!where && this.atSpot;
     const home = this.nightAtHome(action, kind);
-    let spent = home ? 0 : this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
+    let spent = home ? 0 : this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1) * (this.perks.has("bargain_eye") ? 1 - Pk.BARGAIN_CUT : 1)));
     const fx: Fx = { ...action.fx };
     if (home) fx.mood = (fx.mood ?? 0) + this.home.mood();
     if (action.skill) skilled(fx, this.skills.mult(action.skill));
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
     let text = home ? "🏡 Slept at home in his own bed" : action.name;
     const risk = action.risk;
-    // At home the risk's roll still happens, so the walk's dice stay the same, but nothing goes wrong in his own bed.
-    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult() && !home) {
+    // At home, and with Iron stomach for food and drink, the risk's roll still happens, so the walk's dice stay the same, but nothing goes wrong.
+    const iron = this.perks.has("iron_stomach") && ((action.fx?.fullness ?? 0) > 0 || (action.fx?.thirst ?? 0) > 0);
+    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult() && !home && !iron) {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
@@ -1184,7 +1242,7 @@ export class Stats {
     const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
     const earned = listed ? Math.round(listed * this.wageMult(action)) : 0;
     this.cents = Math.max(this.cents - spent + earned, 0);
-    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
+    if (fx.xp !== undefined) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood) * this.emoXpMult(action));
     this.applyFx(fx);
     if (action.buff) this.addBuff(action.buff);
     if (action.deed) this.deed(action.deed);
@@ -1915,6 +1973,7 @@ export class Stats {
       home: this.home.toJSON(),
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
+      tastes: this.tastes.toJSON(), perks: this.perks.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
       business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(),
       careers: this.careers.toJSON(),
@@ -1981,6 +2040,9 @@ export class Stats {
     s.diary = Diary.fromJSON(d.diary);
     // A save from before letters and gifts: an empty mailbox.
     s.mail = Mailbox.fromJSON(d.mail);
+    // A save from before tastes and perks: his tastes roll on the next tick, and no points or perks yet.
+    s.tastes = Tastes.fromJSON(d.tastes);
+    s.perks = Pk.Perks.fromJSON(d.perks);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

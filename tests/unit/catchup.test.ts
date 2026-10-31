@@ -409,11 +409,12 @@ describe("catch-up", () => {
   it("meets place creatures while away, at most one a day, taking his own pick", () => {
     const stats = Object.assign(new Stats(), { creatureKinds: JSON.parse(dataFile("creatures.json")) });
     const parks = [place("Town Park", "park", "park", 0.003, 0), place("Rose Garden", "garden", "garden", 0, 0.004), place("Old Fountain", "fountain", "fountain", -0.003, 0)];
-    catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
+    const s = catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
     const met = Object.values(stats.creatures.met).reduce((a, b) => a + b, 0);
     expect(met).toBeGreaterThan(0);
     expect(met).toBeLessThanOrEqual(2);
-    expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
+    // Every line of his day counts, not only the feed's last ones.
+    expect(s.lines.some((l) => /^(🌳|🧚) /.test(l.text))).toBe(true);
   });
 
   it("a stop where a creature shows up while away takes no place moment", () => {
@@ -440,6 +441,8 @@ describe("catch-up", () => {
   it("draws Magic from the places on ley lines and learns spells from library books while away", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
     const sights = [place("St Mary", "place_of_worship", "christian", 0.003, 0), place("City Library", "library", "library", 0, 0.004), place("Old Monument", "monument", "monument", -0.003, 0)];
+    // No taste for or against any of them, so his tastes don't keep him from the library.
+    Object.assign(stats.tastes, { likes: ["aquarium"], dislikes: [] });
     catchUp(stats, { ...HOME, places: [...PLACES, ...sights] }, [0, 0], 24 * 3600, START_MS, deps());
     // His feed keeps only the last lines, so the places he drew from today tell.
     expect(stats.lore.tapped).toEqual(expect.arrayContaining([visitKey(sights[0]!), visitKey(sights[2]!)]));
@@ -451,6 +454,7 @@ describe("catch-up", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
     // He wants a library all day, so his day surely holds one; every line counts, not only the feed's last ones.
     stats.mind.wants = [{ kind: "long", place: "library", until: 0 }, { kind: "short", place: "library", until: START_MS / 1000 + 48 * 3600 }];
+    Object.assign(stats.tastes, { likes: ["library"], dislikes: [] });
     const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
     expect(s.lines.some((l) => /^Reached a (church|library) in /.test(l.text))).toBe(true);
     expect(stats.magic).toBe(0);
