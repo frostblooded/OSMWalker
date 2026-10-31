@@ -10,6 +10,7 @@ import type { Sound } from "../app/sound";
 import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
+import { GAME_NAME } from "../core/moments";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
 import { MODES } from "../core/trips";
@@ -230,6 +231,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" role="switch" aria-checked={game.sound} onClick={() => game.setSound(!game.sound)}>
               🔊 City sound <span class={`switch${game.sound ? " on" : ""}`} aria-hidden="true" />
             </button>
+            <button class="btn" onClick={() => game.nextMomentTimer()}>
+              ⏱ Choice timer <span class="pill">{game.momentS ? `${game.momentS} s` : "Off"}</span>
+            </button>
             <button class="btn" onClick={() => game.nextStoryteller()}>
               {STYLE[s.story.style].icon} Storyteller <span class="pill">{STYLE[s.story.style].name}</span>
             </button>
@@ -304,6 +308,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
+      {game.moment && <MomentBox game={game} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
           <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
@@ -312,6 +317,18 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
     </div>
+  );
+}
+
+/** The open timed moment, over everything else: tap within its time, or close it and he picks himself. */
+function MomentBox({ game }: { game: Game }) {
+  const o = game.moment!;
+  return (
+    <SheetBox title={`${o.m.icon} ${o.m.game ? GAME_NAME[o.m.game] : "Quick choice"}`} onClose={() => game.settleMoment(null)}>
+      <Lazy load={() => import("./MomentSheet")} what="the choice">
+        {(m) => <m.MomentSheet key={o.m.id + o.total} m={o.m} left={o.left} onPick={(id) => game.settleMoment(id)} onPlay={(id) => game.play(id)} />}
+      </Lazy>
+    </SheetBox>
   );
 }
 

@@ -132,7 +132,7 @@ export class Game {
   /** Seconds a timed moment waits for your tap (the Settings button); 0 is Off: he always picks himself. */
   momentS = MOMENT_S;
   /** The timed moment waiting for your tap, with its seconds left; he stands still until it is settled. */
-  moment: { m: Moment; left: number; total: number; done: (p: Pick) => void; his: () => string } | null = null;
+  moment: { m: Moment; left: number; total: number; done: (p: Pick) => void; his: () => string; played?: string } | null = null;
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
@@ -828,13 +828,19 @@ export class Game {
     });
   }
 
-  /** Settles the open moment with your pick `id`, or with his own pick when null. */
+  /** Settles the open moment with your pick `id`; null when time runs out: the result of a mini-game you started (see play), else his own pick. */
   settleMoment(id: string | null): void {
     const o = this.moment;
     if (!o || (id !== null && !o.m.options.some((x) => x.id === id))) return;
     this.moment = null;
-    o.done(id === null ? { id: o.his(), you: false } : { id, you: true });
+    const mine = id ?? o.played;
+    o.done(mine === undefined ? { id: o.his(), you: false } : { id: mine, you: true });
     this.changed();
+  }
+
+  /** A mini-game you are playing scores option `id` so far: what you get if time runs out before you finish. */
+  play(id: string): void {
+    if (this.moment?.m.options.some((x) => x.id === id)) this.moment.played = id;
   }
 
   /** The Settings button: the next moment timer of MOMENT_TIMERS. */

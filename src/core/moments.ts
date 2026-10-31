@@ -23,6 +23,7 @@ export const riskOdds = (points: number) => Math.min(RISK_BASE + RISK_PER_POINT 
 
 /** The mini-games a moment can be played as; without one it is a plain choice. */
 export type GameId = "timing" | "cards" | "taps" | "odd";
+export const GAME_NAME: Record<GameId, string> = { timing: "Timing", cards: "Pick a card", taps: "Tap fast", odd: "Odd one out" };
 
 export type MomentOption = { id: string; label: string };
 /** How a moment was settled: the option, and whether you tapped it (else he picked it himself). */

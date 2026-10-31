@@ -442,6 +442,16 @@ describe("game", () => {
       expect(g.momentS).toBe(MOMENT_TIMERS[0]);
     });
 
+    it("gives you a mini-game's score so far when time runs out mid-game", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      const m = { id: "x", icon: "", ask: "", game: "taps" as const, options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" };
+      const p = g.ask(m);
+      g.play("a");
+      run(g, MOMENT_S);
+      expect(await p).toEqual({ id: "a", you: true });
+    });
+
     it("lets another moment that comes while one is open take his own pick at once", async () => {
       const { g } = withMoments();
       await g.startCity("Sofia, Bulgaria", ...START, null);
