@@ -222,7 +222,7 @@ export class MapView implements MapPort {
    * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}|${l.aura ?? ""}`;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}|${l.aura ?? ""}|${l.say ?? ""}`;
     if (key === this.lookKey) {
       if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
       // Dropping the pose's class and a reflow restart its CSS animation.
@@ -253,6 +253,9 @@ export class MapView implements MapPort {
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
     bubble.hidden = !bubble.textContent;
+    const say = el.querySelector<HTMLElement>(".say")!;
+    say.textContent = l.say ?? "";
+    say.hidden = !l.say;
   }
 
   /** Whether `at` is within the middle of what the player can see (the panels left out). */
@@ -500,7 +503,10 @@ function himMarker(): HTMLElement {
   const aura = document.createElement("span");
   aura.className = "aura";
   aura.hidden = true;
-  el.append(face, bubble, mount, pet, aura);
+  const say = document.createElement("span");
+  say.className = "say";
+  say.hidden = true;
+  el.append(face, bubble, mount, pet, aura, say);
   return el;
 }
 

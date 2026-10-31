@@ -193,6 +193,14 @@ for (const width of [360, 412]) {
 
     });
 
+    test("his speech bubble after a little moment has no overlapping text or sideways scroll", async ({ page }) => {
+      await startInSofia(page);
+      await openMenuItem(page, /Debug/);
+      await page.getByRole("button", { name: /Little moment now/ }).click();
+      await expect(page.locator(".him .say")).toBeVisible({ timeout: 10000 });
+      await check(page, "say");
+    });
+
     // An item's story and the quest and event cards on the map: their own walk too, so the one below stays inside its time limit on a busy CI runner.
     test("no item story, quest card or event card has overlapping text or sideways scroll", async ({ page }) => {
       test.setTimeout(60_000);

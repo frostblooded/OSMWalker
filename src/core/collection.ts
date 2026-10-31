@@ -468,6 +468,7 @@ export const FEATS: Feat[] = [
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "languages", tab: "world", icon: "🔤", name: "Linguist", what: "{n} languages learned to basic or better", tiers: [1, 3, 8], title: "Linguist", count: (s) => s.languages.list().filter((l) => s.languages.learned(l.lang) && l.level >= 2).length },
   { id: "skills", tab: "world", icon: "🎓", name: "Skilled", what: "{n} skills at level 5 or more", tiers: [1, 3, SKILLS.length], title: "Jack of All Trades", count: (s) => SKILLS.filter((k) => s.skills.level(k) >= 5).length },
+  { id: "beats", tab: "world", icon: "👀", name: "People-watcher", what: "{n} different little moments", tiers: [25, 100, 200], title: "People-watcher", count: (s) => s.beats.seen.size },
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
   { id: "shares", tab: "world", icon: "🏠", name: "Regular", what: "{n} shares in his spots", tiers: [1, 3, 10], title: "Shareholder", count: (s) => s.business.shares.length },

@@ -65,6 +65,7 @@ import { Rival, type Contest } from "./rival";
 import { isSkill, PHOTO_SHINE, SKILLS, Skills, type Skill } from "./skills";
 import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
+import { Beats } from "./beats";
 import { Townies, type News } from "./townies";
 import * as Kit from "./travelKit";
 import * as T from "./trips";
@@ -350,6 +351,8 @@ export class Stats {
   lottery = new Lt.Lottery();
   /** His bucket list (see bucket.ts). */
   bucket = new Bk.Bucket();
+  /** The little moments between bigger ones (see beats.ts). */
+  beats = new Beats();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
@@ -2093,7 +2096,7 @@ export class Stats {
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
       tastes: this.tastes.toJSON(), perks: this.perks.toJSON(), comforts: this.comforts.toJSON(), coffee: this.coffee.toJSON(), beliefs: this.beliefs.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
-      business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(),
+      business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(), beats: this.beats.toJSON(),
       careers: this.careers.toJSON(),
       life: this.life.toJSON(),
     };
@@ -2192,6 +2195,7 @@ export class Stats {
     s.business = Bz.Business.fromJSON(d.business);
     s.lottery = Lt.Lottery.fromJSON(d.lottery);
     s.bucket = Bk.Bucket.fromJSON(d.bucket);
+    s.beats = Beats.fromJSON(d.beats);
     // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
     s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;
