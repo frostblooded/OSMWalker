@@ -237,14 +237,16 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      stats.stop(place);
       if (city.places) {
+        // Visit first, as the watched game does, so his spot counts this visit.
         const bonus = stats.visit(place);
+        stats.stop(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
         stats.care.open(stats);
         stats.collect(place, deps.cardRng ?? rng);
       } else {
+        stats.stop({ ...place, made: true });
         stats.say(`Reached ${place.name}`);
         stats.care.open(stats);
       }

@@ -7,6 +7,7 @@ import * as Q from "../../src/core/quirks";
 import * as Sp from "../../src/core/spot";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Action, type Place } from "../../src/core/stats";
+import { dataFile } from "../support/data";
 
 const T0 = 1_800_000_000;
 const place = (name: string, cls: string, lat = 1, lon = 2): Place => ({ name, class: cls, subclass: cls, rank: 1, lat, lon });
@@ -39,6 +40,11 @@ describe("quirks", () => {
     expect(q.have).toHaveLength(Q.MAX_QUIRKS);
     q.have = q.have.filter((x) => x !== "coffee");
     expect(q.count("bakery").gained).toBeNull(); // faded, never back
+  });
+
+  it("sit at place classes the game still has", () => {
+    const actions = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
+    for (const q of Q.QUIRKS) for (const k of q.at) if (k !== Q.FAINT) expect(actions[k], `${q.name} at ${k}`).toBeDefined();
   });
 
   it("survive a save", () => {
@@ -132,6 +138,7 @@ describe("through Stats", () => {
   it("visits make his spot, which pulls in the morning and costs less", () => {
     const s = at();
     const cafe = place("Cafe A", "cafe");
+    // Visit, then stop, as both the game and the catch-up do: the visit that makes his spot already counts.
     for (let i = 0; i < Sp.SPOT_MIN; i++) s.visit(cafe);
     expect(s.history.entries.at(-1)!.text).toContain("Cafe A is his spot now");
     expect(placePull(cafe, s, 8)).toBe(Sp.SPOT_PULL);
