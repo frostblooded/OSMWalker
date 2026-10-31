@@ -32,7 +32,8 @@ export function AwaySheet({
       {week.pending() && <WeekRecap recap={week.pending()!} favourite={week.favourite()} />}
       <Card icon="🌙" title="Time away" right={duration(s.awayS)}>
         <KV k="Lived through" v={duration(s.coveredS)} />
-        {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
+        {s.retire === "done" && <KV k="🌅 Then he retired" v="his heir carries on" />}
+        {lost >= 60 && s.retire !== "done" && <KV k={s.retire ? "🌅 Stopped to retire, not counted" : "Past the limit, not counted"} v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
       {dilemma && <DilemmaCard d={dilemma} leftS={dilemmaS} onChoose={onChoose} onShown={onShown} />}

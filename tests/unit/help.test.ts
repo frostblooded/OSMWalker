@@ -77,6 +77,12 @@ describe("the real help", () => {
     expect(body).toContain("at most 2 other modifiers");
   });
 
+  it("lists the quirks' places in plain plurals", () => {
+    const body = page("quirks").body;
+    expect(body).toContain("times at bakeries");
+    expect(body).toContain("times at ice cream parlours");
+  });
+
   it("takes the nap threshold from the data", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
@@ -110,7 +116,17 @@ describe("the real help", () => {
     expect(page("fares").body).toContain("300 km by bus costs about €31.20");
     expect(page("coins").body).toContain("He starts with €200.");
     expect(page("fainting").body).toContain("Waking up costs €60, but never more than 50% of his money.");
-    expect(page("wages").body).toContain("3% more for every level above 1");
+    expect(page("wages").body).toContain("10% more for every rank above 1 in the job's career");
+    expect(page("wages").body).toContain("pays 1.2 times its listed wage at rank 3, and 1.4 times at the top rank");
+    expect(page("careers").body).toContain("There are 9 careers, each with 5 ranks:");
+    expect(page("careers").body).toMatch(/^- ☕ Café \(cafe, bakery\): Dishwasher, Barista, Head barista, Café manager, Café owner$/m);
+    expect(page("careers").body).toContain("rank 2 after 1 shift in a career, rank 3 after 12 shifts, rank 4 after 60 and the top rank after 150");
+    expect(page("careers").body).toContain('such as "Run the morning rush" for a Head barista. It lists 1.25x, 1.5x, 1.8x, 2.2x the career\'s base wage at ranks 2 to 5, and gets the rank pay above on top');
+    expect(page("careers").body).toContain("its jobs weigh 1.5 times as much");
+    expect(page("careers").body).toContain("- 🔧 Transport (bicycle, parking, fuel, car, harbor, ferry terminal):");
+    expect(page("needs").body).toContain("- Career rank: a rank's own shift needs exactly that rank");
+    expect(page("sheet").body).toContain("- Careers: each career he has worked in");
+    expect(page("choosing").body).toContain("- A job in his best career: x1.5 (see Careers).");
     expect(page("wages").body).toContain("with charm 10 it pays 20% more");
     expect(page("saving").body).toContain("on foot, a Bike for €150");
     expect(page("cards").body).toContain("0.5% of cards are Gold and 5% are Foil");
@@ -156,7 +172,7 @@ describe("the real help", () => {
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "collection", "care", "postcards", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
   });
 });
 
@@ -218,5 +234,17 @@ describe("search", () => {
   it("counts the local words from the word list", () => {
     const text = page("words").body;
     expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
+  });
+
+  it("lists shoplifting under Karma, not with the rascal deeds (it costs STEAL_KARMA, not DEED_STEP)", () => {
+    const v = Help.values(data);
+    expect(v.RASCAL_DEEDS).not.toContain("pocket something");
+    expect(v.RASCAL_DEEDS!.length).toBeGreaterThan(0);
+  });
+});
+
+describe("plural", () => {
+  it("spells the quirk places right", () => {
+    expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(Help.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
   });
 });

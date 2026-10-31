@@ -146,6 +146,25 @@ describe("save file", () => {
     expect(back.walker.bounds).not.toBeNull();
   });
 
+  it("loads saves from before life stages: born on his birthday, a backpacker of the first generation, with the walker's kilometres", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.life;
+    d.stats.anniversaries = { born: 1_790_000_000, day: "" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = f.read() as Saved;
+    expect(back.stats.life.born).toBe(1_790_000_000);
+    expect(back.stats.life.stage).toBe(0);
+    expect(back.stats.life.gen).toBe(1);
+    expect(back.stats.life.family).toEqual([]);
+    expect(back.stats.life.km).toBeCloseTo(0.123);
+    // A save with a life keeps its own kilometres.
+    f.write(back);
+    expect((f.read() as Saved).stats.life.km).toBeCloseTo(0.123);
+  });
+
   it("loads saves from before the storyteller: Classic, no tension, and keeps a chosen one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -170,6 +189,19 @@ describe("save file", () => {
     delete d.stats.quests;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
+  });
+
+  it("loads saves from before careers: no shifts, every career at rank 1, and keeps his ranks", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const s = saved();
+    s.stats.careers.shifts.cafe = 12;
+    f.write(s);
+    expect((f.read() as Saved).stats.careers.rank("cafe")).toBe(3);
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.careers;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.careers.shifts).toEqual({});
   });
 
   it("loads saves from before Viktor: they haven't met yet", () => {
@@ -213,6 +245,31 @@ describe("save file", () => {
     expect(stats.mind.toJSON()).toEqual({ moodlets: [], wants: [], fears: [] });
     stats.passTime(1, 0);
     expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
+  });
+
+  it("loads saves from before quirks and spots: no habits counted, no spot", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.quirks;
+    delete d.stats.spots;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    expect(stats.quirks.toJSON()).toEqual({ counts: {}, have: [], faded: [] });
+    expect(stats.spots.toJSON()).toEqual({ cities: {} });
+  });
+
+  it("loads saves from before the diary: an empty one, its first day the save's day", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.diary;
+    d.stats.anniversaries = { ...d.stats.anniversaries, day: "2026-10-30" };
+    d.stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
   });
 
   it("loads saves from before friends: he has met no one", () => {

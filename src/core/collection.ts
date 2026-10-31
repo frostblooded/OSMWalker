@@ -10,7 +10,10 @@ import { STORIES } from "./fairy";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
+import { LEAN_AT, LEAN_MAX } from "./bond";
+import { walkerName } from "./life";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
@@ -116,6 +119,8 @@ const SOLD_AT: Record<Items.Kind, string> = {
   dragons: "the stable at a castle",
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** Which walker of the family found a card, once there is more than one. */
+const foundBy = (s: Stats, gen?: number) => (s.life.gen > 1 ? ` · ${walkerName(gen ?? 1)}` : "");
 
 export const SETS: CSet[] = [
   {
@@ -127,7 +132,7 @@ export const SETS: CSet[] = [
     entries: (s) =>
       [...s.keepsakes.cards]
         .sort((a, b) => b[1].t - a[1].t)
-        .map(([key, c]) => ({ id: key, icon: "🃏", name: c.name, got: true, info: `${c.rarity}${c.finish ? ` ${K.FINISH_NAME[c.finish]}` : ""} · ${K.kindLabel(c.kind)} · ${c.city}`, rarity: c.rarity, finish: c.finish })),
+        .map(([key, c]) => ({ id: key, icon: "🃏", name: c.name, got: true, info: `${c.rarity}${c.finish ? ` ${K.FINISH_NAME[c.finish]}` : ""} · ${K.kindLabel(c.kind)} · ${c.city}${foundBy(s, c.gen)}`, rarity: c.rarity, finish: c.finish })),
     facts: (s) => {
       const cards = [...s.keepsakes.cards.values()];
       return [
@@ -146,7 +151,7 @@ export const SETS: CSet[] = [
       [...(s.cityPool?.byCountry.values() ?? [])].flatMap((cards) =>
         cards.map((c, i) => {
           const own = s.keepsakes.cityCards.get(c.key);
-          return { id: c.key, icon: "🏙", name: c.name, got: !!own, info: own ? `${c.rarity}${own.finish ? ` ${K.FINISH_NAME[own.finish]}` : ""} · ${c.country}` : `${c.rarity} · its ${ordinal(i + 1)} city`, rarity: c.rarity, finish: own?.finish, group: c.country };
+          return { id: c.key, icon: "🏙", name: c.name, got: !!own, info: own ? `${c.rarity}${own.finish ? ` ${K.FINISH_NAME[own.finish]}` : ""} · ${c.country}${foundBy(s, own.gen)}` : `${c.rarity} · its ${ordinal(i + 1)} city`, rarity: c.rarity, finish: own?.finish, group: c.country };
         }),
       ),
     facts: (s) => [
@@ -339,6 +344,30 @@ export const SETS: CSet[] = [
     },
   },
   {
+    id: "repute",
+    tab: "world",
+    icon: "⚖",
+    title: "Good name, bad name",
+    entries: (s) => {
+      const l = s.law;
+      const row = (id: string, icon: string, name: string, got: boolean, hint: string) => ({ id, icon, name, got, info: hint });
+      return [
+        row("halo", "😇", "A halo", l.bestKarma >= AURA_AT, `Karma ${AURA_AT} or more`),
+        row("horns", "😈", "Horns", l.worstKarma <= -AURA_AT, `Karma −${AURA_AT} or less`),
+        row("hero", "⭐", "Local hero", s.fame.citiesAt(3) > 0, "Fame's top tier in a city"),
+        row("getaway", "🏃", "A getaway", l.escapes > 0, "Run or hide from the police, and make it"),
+        row("bribe", "💶", "A bribe taken", l.bribes > 0, "Bribe an officer who takes it"),
+        row("fine", "🧾", "A fine paid", l.caught > l.jailed, "Get caught with the money for the fine"),
+        row("jail", "🔒", "A night in jail", l.jailed > 0, "Get caught without the money for the fine"),
+        row("payoff", "🚓", "A clean slate", l.payoffs > 0, "Pay off the police at a police station"),
+      ];
+    },
+    facts: (s) => [
+      ["Karma best · worst", `${Math.round(s.law.bestKarma)} · ${Math.round(s.law.worstKarma)}`],
+      ["Chases · got away · caught", `${s.law.chases} · ${s.law.escapes + s.law.bribes} · ${s.law.caught}`],
+    ],
+  },
+  {
     id: "vehicles",
     tab: "gear",
     icon: "🚲",
@@ -367,6 +396,11 @@ export const FEATS: Feat[] = [
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },
+  { id: "saint", tab: "world", icon: "😇", name: "Good name", what: "karma {n}", tiers: [LEAN_AT, AURA_AT, LEAN_MAX], title: "Saint", count: (s) => Math.max(Math.round(s.law.bestKarma), 0) },
+  { id: "villain", tab: "world", icon: "😈", name: "Bad name", what: "karma −{n}", tiers: [LEAN_AT, AURA_AT, LEAN_MAX], title: "Villain", count: (s) => Math.max(Math.round(-s.law.worstKarma), 0) },
+  { id: "wanted", tab: "world", icon: "🚨", name: "Most wanted", what: "{n} wanted stars", tiers: [1, 3, STARS_MAX], title: "Public Enemy", count: (s) => s.law.topStars },
+  { id: "getaways", tab: "world", icon: "🏃", name: "Escape artist", what: "{n} getaways from the police", tiers: [1, 10, 50], title: "Ghost", count: (s) => s.law.escapes + s.law.bribes },
+  { id: "known", tab: "world", icon: "⭐", name: "Known face", what: "{n} cities that know his face", tiers: [1, 5, 20], title: "Celebrity", count: (s) => s.fame.citiesAt(1) },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },

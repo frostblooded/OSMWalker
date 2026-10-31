@@ -208,6 +208,40 @@ test("a postcard goes out as a link and opens in a friend's game", async ({ page
   await expect(friend.getByRole("dialog", { name: /Send a postcard/ })).toBeVisible();
 });
 
+test("an elder whose time ran out retires, leaves a letter, and his heir carries on with the family tree", async ({ page }) => {
+  await startInSofia(page);
+  // Born a whole life ago (4 stages of 14 days), an elder: his first step retires him.
+  await reopenWith(page, `d.stats.life = { born: Math.floor(Date.now() / 1000) - 56 * 86400 - 60, stage: 3, tiers: ["fine", "good", "fine", "good"], cityMin: { [d.city]: 600 }, km: 321 };`);
+  const letter = page.getByRole("dialog", { name: /farewell letter/ });
+  await expect(letter).toContainText("From Walker I", { timeout: 20000 });
+  await expect(letter).toContainText("321 km");
+  await letter.getByRole("button", { name: "Carry on" }).click();
+  await expect(letter).toBeHidden();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("button", { name: /Retire him/ })).toBeHidden();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const stats = page.getByRole("dialog", { name: /Stats/ });
+  await expect(stats.locator(".card", { hasText: "2 generations" })).toContainText("Walker II");
+  await stats.getByRole("button", { name: /Walker I · Hearty Elder/ }).click();
+  await expect(stats.locator(".letter")).toContainText("Dear heir");
+  await expect(stats.locator(".card", { hasText: "Backpacker" }).first()).toContainText("Family perk");
+});
+
+test("an elder can be retired early from the menu, after a confirm", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, `d.stats.life = { born: Math.floor(Date.now() / 1000) - 50 * 86400, stage: 3, cityMin: { [d.city]: 600 } };`);
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Retire him now/ }).click();
+  const ask = page.getByRole("dialog", { name: /Retire him now/ });
+  await ask.getByRole("button", { name: "Keep walking" }).click();
+  await expect(ask).toBeHidden();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Retire him now/ }).click();
+  await ask.getByRole("button", { name: "Retire" }).click();
+  await expect(page.getByRole("dialog", { name: /farewell letter/ })).toContainText("From Walker I", { timeout: 20000 });
+});
+
 test("New city asks for RESET first", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();

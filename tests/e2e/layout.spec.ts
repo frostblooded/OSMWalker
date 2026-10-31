@@ -9,6 +9,12 @@ test.beforeEach(async ({ context }) => {
   await mockServices(context);
 });
 
+/** An elder of the third generation, with a long home name and heirloom on the tree; his heir sets out in Sofia, whose streets the mock serves. */
+const FAMILY = `const ago = (d) => Math.floor(Date.now() / 1000) - d * 86400;
+const letter = "Dear heir,\\nI walked 812 km through 14 cities and reached level 23. Sofia felt most like home.\\nTake my Mighty Bronze Sword of the Fox.\\n— Walker I, Hearty Elder";
+const a = (gen, title) => ({ gen, born: ago(200 - gen * 56), retired: ago(144 - gen * 56), by: "age", title, level: 23, km: 812, cities: 14, home: "Villeneuve-lès-Avignon, France", heirloom: "Mighty Bronze Sword of the Fox", letter, chronicle: [] });
+d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
+
 /** Drags a sheet's title bar down by dy px. */
 async function dragTitle(page: Page, sheet: Locator, dy: number) {
   const b = (await sheet.locator("header h2").boundingBox())!;
@@ -141,6 +147,34 @@ for (const width of [360, 412]) {
       }
     });
 
+    // An elder with two walkers before him, retired from the menu: the confirm, his farewell letter, then the family tree.
+    // Its own walk too, so the one below stays inside its time limit on a busy CI runner.
+    test("no retirement or family screen has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(60_000);
+      await page.goto("./");
+      await page.getByLabel("City name").fill("Sofia");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await reopenWith(page, FAMILY, "family-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Retire him now/);
+      await check(page, "retire");
+      await page.getByRole("dialog", { name: /Retire him now/ }).getByRole("button", { name: "Retire" }).click();
+      const farewell = page.getByRole("dialog", { name: /farewell letter/ });
+      await expect(farewell).toBeVisible({ timeout: 20000 });
+      await check(page, "farewell");
+      await farewell.getByRole("button", { name: "Carry on" }).click();
+      await openMenuItem(page, /Stats/);
+      const family = page.getByRole("dialog", { name: /Stats/ });
+      await family.locator(".card", { hasText: "Family perk" }).scrollIntoViewIfNeeded();
+      await check(page, "stats-life");
+      await family.getByRole("button", { name: /Walker II ·/ }).click();
+      await family.locator(".tree").scrollIntoViewIfNeeded();
+      await check(page, "stats-family");
+      await family.getByRole("button", { name: /Close/ }).click();
+
+    });
+
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
       // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
       test.setTimeout(90_000);
@@ -177,6 +211,11 @@ for (const width of [360, 412]) {
       await expect(help.getByRole("region", { name: /Results/ })).toBeVisible();
       await check(page, "help-search");
       await help.getByRole("button", { name: /Close/ }).click();
+
+      await openMenuItem(page, /Diary/);
+      await expect(page.getByRole("dialog", { name: /Diary/ })).toBeVisible();
+      await check(page, "diary");
+      await page.getByRole("dialog", { name: /Diary/ }).getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Stats/);
       await check(page, "stats");

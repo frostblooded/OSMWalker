@@ -3,9 +3,11 @@
 // places we have no actions for yet and "_spot" for random spots.
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
-// On a public holiday the "_holiday" actions join every place's.
-// Picks an action he can do, leaning towards what he needs.
+// Places of a career (see careers.ts) get its rank shifts, and their shifts
+// count for it. On a public holiday the "_holiday" actions join every place's.
+// Picks an action he can do, leaning towards what he needs and his karma.
 import { KIND_DEED_WEIGHT } from "./bond";
+import { CAREER_PULL, careerAt, isCareerShift, RANK_SHIFTS } from "./careers";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
 import { SKILL_LEAN, SKILL_MAX } from "./skills";
@@ -13,6 +15,8 @@ import { ATTRS, visitKey, type Action, type Attr, type Meter, type Place, type S
 
 export type ActionTable = Record<string, Action[]>;
 
+/** Extra weight for paying off the police, once he can (see Stats.canPayOff), so he does it when he gets to a police station. */
+export const BOUNTY_WEIGHT = 20;
 /** Every action takes this many minutes, whatever its listed time, so he is never still for long. */
 export const MAX_MINUTES = 1;
 /** Below this many cents (€20) he looks for work and avoids spending. */
@@ -115,7 +119,12 @@ export class Activities {
   unknown: Record<string, { count: number; example: string }> = {};
 
   constructor(data: ActionTable = {}, flavour: Record<string, ActionTable> = {}) {
-    this.data = data;
+    this.data = { ...data };
+    for (const [key, list] of Object.entries(data)) {
+      const c = careerAt(key);
+      if (!c || !list.some(isCareerShift)) continue;
+      this.data[key] = [...list.map((a) => (isCareerShift(a) ? { ...a, career: c.id } : a)), ...RANK_SHIFTS.get(c.id)!];
+    }
     for (const [code, table] of Object.entries(flavour)) {
       this.flavour[code] = {};
       for (const [key, list] of Object.entries(table)) this.flavour[code][key] = list.map((a) => ({ ...a, flavour: true }));
@@ -165,13 +174,18 @@ export function skillLean(action: Action, stats: Stats): number {
 /** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him (attributes and skills), and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
-  if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
+  // Shoplifting costs nothing, so money doesn't sway it.
+  const buys = action.item && !action.steal;
+  if (buys) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
   if (action.groceries) w += GROCERIES_WEIGHT;
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
-  if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
+  if (action.deed! < 0 && stats.bond.leaning() === "rascal") w += KIND_DEED_WEIGHT;
+  if (action.bounty) w += BOUNTY_WEIGHT;
+  if (action.cost !== undefined && stats.cents - stats.priced(toCents(action.cost)) < SKINT) w *= 0.5;
+  if (action.career && action.career === stats.careers.best()) w *= CAREER_PULL;
   if (stats.saving()) {
-    if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
+    if (action.cost !== undefined || buys) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
   return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * harm(action, stats);
 }
@@ -204,9 +218,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** `need` with its pull times how his wants and fears pull him to a place of `p`'s kind (see mind.ts). */
+/** `need` with its pull times how his wants, fears and quirks pull him to a place of `p`'s kind (see mind.ts). */
 export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
-  const m = stats.mind.pull(p.class);
+  const m = stats.mind.pull(p.class) * stats.quirks.pull(p.class);
   return m === 1 ? need : { ...need, pull: need.pull * m };
 }
 
@@ -231,10 +245,17 @@ export function choose(actions: Action[], stats: Stats, hour: number, roll: numb
   return options.at(-1) ?? null;
 }
 
-/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. */
+/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. While he is wanted enough to pay off the police and can, police stations pull PAYOFF_PULL times as hard. */
 export const EXPLORE_PULL = 3;
+export const PAYOFF_PULL = 20;
 export function exploreWeight(p: Place, stats: Stats): number {
-  return stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
+  const explore = stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
+  return explore * (p.class === "police" && stats.canPayOff() ? PAYOFF_PULL : 1);
+}
+
+/** A place's own pull at local `hour`: an Explore whisper's (exploreWeight) times his spot's in the morning (see spot.ts). */
+export function placePull(p: Place, stats: Stats, hour: number): number {
+  return exploreWeight(p, stats) * stats.spots.pull(stats.where.city, p, hour);
 }
 
 export function restMinutes(_action: Action): number {

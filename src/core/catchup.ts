@@ -9,7 +9,7 @@
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
-import { anyUrgent, choose, exploreWeight, minded, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, minded, placePull, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
@@ -115,6 +115,8 @@ export type Summary = {
   endLevel: number;
   /** "Bought ..." lines. */
   bought: string[];
+  /** He was due to retire (his elder stage ran out, or you asked on a ride), so the catch-up stopped there (coveredS is up to then): "soon", or "done" once the game has retired him. */
+  retire?: "soon" | "done";
   /** Everything he did, oldest first. */
   lines: Line[];
   /** Where he is at the end: the city, the spot and the place he stays at (null for a made-up place or none). */
@@ -212,13 +214,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His elder stage ran out, or you asked: the game retires him, and his heir starts on the real clock.
+      if (stats.life.leaving) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name, stats.bond.leaning());
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -238,14 +242,16 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      stats.stop(place);
       if (city.places) {
+        // Visit first, as the watched game does, so his spot counts this visit.
         const bonus = stats.visit(place);
+        stats.stop(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
         stats.care.open(stats);
         stats.collect(place, deps.cardRng ?? rng);
       } else {
+        stats.stop({ ...place, made: true });
         stats.say(`Reached ${place.name}`);
         stats.care.open(stats);
       }
@@ -271,6 +277,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
+      // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
+      if (stats.reputeAt(place)) {
+        // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
+        const jail = stats.runChase(place.name);
+        s.stops++;
+        pass(Math.min(jail || restMinutes({ name: "", min: 1 }), leftMin()), 0);
+        yield;
+        continue;
+      }
       // Incidents roll on the card dice too, so they leave his walk the same.
       stats.happen(place, sky.hour, cardRng);
       s.stops++;
@@ -289,7 +304,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (leftMin() > 0) pass(leftMin(), 0);
+    if (stats.life.leaving) {
+      s.retire = "soon";
+      s.coveredS = Math.min(elapsed, coveredS);
+    } else if (leftMin() > 0) pass(leftMin(), 0);
   } finally {
     stats.now = clock;
     stats.onSay = heard;
@@ -349,6 +367,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     city = { name: cityKey(dest), code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.life.mark(city.name, city.center);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
     moveTo(null, at);
@@ -375,7 +394,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
+      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * placePull(real[i]!, stats, sky.hour);
     });
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);
