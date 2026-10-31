@@ -331,6 +331,23 @@ describe("game", () => {
     expect(opened).toEqual([]);
   });
 
+  it("a police chase that starts at a creature's stop answers the creature himself, so he runs on", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    let chased = 0;
+    g.stats.reputeAt = () => ++chased > 0;
+    for (let i = 0; i < 400 && !chased; i++) g.step(1);
+    expect(chased).toBe(1);
+    // No sheet holds him still: the dryad got his own pick as the chase began.
+    expect(g.moment).toBeNull();
+    await tick();
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
+  });
+
   it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {
     const CHURCH: Place = { ...CAFE, name: "Church Near", class: "place_of_worship", subclass: "christian" };
     const STONE: Place = { ...BUS, name: "Old Monument", class: "monument", subclass: "monument" };

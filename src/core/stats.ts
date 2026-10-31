@@ -1572,9 +1572,14 @@ export class Stats {
     return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
   }
 
-  /** The meeting with `c` at the place named `where`, with option `pick` chosen by you or (`you` false) by himself, on the dice of time `t` when it asked. Returns the feed line. */
-  meet(c: Cr.Creature, where: string, pick: string, you = true, t = this.now()): string {
-    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(t, `${where}${pick}`).randf());
+  /**
+   * The meeting with `c` at the place named `where`, with option `pick` chosen
+   * by you or (`you` false) by himself, on the dice of time `t` when it asked
+   * and his attributes then (`attr`). Returns the feed line.
+   */
+  meet(c: Cr.Creature, where: string, pick: string, asked: { you: boolean; t: number; attr: (a: Attr) => number } = { you: true, t: this.now(), attr: (a) => this.attr(a) }): string {
+    const { you, t } = asked;
+    const o = this.creatures.outcome(c, pick, asked.attr, Cr.meetingDice(t, `${where}${pick}`).randf(), dayOf(t * 1000));
     const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
     this.cents -= paid;
     if (o.fx) this.applyFx(o.fx);
@@ -1587,10 +1592,11 @@ export class Stats {
     return M.defaultPick(c.moment, this, Cr.meetingDice(t, `${where}pick`));
   }
 
-  /** Right after reaching `place` with nobody to ask (the catch-up): meets its creature if one shows up, taking his own pick. */
-  meetAt(place: Pick<Place, "class" | "name">): void {
+  /** Right after reaching `place` with nobody to ask (the catch-up): meets its creature if one shows up, taking his own pick. True when one did. */
+  meetAt(place: Pick<Place, "class" | "name">): boolean {
     const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, this.creaturePick(c, place.name), false);
+    if (c) this.meet(c, place.name, this.creaturePick(c, place.name), { you: false, t: this.now(), attr: (a) => this.attr(a) });
+    return !!c;
   }
 
   /** The moment at `place` when he starts an activity there, or null with none loaded. */

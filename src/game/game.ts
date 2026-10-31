@@ -432,6 +432,8 @@ export class Game {
     }
     // The police roll their own dice; a chase takes the place of an action, and he runs on.
     if (!this.chase && this.stats.reputeAt(place)) {
+      // He runs on, so a creature still asking gets his own pick.
+      if (met && this.moment?.m.id === met.moment.id) this.settleMoment(null);
       const at = this.walker!.position();
       this.chase = { place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
       this.doing = null;
@@ -463,16 +465,23 @@ export class Game {
     this.changed();
   }
 
-  /** The creature at `place`, if one shows up: asked as a timed moment and settled on the dice of now, so it goes as in the catch-up (Stats.meetAt). True when one came. */
-  private askCreature(place: Place): boolean {
+  /**
+   * The creature at `place`, if one shows up, asked as a timed moment. His own
+   * pick, the dice and the attribute a risky pick leans on are those of the
+   * moment it asks, as when Stats.meetAt settles it at once in the catch-up.
+   * Returns the creature, or null.
+   */
+  private askCreature(place: Place): Creature | null {
     const c = this.stats.creatureAt(place);
-    if (!c) return false;
+    if (!c) return null;
     const t = this.stats.now();
-    void this.ask({ ...c.moment, ask: c.moment.ask.replaceAll("{PLACE}", place.name) }, { his: () => this.stats.creaturePick(c, place.name, t) }).then((p) => {
-      this.stats.meet(c, place.name, p.id, p.you, t);
+    const his = this.stats.creaturePick(c, place.name, t);
+    const lean = c.risky ? this.stats.attr(c.risky.attr) : 0;
+    void this.ask({ ...c.moment, ask: c.moment.ask.replaceAll("{PLACE}", place.name) }, { his: () => his }).then((p) => {
+      this.stats.meet(c, place.name, p.id, { you: p.you, t, attr: () => lean });
       this.save();
     });
-    return true;
+    return c;
   }
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
