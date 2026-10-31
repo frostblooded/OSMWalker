@@ -391,7 +391,7 @@ export const FEATS: Feat[] = [
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
-  { id: "languages", tab: "world", icon: "🗣", name: "Linguist", what: "{n} languages learned to basic or better", tiers: [1, 3, 8], title: "Linguist", count: (s) => s.languages.list().filter((l) => s.languages.learned(l.lang) && l.level >= 2).length },
+  { id: "languages", tab: "world", icon: "🔤", name: "Linguist", what: "{n} languages learned to basic or better", tiers: [1, 3, 8], title: "Linguist", count: (s) => s.languages.list().filter((l) => s.languages.learned(l.lang) && l.level >= 2).length },
   { id: "skills", tab: "world", icon: "🎓", name: "Skilled", what: "{n} skills at level 5 or more", tiers: [1, 3, SKILLS.length], title: "Jack of All Trades", count: (s) => SKILLS.filter((k) => s.skills.level(k) >= 5).length },
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },

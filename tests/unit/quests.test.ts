@@ -56,11 +56,17 @@ describe("the quest bank", () => {
   });
 
   it("catches bad data", () => {
-    const bad: Q.Bank = { names: ["A"], quests: [one({ steps: [{ at: ["moon"], say: [] }] })], events: [{ ...BANK.events[0]!, next: { win: "nope" } }] };
+    const odd = "juggling" as Q.Reward["skill"];
+    const bad: Q.Bank = {
+      names: ["A"],
+      quests: [one({ steps: [{ at: ["moon"], say: [] }], reward: { skill: odd } })],
+      events: [{ ...BANK.events[0]!, next: { win: "nope" }, lose: { say: "x", skill: odd } }],
+    };
     const out = Q.check(bad, new Set(Object.keys(ACTIONS)), ATTRS);
     expect(out.join("\n")).toMatch(/no place key moon/);
     expect(out.join("\n")).toMatch(/two steps/);
     expect(out.join("\n")).toMatch(/no follow-up nope/);
+    expect(out.filter((l) => l.endsWith("skill juggling"))).toHaveLength(2);
   });
 });
 

@@ -460,7 +460,7 @@ At a hotel or hostel, a park, a garden, a campsite or a picnic site he cooks: he
 
 A high cooking level also opens kitchen jobs (see Skills).
 ## Languages {languages}
-He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more, as do some quests (see Quests). The levels, by hours:
+He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more. Some quests add a few hours too (see Quests). The levels, by hours:
 {LANG_LIST}.
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
