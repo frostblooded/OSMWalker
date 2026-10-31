@@ -1068,7 +1068,7 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
-While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
+While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened, then "Back to him" to follow him again. Trips break the trail, long walks too, because they aren't drawn street by street.
 ## Explored {explored}
 👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Getting about in his city counts: on foot, with his own vehicle, or flying his own mount straight over the streets (see Speed and vehicles). Trips to other cities, portals, long walks between cities and the time the game was closed don't.
 

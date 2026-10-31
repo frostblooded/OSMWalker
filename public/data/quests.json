@@ -29,7 +29,7 @@
       "items": ["the Summer Triangle", "the Plough", "Orion's belt", "the Pole Star"],
       "steps": [
         { "at": ["library", "school"], "say": ["{GIVER} at {PLACE} has an old star chart with {ITEM} circled, and no idea where to look.", "At {PLACE}, {GIVER} lends him a star chart: find {ITEM} in the sky."] },
-        { "at": ["lookout", "park", "garden"], "say": ["At {PLACE} he picks the darkest spot to come back to after sunset, and turns the chart the right way round.", "At {PLACE} he lies on the grass with the chart, learning where {ITEM} will rise once it's dark."] },
+        { "at": ["lookout", "park", "garden"], "say": ["At {PLACE} he picks the darkest spot to come back to after sunset, and turns the chart the right way round.", "At {PLACE} he lies back with the chart, learning where to look for {ITEM} once it's dark."] },
         { "at": ["library", "school"], "say": ["He brings the chart back to {PLACE} with {ITEM} found and marked."] }
       ],
       "twists": ["The street lamps come on and wash half the sky out.", "A cloud parks itself right over {ITEM}."],
