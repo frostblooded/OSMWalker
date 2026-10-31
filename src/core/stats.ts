@@ -593,9 +593,9 @@ export class Stats {
    * Bulgaria") and returns its History line. A rascal on a bus may dodge the
    * fare (DODGE_CHANCE) and, if caught (CAUGHT_CHANCE), is fined FINE_MULT
    * times the fare, as much as he has. His partner comes along, or maybe a
-   * fellow traveller who pays back
-   * part of what he paid (never of a fine). Rolls its own dice from the
-   * station and time, so the walk's stay the same.
+   * fellow traveller who pays back part of what he paid (never of a fine).
+   * Rolls its own dice from the station and time, so the walk's stay the
+   * same.
    */
   ride(fare: number, mode: string, station: string, to: string): string {
     let paid = fare;
