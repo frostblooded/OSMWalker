@@ -239,6 +239,13 @@ describe("search", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
   });
 
+  it("words the sight notes from code", () => {
+    const text = page("notes").body;
+    expect(text).toContain("map rank 2 or better");
+    expect(text).toContain("within 200 m");
+    expect(text).toContain("at most 6 an hour");
+  });
+
   it("counts the local words from the word list", () => {
     const text = page("words").body;
     expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);

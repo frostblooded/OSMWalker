@@ -117,6 +117,15 @@ d.stats.quests = { city: d.city, board: [{ key: "lost_dog:Ana:0", kind: "lost_do
   events: [{ id: "bakery_oven@1", kind: "bakery_oven", line: 0, ends: Math.floor(Date.now() / 1000) + 2700,
     at: { name: "The Very Long Named Neighbourhood Bakery and Coffee House", class: "shop", subclass: "bakery", lat: at[0], lon: at[1] - (80 * 360) / (512 * 2 ** d.zoom) } }] };`;
 
+/** Picks Sofia and waits for its streets and his first goal. */
+async function startInSofia(page: Page) {
+  await page.goto("./");
+  await page.getByLabel("City name").fill("Sofia");
+  await page.getByRole("button", { name: /Sofia/ }).click();
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
+}
+
 async function openMenuItem(page: Page, name: RegExp) {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name }).click();
@@ -222,10 +231,10 @@ for (const width of [360, 412]) {
       await event.getByRole("button", { name: /Close/ }).click();
     });
 
-    test("no screen has overlapping text or sideways scroll", async ({ page }) => {
-      // One walk through every screen, which grows with each new screen: about 30 s locally, near a minute on CI
-      // and over 90 s on a slow runner, so it gets plenty of room.
-      test.setTimeout(180_000);
+    // The walk through every other screen comes in three parts, so each stays well inside its time limit
+    // while the full e2e run keeps four browsers busy (one walk of it all ran past 180 s).
+    test("no picker, menu, Help, Diary, Stats or Records screen has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(120_000);
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
       await check(page, "postcard-received");
@@ -280,7 +289,11 @@ for (const width of [360, 412]) {
       await expect(records).toContainText("🏙 Cities");
       await check(page, "records");
       await records.getByRole("button", { name: /Close/ }).click();
+    });
 
+    test("no Debug, History, away, postcard or care screen has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(120_000);
+      await startInSofia(page);
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });
       await check(page, "debug");
@@ -314,7 +327,11 @@ for (const width of [360, 412]) {
       await care.getByRole("button", { name: /Send Snack/ }).click();
       await check(page, "care-sent");
       await care.getByRole("button", { name: /Close/ }).click();
+    });
 
+    test("no timed moment or in-game postcard has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(120_000);
+      await startInSofia(page);
       // The timed moments: a plain choice, then each mini-game, with the timer at 20 s so none closes mid-shot.
       await openMenuItem(page, /Choice timer/);
       await page.getByRole("button", { name: /Choice timer/ }).click();
@@ -329,7 +346,6 @@ for (const width of [360, 412]) {
         await moment.getByRole("button", { name: /Close/ }).click();
         await expect(moment).toBeHidden();
       }
-
 
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await page.reload(); // only the fragment changed, so the page has to load again to read it
