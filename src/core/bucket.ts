@@ -132,7 +132,7 @@ export class Bucket {
     return { list: this.list, done: this.done };
   }
 
-  /** Old saves have an empty list (it fills on the next tick); unknown dreams are dropped. */
+  /** Old saves have an empty list (it fills on his next new day, see Stats.newDay); unknown dreams are dropped. */
   static fromJSON(d: unknown): Bucket {
     const out = new Bucket();
     const v = d as { list?: unknown; done?: unknown } | null;
