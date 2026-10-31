@@ -13,6 +13,7 @@
 // and the game and the catch-up both call questGoal before a goal and
 // questStop at each stop.
 import { anyUrgent } from "./activities";
+import { BEDS, MEALS, type Bed, type Meal } from "./comforts";
 import { distanceM } from "./geo";
 import * as Items from "./items";
 import { leanShare } from "./incidents";
@@ -58,8 +59,8 @@ export const LOG_MAX = 40;
 /** Recent quests and events the Stats card shows. */
 export const CARD_RECENT = 2;
 
-/** What a quest or event gives: money, XP, gains, an item, practice in a `skill` (see skills.ts) and `lang` hours in the local language (see languages.ts). */
-export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind; skill?: Skill; lang?: number };
+/** What a quest or event gives: money, XP, gains, an item, practice in a `skill` (see skills.ts), `lang` hours in the local language (see languages.ts), and a `meal` or `bed` and its moodlet (see comforts.ts). */
+export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind; skill?: Skill; lang?: number; meal?: Meal; bed?: Bed };
 /** One step: where (one of the named landmarks in `name` when one is loaded, for a city's own quests, else a place of the actions.json kinds in `at`, class or class/subclass) and what he does, one line picked from `say`. */
 export type Step = { at: string[]; name?: string[]; say: string[] };
 export type QuestKind = {
@@ -411,6 +412,7 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
     const item = k.reward.item ? gift(stats, k.reward.item, rng) : "";
     stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(k.good), words)}${money}${item}`);
     learn(stats, k.reward);
+    stats.treat(k.reward);
     q.finished++;
   }
   log(stats, { icon: k.icon, title: k.title, good: !failed });
@@ -513,6 +515,8 @@ export function check(bank: Bank, keys: Set<string>, attrs: readonly string[]): 
     if (q.steps.some((s) => s.name && (!s.name.length || s.name.some((n) => n.trim().length < 2)))) out.push(`${q.id}: a landmark name too short`);
     if (q.reward.item && !(q.reward.item in Items.KINDS)) out.push(`${q.id}: item kind ${q.reward.item}`);
     if (q.reward.skill && !isSkill(q.reward.skill)) out.push(`${q.id}: skill ${q.reward.skill}`);
+    if (q.reward.meal && !(q.reward.meal in MEALS)) out.push(`${q.id}: meal ${q.reward.meal}`);
+    if (q.reward.bed && !(q.reward.bed in BEDS)) out.push(`${q.id}: bed ${q.reward.bed}`);
   }
   const events = new Set(bank.events.map((e) => e.id));
   for (const e of bank.events) {
