@@ -214,7 +214,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     stats.history.breakTrail();
     while (leftMin() > 0) {
       // His elder stage ran out, or you asked: the game retires him, and his heir starts on the real clock.
-      if (stats.life.retireDue || stats.life.asked) break;
+      if (stats.life.leaving) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
@@ -290,7 +290,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (stats.life.retireDue || stats.life.asked) {
+    if (stats.life.leaving) {
       s.retire = "soon";
       s.coveredS = Math.min(elapsed, coveredS);
     } else if (leftMin() > 0) pass(leftMin(), 0);

@@ -12,6 +12,7 @@ const TIER_TONE = { good: "ok", fine: undefined, poor: "warning" } as const;
 const days = (s: number) => `${Math.ceil(s / L.DAY_S)} d`;
 const date = (t: number) => new Date(t * 1000).toLocaleDateString();
 const short = (city: string) => city.split(",")[0];
+const perkText = (life: L.Life) => `XP +${Math.round((life.perkXp() - 1) * 100)}% · ${euro(life.perkCents())} more to start`;
 
 /** What a stage changes, in short, or "" for none. */
 export function stageDoes(st: L.Stage): string {
@@ -28,7 +29,7 @@ export function LifeCard({ life, now }: { life: L.Life; now: number }) {
       <KV k={next ? `⏳ ${next.name} in` : "🌅 Retires in"} v={life.retireDue ? "any moment" : days(life.leftS(now))} />
       <KV k="❤ Care this stage" v={`${TIER_WORD[tier]} · ${life.faints} ${life.faints === 1 ? "faint" : "faints"} · ${Math.floor(life.starveMin / 60)} h starving`} tone={TIER_TONE[tier]} />
       <KV k="✨ Stage does" v={stageDoes(st) || <span class="dim">Nothing special</span>} />
-      {life.gen > 1 && <KV k="👪 Family perk" v={`XP +${Math.round((life.perkXp() - 1) * 100)}% · ${euro(life.perkCents())} more to start`} />}
+      {life.gen > 1 && <KV k="👪 Family perk" v={perkText(life)} />}
     </Card>
   );
 }
@@ -103,15 +104,15 @@ export function FamilyTree({ life, level, city }: { life: L.Life; level: number;
 }
 
 /** The letter the walker who just retired left, shown once. */
-export function Farewell({ a, gen, onDone }: { a: L.Ancestor; gen: number; onDone: () => void }) {
+export function Farewell({ a, life, onDone }: { a: L.Ancestor; life: L.Life; onDone: () => void }) {
   return (
     <>
       <Card icon="✉" title={`From ${L.walkerName(a.gen)}`} right={a.title}>
         <p class="letter">{a.letter}</p>
       </Card>
-      <Card icon="🌱" title={`${L.walkerName(gen)} sets out`} right={short(a.home)}>
+      <Card icon="🌱" title={`${L.walkerName(life.gen)} sets out`} right={short(a.home)}>
         <KV k="🎁 Heirloom" v={a.heirloom || <span class="dim">None</span>} />
-        <KV k="👪 Family perk" v={`XP +${Math.round(L.PERK_XP * (gen - 1) * 100)}% · ${euro(L.PERK_CENTS * (gen - 1))} more to start`} />
+        <KV k="👪 Family perk" v={perkText(life)} />
         <KV k="🗂 Kept" v="the Collection, monuments, his pet, your clovers, care packages and storyteller" />
         <button class="btn primary" onClick={onDone}>
           Carry on

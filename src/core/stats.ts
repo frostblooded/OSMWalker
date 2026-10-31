@@ -686,7 +686,6 @@ export class Stats {
     heir.now = this.now;
     heir.onSay = this.onSay;
     heir.life = this.life.heir(ancestor);
-    heir.life.cityAt = { ...this.life.cityAt };
     heir.cents = START_CENTS + heir.life.perkCents();
     if (heirloom) heir.gear[heirloom.slot] = heirloom;
     heir.keepsakes = this.keepsakes;
