@@ -38,11 +38,11 @@ export function quality(level: number, inspired: boolean, r: number): Quality {
   return QUALITY[Math.min(Math.max(i, 0), QUALITY.length - 1)]!;
 }
 
-/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, without what it cost or paid and anything after, or a deadpan joke at its end (any of `jokes`), or null with nothing to draw. */
+/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, without what it cost, paid or gave in XP and anything after, or a deadpan joke at its end (any of `jokes`), or null with nothing to draw. */
 export function subject(lines: string[], rng: Rng, jokes: readonly string[] = []): string | null {
   const fit = lines.slice(-LOOK_BACK).filter((l) => !l.startsWith(PREFIX));
   if (!fit.length) return null;
-  const line = rng.pick(fit).replace(/ \([+−-]?€.*$/, "");
+  const line = rng.pick(fit).replace(/ \([^()]*(?:€|XP)[^()]*\).*$/, "");
   const joke = jokes.find((j) => line.endsWith(` ${j}`));
   return joke ? line.slice(0, -joke.length - 1) : line;
 }

@@ -104,6 +104,7 @@ describe("Stats sketches", () => {
   it("without what a line cost or paid, and can draw other 🎨 lines", () => {
     expect(Sc.subject(["Ate a kebab (-€6) He chewed."], new Rng(1))).toBe("Ate a kebab");
     expect(Sc.subject(["🎨 Art reached level 3"], new Rng(1))).toBe("🎨 Art reached level 3");
+    expect(Sc.subject(["Wish come true: see the sea (+30 XP)"], new Rng(1))).toBe("Wish come true: see the sea");
     expect(Sc.subject(["Jog a lap at Borisova Garden The pigeons judged him."], new Rng(1), ["The pigeons judged him."])).toBe("Jog a lap at Borisova Garden");
   });
 });

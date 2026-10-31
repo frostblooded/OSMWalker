@@ -524,7 +524,7 @@ What trains each skill, and what each level opens:
 
 The Stats sheet shows his {SKILLS_SHOWN} best skills with their level and how far he is to the next; the rest fold into More.
 ## Sketches {sketches}
-🎨 Each time he does an art action ({SKETCH_ACTIONS}), he also sketches something he did lately: one of his last {SKETCH_LOOK_BACK} History lines, without what it cost or paid. The feed then says, for example: 🎨 Sketched "Play chess with a regular at Café Rila": masterwork, kept it. It takes no extra time. A quest that trains art leaves a sketch too, such as The Portrait, where someone at a café asks him to draw a corner of town.
+🎨 Each time he does an art action ({SKETCH_ACTIONS}), he also sketches something he did lately: one of his last {SKETCH_LOOK_BACK} History lines, without what it cost, paid or gave in XP, or the joke after it. The feed then says, for example: 🎨 Sketched "Play chess with a regular at Café Rila": masterwork, kept it. It takes no extra time. A quest that trains art leaves a sketch too, such as The Portrait, where someone at a café asks him to draw a corner of town.
 
 How good it is rolls across {SKETCH_SPREAD} grades of these, from worst to best: {SKETCH_GRADES}. Each art level lifts the roll {SKETCH_PER_LEVEL} of a grade, so a level {SKILL_MAX} artist never draws worse than {SKETCH_FLOOR_MAX}, and being Inspired (see Emotions) lifts it {SKETCH_INSPIRED} more.
 
