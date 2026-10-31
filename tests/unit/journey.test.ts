@@ -78,23 +78,22 @@ describe("journey", () => {
     expect(went).toContain("Nexttown");
   });
 
-  it("says a trip home is abroad or not by where home is, not by the dice", () => {
+  it("names his home city when a trip goes home, whatever the dice said", () => {
     const { j, stats } = journey(0); // the dice say abroad
     stats.cents = 1e7;
     stats.home.rent("Nexttown, A-land", "AAA", [1, 0], 0);
-    for (let t = 0; t < 40 && !stats.history.entries.some((e) => e.text.includes("A-land")); t++) {
+    for (let t = 0; t < 40 && !stats.history.entries.some((e) => e.text.includes("Nexttown")); t++) {
       stats.now = () => t;
       j.consider(where(), stats);
     }
-    const home = stats.history.entries.find((e) => e.text.includes("somewhere in A-land"));
-    expect(home).toBeDefined();
+    expect(stats.history.entries.find((e) => e.text.includes("Nexttown"))).toBeDefined();
   });
 
   it("plans a bus to another city of the country and says so", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;
     expect(plan).toMatchObject({ mode: "bus", station: BUS, city: { name: "Nexttown" } });
-    expect(stats.history.latest()).toContain("Heading to Central Bus for the bus to somewhere in");
+    expect(stats.history.latest()).toContain("Heading to Central Bus for the bus to Nexttown");
     expect(j.takeLog()).toMatchObject({ outcome: "city", options: 1, chance: 1 });
   });
 
@@ -112,7 +111,7 @@ describe("journey", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS[0]!, []));
     expect(j.consider(where(), stats)).toMatchObject({ mode: "bike", fare: 0 });
-    expect(stats.history.latest()).toBe("Setting off on his bike for somewhere in A-land");
+    expect(stats.history.latest()).toBe("Setting off on his bike for Neartown");
     await Promise.resolve();
     expect(asked).toHaveLength(1);
   });
@@ -127,7 +126,7 @@ describe("journey", () => {
       plan = j.consider(where(), stats);
     }
     expect(plan?.mode).toBe("walk");
-    expect(stats.history.latest()).toMatch(/^Setting off on foot for somewhere in A-land: a long walk/);
+    expect(stats.history.latest()).toMatch(/^Setting off on foot for Neartown: a long walk/);
     const cents = stats.cents;
     expect(j!.board(plan!, stats)).toBe("");
     expect(stats.cents).toBeLessThanOrEqual(cents - plan!.fare);

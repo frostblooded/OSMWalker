@@ -1,4 +1,4 @@
-// The game's trips with real Sofia streets, fake servers and fixed dice: buses, trains, flights, walks, guesses and the city check.
+// The game's trips with real Sofia streets, fake servers and fixed dice: buses, trains, flights, walks, moments on the way and the city check.
 import { kindOf } from "../../src/core/business";
 import { describe, expect, it, vi } from "vitest";
 import * as Items from "../../src/core/items";
@@ -100,7 +100,7 @@ describe("game", () => {
     const w = g.walker!;
     expect(w.isDeparting()).toBe(true);
     expect(w.departing!.station.name).toBe("Central Bus");
-    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to somewhere in Bulgaria");
+    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to Plovdiv");
     const fare = w.departing!.fare;
     for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
     expect(w.isTraveling()).toBe(true);
@@ -110,53 +110,20 @@ describe("game", () => {
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
   });
 
-  it("lets you guess where he is going until he boards, and pays a clover for a right guess", async () => {
-    const { g } = game({ roll: 0.1 });
+  it("as he boards, a moment on the way may ask you something, and he rides on once it is settled", async () => {
+    const { g } = game({ roll: 0.1, places: [BUS], moments: true });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
     g.skipRoll = false;
     g.debugNewGoal();
-    const guess = g.stats.care.guess!;
-    expect(guess.abroad).toBe(false);
-    expect([...guess.choices].sort()).toEqual(["Plovdiv", "Vidin"]);
-    g.pickGuess("Plovdiv");
-    g.pickGuess("Vidin");
-    expect(guess.pick).toBe("Plovdiv");
-    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
-    expect(g.stats.care.clovers).toBe(1);
-    expect(g.stats.care.guess).toBeNull();
-    expect(g.stats.history.entries.some((e) => e.text === "You guessed it: Plovdiv! (+1 ☘)")).toBe(true);
-  });
-
-  it("drops the guess when the trip is called off, and he goes on without one", async () => {
-    const { g } = game({ roll: 0.1 });
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.cents = 50_000;
-    g.skipRoll = false;
-    g.debugNewGoal();
-    expect(g.stats.care.guess).not.toBeNull();
-    g.walker!.departing = null;
-    g.step(1);
-    expect(g.stats.care.guess).toBeNull();
-  });
-
-  it("drops the guess, with no clover, when he can't pay at the station", async () => {
-    const { g } = game({ roll: 0.1 });
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.cents = 50_000;
-    g.skipRoll = false;
-    g.debugNewGoal();
-    g.pickGuess("Plovdiv");
-    expect(g.stats.care.guess!.pick).toBe("Plovdiv");
-    g.stats.cents = 0;
-    // Stops at the station: broke, his next pick may send him hitchhiking instead.
-    const stuck = () => g.stats.history.entries.some((e) => e.text.startsWith("Can't afford"));
-    for (let i = 0; i < 600 && !stuck(); i++) g.step(1);
-    expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus"))).toBe(false);
-    expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
-    expect(g.stats.care.guess).toBeNull();
-    expect(g.stats.care.clovers).toBe(0);
-    expect(g.stats.history.entries.some((e) => /guessed it|^Not /.test(e.text))).toBe(false);
+    const w = g.walker!;
+    for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
+    expect(g.moment?.m.id).toMatch(/^_trip:/);
+    expect(g.moment!.m.ask).toContain("Plovdiv");
+    g.settleMoment(g.moment!.m.options[0]!.id);
+    await tick();
+    expect(g.stats.history.latest()).toMatch(/on the way to Plovdiv/);
   });
 
   it("saves up when he can't afford a trip", async () => {
@@ -177,7 +144,7 @@ describe("game", () => {
     g.skipRoll = false;
     g.debugNewGoal();
     expect(g.walker!.departing!.mode).toBe("hitch");
-    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to somewhere in Bulgaria");
+    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to Plovdiv");
     for (let i = 0; i < 3600 && !g.stats.where.city.startsWith("Plovdiv"); i++) g.step(1);
     const lines = g.stats.history.entries.map((e) => e.text);
     expect(lines).toContain("Hitchhiked to Plovdiv, Bulgaria");

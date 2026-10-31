@@ -6,9 +6,21 @@
 import type { Rng } from "./rng";
 import type { Attr, Stats } from "./stats";
 
+/** Seconds a moment waits for your tap, by default; the Settings button steps through MOMENT_TIMERS (0 is Off: he always picks himself). */
+export const MOMENT_S = 5;
+export const MOMENT_TIMERS = [3, 5, 10, 20, 0] as const;
+
 /** How far his attribute tilts his own pick to the first option: this much a point above 1, up to LEAN_CAP. */
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
+/** The odds a risky option works, and how much each point of its attribute above 1 adds, up to RISK_CAP. */
+export const RISK_BASE = 0.5;
+export const RISK_PER_POINT = 0.05;
+export const RISK_CAP = 0.9;
+
+/** The odds a risky option works with `points` of its attribute. */
+export const riskOdds = (points: number) => Math.min(RISK_BASE + RISK_PER_POINT * Math.max(points - 1, 0), RISK_CAP);
+
 /** Odds he takes a moment's `rascal` option by himself: RASCAL_BASE at even karma, RASCAL_PER_KARMA more a point of bad karma (less a point of good), within RASCAL_MIN to RASCAL_MAX, so a saint stays kind and a crook keeps at it, with a small chance to change. */
 export const RASCAL_BASE = 0.1;
 export const RASCAL_PER_KARMA = 0.008;
@@ -17,8 +29,11 @@ export const RASCAL_MAX = 0.9;
 
 /** The mini-games a moment can be played as; without one it is a plain choice. */
 export type GameId = "timing" | "cards" | "taps" | "odd";
+export const GAME_NAME: Record<GameId, string> = { timing: "Timing", cards: "Pick a card", taps: "Tap fast", odd: "Odd one out" };
 
 export type MomentOption = { id: string; label: string };
+/** How a moment was settled: the option, and whether you tapped it (else he picked it himself). */
+export type Pick = { id: string; you: boolean };
 
 export type Moment = {
   id: string;
@@ -41,15 +56,29 @@ export function optionFor(m: Moment, id: string): MomentOption {
   return o;
 }
 
+/** The attribute each mini-game leans on when nobody plays it, unless the moment names its own. */
+export const GAME_ATTR: Record<GameId, Attr> = { timing: "cha", cards: "luck", taps: "str", odd: "wit" };
+
+/** The odds his leaning attribute gives: LEAN_PER_POINT a point above 1, up to LEAN_CAP. */
+function leanOdds(m: Moment, stats: Stats): number {
+  const a = m.lean ?? (m.game && GAME_ATTR[m.game]);
+  return a ? Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(a) - 1), LEAN_CAP)) : 0;
+}
+
 /** The odds he takes a `rascal` option by himself at karma `karma` (-100 to +100). */
 export const rascalOdds = (karma: number) => Math.min(Math.max(RASCAL_BASE - RASCAL_PER_KARMA * karma, RASCAL_MIN), RASCAL_MAX);
 
-/** His own pick when you don't choose: the `rascal` option by his karma, else `default`, or the first option with odds that grow with his `lean` attribute. */
+/**
+ * His own pick when you don't choose. First the `rascal` option, by his
+ * karma. Else, at a choice: `default`, or the first option with odds that
+ * grow with his `lean` attribute. A mini-game nobody plays scores him a
+ * middle result (never the worst), or the best with the same odds.
+ */
 export function defaultPick(m: Moment, stats: Stats, rng: Rng): string {
   if (m.rascal && rng.randf() < rascalOdds(stats.bond.lean)) return m.rascal;
-  if (!m.lean) return m.default;
-  const lean = Math.max(0, Math.min(LEAN_PER_POINT * (stats.attr(m.lean) - 1), LEAN_CAP));
-  return rng.randf() < lean ? m.options[0]!.id : m.default;
+  const lean = leanOdds(m, stats);
+  if (m.game) return rng.randf() < lean ? m.options.at(-1)!.id : m.options[Math.floor((m.options.length - 1) / 2)]!.id;
+  return lean && rng.randf() < lean ? m.options[0]!.id : m.default;
 }
 
 /** The option a mini-game score (0 worst, 1 best) earns. */

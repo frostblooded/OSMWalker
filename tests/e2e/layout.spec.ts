@@ -3,7 +3,7 @@
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { encode } from "../../src/core/postcard";
-import { KEEPSAKES, mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
+import { KEEPSAKES, mockServices, reopenAfter, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -304,9 +304,21 @@ for (const width of [360, 412]) {
       await check(page, "care-sent");
       await care.getByRole("button", { name: /Close/ }).click();
 
-      await reopenDeparting(page);
-      await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
-      await check(page, "guess");
+      // The timed moments: a plain choice, then each mini-game, with the timer at 20 s so none closes mid-shot.
+      await openMenuItem(page, /Choice timer/);
+      await page.getByRole("button", { name: /Choice timer/ }).click();
+      await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
+      await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
+      for (const kind of ["choice", "timing", "cards", "taps", "odd"]) {
+        await openMenuItem(page, /Debug/);
+        await page.getByRole("dialog", { name: /Debug/ }).getByRole("button", { name: /Try a moment/ }).click();
+        const moment = page.getByRole("dialog", { name: kind === "choice" ? /Quick choice/ : /Timing|Pick a card|Tap fast|Odd one out/ });
+        await expect(moment.getByRole("timer")).toBeVisible();
+        await check(page, `moment-${kind}`);
+        await moment.getByRole("button", { name: /Close/ }).click();
+        await expect(moment).toBeHidden();
+      }
+
 
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await page.reload(); // only the fragment changed, so the page has to load again to read it
