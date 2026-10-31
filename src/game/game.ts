@@ -27,7 +27,7 @@ import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
-import { ELDER, type Ancestor } from "../core/life";
+import { type Ancestor, ELDER, walkerName } from "../core/life";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { WordBook } from "../core/words";
 import type { Incident } from "../core/incidents";
@@ -610,21 +610,27 @@ export class Game {
     }
     this.retiring = true;
     try {
-      const { heir, ancestor } = this.stats.retire(by);
-      const home = ancestor.home;
+      const life = this.stats.life;
+      const home = life.favourite(this.city);
       const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
-      const at = this.stats.life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
+      const at = life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
       const here = { city: this.city, origin: this.origin, bounds: w.bounds };
-      // Where the favourite city's streets won't load, the heir sets out from where he is instead.
-      const failed =
-        (await this.startCity(home, at[0], at[1], known?.bounds ?? null, () => {}, heir)) &&
-        (home === here.city || (await this.startCity(here.city, here.origin[0], here.origin[1], here.bounds, () => {}, heir)));
+      let out = this.stats.retire(by, home);
+      let failed = await this.startCity(home, at[0], at[1], known?.bounds ?? null, () => {}, out.heir);
+      // Where the favourite city's streets won't load, he stops where he is instead, and his letter says so.
+      if (failed && home !== here.city) {
+        out = this.stats.retire(by, here.city);
+        failed = await this.startCity(here.city, here.origin[0], here.origin[1], here.bounds, () => {}, out.heir);
+      }
       if (failed) {
-        // startCity pointed the loader at the heir's streets; he walks on in his own.
+        // startCity pointed the loader at the heir's streets; he walks on in his own, and tries again later, your ask kept.
         this.loader.setGraph(w.graph);
         this.retryRetireAt = this.now() + RETIRE_RETRY_MS;
+        if (by === "you") life.asked = true;
         return;
       }
+      const ancestor = out.ancestor;
+      this.stats.say(`🌱 ${walkerName(ancestor.gen + 1)} takes over from ${walkerName(ancestor.gen)}`);
       this.doing = null;
       this.retired = ancestor;
     } finally {

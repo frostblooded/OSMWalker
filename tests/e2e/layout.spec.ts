@@ -147,6 +147,34 @@ for (const width of [360, 412]) {
       }
     });
 
+    // An elder with two walkers before him, retired from the menu: the confirm, his farewell letter, then the family tree.
+    // Its own walk too, so the one below stays inside its time limit on a busy CI runner.
+    test("no retirement or family screen has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(60_000);
+      await page.goto("./");
+      await page.getByLabel("City name").fill("Sofia");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await reopenWith(page, FAMILY, "family-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Retire him now/);
+      await check(page, "retire");
+      await page.getByRole("dialog", { name: /Retire him now/ }).getByRole("button", { name: "Retire" }).click();
+      const farewell = page.getByRole("dialog", { name: /farewell letter/ });
+      await expect(farewell).toBeVisible({ timeout: 20000 });
+      await check(page, "farewell");
+      await farewell.getByRole("button", { name: "Carry on" }).click();
+      await openMenuItem(page, /Stats/);
+      const family = page.getByRole("dialog", { name: /Stats/ });
+      await family.locator(".card", { hasText: "Family perk" }).scrollIntoViewIfNeeded();
+      await check(page, "stats-life");
+      await family.getByRole("button", { name: /Walker II ·/ }).click();
+      await family.locator(".tree").scrollIntoViewIfNeeded();
+      await check(page, "stats-family");
+      await family.getByRole("button", { name: /Close/ }).click();
+
+    });
+
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
       // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
       test.setTimeout(90_000);
@@ -259,25 +287,6 @@ for (const width of [360, 412]) {
       await reopenDeparting(page);
       await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
       await check(page, "guess");
-
-      // An elder with two walkers before him, retired from the menu: the confirm, his farewell letter, then the family tree.
-      await reopenWith(page, FAMILY, "family-save");
-      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      await openMenuItem(page, /Retire him now/);
-      await check(page, "retire");
-      await page.getByRole("dialog", { name: /Retire him now/ }).getByRole("button", { name: "Retire" }).click();
-      const farewell = page.getByRole("dialog", { name: /farewell letter/ });
-      await expect(farewell).toBeVisible({ timeout: 20000 });
-      await check(page, "farewell");
-      await farewell.getByRole("button", { name: "Carry on" }).click();
-      await openMenuItem(page, /Stats/);
-      const family = page.getByRole("dialog", { name: /Stats/ });
-      await family.locator(".card", { hasText: "Family perk" }).scrollIntoViewIfNeeded();
-      await check(page, "stats-life");
-      await family.getByRole("button", { name: /Walker II ·/ }).click();
-      await family.locator(".tree").scrollIntoViewIfNeeded();
-      await check(page, "stats-family");
-      await family.getByRole("button", { name: /Close/ }).click();
 
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await page.reload(); // only the fragment changed, so the page has to load again to read it

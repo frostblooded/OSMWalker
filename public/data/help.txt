@@ -254,7 +254,7 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more,
 - up to {VISA_PAY_MAX} more with a better visa in the country (see Visas),
-- {SETTLED_WAGE_PCT} more on top of that once he is settled (see Life stages).
+- {SETTLED_WAGE_PCT} more on top of that while he is settled (see Life stages).
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}

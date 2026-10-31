@@ -626,12 +626,12 @@ export class Stats {
    * with his letter and life story, and an heir one generation on starts
    * with the family perk, his best worn item that isn't a vehicle, the
    * family's keepsakes (the card binder, Placedex, souvenirs, badges) and
-   * monuments, his pet, your clovers and your storyteller. The game starts the heir
-   * in his favourite city (see game.ts retire).
+   * monuments, his pet, your clovers and your storyteller. He stops in `home`,
+   * his favourite city unless its streets won't load (see game.ts retire). Changes
+   * nothing of his, so the game can try again; the heir says hello once he is out.
    */
-  retire(by: L.Ancestor["by"]): { heir: Stats; ancestor: L.Ancestor } {
+  retire(by: L.Ancestor["by"], home = this.life.favourite(this.where.city)): { heir: Stats; ancestor: L.Ancestor } {
     const t = this.now();
-    const home = this.life.favourite(this.where.city);
     const heirloom = Object.values(this.gear)
       .filter((it): it is Item => !!it && !it.vehicle)
       .sort((a, b) => Items.power(b) - Items.power(a))[0];
@@ -651,7 +651,6 @@ export class Stats {
     heir.pets = this.pets;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
-    heir.say(`🌱 ${L.walkerName(heir.life.gen)} takes over from ${L.walkerName(this.life.gen)}`);
     return { heir, ancestor };
   }
 

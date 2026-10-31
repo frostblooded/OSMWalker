@@ -924,9 +924,12 @@ describe("game", () => {
       g.stats.life.cityAt["Paris, France"] = [48.85, 2.35];
       run(g, 1);
       await settled(g);
-      expect(g.retired?.home).toBe("Paris, France");
+      expect(g.retired?.home).toBe("Sofia, Bulgaria");
+      expect(g.retired?.letter).toContain("Sofia felt most like home");
+      expect(g.retired?.chronicle.at(-1)?.text).toBe("Retired in Sofia");
       expect(g.city).toBe("Sofia, Bulgaria");
       expect(g.stats.life.gen).toBe(2);
+      expect(g.stats.history.entries.filter((l) => l.text.includes("takes over"))).toHaveLength(1);
     });
 
     it("when no streets load, he walks on and tries again later", async () => {
@@ -951,6 +954,26 @@ describe("game", () => {
       run(g, 1);
       await settled(g);
       expect(g.stats.life.gen).toBe(2);
+    });
+
+    it("a Retire from the menu that can't load streets is kept and done on a later try", async () => {
+      const ok = streets().load;
+      let down = false;
+      let now = Date.now();
+      const { g } = await elder(3600, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)), clock: () => now });
+      g.stats.life.cityMin = { "Paris, France": 900 };
+      g.stats.life.cityAt["Paris, France"] = [48.85, 2.35];
+      down = true;
+      await g.retire("you");
+      expect(g.stats.life.gen).toBe(1);
+      expect(g.stats.life.asked).toBe(true);
+      expect(g.stats.history.entries.some((l) => l.text.includes("takes over"))).toBe(false);
+      down = false;
+      now += RETIRE_RETRY_MS;
+      run(g, 1);
+      await settled(g);
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.retired?.by).toBe("you");
     });
 
     it("the debug button makes him a stage older, and an elder due to retire", async () => {
