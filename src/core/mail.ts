@@ -47,7 +47,9 @@ export class Mailbox {
     if (far.length && data.letters.length && rng.randf() < LETTER_CHANCE && !wrote) {
       const f = rng.pick(far);
       const town = f.city.split(",")[0]!;
-      this.add({ from: f.name, icon: f.icon, city: f.city, text: fill(rng.pick(data.letters), { NAME: f.name, PLACE: f.place.name, CITY: town }), t });
+      // The place is where they met, in the city of the id (friends.ts), which a move doesn't change.
+      const met = f.id.split("|")[0]!.split(",")[0] || town;
+      this.add({ from: f.name, icon: f.icon, city: f.city, text: fill(rng.pick(data.letters), { NAME: f.name, PLACE: f.place.name, CITY: met }), t });
       // A letter, not one of his deeds (see bond.ts isNote).
       out.push(`${FRIEND_LETTER_MARK} A letter from ${f.name} in ${town}`);
     }

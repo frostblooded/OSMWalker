@@ -49,6 +49,13 @@ describe("mailbox", () => {
     expect(m.waiting).toEqual([]);
   });
 
+  it("a friend who moved still writes of the city where they met", () => {
+    const m = new M.Mailbox();
+    const ana = { ...friend("Ana", PORTO, 5), city: "Lyon, France" };
+    expect(m.day(T0, SOFIA, [ana], "", [], { ...DATA, letters: ["{PLACE} in {CITY}"] }, fixed(0))).toEqual(["💌 A letter from Ana in Lyon"]);
+    expect(m.letters[0]!.text).toBe("Cafe Luz in Porto");
+  });
+
   it("keeps KEEP_LETTERS letters", () => {
     const m = new M.Mailbox();
     for (let i = 0; i < M.KEEP_LETTERS + 3; i++) m.day(T0 + i, SOFIA, [friend("Ana", PORTO, 5)], "", [], DATA, fixed(0));
