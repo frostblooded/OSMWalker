@@ -1,6 +1,5 @@
 // Townies live on (The Sims 3's story progression): the friends he made keep
-// living their own lives. Once a day there is a
-// NEWS_CHANCE that one of them (NEWS_AT hearts or more, never his partner,
+// living their own lives. Once a day there is a NEWS_CHANCE that one of them (NEWS_AT hearts or more, never his partner,
 // who is with him) has news: they took up the guitar, got married, or moved
 // to another city, where he may run into them from then on. Big news comes
 // as a letter to him, small news as a line in the feed. Each piece of news

@@ -19,7 +19,6 @@ const COIN = kind("sprite").outcomes.coin!.pay!;
 /** Stats that know the creatures, as the game sets them. */
 const stats = () => Object.assign(new Stats(), { creatureKinds: CREATURES });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
-/** The first time from `t` on at which a creature shows up at `place` for `s`, minute by minute. */
 
 describe("place creatures", () => {
   it("live at the places of their kind: a troll at bridges, a sprite in fountains and wells, a dryad in parks", () => {

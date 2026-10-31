@@ -1,7 +1,7 @@
 // Portals: very rarely an old monument or castle ruin he reaches opens like
 // a door, and he steps through to a real city he has never been to, anywhere
-// in the world. Free and at once, at most once every PORTAL_GAP_DAYS, the
-// same watched and away (Stats.portalAt).
+// in the world. Free and at once, at most once every PORTAL_GAP_DAYS
+// (Stats.portalAt).
 import type { Place } from "./stats";
 
 /** The odds a portal place opens when he reaches it, once the last portal is PORTAL_GAP_DAYS behind him. */

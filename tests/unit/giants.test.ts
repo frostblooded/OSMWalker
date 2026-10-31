@@ -1,4 +1,4 @@
-// Giants seen from afar: where they show, how rarely, what he gets, and the same while away.
+// Giants seen from afar: where they show, how rarely, what he gets.
 import { describe, expect, it } from "vitest";
 import { FEATS, SETS } from "../../src/core/collection";
 import * as G from "../../src/core/giants";

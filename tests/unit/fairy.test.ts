@@ -1,4 +1,4 @@
-// Fairy rings: where and when he naps, how rarely, what he wakes with, and the same while away.
+// Fairy rings: where and when he naps, how rarely, what he wakes with.
 import { describe, expect, it } from "vitest";
 import { FEATS, SETS } from "../../src/core/collection";
 import * as F from "../../src/core/fairy";

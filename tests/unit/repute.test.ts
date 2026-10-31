@@ -1,4 +1,4 @@
-// Karma, fame and the law: what deeds do to them, perks either way, the police chase, and the same while away.
+// Karma, fame and the law: what deeds do to them, perks either way, the police chase.
 import { describe, expect, it } from "vitest";
 import { BOUNTY_WEIGHT, SKINT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
 import { KIND_DEED_WEIGHT, DODGE_CHANCE } from "../../src/core/bond";

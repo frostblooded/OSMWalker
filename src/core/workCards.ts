@@ -1,8 +1,7 @@
 // Chance cards at work (The Sims' career chance cards): now and then a paid
 // shift brings a small dilemma, such as the boss asking him to cover a double.
-// While you watch it pops up as a timed moment you may answer; if you don't,
-// he picks by himself, leaning on one of his
-// attributes. The bold choice can pay off or go wrong, by the same
+// It pops up as a timed moment you may answer; if you don't, he picks by
+// himself, leaning on one of his attributes. The bold choice can pay off or go wrong, by the same
 // attribute. The feed shows what was chosen and how it went. Pure; Stats.do
 // draws one.
 import { effect } from "./gifts";

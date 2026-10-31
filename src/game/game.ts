@@ -1,7 +1,8 @@
 // The game: picks a city, keeps the walker moving in real time while the app
 // is open (after time closed it runs faster for a while, see core/boost.ts),
 // loads streets as he nears new ground, and now and then sends him on a trip
-// to another city by bus, plane or car (he walks to the station first and pays the fare there).
+// to another city by bus, plane or car (he walks to the station first and
+// pays the fare there).
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
@@ -250,11 +251,13 @@ export class Game {
     return (this.stats.sky ?? this.sky()).hour;
   }
 
-  /** The sky over him now, or at unix ms over a city in the country with `code`: weather only where the forecast is for, and none while he rides. */
-  sky(ms = this.now(), city = this.city, at: LatLon = this.origin, code = this.country): Sky {
-    const f = this.weather?.city === city ? this.weather : null;
+  /** The sky over him now: weather only where the forecast is for, and none while he rides. */
+  sky(): Sky {
+    const ms = this.now();
+    const at = this.origin;
+    const f = this.weather?.city === this.city ? this.weather : null;
     const offsetS = f?.offsetS ?? offsetFromLon(at[1]);
-    const holiday = this.holidayOn(ms, code, offsetS) !== null;
+    const holiday = this.holidayOn(ms, this.country, offsetS) !== null;
     const sky = skyAt(ms, at[0], at[1], offsetS, this.walker?.isTraveling() ? null : weatherAt(f, ms), holiday);
     const pinned = this.deps.hour?.();
     return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
@@ -531,8 +534,8 @@ export class Game {
   /**
    * Asks a moment from inside a story rule (Stats.happen) and saves once it
    * settles. When none can open (timer Off, one already open, or the
-   * welcome-back card up) he picks at once, so it lands before the action he then
-   * chooses.
+   * welcome-back card up) he picks at once, so it lands before the action
+   * he then chooses.
    */
   private storyAsk: Ask = (m, his, settle) => {
     if (this.momentS <= 0 || this.moment || this.welcome?.card) return settle({ id: his(), you: false });

@@ -1,4 +1,4 @@
-// Portals: which places open, how rarely, where they lead, and the same while away.
+// Portals: which places open, how rarely, where they lead.
 import { describe, expect, it } from "vitest";
 import { FEATS } from "../../src/core/collection";
 import * as P from "../../src/core/portals";
