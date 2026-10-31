@@ -93,9 +93,16 @@ describe("Stats sketches", () => {
     expect(s.chronicle.lines.map((l) => l.text).some((l) => l.startsWith("Drew his first masterwork"))).toBe(true);
   });
 
-  it("after a quest that trains art", () => {
+  it("of something before the action even when the action levels up his art", () => {
     const s = stats();
-    s.sketch();
-    expect(s.sketches.kept[0]?.of).toBe("Bought a coffee at Café Rila");
+    s.skills.steps.art = Sk.stepsTo(3) - 1;
+    s.do(act("park", "Sketch the passers-by"), "Borisova Garden", new Rng(1));
+    expect(s.history.entries.map((e) => e.text)).toContain("🎨 Art reached level 3");
+    expect(s.sketches.kept[0]?.of).not.toMatch(/^Sketch the passers-by/);
+  });
+
+  it("without what a line cost or paid, and can draw other 🎨 lines", () => {
+    expect(Sc.subject(["Ate a kebab (-€6) He chewed."], new Rng(1))).toBe("Ate a kebab");
+    expect(Sc.subject(["🎨 Art reached level 3"], new Rng(1))).toBe("🎨 Art reached level 3");
   });
 });

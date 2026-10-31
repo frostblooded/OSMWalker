@@ -187,19 +187,30 @@ function Ruins({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** The sketches he kept (core/sketches.ts), best first, each with its quality and day. */
+/** Kept sketches the card shows open; the rest fold into More. */
+const SKETCHES_SHOWN = 4;
+
+/** The sketches he kept (core/sketches.ts), best first, each opening into what it shows. */
 function Sketchbook({ stats: s }: { stats: Stats }) {
   const kept = s.sketches.best();
+  const rows = (list: Sc.Sketch[]) => (
+    <div class="zebra">
+      {list.map((k, i) => (
+        <Entry key={i} title={`${Sc.GRADE[k.q][0]} ${k.q} · ${dayOf(k.t * 1000)}`} lines={[k.of]} />
+      ))}
+    </div>
+  );
   return (
     <Card icon="🎨" title="Sketchbook" right={s.sketches.made}>
       {kept.length ? (
-        <ol class="zebra">
-          {kept.map((k, i) => (
-            <li key={i}>
-              {Sc.GRADE[k.q][0]} <b>{k.q}</b> "{k.of}" <span class="dim small">{dayOf(k.t * 1000)}</span>
-            </li>
-          ))}
-        </ol>
+        <>
+          {rows(kept.slice(0, SKETCHES_SHOWN))}
+          {kept.length > SKETCHES_SHOWN && (
+            <Collapsible title="More" right={kept.length - SKETCHES_SHOWN}>
+              {rows(kept.slice(SKETCHES_SHOWN))}
+            </Collapsible>
+          )}
+        </>
       ) : (
         <p class="dim small">None yet. He sketches when he does something artistic (see Sketches in Help).</p>
       )}

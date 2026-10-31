@@ -379,8 +379,7 @@ function playEvent(stats: Stats, ev: LiveEvent, places: readonly Place[], hour: 
   const won = rng.randf() < GOOD_BASE + leanShare(stats, k.lean);
   const o = won ? k.win : k.lose;
   const money = pay(stats, o, 1, rng);
-  stats.say(`${k.icon} ${k.title} at ${ev.at.name}: ${fill(o.say, { place: ev.at.name, town: town(stats) })}${money}`);
-  learn(stats, o);
+  learn(stats, o, stats.say(`${k.icon} ${k.title} at ${ev.at.name}: ${fill(o.say, { place: ev.at.name, town: town(stats) })}${money}`));
   log(stats, { icon: k.icon, title: k.title, good: won, event: true });
   const next = q.eventKind((won ? k.next?.win : k.next?.lose) ?? "");
   if (next && rng.randf() < FOLLOW_CHANCE) startEvent(stats, next, ev.at, places, hour, rng);
@@ -409,8 +408,7 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
   } else {
     const money = pay(stats, k.reward, 1, rng);
     const item = k.reward.item ? gift(stats, k.reward.item, rng) : "";
-    stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(k.good), words)}${money}${item}`);
-    learn(stats, k.reward);
+    learn(stats, k.reward, stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(k.good), words)}${money}${item}`));
     stats.treat(k.reward);
     q.finished++;
   }
@@ -447,10 +445,10 @@ function pay(stats: Stats, r: Reward | Outcome, share: number, rng: Rng): string
   return parts.length ? ` (${parts.join(", ")})` : "";
 }
 
-/** The practice `r` gives: its skill trained as by a QUEST_PRACTICE_MIN action (art leaves a sketch too, see sketches.ts), and its hours in the local language; says any new level. */
-function learn(stats: Stats, r: Reward | Outcome): void {
+/** The practice `r` gives after its feed `line`: its skill trained as by a QUEST_PRACTICE_MIN action (art leaves a sketch too, of anything but `line`, see sketches.ts), and its hours in the local language; says any new level. */
+function learn(stats: Stats, r: Reward | Outcome, line: string): void {
   if (r.skill) stats.sayIf(stats.skills.train(r.skill, QUEST_PRACTICE_MIN));
-  if (r.skill === "art") stats.sketch();
+  if (r.skill === "art") stats.sketch(line);
   if (r.lang) stats.sayIf(stats.languages.add(stats.lang(), r.lang));
 }
 

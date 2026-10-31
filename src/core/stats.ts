@@ -1367,7 +1367,7 @@ export class Stats {
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
-    if (action.skill === "art") this.sketch(this.history.entries.slice(0, -1).map((e) => e.text));
+    if (action.skill === "art") this.sketch(line);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
     if (earned && Ca.isShift(action)) {
       const dice = new Rng(seedOf(`work${this.now()}${where}`));
@@ -1880,19 +1880,19 @@ export class Stats {
     if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
   }
 
-  /** A sketch of one of his recent History `lines` (see sketches.ts), after an art action or quest, on its own dice so the walk's stay the same: kept, or sold at once. */
-  sketch(lines = this.history.entries.map((e) => e.text)): void {
+  /** A sketch of one of his recent History lines other than `skip`, the art action's or quest's own (see sketches.ts), on its own dice so the walk's stay the same: kept, or sold at once. */
+  sketch(skip: string): void {
     const t = this.now();
     const rng = new Rng(seedOf(`sketch${t}`));
-    const of = Sc.subject(lines, rng);
+    const of = Sc.subject(this.history.entries.map((e) => e.text).filter((l) => l !== skip), rng);
     if (!of) return;
     const q = Sc.quality(this.skills.level("art"), this.emotion() === "inspired", rng.randf());
     const made = { of, q, t };
     const sold = this.sketches.add(made);
     const price = sold ? Sc.GRADE[sold.q][1] : 0;
     this.cents += price;
-    const what = `${Sc.ICON} Sketched "${of}": ${q}`;
-    this.say(!sold ? `${what}, kept it` : sold === made ? `${what}, sold it (${signed(price)})` : `${what}, kept it and sold ${sold.q === "awful" ? "an" : "a"} ${sold.q} one (${signed(price)})`);
+    const what = `${Sc.PREFIX}"${of}": ${q}`;
+    this.say(!sold ? `${what}, kept it` : sold === made ? `${what}, sold it (${signed(price)})` : `${what}, kept it and sold ${/^[aeiou]/.test(sold.q) ? "an" : "a"} ${sold.q} one (${signed(price)})`);
     if (q === "masterwork") this.milestone("masterwork", `Drew his first masterwork: "${of}"`);
   }
 

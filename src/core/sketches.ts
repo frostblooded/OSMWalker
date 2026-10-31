@@ -24,8 +24,9 @@ export const PER_LEVEL = 0.3;
 export const INSPIRED = 1;
 /** He draws one of his last this many History lines. */
 export const LOOK_BACK = 20;
-/** The start of a sketch's own History line, so a sketch never draws another. */
 export const ICON = "🎨";
+/** The start of a sketch's own History line, so a sketch never draws another. */
+export const PREFIX = `${ICON} Sketched `;
 
 export type Sketch = { of: string; q: Quality; t: number };
 
@@ -35,10 +36,10 @@ export function quality(level: number, inspired: boolean, r: number): Quality {
   return QUALITY[Math.min(Math.max(i, 0), QUALITY.length - 1)]!;
 }
 
-/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, or null with nothing to draw. */
+/** What he draws: one of his last LOOK_BACK History lines that isn't a sketch's, without what it cost or paid and anything after, or null with nothing to draw. */
 export function subject(lines: string[], rng: Rng): string | null {
-  const fit = lines.slice(-LOOK_BACK).filter((l) => !l.startsWith(ICON));
-  return fit.length ? rng.pick(fit) : null;
+  const fit = lines.slice(-LOOK_BACK).filter((l) => !l.startsWith(PREFIX));
+  return fit.length ? rng.pick(fit).replace(/ \([+−-]?€.*$/, "") : null;
 }
 
 const rank = (q: Quality) => QUALITY.indexOf(q);

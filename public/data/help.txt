@@ -528,7 +528,7 @@ The Stats sheet shows his {SKILLS_SHOWN} best skills with their level and how fa
 
 How good it is rolls across three grades of these, from worst to best: {SKETCH_GRADES}. Each art level lifts the roll {SKETCH_PER_LEVEL} of a grade, so a level {SKILL_MAX} artist never draws worse than {SKETCH_FLOOR_MAX}, and being Inspired (see Emotions) lifts it {SKETCH_INSPIRED} more.
 
-He keeps his best {SKETCH_KEPT} in his sketchbook. Once it is full, a sketch better than his worst kept one takes its place, and he sells the one that drops out at once; one no better he sells straight away. What a sketch fetches: {SKETCH_PRICES}. The Collection's Places tab shows his sketchbook, best first, the 🎨 Sketcher badge counts every sketch he has drawn, and his first masterwork goes in his life story. An heir keeps the sketchbook.
+He keeps his best {SKETCH_KEPT} in his sketchbook. Once it is full, a sketch better than his worst kept one takes its place, and he sells the one that drops out at once; one no better he sells straight away. What a sketch fetches: {SKETCH_PRICES}. The Collection's Places tab shows his sketchbook, best first (tap one to see what it shows), the 🎨 Sketcher badge counts every sketch he has drawn, and his first masterwork goes in his life story. An heir keeps the sketchbook.
 
 ## Cooking {cooking}
 Some shops sell him ingredients, and each buy puts one in his pantry, a corner of his bag that holds {PANTRY_MAX}:
