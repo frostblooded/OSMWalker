@@ -472,20 +472,22 @@ export class Game {
     if (!asks) return;
     this.noteAsks = asks;
     this.noteBusy = true;
+    // A new city or game while the answer is on its way gets nothing from it.
+    const stats = this.stats;
     try {
       const lang = this.deps.data.words?.countries[this.country];
       const wikis = ["en", ...(lang && Notes.wikiOf(lang) !== "en" ? [Notes.wikiOf(lang)] : [])];
       for (const wiki of wikis) {
         const data = await this.deps.api.sightNote(wiki, place.lat, place.lon);
-        if (data === null) return;
+        if (data === null || this.stats !== stats) return;
         const note = Notes.pick(data, place.name);
         if (note) {
-          this.stats.noteRead(key, place.name, note);
+          stats.noteRead(key, place.name, note);
           this.changed();
           return;
         }
       }
-      this.stats.sightNotes.missed(key);
+      stats.sightNotes.missed(key);
     } finally {
       this.noteBusy = false;
     }

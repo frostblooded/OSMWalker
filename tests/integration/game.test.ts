@@ -477,6 +477,26 @@ describe("game", () => {
     expect(again.stats.sightNotes.read).toEqual([visitKey(MUSEUM)]);
   });
 
+  it("drops a sight note that comes back after a new city was started", async () => {
+    const MUSEUM: Place = { name: "National Gallery", class: "museum", subclass: "museum", rank: 1, lat: 42.6885, lon: 23.3215 };
+    let answer = (_: Response) => {};
+    const api = new Api(async (url) => {
+      if (!url.includes("wikipedia.org")) return new Response("", { status: 503 });
+      return new Promise<Response>((r) => (answer = r));
+    });
+    const { g } = game({ api, places: [MUSEUM] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 120 && g.stats.history.entries.length < 2; i++) run(g, 60);
+    const old = g.stats;
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats).not.toBe(old);
+    answer(new Response(JSON.stringify({ query: { pages: { "1": { title: "National Gallery", extract: "A gallery.", index: 1 } } } })));
+    await tick();
+    await tick();
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("📖"))).toBe(false);
+    expect(g.stats.sightNotes.read).toEqual([]);
+  });
+
   it("keeps the walk across a save", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
