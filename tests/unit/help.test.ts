@@ -231,6 +231,11 @@ describe("search", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
   });
 
+  it("words the street collector from code", () => {
+    const text = page("streets").body;
+    expect(text).toContain("Every 50 new streets in a city");
+  });
+
   it("words the sight notes from code", () => {
     const text = page("notes").body;
     expect(text).toContain("map rank 2 or better");
