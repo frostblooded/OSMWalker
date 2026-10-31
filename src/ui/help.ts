@@ -420,6 +420,7 @@ export function values(data: GameData): Record<string, string> {
     LEVEL_POINTS: String(Perks.LEVEL_POINTS),
     SILVER_PCT: pct(Perks.SILVER_PAY),
     WEARY_PCT: pct(Perks.WEARY_CUT),
+    LUCKY_FIND: num(Perks.LUCKY_FIND),
     PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
