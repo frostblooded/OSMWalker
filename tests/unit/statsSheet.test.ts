@@ -158,6 +158,19 @@ describe("Stats sheet", () => {
     expect(shown(stats, true)).toContain(note);
   });
 
+  it("warns on the Gear card while anything he wears is tattered, and lists his beliefs and coffee on the Character card", () => {
+    const stats = new Stats();
+    expect(shown(stats)).not.toContain("Tattered clothes");
+    expect(shown(stats)).toContain("🙏 Believes innothing yet");
+    stats.gear.body = { name: "Cotton Shirt", slot: "body", stats: { cha: 1 }, rarity: "Common", price: 1000, wear: 1000 };
+    stats.beliefs.held = { faith: 0 };
+    stats.coffee.cups = 1;
+    const text = shown(stats);
+    expect(text).toContain("🧵 Tattered clothes: they add nothing and cost Charm.");
+    expect(text).toContain("🙏 Believes in🙏 Faith");
+    expect(text).toContain("☕ Coffeenow and then");
+  });
+
   it("shows his Magic in Vitals and the spells he knows, with their cost and casts", () => {
     // Imported, as dataFile can't find files under happy-dom.
     const spells = SPELLS as Spell[];

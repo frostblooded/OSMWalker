@@ -10,8 +10,7 @@
 // places near him with a timer: he joins one when he is free, it goes well
 // or badly, and either way a follow-up may come next; one he misses plays
 // out without him. Nothing here waits for you. Pure; Stats owns one Quests,
-// and the game and the catch-up both call questGoal before a goal and
-// questStop at each stop.
+// and the game calls questGoal before a goal and questStop at each stop.
 import { anyUrgent } from "./activities";
 import { BEDS, MEALS, type Bed, type Meal } from "./comforts";
 import { distanceM } from "./geo";

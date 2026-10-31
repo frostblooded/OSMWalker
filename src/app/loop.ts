@@ -1,7 +1,8 @@
 // Runs the game while the page is visible. Ticks come a few times a second;
 // between them his figure glides (a CSS transition), so steps can be a few
 // pixels without looking jumpy, and an idle main thread saves battery. When
-// the page shows again, the time it was hidden passes for him in one go.
+// the page shows again, Game.wake turns the time it was hidden into a boost
+// (see core/boost.ts).
 import type { Game } from "../game/game";
 import type { MapScene } from "../map/scene";
 

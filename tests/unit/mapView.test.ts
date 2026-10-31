@@ -6,12 +6,12 @@ import { POSE_EVERY_S, type Look } from "../../src/core/look";
 import { MapView } from "../../src/map/mapView";
 
 /** A MapView with only his marker, no MapLibre. */
-function view(): { v: MapView; bubble: HTMLElement; pet: HTMLElement; aura: HTMLElement } {
+function view(): { v: MapView; bubble: HTMLElement; pet: HTMLElement; aura: HTMLElement; say: HTMLElement } {
   const el = document.createElement("div");
-  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span><span class="pet"></span><span class="aura"></span>';
+  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span><span class="pet"></span><span class="aura"></span><span class="say"></span>';
   const v = new MapView();
   Object.assign(v, { him: { getElement: () => el } });
-  return { v, bubble: el.querySelector(".bubble")!, pet: el.querySelector(".pet")!, aura: el.querySelector(".aura")! };
+  return { v, bubble: el.querySelector(".bubble")!, pet: el.querySelector(".pet")!, aura: el.querySelector(".aura")!, say: el.querySelector(".say")! };
 }
 
 const napping: Look = { face: "🙂", bubble: "", pose: { icon: "💤", motion: "rise" }, mount: "", pet: "" };
@@ -26,6 +26,15 @@ describe("MapView.setLook", () => {
     expect(pet.hidden).toBe(false);
     v.setLook(napping);
     expect(pet.hidden).toBe(true);
+  });
+
+  it("shows his words in the speech bubble after a little moment, and hides it after", () => {
+    const { v, say } = view();
+    v.setLook({ ...napping, say: "Shoo, pigeon!" });
+    expect(say.textContent).toBe("Shoo, pigeon!");
+    expect(say.hidden).toBe(false);
+    v.setLook(napping);
+    expect(say.hidden).toBe(true);
   });
 
   it("shows a halo or horns at either end of his karma, and nothing in between", () => {

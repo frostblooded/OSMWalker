@@ -833,6 +833,39 @@
       "good": ["Whatever it was, he walks off lighter.", "{GIVER} won't take any money: 'You'll know when you get there.'"],
       "worse": ["{GIVER} admits it was the same reading for everyone today.", "It rains on the way, and the hunch washes off."],
       "reward": { "xp": 35, "fx": {"mood": 10} } },
+    { "id": "baristas_blend", "icon": "☕", "title": "The Barista's Lost Blend", "lean": "wit",
+      "items": ["a tin with the last spoonful of a blend", "a handwritten roasting card", "a bag of beans with no label"],
+      "steps": [
+        { "at": ["cafe"], "say": ["At {PLACE} {GIVER} is down to {ITEM}: the house blend her grandfather roasted, and nobody knows what went in it.", "{GIVER} at {PLACE} pours him the last cup from {ITEM} and asks him to find it again."] },
+        { "at": ["shop/coffee", "grocery"], "say": ["At {PLACE} he sniffs a dozen beans and writes down three.", "At {PLACE} an old roaster remembers the blend, half of it."] },
+        { "at": ["cafe"], "say": ["Back at {PLACE}, {GIVER} roasts a test batch and the whole street smells of it.", "At {PLACE} they taste it side by side, and {GIVER} goes quiet."] }
+      ],
+      "twists": ["The secret turns out to be a pinch of cardamom.", "The roasting card was in the till all along."],
+      "good": ["It tastes just like it used to; {GIVER} names the blend after him.", "The queue goes round the corner the next morning."],
+      "worse": ["Close, but not it; {GIVER} keeps looking.", "It tastes of burnt toast, and they both laugh."],
+      "reward": { "eur": [5, 15], "xp": 35, "fx": {"mood": 8, "energy": 15} } },
+    { "id": "tailors_rush", "icon": "🧵", "title": "The Tailor's Rush Job", "lean": "cha",
+      "items": ["a wedding suit with no buttons yet", "a dress let out an inch too far", "a coat for a man who leaves tonight"],
+      "steps": [
+        { "at": ["shop/tailor", "clothing_store"], "say": ["At {PLACE} {GIVER} has pins in her mouth and {ITEM} due in two hours.", "{GIVER} at {PLACE} needs a runner: {ITEM} can't wait."] },
+        { "at": ["clothing_store", "shop/second_hand"], "say": ["At {PLACE} he finds the last matching buttons in the city.", "At {PLACE} he talks the owner out of a spool of the right thread."] },
+        { "at": ["shop/tailor", "clothing_store"], "say": ["Back at {PLACE}, {GIVER} sews like lightning while he holds the lamp.", "At {PLACE} {ITEM} is done with a minute to spare."] }
+      ],
+      "twists": ["The groom turns up early and has to be stalled.", "A button rolls under the counter and he crawls after it."],
+      "good": ["{GIVER} fits him for something of his own as a thank-you.", "{GIVER} hands him a piece off the rail: on the house."],
+      "worse": ["The buttons don't match, but nobody at the wedding notices.", "It is done, and an hour late."],
+      "reward": { "eur": [0, 10], "xp": 35, "item": "clothes" } },
+    { "id": "pilgrims_way", "icon": "🕯", "title": "The Pilgrim's Way", "lean": "luck", "fantasy": true,
+      "items": ["a candle that has burned for a hundred years", "a pilgrim's shell that hums near holy places", "a candle carried from far away that never goes out"],
+      "steps": [
+        { "at": ["place_of_worship"], "say": ["At {PLACE} {GIVER}, a pilgrim on the last leg, asks him to walk the city's part of the way with {ITEM}.", "{GIVER} at {PLACE} shows him {ITEM}: one more stamp to go."] },
+        { "at": ["monument", "memorial", "fountain"], "say": ["At {PLACE} they stop for the old blessing every pilgrim says.", "At {PLACE} {GIVER} tells him why they set out, a year ago."] },
+        { "at": ["place_of_worship"], "say": ["At {PLACE} the last stamp goes in, and {GIVER} lights {ITEM}.", "At {PLACE} the bells ring as they arrive."] }
+      ],
+      "twists": ["The flame leans towards the next stop, like a compass.", "A stranger joins them halfway, walks the rest in silence, and is gone at the end."],
+      "good": ["{GIVER} gives him the shell: for his own way, whatever it is.", "He doesn't say much on the way back, but he feels lighter."],
+      "worse": ["The office that stamps passports is shut till Monday.", "It pours, and they walk the last part soaked."],
+      "reward": { "xp": 40, "fx": {"mood": 12, "karma": 2} } },
     {"id": "travellers_tale", "icon": "📝", "title": "The Traveller's Photos", "lean": "cha", "items": ["a camera full of travel photos", "a battered travel journal", "a roll of film from far away"], "steps": [{"at": ["lodging", "cafe"], "say": ["At {PLACE}, {GIVER} has lost {ITEM}, with a year of travels on it.", "{GIVER} at {PLACE} is close to tears: {ITEM} is gone, and every far-off sight with it."]}, {"at": ["railway", "information", "bar"], "say": ["He asks around at {PLACE}, and someone saw {ITEM} left on a bench.", "At {PLACE} a cleaner hands over {ITEM} from the lost and found."]}, {"at": ["lodging", "cafe"], "say": ["Back at {PLACE}, {GIVER} shows him every photo, one sight after another.", "At {PLACE}, {GIVER} tells him about each place over a long coffee."]}], "twists": ["One photo is of a place on his own bucket list.", "The journal ends with a list of dreams, half of them ticked off."], "good": ["{GIVER} hugs him and says: go and see them yourself. He looks at his bucket list with new eyes.", "They swap bucket lists, and he promises to send a postcard from the first sight he ticks off."], "worse": ["The photos are all of the same cat; still, {GIVER} is grateful.", "Half the film is ruined, but the stories are not."], "reward": {"eur": [5, 20], "xp": 40, "fx": {"mood": 10}}}
   ],
   "events": [
@@ -1078,6 +1111,8 @@
     {"id": "dragon_shadow", "icon": "🐉", "title": "A shadow over the roofs", "at": ["lookout", "castle", "attraction"], "min": [10, 20], "lean": "luck", "fantasy": true, "text": ["A great winged shadow sweeps over {PLACE}, and the birds go silent.", "Above {PLACE} something circles, far bigger than a gull."], "win": {"say": "He waves; a single warm scale drifts down into his hands.", "xp": 30, "fx": {"magic": 12, "luck": 0.2}}, "lose": {"say": "It's gone behind the clouds before he gets a proper look.", "xp": 8}, "missed": "Folk at {PLACE} swear they saw a dragon, but nobody has a photo."},
     {"id": "jackpot_fever", "icon": "🎟", "title": "Jackpot fever", "at": ["shop/kiosk", "shop/newsagent"], "min": [15, 30], "lean": "luck", "text": ["The jackpot has rolled over five times and the queue at {PLACE} goes round the corner.", "A chalkboard outside {PLACE}: JACKPOT TONIGHT, and a queue to match."], "win": {"say": "He keeps the queue's spirits up with a song; the kiosk owner slips him a lucky charm.", "xp": 15, "fx": {"luck": 0.2, "mood": 10}}, "lose": {"say": "The machine breaks down just as he reaches the front.", "xp": 5}, "missed": "Everyone in town queued at {PLACE} for the jackpot."},
     {"id": "cook_off", "icon": "🥄", "title": "A cook-off", "at": ["park", "restaurant", "picnic_site"], "min": [20, 40], "lean": "wit", "text": ["Grills and pots line {PLACE}: a cook-off, and one team is a cook short.", "A banner over {PLACE}: the neighbourhood cook-off, all welcome."], "win": {"skill": "cooking", "say": "His dish takes second place and the judges ask for seconds.", "xp": 20, "fx": {"fullness": 25, "mood": 10}}, "lose": {"skill": "cooking", "say": "His soup is mostly salt, but he learns from the winners.", "xp": 8, "fx": {"fullness": 10}}, "missed": "There was a cook-off at {PLACE}; the smell is still in the air."},
-    {"id": "wall_of_dreams", "icon": "📝", "title": "A wall of dreams", "at": ["park", "fountain", "cafe"], "min": [10, 20], "lean": "cha", "text": ["A chalk wall at {PLACE} reads \"Before I die I want to...\", with a hundred answers.", "Someone has set up a big board at {PLACE}: write one thing on your bucket list."], "win": {"say": "He chalks up a dream from his bucket list, and a stranger writes \"me too!\" under it.", "xp": 10, "fx": {"mood": 10}}, "lose": {"say": "The chalk snaps, but he reads every dream on the wall and walks off smiling.", "xp": 4, "fx": {"mood": 4}}, "missed": "There was a wall of dreams at {PLACE}; the rain has washed most of it off."}
+    {"id": "wall_of_dreams", "icon": "📝", "title": "A wall of dreams", "at": ["park", "fountain", "cafe"], "min": [10, 20], "lean": "cha", "text": ["A chalk wall at {PLACE} reads \"Before I die I want to...\", with a hundred answers.", "Someone has set up a big board at {PLACE}: write one thing on your bucket list."], "win": {"say": "He chalks up a dream from his bucket list, and a stranger writes \"me too!\" under it.", "xp": 10, "fx": {"mood": 10}}, "lose": {"say": "The chalk snaps, but he reads every dream on the wall and walks off smiling.", "xp": 4, "fx": {"mood": 4}}, "missed": "There was a wall of dreams at {PLACE}; the rain has washed most of it off."},
+    {"id": "taxi_rank_row", "icon": "🚕", "title": "Trouble at the taxi rank", "at": ["railway", "bus"], "min": [10, 20], "lean": "cha", "text": ["Two taxi drivers outside {PLACE} are arguing over who is next, and the queue is getting angry.", "The taxi rank at {PLACE} has jammed solid with honking cabs."], "win": {"say": "He sorts out the queue; a grateful driver waves him off with a grin.", "xp": 20, "fx": {"mood": 8, "karma": 1}}, "lose": {"say": "Nobody listens, and he leaves them to it.", "xp": 5}, "missed": "The taxi drivers at {PLACE} are still not speaking to each other."},
+    {"id": "metro_lost_child", "icon": "🚇", "title": "Lost on the metro", "at": ["railway", "bus"], "min": [10, 25], "lean": "wit", "text": ["A child at {PLACE} got off the metro one stop too early and lost their family."], "win": {"say": "He reads the metro map with the child and they find the family two stops on.", "xp": 25, "fx": {"mood": 10, "karma": 2}}, "lose": {"say": "Station staff take over; he hopes it ends well.", "xp": 8}, "missed": "Station staff at {PLACE} reunited a family on the metro."}
   ]
 }

@@ -38,7 +38,7 @@ export function tripMoment(table: PlaceMoments, dice: Rng): PlaceMoment | null {
   return all.length ? all[dice.randiRange(0, all.length - 1)]! : null;
 }
 
-/** A moment's own dice from the time and where it happens, the same while you watch and in the catch-up, so his walk stays the same. */
+/** A moment's own dice from the time and where it happens, so his walk stays the same whatever you tap. */
 export const momentDice = (t: number, where: string) => new Rng(seedOf(`moment${t}${where}`));
 
 /** The moment for `place`: its class/subclass, its class, or the generic one; null with none loaded. */

@@ -44,7 +44,7 @@ describe("game", () => {
       expect(weatherCalls()).toBe(2);
     });
 
-    it("doesn't wait for the weather on reopen, and the catch-up lives without it", async () => {
+    it("doesn't wait for the weather on reopen", async () => {
       let now = NOW;
       const { weatherCalls, api } = weatherApi(71, -2);
       // A slow answer, which the reopen must not wait for.
@@ -60,16 +60,10 @@ describe("game", () => {
       const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       again.problems.quiet = true;
       again.load();
-      const weather: boolean[] = [];
-      const pass = again.stats.passTime.bind(again.stats);
-      again.stats.passTime = (m, w, a) => (weather.push(!!again.stats.sky?.weather), pass(m, w, a));
       const t0 = performance.now();
       await again.wake();
       expect(performance.now() - t0).toBeLessThan(600);
-      expect(again.away).not.toBeNull();
-      // He had a kept forecast with snow, but none of it reached the catch-up.
-      expect(weather.length).toBeGreaterThan(0);
-      expect(weather.filter(Boolean)).toEqual([]);
+      expect(again.welcome).not.toBeNull();
       expect(weatherCalls()).toBeGreaterThanOrEqual(1);
     });
 
@@ -114,50 +108,24 @@ describe("game", () => {
       expect(weather[0]).toBeNull();
     });
 
-    it("ages him to now after a catch-up of over a day under the sky of now, not the catch-up's last", async () => {
+    it("looks up under the sky of now when the tab shows again, not the sky it was hidden under", async () => {
       let now = NOW;
       const { api } = weatherApi(0, 15);
-      const { g, storage } = game({ api, clock: () => now });
-      await g.startCity("Sofia, Bulgaria", ...START, null);
-      g.save();
-      now += 33 * 3600_000;
-      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
-      again.problems.quiet = true;
-      again.load();
-      const atNow: [Sky, Sky][] = [];
-      const pass = again.stats.passTime.bind(again.stats);
-      again.stats.passTime = (m, w) => {
-        if (again.stats.now() * 1000 >= now - 1000) atNow.push([again.stats.sky!, again.sky()]);
-        return pass(m, w);
-      };
-      await again.wake();
-      expect(atNow.length).toBeGreaterThan(0);
-      expect(atNow[0]![0].rise).toBeCloseTo(atNow[0]![1].rise, 4);
-    });
-
-    it("lives the ride's time on reopen under the sky at its end, not at the reopen", async () => {
-      let now = NOW;
-      const { api } = weatherApi(0, 15);
-      const { g, storage } = game({ api, clock: () => now, roll: 0.1 });
+      const { g } = game({ api, clock: () => now });
       await g.startCity("Sofia, Bulgaria", ...START, null);
       run(g, 2);
       await tick();
-      g.stats.cents = 50_000;
-      g.skipRoll = false;
-      g.debugNewGoal();
-      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
-      expect(g.walker!.isTraveling()).toBe(true);
+      // Hidden at night; shown again by day.
+      g.stats.sky = { ...g.sky(), dark: 1 };
       g.save();
-      now += 12 * 3600_000;
-      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
-      again.problems.quiet = true;
-      again.load();
-      // Reopened half a day later: the ride ends the day it was saved, so its sun times are that day's.
-      const skies: [Sky, Sky][] = [];
-      const pass = again.stats.passTime.bind(again.stats);
-      again.stats.passTime = (m, w) => (skies.push([again.stats.sky!, again.sky(again.stats.now() * 1000)]), pass(m, w));
-      await again.wake();
-      expect(skies[0]![0].rise).toBeCloseTo(skies[0]![1].rise, 4);
+      // Within the hour, so no weather fetch sets the sky first.
+      now += 30 * 60_000;
+      const skies: Sky[] = [];
+      const pass = g.stats.passTime.bind(g.stats);
+      g.stats.passTime = (m, w) => (skies.push(g.stats.sky!), pass(m, w));
+      await g.wake();
+      expect(skies[0]?.dark).toBe(g.sky().dark);
+      expect(g.stats.stars.night).toBe("");
     });
 
     it("goes on by the forecast kept on the device, and retries a failed fetch later", async () => {

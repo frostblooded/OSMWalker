@@ -18,7 +18,7 @@ export const SAVE_KEY = "osmwalker.save";
 export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
-/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands (the catch-up uses none). */
+/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands. */
 export const WEATHER_KEY = "osmwalker.weather";
 /** Public holidays fetched from Nager.Date, kept a year so each country is asked once a year. */
 export const HOLIDAYS_KEY = "osmwalker.holidays";
@@ -40,8 +40,10 @@ export type Saved = {
   walker: Walker;
   stats: Stats;
   debugLog: DebugLog;
-  /** Unix ms when it was saved, for the catch-up; 0 when an old save didn't record it. */
+  /** Unix ms when it was saved, so a reopen knows the time away; 0 when an old save didn't record it. */
   savedAt: number;
+  /** Real seconds of boost left (core/boost.ts); 0 in old saves. */
+  boostS: number;
   /** Made-up places (core/poiGen.ts) by city, so a city keeps its own; empty in old saves. */
   made: Record<string, Place[]>;
 };
@@ -59,6 +61,7 @@ type Stored = {
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
   saved_at?: number;
+  boost_s?: number;
   made_places?: Record<string, Place[]>;
 };
 type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean; moment_s?: number };
@@ -95,6 +98,7 @@ export class SaveFile {
       stats: g.stats.toJSON(),
       debug_log: g.debugLog.toJSON(),
       saved_at: g.savedAt,
+      boost_s: g.boostS,
       made_places: g.made,
     };
     try {
@@ -139,11 +143,12 @@ export class SaveFile {
         walker,
         // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
         // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
-        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, ruin crawls, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the sky events he saw (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), the squares he explored (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick; an old Rattled or Scared moodlet counts towards Tense), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), his bucket list (empty, filled on the next new day), local words (none learned), sight notes (none read yet), the streets he walked (none yet), his tastes (rolled on the next tick), lifetime rewards (no points or perks) and comforts (no lavish meals or hotel nights counted). Ancestors from before the hall of walkers keep no countries or bests, and the hall (hall.ts) skips them for those.
+        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, ruin crawls, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the sky events he saw (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), the squares he explored (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick; an old Rattled or Scared moodlet counts towards Tense), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), his bucket list (empty, filled on the next new day), local words (none learned), sight notes (none read yet), the streets he walked (none yet), his tastes (rolled on the next tick), lifetime rewards (no points or perks), comforts (no lavish meals or hotel nights counted), the coffee habit (no cups) and beliefs (none); gear from before clothes wear is as good as new. Ancestors from before the hall of walkers keep no countries or bests, and the hall (hall.ts) skips them for those.
         // The day's stops that older saves carry are dropped.
         stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
         savedAt: d.saved_at ?? 0,
+        boostS: d.boost_s ?? 0,
         made: d.made_places ?? {},
       };
     } catch {

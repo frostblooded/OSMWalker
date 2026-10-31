@@ -6,8 +6,7 @@
 // people know his face. Heat fades by itself; he can pay it off at a police
 // station. Wanted, he may be spotted at a stop and chased: he gives up,
 // runs, hides or bribes the officer, and if caught he pays a fine, or short
-// of money sits in jail, and loses what he stole. All of it runs by itself,
-// the same watched and away.
+// of money sits in jail, and loses what he stole. All of it runs by itself.
 import type { Moment } from "./moments";
 import type { Fx } from "./stats";
 
@@ -18,7 +17,7 @@ export const STARS_MAX = HEAT_MAX / STAR_HEAT;
 /** Heat a crime adds per point of karma it costs, times 1 + FAME_HEAT a fame tier of the city (they know his face). */
 export const HEAT_PER_KARMA = 1;
 export const FAME_HEAT = 0.5;
-/** Heat lost per hour, watched or away. */
+/** Heat lost per hour of his time. */
 export const HEAT_FADE_PER_H = 2;
 /** Chance per stop, a wanted star, that the police spot him, times 1 + FAME_SPOT a fame tier of all his fame. */
 export const SPOT_PER_STAR = 0.03;

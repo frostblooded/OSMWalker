@@ -218,6 +218,7 @@ describe("retiring", () => {
   it("an heir starts with clean karma, no fame and nobody after him, and a stolen heirloom is his by right", () => {
     const { s } = elder();
     s.gear.weapon!.stolen = true;
+    s.gear.weapon!.wear = 400; // worn through, if it were cloth: the heir gets it mended
     s.karma(-60);
     expect(s.law.heat).toBeGreaterThan(0);
     const { heir } = s.retire("age");
@@ -225,6 +226,7 @@ describe("retiring", () => {
     expect(heir.law.heat).toBe(0);
     expect(heir.fame.total()).toBe(0);
     expect(heir.gear.weapon!.stolen).toBeUndefined();
+    expect(heir.gear.weapon!.wear).toBeUndefined();
   });
 
   it("leaves an heir in his favourite city with the heirloom, the family perk and the binder", () => {

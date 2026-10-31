@@ -1,15 +1,9 @@
-// Sky events: the game's own sky nights, rolled per night and city, seen once a night whatever the weather, the same while away.
+// Sky events: the game's own sky nights, rolled per night and city, seen once a night whatever the weather.
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { FEATS, SETS } from "../../src/core/collection";
-import { bboxAround } from "../../src/core/geo";
-import { Rng } from "../../src/core/rng";
-import { skyAt, type Sky } from "../../src/core/sky";
+import type { Sky } from "../../src/core/sky";
 import * as K from "../../src/core/skyEvents";
 import { Stats } from "../../src/core/stats";
-import { parseCities, Trips } from "../../src/core/trips";
-import { dataFile } from "../support/data";
 
 const DAY = 86_400;
 const T0 = Date.parse("2026-08-01T22:00Z") / 1000;
@@ -82,14 +76,4 @@ describe("Stats looks up", () => {
     expect(FEATS.find((f) => f.id === "stars")!.count(s)).toBe(1);
   });
 
-  it("while away, on the city's own sky night", () => {
-    const city = "Bigtown, A-land";
-    const home: AwayCity = { name: city, code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: null };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0\t0\t1000\n")), rng: new Rng(7), skyAt: (ms: number, c: AwayCity) => skyAt(ms, c.center[0], c.center[1], 0, null), roll: () => 0.99 };
-    const t = nightWith("any", city);
-    const stats = new Stats();
-    stats.where.city = city;
-    catchUp(stats, home, [0, 0], 8 * 3600, (t - 4 * 3600) * 1000, deps);
-    expect(stats.stars.seen).toEqual({ [K.eventOn(K.nightOf(t, 0), city)!.id]: 1 });
-  });
 });

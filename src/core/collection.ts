@@ -25,6 +25,7 @@ import { SKILLS } from "./skills";
 import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
+import { BELIEFS } from "./beliefs";
 import { PERKS } from "./perks";
 import { DISLIKES, LIKES } from "./tastes";
 import type { Stats } from "./stats";
@@ -479,6 +480,7 @@ export const FEATS: Feat[] = [
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "languages", tab: "world", icon: "🔤", name: "Linguist", what: "{n} languages learned to basic or better", tiers: [1, 3, 8], title: "Linguist", count: (s) => s.languages.list().filter((l) => s.languages.learned(l.lang) && l.level >= 2).length },
   { id: "skills", tab: "world", icon: "🎓", name: "Skilled", what: "{n} skills at level 5 or more", tiers: [1, 3, SKILLS.length], title: "Jack of All Trades", count: (s) => SKILLS.filter((k) => s.skills.level(k) >= 5).length },
+  { id: "beats", tab: "world", icon: "👀", name: "People-watcher", what: "{n} different little moments", tiers: [25, 100, 200], title: "People-watcher", count: (s) => s.beats.seen.size },
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
   { id: "shares", tab: "world", icon: "🏠", name: "Regular", what: "{n} shares in his spots", tiers: [1, 3, 10], title: "Shareholder", count: (s) => s.business.shares.length },
@@ -491,6 +493,8 @@ export const FEATS: Feat[] = [
   { id: "perks", tab: "world", icon: "🏆", name: "Lifetime rewards", what: "{n} perks", tiers: [1, 3, PERKS.length], title: "Seasoned", count: (s) => s.perks.owned.length },
   { id: "gourmet", tab: "world", icon: "🍽", name: "Gourmet", what: "{n} lavish meals", tiers: [5, 25, 100], title: "Gourmet", count: (s) => s.comforts.lavish },
   { id: "hotels", tab: "world", icon: "👑", name: "Five-star sleeper", what: "{n} hotel nights", tiers: [5, 25, 100], title: "Jet-setter", count: (s) => s.comforts.hotel },
+  { id: "coffee", tab: "world", icon: "☕", name: "Coffee lover", what: "{n} cups of coffee", tiers: [20, 200, 1000], title: "Caffeinated", count: (s) => s.coffee.cups },
+  { id: "beliefs", tab: "world", icon: "🙏", name: "Believer", what: "{n} beliefs held", tiers: [1, 3, BELIEFS.length], title: "True Believer", count: (s) => s.beliefs.ever.length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },

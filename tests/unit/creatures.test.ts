@@ -11,7 +11,6 @@ import { optionFor } from "../../src/core/moments";
 import { Stats } from "../../src/core/stats";
 
 const T0 = 1_800_000_000;
-const DAY = 86_400;
 const CREATURES = JSON.parse(dataFile("creatures.json")) as Creature[];
 const kind = (id: string) => CREATURES.find((c) => c.id === id)!;
 const creatureOf = (cls: string) => kindAt(CREATURES, cls);
@@ -19,21 +18,7 @@ const TOLL = kind("troll").outcomes.pay!.pay!;
 const COIN = kind("sprite").outcomes.coin!.pay!;
 /** Stats that know the creatures, as the game sets them. */
 const stats = () => Object.assign(new Stats(), { creatureKinds: CREATURES });
-const at = (cls: string, name = "Somewhere") => ({ class: cls, name });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
-/** The first time from `t` on at which a creature shows up at `place` for `s`, minute by minute. */
-function firstMeeting(s: Stats, place: { class: string; name: string }, t = T0): number {
-  for (let m = 0; m < 2000; m++) {
-    s.now = () => t + m * 60;
-    const probe = Creatures.fromJSON(s.creatures.toJSON());
-    const was = s.creatures;
-    s.creatures = probe;
-    const c = s.creatureAt(place);
-    s.creatures = was;
-    if (c) return t + m * 60;
-  }
-  throw new Error("no meeting");
-}
 
 describe("place creatures", () => {
   it("live at the places of their kind: a troll at bridges, a sprite in fountains and wells, a dryad in parks", () => {
@@ -127,24 +112,6 @@ describe("place creatures", () => {
     expect(line).toContain("Old Bridge");
     s.meet(kind("troll"), "Old Bridge", "pay");
     expect(s.cents).toBe(0);
-  });
-
-  it("meetAt meets the creature once that day, with his own pick, and leaves other days free", () => {
-    const s = stats();
-    const t = firstMeeting(s, at("park", "Borisova Gradina"));
-    s.now = () => t;
-    const xp = s.xp;
-    s.meetAt(at("park", "Borisova Gradina"));
-    expect(s.creatures.met.dryad).toBe(1);
-    // The dryad's default: her stories.
-    expect(s.xp).toBe(xp + 15);
-    s.meetAt(at("park", "Borisova Gradina"));
-    s.meetAt(at("bridge", "Lavov most"));
-    expect(s.creatures.met).toEqual({ dryad: 1 });
-    const next = firstMeeting(s, at("bridge", "Lavov most"), t + DAY);
-    s.now = () => next;
-    s.meetAt(at("bridge", "Lavov most"));
-    expect(s.creatures.met.troll).toBe(1);
   });
 
   it("the save keeps whom he met, and an old save starts with none", () => {

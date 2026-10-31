@@ -1,22 +1,23 @@
 // The game: picks a city, keeps the walker moving in real time while the app
-// is open (the time it was closed passes in one go when it opens again, see
-// core/catchup.ts), loads streets as he
-// nears new ground, and now and then sends him on a trip to another city by
-// bus, plane or car (he walks to the station first and pays the fare there).
+// is open (after time closed it runs faster for a while, see core/boost.ts),
+// loads streets as he nears new ground, and now and then sends him on a trip
+// to another city by bus, plane or car (he walks to the station first and
+// pays the fare there).
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
 import { hisPick, momentOf, settle as settleCard, type Pick as CardPick } from "../core/workCards";
 import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
-import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
+import { BOOST, boostFor, MIN_AWAY_S } from "../core/boost";
 import * as CityCheck from "../core/cityCheck";
 import { BEAUTY_EVERY_S, BEAUTY_M, beautyOf } from "../core/comforts";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
-import { getCrawler, setCrawler } from "../core/ruins";
-import { distanceM, type BBox } from "../core/geo";
+import { bboxAround, distanceM, type BBox } from "../core/geo";
+import { NEAR_M, SAY_S, type Deck as BeatDeck, type Now as BeatNow } from "../core/beats";
+import { placeIcon, pose, SLEEP_ICON } from "../core/look";
 import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
@@ -73,12 +74,8 @@ export const DEBUG_MOMENTS = ["", "timing", "cards", "taps", "odd"] as const;
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
 export const STREET_RING = 1;
-/** Longest wait on reopen for the streets around him (from the device's cache), so the catch-up uses real places. */
-export const CATCHUP_WAIT_MS = 3000;
-/** Longest a reopen waits, after the streets, for the dilemma code; past it there is no dilemma this time. */
+/** Longest a reopen waits for the dilemma code; past it there is no dilemma this time. */
 export const DILEMMA_WAIT_MS = 500;
-/** The catch-up gives the page a break after this many ms of work, so no task gets long. */
-export const CATCHUP_SLICE_MS = 8;
 /** Cities whose made-up places the save keeps; the oldest is dropped first. */
 export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
@@ -86,7 +83,7 @@ export const RIVAL_OFFSET_DEG = 0.0003;
 /** After the heir's streets failed to load, retiring waits this long before trying again. */
 export const RETIRE_RETRY_MS = 60_000;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData; moments?: PlaceMoments };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData; moments?: PlaceMoments; beats?: BeatDeck };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -166,23 +163,23 @@ export class Game {
   citySummary: CityCheck.Summary | null = null;
   /** Made-up places by city (core/poiGen.ts), saved so a city keeps its own. */
   made: Record<string, Place[]> = {};
-  /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
-  away: Summary | null = null;
+  /** The last reopen, for the welcome note: time away, the boost it earned and its clover; `card` while the welcome-back card (a dilemma or last week's recap) is up. `n` counts reopens, so the note shows afresh each time. */
+  welcome: { awayS: number; boostS: number; clover: boolean; card: boolean; n: number } | null = null;
+  /** Real seconds of boost left (core/boost.ts): the game runs BOOST x until it runs out. */
+  boostS = 0;
   /** Hourly weather for the city he is in (or was in), null until fetched. */
   weather: WeatherForecast | null = null;
-  /** True once the first wake has run, so screens know whether an away card is coming. */
+  /** True once the first wake has run, so screens know whether a welcome-back card is coming. */
   woke = false;
-  /** True when this reopen earned a clover, for the summary card. */
-  awayClover = false;
   /** The walker who just retired, for his farewell letter; null once it is closed (the family tree keeps it). */
   retired: Ancestor | null = null;
   private retiring = false;
   private retryRetireAt = 0;
-  /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
+  /** The choice the welcome-back card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
   /** How many moments the Debug button has opened, so the next is another kind. */
   private debugMoments = 0;
-  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS); Infinity until the away card shows it. */
+  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS); Infinity until the welcome-back card shows it. */
   dilemmaLeft = 0;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
@@ -190,7 +187,7 @@ export class Game {
   private collection: typeof import("../core/collection") | null = null;
   /** Bumped on every change worth redrawing a screen for. */
   version = 0;
-  /** Unix ms of the last save: the catch-up starts from there. */
+  /** Unix ms of the last save: time away counts from there. */
   private savedAt = 0;
   private waking = false;
   private listeners = new Set<() => void>();
@@ -198,6 +195,9 @@ export class Game {
   private saveTimer = 0;
   private checkTimer = 0;
   private lookTimer = 0;
+  /** The History line the beats last heard, and the words in his bubble with the seconds they still show. */
+  private lastHeard: object | null = null;
+  private saying: { text: string; leftS: number } | null = null;
   /** The kinds of land the map shows around a spot (see map/mapView.ts landAt); the screen sets it once the map is up. */
   land: ((at: [number, number]) => string[]) | null = null;
   /** His last look around: the land the map showed, its beauty and how long the map took to answer, for Debug. */
@@ -256,11 +256,13 @@ export class Game {
     return (this.stats.sky ?? this.sky()).hour;
   }
 
-  /** The sky over him now, or at unix ms over a city in the country with `code`: weather only where the forecast is for, and none while he rides. */
-  sky(ms = this.now(), city = this.city, at: LatLon = this.origin, code = this.country): Sky {
-    const f = this.weather?.city === city ? this.weather : null;
+  /** The sky over him now: weather only where the forecast is for, and none while he rides. */
+  sky(): Sky {
+    const ms = this.now();
+    const at = this.origin;
+    const f = this.weather?.city === this.city ? this.weather : null;
     const offsetS = f?.offsetS ?? offsetFromLon(at[1]);
-    const holiday = this.holidayOn(ms, code, offsetS) !== null;
+    const holiday = this.holidayOn(ms, this.country, offsetS) !== null;
     const sky = skyAt(ms, at[0], at[1], offsetS, this.walker?.isTraveling() ? null : weatherAt(f, ms), holiday);
     const pinned = this.deps.hour?.();
     return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
@@ -343,6 +345,7 @@ export class Game {
 
   private attach(w: Walker): void {
     this.walker = w;
+    this.saying = null;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.hopper = (plan, roadM) => this.hop(plan, roadM);
@@ -362,35 +365,27 @@ export class Game {
   step(dt: number): void {
     const w = this.walker;
     if (!w || this.waking || this.retiring) return;
-    // The away card's dilemma waits the moment timer too, then he decides.
+    // The welcome-back card's dilemma waits the moment timer too, then he decides.
     if (this.dilemma?.picked === null && (this.dilemmaLeft -= dt) <= 0) this.leaveDilemma();
-    // A timed moment holds him where he is until you tap or its time runs out.
+    // A timed moment holds him where he is until you tap or its time runs out, in real seconds, and keeps the boost for after.
     if (this.moment) {
       this.moment.left -= dt;
       if (this.moment.left <= 0) this.settleMoment(null);
       return;
     }
-    const from = w.isTraveling() ? null : w.position();
-    const graph = w.graph;
-    if (from) this.loader.request(cellsByPriority(from[0], from[1], STREET_RING, this.goalHeading()));
-    // He walks what is loaded and waits at the edge until more streets arrive.
-    const s = Math.min(dt, MAX_STEP_S);
-    const before = w.totalM;
-    // His dragon eats before he moves, so a fed one flies from the first step of the day.
-    if (this.stats.feedDragon(this.rng)) this.changed();
-    w.speedMps = this.stats.speedMps(w.afoot);
-    w.flies = FLYERS.has(this.stats.getsAbout());
-    w.advance(s * SPEED_MPS);
-    this.stats.passTime(s / 60, w.totalM - before, w.afoot);
-    if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
-    if (w.totalM > before) this.walkStreet(w.streetName());
-    if (!w.isTraveling()) this.leyM += w.totalM - before;
-    if (!w.isTraveling()) this.track();
-    // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
-    if (from && !w.isTraveling() && w.graph === graph && w.totalM > before) this.stats.explored.walk(from, w.position());
-    if (this.stats.fainted()) this.faint();
-    const leaving = this.stats.life.leaving;
-    if (leaving) void this.retire(leaving);
+    if (!w.isTraveling()) {
+      const here = w.position();
+      this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
+    }
+    // A boost after time away makes the step BOOST x as long, lived in steps of at most MAX_STEP_S. Only boost
+    // actually lived is used up, so a moment that opens mid-step (or a retirement) keeps the rest.
+    for (let real = Math.min(dt, MAX_STEP_S); real > 1e-9 && this.walker === w && !this.retiring && !this.moment; ) {
+      const fast = Math.min(real, this.boostS, MAX_STEP_S / BOOST);
+      const s = fast || real;
+      this.boostS -= fast;
+      real -= s;
+      this.live(fast ? fast * BOOST : s);
+    }
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
@@ -404,11 +399,95 @@ export class Game {
       this.lookTimer = 0;
       this.lookAround();
     }
+    this.paceBeats(dt);
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  /** `s` seconds (at most MAX_STEP_S) of his life: he walks what is loaded and waits at the edge until more streets arrive. */
+  private live(s: number): void {
+    const w = this.walker!;
+    const from = w.isTraveling() ? null : w.position();
+    const graph = w.graph;
+    const before = w.totalM;
+    // His dragon eats before he moves, so a fed one flies from the first step of the day.
+    if (this.stats.feedDragon(this.rng)) this.changed();
+    w.speedMps = this.stats.speedMps(w.afoot);
+    w.flies = FLYERS.has(this.stats.getsAbout());
+    w.advance(s * SPEED_MPS);
+    // A ride (a trip, or a metro, taxi or flying hop) wears no clothes.
+    this.stats.passTime(s / 60, w.totalM - before, w.afoot, w.isTraveling() || !!w.flight);
+    if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
+    if (w.totalM > before) this.walkStreet(w.streetName());
+    if (!w.isTraveling()) this.leyM += w.totalM - before;
+    if (!w.isTraveling()) this.track();
+    // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
+    if (from && !w.isTraveling() && w.graph === graph && w.totalM > before) this.stats.explored.walk(from, w.position());
+    if (this.stats.fainted()) this.faint();
+    const leaving = this.stats.life.leaving;
+    if (leaving) void this.retire(leaving);
+  }
+
+  /** Fills a quiet spell in his History with a beat once it has lasted long enough (see beats.ts), and times his speech bubble. */
+  private paceBeats(dt: number): void {
+    if (this.saying && (this.saying.leftS -= dt) <= 0) {
+      this.saying = null;
+      this.changed();
+    }
+    const deck = this.deps.data.beats;
+    if (!deck) return;
+    const b = this.stats.beats;
+    const rng = () => new Rng(seedOf(`beat${this.stats.now()}`));
+    const last = this.stats.history.entries.at(-1) ?? null;
+    if (last !== this.lastHeard) {
+      this.lastHeard = last;
+      b.heard(rng());
+      return;
+    }
+    if (!b.tick(dt)) return;
+    const now = this.beatNow();
+    const said = now && b.deal(deck, now, rng());
+    // Nothing fits (or he sleeps): wait another spell. A beat's own line starts the next one.
+    if (!said) return b.heard(rng());
+    this.stats.applyFx(said.fx);
+    this.stats.say(said.line);
+    if (said.say) this.saying = { text: said.say, leftS: SAY_S };
+    this.changed();
+  }
+
+  /** What he is doing, for the beats: on a ride (or in a taxi or the metro to a station), staying at a place, or walking past one; null while he sleeps. */
+  private beatNow(): BeatNow | null {
+    const w = this.walker!;
+    const t = w.travel;
+    const across = w.flight?.mps ? hopBy(this.stats.getsAbout(), this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0) : null;
+    const mode = t?.mode ?? (across === "taxi" || across === "metro" ? across : undefined);
+    const resting = !mode && w.isResting();
+    if (resting && this.doing && pose(this.doing, w.place?.class ?? "").icon === SLEEP_ICON) return null;
+    const base = { sky: this.stats.sky, meters: this.stats.meters, city: this.city, place: resting ? (w.place?.name ?? "") : "" };
+    if (mode) return { ...base, at: "ride", mode, street: "", near: null };
+    if (resting) return { ...base, at: "rest", street: w.streetName(), near: null };
+    const p = w.position();
+    let near: Place | null = null;
+    let nearM = NEAR_M;
+    for (const q of w.graph.placesIn(bboxAround(p[0], p[1], NEAR_M))) {
+      const m = distanceM(p[0], p[1], q.lat, q.lon);
+      if (q.name && q.name !== w.place?.name && m < nearM) [near, nearM] = [q, m];
+    }
+    return { ...base, at: "walk", street: w.streetName(), near: near && { name: near.name, icon: placeIcon(near) } };
+  }
+
+  /** Debug button: a little moment on the next step, whatever the quiet. */
+  debugBeat(): void {
+    this.stats.beats.leftS = 0;
+    this.lastHeard = this.stats.history.entries.at(-1) ?? null;
+  }
+
+  /** His words in the bubble over his head right now (see beats.ts), or "". */
+  saidNow(): string {
+    return this.saying?.text ?? "";
   }
 
   /** He looks at the land and places around him (see comforts.ts); not while riding. Debug's Look around calls it too. */
@@ -521,12 +600,12 @@ export class Game {
   private storyOpen = false;
   /**
    * Asks a moment from inside a story rule (Stats.happen) and saves once it
-   * settles. When none can open (timer Off, one already open, or the away
-   * card up) he picks at once, so it lands before the action he then
-   * chooses, as in the catch-up.
+   * settles. When none can open (timer Off, one already open, or the
+   * welcome-back card up) he picks at once, so it lands before the action
+   * he then chooses.
    */
   private storyAsk: Ask = (m, his, settle) => {
-    if (this.momentS <= 0 || this.moment || this.away) return settle({ id: his(), you: false });
+    if (this.momentS <= 0 || this.moment || this.welcome?.card) return settle({ id: his(), you: false });
     this.storyOpen = true;
     void this.ask(m, { his }).then((p) => {
       settle(p);
@@ -539,9 +618,9 @@ export class Game {
   /**
    * The creature at `place`, if one shows up, asked as a timed moment. His own
    * pick, the dice and the attribute a risky pick leans on are those of the
-   * moment it asks, as when Stats.meetAt settles it at once in the catch-up;
-   * like the place moments, its effect lands once it is answered, after the
-   * stop's activity started. Returns the creature, or null.
+   * moment it asks. Like the place moments, its effect lands once it is
+   * answered, after the stop's activity started. Returns the creature, or
+   * null.
    */
   private askCreature(place: Place): Creature | null {
     const c = this.stats.creatureAt(place);
@@ -561,7 +640,7 @@ export class Game {
     this.askPlaceMoment(this.stats.momentAt(place), place.name, momentDice(this.stats.now(), place.name), maxS);
   }
 
-  /** The chance card at work that just came up (workCards.ts), open at most `maxS` seconds; if you don't tap, he picks on its own dice, as in the catch-up. */
+  /** The chance card at work that just came up (workCards.ts), open at most `maxS` seconds; if you don't tap, he picks on its own dice. */
   private askCard(maxS: number): void {
     const { d, dice } = this.stats.workCard!;
     this.stats.workCard = null;
@@ -577,7 +656,7 @@ export class Game {
     this.askPlaceMoment(tripMoment(this.stats.placeMoments, dice), plan.city.name, dice);
   }
 
-  /** Asks moment `m` at `where` ({PLACE} in its text) and applies the pick, on its own `dice`, so it goes as in the catch-up (Stats.byHimself) and his walk stays the same. */
+  /** Asks moment `m` at `where` ({PLACE} in its text) and applies the pick, on its own `dice`, so his walk stays the same. */
   private askPlaceMoment(m: PlaceMoment | null, where: string, dice: Rng, maxS?: number): void {
     if (!m) return;
     void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", where) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
@@ -799,10 +878,10 @@ export class Game {
   async retire(by: Ancestor["by"], inWake = false): Promise<void> {
     const w = this.walker;
     if (!w || this.retiring || this.stats.life.stage < ELDER) return;
-    // A choice still open on the away card is the old walker's, so he decides it now; a free ride he takes puts this off until he lands.
+    // A choice still open on the welcome-back card is the old walker's, so he decides it now; a free ride he takes puts this off until he lands.
     if (!inWake) this.leaveDilemma();
     const first = this.retryRetireAt === 0;
-    // Mid catch-up (wake) the walker and his stats are still the catch-up's, so only wake's own call goes on.
+    // Mid wake, only wake's own call goes on.
     if (w.isTraveling() || this.now() < this.retryRetireAt || (this.waking && !inWake)) {
       // He can't yet: your ask is kept, and he retires at the next chance.
       if (by === "you" && !this.stats.life.asked) {
@@ -943,7 +1022,7 @@ export class Game {
     // Badges he has reached (see core/collection.ts), kept by this save.
     this.collection?.award(this.stats);
     this.savedAt = this.now();
-    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt, made: this.made });
+    const err = this.file.write({ city: this.city, country: this.country, skipRoll: this.skipRoll, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, savedAt: this.savedAt, boostS: this.boostS, made: this.made });
     if (err) this.problems.error(err);
   }
 
@@ -967,6 +1046,7 @@ export class Game {
     this.placeStats();
     this.skipRoll = d.skipRoll;
     this.savedAt = d.savedAt;
+    this.boostS = d.boostS;
     this.stats.sky = this.sky();
     this.made = d.made;
     void this.learnCity(d.origin[0], d.origin[1]);
@@ -976,49 +1056,36 @@ export class Game {
 
   /**
    * On reopen and when the tab shows again: the time since the last save
-   * passes for him in one go (see core/catchup.ts). On reopen it first waits
-   * a moment for the streets around him to come out of the cache, so he
-   * visits the real places there.
+   * doesn't pass for him. It earns a boost instead (see core/boost.ts), and
+   * the reopen brings its extras: a clover, a check on his trust in you, and
+   * now and then a dilemma.
    */
   async wake(): Promise<void> {
     const w = this.walker;
-    // While he retires, the old walker's catch-up would land on the heir; the heir's own wake comes later.
+    // While he retires, a wake would land on the heir; the heir's own wake comes later.
     if (!w || this.waking || this.retiring) return;
-    const from = this.savedAt;
-    const awayS = (this.now() - from) / 1000;
-    if (!from || awayS < MIN_AWAY_S) return this.woken();
+    const awayS = (this.now() - this.savedAt) / 1000;
+    if (!this.savedAt || awayS < MIN_AWAY_S) return this.woken();
     this.leaveDilemma();
-    // A chase under way when the page was left is dropped; the catch-up rolls its own.
+    // A chase under way when the page was left is dropped.
     this.chase = null;
     this.waking = true;
-    // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
-    // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
+    // A reopen never waits on it for long: without it (offline before it was cached, or a slow fetch)
+    // there is just no dilemma this time, and a later reopen tries again.
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
-    // Ruin crawls during the time away need core/crawl.ts too; without it ruins are just castles this time.
-    const crawl = getCrawler() ? null : import("../core/crawl").then((m) => setCrawler(m.explore), () => undefined);
     try {
-      const until = performance.now() + CATCHUP_WAIT_MS;
-      // The catch-up takes no weather, so the reopen doesn't wait for it; it comes in for the watched game.
       void this.refreshWeather();
-      while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
-        const here = w.position();
-        this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      // The code table and the ruin crawl rooms come in the same short wait, so the catch-up knows the holidays kept on the device and can crawl; it never waits on the network for a list.
-      const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
-      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()]), crawl && Promise.race([crawl, shortWait()])]);
-      await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
-      this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
-      this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
-      // His elder stage ran out while you were away (or you asked on a ride): the catch-up stopped there, and the heir sets out now.
-      // Aged to now first, since time past the catch-up's limit counts towards his life too, under the sky of now (without weather, like the catch-up).
-      this.stats.sky = { ...this.sky(), weather: null };
+      const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
+      const boostS = boostFor(awayS);
+      this.boostS += boostS;
+      const clover = this.stats.care.checkIn(awayS, dayOf(this.now()));
+      this.stats.wrote(this.stats.bond.checkIn(awayS, clover));
+      // Days, weeks and his life stages go by the clock, so they turn over now; his elder stage may have run out, and the heir sets out.
+      // Under the sky of now, so a tab hidden since the evening doesn't look up at last night's sky.
+      this.stats.sky = this.sky();
       this.stats.passTime(0, 0);
-      const old = this.stats;
-      const leaving = old.life.leaving;
+      const leaving = this.stats.life.leaving;
       if (leaving) await this.retire(leaving, true);
-      if (leaving && this.away) this.away.retire = this.stats !== old ? "done" : "soon";
       // A reopen on which he retires, or will once streets load, brings no dilemma.
       this.dilemma = leaving
         ? null
@@ -1032,6 +1099,7 @@ export class Game {
       this.dilemmaLeft = Infinity;
       // With the timer Off he decides at once, and the card shows what he chose.
       if (!this.momentS) this.leaveDilemma();
+      this.welcome = { awayS, boostS, clover, card: !!this.dilemma || !!this.stats.week.pending(), n: (this.welcome?.n ?? 0) + 1 };
     } finally {
       this.waking = false;
       this.woken();
@@ -1039,7 +1107,7 @@ export class Game {
     this.save();
   }
 
-  /** The first wake has decided whether there is an away card (or never will: no map, so no loop), so a postcard from a link may show. */
+  /** The first wake has decided whether there is a welcome-back card (or never will: no map, so no loop), so a postcard from a link may show. */
   woken(): void {
     this.woke = true;
     // A failed load tries again at the next wake.
@@ -1047,91 +1115,23 @@ export class Game {
     this.changed();
   }
 
-  /** Lets `coverS` of the `awayS` seconds since `fromMs` pass: the rest of any ride first, then life by the catch-up rules. */
-  private async catchUp(coverS: number, awayS: number, fromMs: number): Promise<void> {
-    const w = this.walker!;
-    const ride: Line[] = [];
-    const startCity = this.city;
-    let rideS = 0;
-    if (w.travel) {
-      const leftM = Math.min(w.travel.left_m, coverS * SPEED_MPS);
-      rideS = leftM / SPEED_MPS;
-      const clock = this.stats.now;
-      this.stats.now = () => Math.floor(fromMs / 1000 + rideS);
-      this.stats.onSay = (text, t) => ride.push({ text, t });
-      // Time passes on the ride before he lands, as in the catch-up, so a ride's buff covers it, under the sky at its end.
-      this.stats.sky = this.sky(fromMs + rideS * 1000);
-      this.stats.passTime(rideS / 60, 0);
-      // Exactly what is left, so rounding can't leave him a hair short of landing.
-      w.advance(leftM);
-      this.stats.now = clock;
-      this.stats.onSay = null;
-      if (this.stats.fainted()) this.faint();
-    }
-    w.departing = null;
-    // A ride longer than the time away (a long walk, say) goes on when you are back.
-    const onRide = w.travel !== null;
-    const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
-    const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: Q.listedKey(this.city, near, this.origin) };
-    const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
-      activities: this.activities,
-      trips: this.trips,
-      rng: this.rng,
-      cardRng: this.cardRng,
-      skyAt: (ms, c) => this.sky(ms, c.name, c.center, c.code),
-      roll: this.deps.rollSource,
-      facts: this.cityFacts,
-      skipRoll: this.skipRoll,
-    });
-    let slice = performance.now();
-    let r = steps.next();
-    while (!r.done) {
-      if (performance.now() - slice > CATCHUP_SLICE_MS) {
-        await new Promise((ok) => setTimeout(ok, 0));
-        slice = performance.now();
-      }
-      r = steps.next();
-    }
-    const s = r.value;
-    s.awayS = awayS;
-    s.coveredS += rideS;
-    s.lines.unshift(...ride);
-    if (this.city !== startCity) s.cities.unshift(this.city);
-    const moved = s.end.city.name !== this.city;
-    if (moved) {
-      this.city = s.end.city.name;
-      this.country = s.end.city.code;
-      this.origin = s.end.city.center;
-      this.placeStats();
-      void this.learnCity(...this.origin);
-    }
-    if (!onRide) {
-      w.relocate(s.end.at, s.end.city.bounds, moved);
-      this.loader.setGraph(w.graph);
-      this.skipRoll = s.end.skipRoll;
-      this.track();
-    }
-    this.away = s;
-  }
-
-  /** Closes the summary card. */
-  dismissAway(): void {
+  /** Closes the welcome-back card. */
+  dismissWelcome(): void {
     if (this.leaveDilemma()) this.save();
     this.dilemma = null;
-    this.away = null;
-    this.awayClover = false;
+    // The card said it all, so no note follows.
+    this.welcome = null;
     this.stats.week.seen();
     this.changed();
   }
 
-  /** The away card's choice is on screen: its time starts now, if it hasn't yet. Returns the seconds left. */
+  /** The welcome-back card's choice is on screen: its time starts now, if it hasn't yet. Returns the seconds left. */
   dilemmaShown(): number {
     if (this.dilemmaLeft === Infinity) this.dilemmaLeft = this.momentS;
     return this.dilemmaLeft;
   }
 
-  /** Your pick on the summary card's dilemma. */
+  /** Your pick on the welcome-back card's dilemma. */
   chooseDilemma(pick: number): void {
     const d = this.dilemma;
     if (!d || d.picked !== null) return;
@@ -1151,15 +1151,16 @@ export class Game {
    * Shows timed moment `m` and resolves with the option you tap, or with his
    * own pick (`his`, by default defaultPick) once momentS seconds pass, or
    * `maxS` if that is sooner, or the page is left. Off (momentS 0), with
-   * another moment already open, or while the away card is up, he picks at
+   * another moment already open, or while the welcome-back card is up, he picks at
    * once. He stands still while it is open.
    */
   ask(m: Moment, opts: { maxS?: number; his?: () => string } = {}): Promise<Pick> {
     const his = opts.his ?? (() => defaultPick(m, this.stats, new Rng(seedOf(`ask${this.now()}${m.id}`))));
     const wait = Math.min(this.momentS, opts.maxS ?? Infinity);
-    if (wait <= 0 || this.moment || this.away) return Promise.resolve({ id: his(), you: false });
+    if (wait <= 0 || this.moment || this.welcome?.card) return Promise.resolve({ id: his(), you: false });
     return new Promise((done) => {
       this.moment = { m, left: wait, total: wait, done, his };
+      this.saying = null;
       this.changed();
     });
   }

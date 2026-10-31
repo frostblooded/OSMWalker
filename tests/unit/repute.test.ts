@@ -1,23 +1,20 @@
-// Karma, fame and the law: what deeds do to them, perks either way, the police chase, and the same while away.
+// Karma, fame and the law: what deeds do to them, perks either way, the police chase.
 import { describe, expect, it } from "vitest";
-import { Activities, BOUNTY_WEIGHT, SKINT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
+import { BOUNTY_WEIGHT, SKINT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
 import { KIND_DEED_WEIGHT, DODGE_CHANCE } from "../../src/core/bond";
 import { FEATS, SETS } from "../../src/core/collection";
 import { Quests, type Bank } from "../../src/core/quests";
 import { DEED_STEP, LEAN_AT, LEAN_MAX } from "../../src/core/bond";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
 import * as CC from "../../src/core/cityCards";
 import * as Fm from "../../src/core/fame";
 import * as MIDNIGHT from "../../src/core/midnight";
-import { bboxAround } from "../../src/core/geo";
 import { aura } from "../../src/core/look";
 import { defaultPick, RASCAL_BASE, RASCAL_MAX, RASCAL_MIN, rascalOdds, type Moment } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
 import { Rng, seedOf } from "../../src/core/rng";
 import { KEEP_CENTS, Stats, type Action, type Place } from "../../src/core/stats";
-import { parseCities, Trips } from "../../src/core/trips";
+import { parseCities } from "../../src/core/trips";
 import { dataFile } from "../support/data";
-import { hourSky } from "../support/sky";
 
 const T0 = 1_800_000_000;
 const place = (name: string, cls: string, lat = 0, lon = 0): Place => ({ name, class: cls, subclass: cls, rank: 1, lat, lon });
@@ -355,22 +352,6 @@ describe("the law", () => {
     expect(o.fame.total()).toBe(0);
     // His karma so far counts towards the halo tile and the Saint badge.
     expect(o.law.bestKarma).toBe(80);
-  });
-
-  it("while away, a wanted walker gets chased and it plays out by itself", () => {
-    const trips = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\n"));
-    const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [place("Cafe", "cafe", 0, 0.003), place("Square", "park", 0.003, 0), place("Bakery", "bakery", 0.003, 0.003)] };
-    const deps = { activities: new Activities(ACTIONS), trips, rng: new Rng(7), skyAt: hourSky((ms: number) => new Date(ms).getUTCHours()), roll: () => 0.99 };
-    const stats = new Stats();
-    stats.law.addHeat(R.HEAT_MAX);
-    const s = catchUp(stats, home, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 8), deps);
-    const lines = s.lines.map((l) => l.text);
-    expect(lines.some((l) => l.startsWith("🚨 The police spotted him"))).toBe(true);
-    expect(lines.some((l) => l.startsWith("🚓 "))).toBe(true);
-    expect(stats.law.chases).toBeGreaterThan(0);
-    // A chase takes the place of the stop's action, as while you watch.
-    const spotted = lines.findIndex((l) => l.startsWith("🚨"));
-    expect(lines[spotted + 1]).toMatch(/^🚓 /);
   });
 });
 

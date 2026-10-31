@@ -193,6 +193,14 @@ for (const width of [360, 412]) {
 
     });
 
+    test("his speech bubble after a little moment has no overlapping text or sideways scroll", async ({ page }) => {
+      await startInSofia(page);
+      await openMenuItem(page, /Debug/);
+      await page.getByRole("button", { name: /Little moment now/ }).click();
+      await expect(page.locator(".him .say")).toBeVisible({ timeout: 10000 });
+      await check(page, "say");
+    });
+
     // An item's story and the quest and event cards on the map: their own walk too, so the one below stays inside its time limit on a busy CI runner.
     test("no item story, quest card or event card has overlapping text or sideways scroll", async ({ page }) => {
       test.setTimeout(60_000);
@@ -312,20 +320,21 @@ for (const width of [360, 412]) {
       await check(page, "explored");
       await page.getByRole("dialog", { name: /Explored/ }).getByRole("button", { name: /Close/ }).click();
 
-      // The choice timer at 20 s (remembered), so the away dilemma doesn't decide itself mid-shot on a busy machine.
+      // The choice timer at 20 s (remembered), so the reopen's dilemma doesn't decide itself mid-shot on a busy machine.
       await openMenuItem(page, /Choice timer/);
       await page.getByRole("button", { name: /Choice timer/ }).click();
       await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
       await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
       await reopenAfter(page, 5);
-      const away = page.getByRole("dialog", { name: /While you were away/ });
+      const away = page.getByRole("dialog", { name: /Welcome back/ });
       await expect(away).toContainText("One choice", { timeout: 20000 });
       await check(page, "away");
       await away.locator(".choices button").last().click();
       await check(page, "away-dilemma");
-      await away.getByRole("button", { name: /events, newest first/ }).click();
-      await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();
+      // The map with the boost's countdown badge under the top card.
+      await expect(page.getByRole("timer", { name: /10 times speed/ })).toBeVisible();
+      await check(page, "boost");
 
       await openMenuItem(page, /Send a postcard/);
       await check(page, "postcard");

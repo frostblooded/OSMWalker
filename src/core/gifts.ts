@@ -22,7 +22,7 @@ export const GIFTS: Gift[] = [
   { id: "clover", icon: "🍀", name: "Four-leaf clover", cost: 2, buff: { name: "Four-leaf clover", min: 240, attrs: { luck: 2 } } },
 ];
 
-const NAMES: Record<string, string> = { health: "health", energy: "energy", fullness: "fullness", mood: "mood", hygiene: "hygiene", thirst: "thirst", str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck", xp: "XP", magic: "Magic" };
+const NAMES: Record<string, string> = { health: "health", energy: "energy", fullness: "fullness", mood: "mood", hygiene: "hygiene", thirst: "thirst", str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck", xp: "XP", magic: "Magic", karma: "karma" };
 
 const n = (v: number) => (v < 0 ? `${v}` : `+${v}`);
 

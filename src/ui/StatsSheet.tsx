@@ -5,6 +5,7 @@
 // buffs, his rival, friends and pet, his mind (wants, fears and what
 // moves his mood), his character (emotion, tastes found and perks), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his family tree closes it; his records have their own sheet (RecordsSheet.tsx).
+import { BELIEFS } from "../core/beliefs";
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -411,6 +412,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
             return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={<span class="dim">Empty</span>} />;
           })}
         </div>
+        {s.tattered() && <p class="small tone-warning">🧵 Tattered clothes: they add nothing and cost Charm.</p>}
       </Card>
       <Card icon="🎒" title="Bag">
         <KV k="🧺 Pantry" v={`${s.pantry.items.map((i) => INGREDIENT[i][0]).join("") || "empty"} · ${s.pantry.items.length} / ${PANTRY_MAX}`} />
@@ -631,12 +633,15 @@ function CharacterCard({ s }: { s: Stats }) {
   };
   const next = s.perks.next();
   const owned = PERKS.filter((p) => s.perks.has(p.id));
+  const beliefs = BELIEFS.filter((b) => s.beliefs.has(b.id));
   return (
     <Card icon="🎭" title="Character" right={`${e.icon} ${e.word}`}>
       <div class="zebra">
         <KV k="💛 Loves" v={found(t.likes, LIKES)} />
         <KV k="💢 Can't stand" v={found(t.dislikes, DISLIKES)} />
         <KV k="🏆 Lifetime points" v={next ? `${s.perks.points} / ${next.cost}` : s.perks.points} />
+        <KV k="🙏 Believes in" v={beliefs.length ? beliefs.map((b) => `${b.icon} ${b.name}`).join(", ") : "nothing yet"} />
+        <KV k="☕ Coffee" v={s.now() < s.coffee.quitUntil ? "cutting down" : s.coffee.hooked() ? "hooked" : s.coffee.cups ? "now and then" : "no cups yet"} />
       </div>
       {owned.length > 0 && (
         <Collapsible title="🏆 Perks" right={`${owned.length} / ${PERKS.length}`}>

@@ -52,7 +52,7 @@ export class MemStorage {
   }
 }
 
-export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number; moments?: boolean } = {}) {
+export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number; moments?: boolean; beats?: boolean } = {}) {
   const api = new Api(async () => new Response("", { status: 503 }));
   const data = {
     actions: JSON.parse(dataFile("actions.json")),
@@ -63,6 +63,7 @@ export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolea
     spells: JSON.parse(dataFile("spells.json")),
     words: JSON.parse(dataFile("words.json")),
     moments: opts.moments ? JSON.parse(dataFile("moments.json")) : undefined,
+    beats: opts.beats ? JSON.parse(dataFile("beats.json")) : undefined,
   };
   const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -91,7 +92,7 @@ export async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Pl
   again.load();
   loaded(again);
   await again.wake();
-  return { g, again, setNow: (t: number) => (now = t), now: () => now };
+  return { g, again, storage, setNow: (t: number) => (now = t), now: () => now };
 }
 
 

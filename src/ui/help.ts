@@ -14,13 +14,16 @@ import * as Bricks from "../core/bricks";
 import { HALL } from "../core/hall";
 import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
-import * as CatchUp from "../core/catchup";
+import * as Boost from "../core/boost";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Crawl from "../core/crawl";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Beliefs from "../core/beliefs";
+import * as Clothes from "../core/clothes";
+import * as Coffee from "../core/coffee";
 import * as Comforts from "../core/comforts";
 import * as Emo from "../core/emotion";
 import * as Diary from "../core/diary";
@@ -73,6 +76,7 @@ import * as Cook from "../core/cooking";
 import * as Lang from "../core/languages";
 import * as Skills from "../core/skills";
 import * as Friends from "../core/friends";
+import * as Beats from "../core/beats";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
@@ -88,10 +92,15 @@ import * as Notes from "../core/sightNotes";
 import { CITIES_SHOWN, STREET_MARK } from "../core/streetBook";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
+import { duration } from "./format";
 import { MIN_CHARS } from "./Picker";
 
 /** The taxi ride Help prices as an example. */
 const TAXI_EG_M = 10_000;
+
+/** Hours away in the boost example on the Welcome back page. */
+const EXAMPLE_AWAY_H = 8;
+
 export type Page = { id: string; title: string; body: string };
 export type Section = { title: string; pages: Page[] };
 export type Block = { text: string; items: string[] };
@@ -257,7 +266,7 @@ function comfortLines(actions: GameData["actions"], key: "bed" | "meal", tiers: 
 }
 
 /** A moodlet's mood an hour and hours, in words. */
-const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hours`}`;
+const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hour${f[3] === 1 ? "" : "s"}`}`;
 
 /** What a life stage changes, in words. */
 function stageText(st: Life.Stage): string {
@@ -277,8 +286,11 @@ export function values(data: GameData): Record<string, string> {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
     MAX_STEP_S: num(G.MAX_STEP_S),
     SAVE_EVERY_S: num(G.SAVE_EVERY_S),
-    MIN_AWAY_MIN: num(CatchUp.MIN_AWAY_S / 60),
-    MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
+    MIN_AWAY_MIN: num(Boost.MIN_AWAY_S / 60),
+    BOOST: num(Boost.BOOST),
+    BOOST_DIV: num(Boost.BOOST - 1),
+    EXAMPLE_AWAY_H: num(EXAMPLE_AWAY_H),
+    EXAMPLE_BOOST: duration(Boost.boostFor(EXAMPLE_AWAY_H * 3600)),
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
     CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
@@ -379,7 +391,6 @@ export function values(data: GameData): Record<string, string> {
     GIFT_PCT: pct(Fairy.GIFT_CHANCE),
     FAIRY_PCT: pct(Fairy.FAIRY_CHANCE),
     FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
-    NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
     FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
     STORY_MAGIC: num(Fairy.STORY_MAGIC),
     SKY_LIST: Object.values(SkyEv.EVENTS)
@@ -479,7 +490,6 @@ export function values(data: GameData): Record<string, string> {
     FINE_FULL: euro(Rep.fineOf(Rep.HEAT_MAX)),
     JAIL_MIN_PER_STAR_H: num(Rep.JAIL_MIN_PER_STAR / 60),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
-    CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
     BED_ENERGY: num(CityCheck.BED_ENERGY),
     AIRPORT_POP: num(Trips.AIRPORT_POP),
@@ -497,7 +507,6 @@ export function values(data: GameData): Record<string, string> {
     ICON_CAP: num(MapIcons.ICON_CAP.place),
     QUEST_ICON_CAP: num(MapIcons.ICON_CAP.quest),
     EVENT_ICON_CAP: num(MapIcons.ICON_CAP.event),
-    SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
     BIKE_KMH: kmh(Speeds.BIKE),
@@ -588,6 +597,30 @@ export function values(data: GameData): Record<string, string> {
     WEARY_PCT: pct(Perks.WEARY_CUT),
     LUCKY_FIND: num(Perks.LUCKY_FIND),
     PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
+    COFFEE_ACTIONS: [...new Set(Object.values(data.actions).flatMap((l) => (Array.isArray(l) ? l : [])).filter((a) => a.coffee).map((a) => a.name.toLowerCase()))].join(", "),
+    CUP_HABIT: num(Coffee.CUP_HABIT),
+    DAY_FADE: num(Coffee.DAY_FADE),
+    HOOKED: num(Coffee.HOOKED),
+    CRAVE_H: String(Coffee.CRAVE_H),
+    ACHE_H: String(Coffee.ACHE_H),
+    CRAVE_PULL: num(Coffee.CRAVE_PULL),
+    QUIT_AFTER: String(Coffee.QUIT_AFTER),
+    QUIT_DAYS: String(Coffee.QUIT_DAYS),
+    QUIT_PULL: num(Coffee.QUIT_PULL),
+    HEADACHE: `${Coffee.HEADACHE[1]} ${Coffee.HEADACHE[0]}, ${feel(Coffee.HEADACHE)}`,
+    RAIN_WEAR: num(Clothes.RAIN_WEAR),
+    THIN_PCT: pct(Clothes.THIN_AT),
+    WEAR_KM: String(Clothes.WEAR_KM),
+    TATTERED_CHA: num(Clothes.TATTERED_CHA),
+    TATTERED: `${Clothes.TATTERED[1]} ${Clothes.TATTERED[0]} (${feel(Clothes.TATTERED)})`,
+    TATTERED_PULL: num(Clothes.TATTERED_PULL),
+    BELIEF_PCT: pct(Beliefs.BELIEF_CHANCE),
+    MAX_BELIEFS: String(Beliefs.MAX_BELIEFS),
+    BELIEF_LIST: Beliefs.BELIEFS.map((b) => `- ${b.icon} ${b.name}: takes root at ${b.seeds.map(Mind.noun).join(" or ")}; ${[b.kinds.length ? `pulls to ${b.kinds.map(Mind.noun).join(", ")}` : "", b.likes ? `favours ${b.likes}` : ""].filter(Boolean).join(", and ")}.`).join("\n"),
+    BELIEF_PULL: num(Beliefs.BELIEF_PULL),
+    BELIEF_LEAN: num(Beliefs.BELIEF_LEAN),
+    BELIEF_MOOD: feel(["", "", ...Beliefs.BELIEF_MOOD]),
+    FADE_DAYS: String(Beliefs.FADE_DAYS),
     BED_LIST: comfortLines(data.actions, "bed", Comforts.BEDS),
     HOME_BED: `${Comforts.HOME_BED[1]} ${Comforts.HOME_BED[0]} (${feel(Comforts.HOME_BED)})`,
     MEAL_LIST: comfortLines(data.actions, "meal", Comforts.MEALS),
@@ -911,6 +944,14 @@ export function values(data: GameData): Record<string, string> {
     FIRE_AT: num(Story.FIRE_AT),
     FIRE_MAX_PCT: pct(Story.FIRE_MAX),
     LUCKY_MIN: num(Story.LUCKY_MIN),
+    BEAT_MIN_S: num(Beats.BEAT_MIN_S),
+    BEAT_MAX_S: num(Beats.BEAT_MAX_S),
+    SAY_S: num(Beats.SAY_S),
+    BEAT_COUNT: num((data.beats?.beats.length ?? 0) + (data.beats?.comments.length ?? 0)),
+    LOW_AT: num(Beats.LOW_AT),
+    BEAT_NEAR_M: num(Beats.NEAR_M),
+    COMMENT_PCT: pct(Beats.COMMENT_SHARE),
+    BEAT_RECENT: num(Beats.RECENT),
     WEALTH_PER_H: num(Story.WEALTH_PER_H),
     KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
     RECENT_INCIDENTS: num(Story.RECENT),

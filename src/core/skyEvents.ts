@@ -3,7 +3,7 @@
 // are the game's own, not the real sky's: each night in each city rolls its
 // own dice, the rarer the show the smaller its odds. The first time it gets
 // dark on such a night he looks up, whatever the weather: a feed line and a
-// moodlet. Once a night, the same watched and away (Stats.lookUp). Pure.
+// moodlet. Once a night (Stats.lookUp). Pure.
 import { Rng, seedOf } from "./rng";
 import type { Sky } from "./sky";
 
