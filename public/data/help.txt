@@ -504,6 +504,11 @@ Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} 
 Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
+## Bucket list {bucket}
+He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of things to do in the game and real sights in real cities. There is always a sight on it while any are left. You never pick them: he ticks them off by himself.
+- Things to do: {GOAL_LIST}.
+- Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
+Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet. Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel (see Trips), so he drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
 The Stats sheet ends with his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
@@ -609,7 +614,7 @@ Apart from the dice, an old monument or castle ruin very rarely opens as a porta
 
 While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas).
 
-The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
+The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most, and a city with a sight on his bucket list weighs {DREAM_PULL} times as much (see Bucket list).
 
 As he boards, a moment on the way comes (see Timed moments).
 
@@ -939,6 +944,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Life: his stage and day of life, how long until the next stage (or until he retires), how his care is going this stage, what the stage does, and the family perk (see Life stages).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
+- Bucket list: the dreams on his list, how near he is to each game goal, and which city each sight is in (see Bucket list).
 - Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Side income: his businesses and shares, what they brought in, the next business and his lottery prizes (see Side businesses, Shares in his spot, The lottery).
@@ -970,7 +976,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings) and the crawls.
-- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases).
+- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), his bucket list (see Bucket list), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 
