@@ -468,8 +468,9 @@ export class Game {
   /**
    * The creature at `place`, if one shows up, asked as a timed moment. His own
    * pick, the dice and the attribute a risky pick leans on are those of the
-   * moment it asks, as when Stats.meetAt settles it at once in the catch-up.
-   * Returns the creature, or null.
+   * moment it asks, as when Stats.meetAt settles it at once in the catch-up;
+   * like the place moments, its effect lands once it is answered, after the
+   * stop's activity started. Returns the creature, or null.
    */
   private askCreature(place: Place): Creature | null {
     const c = this.stats.creatureAt(place);

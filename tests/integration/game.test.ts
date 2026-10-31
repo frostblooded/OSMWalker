@@ -8,7 +8,8 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
-import type { Place } from "../../src/core/stats";
+import { type Place, Stats } from "../../src/core/stats";
+import { MOMENT_S } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
@@ -316,19 +317,49 @@ describe("game", () => {
     let t = 1_800_000_000;
     while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
     g.stats.now = () => t;
+    // The park's own moment skips this visit, not even settled by himself, so he walks on without another question.
+    const places: string[] = [];
+    const settle = g.stats.settleMoment.bind(g.stats);
+    g.stats.settleMoment = (m, ...rest) => {
+      places.push(m.id);
+      return settle(m, ...rest);
+    };
     for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
     expect(g.moment!.m.id).toBe("dryad");
     expect(g.moment!.m.ask).not.toContain("{PLACE}");
     g.settleMoment("acorn");
     await tick();
     expect(g.stats.history.entries.at(-1)!.text).toBe("🌳 Got an acorn from a dryad in Park Near");
-    // The park's own moment skips this visit, so he walks on without another question.
-    const opened: string[] = [];
     for (let i = 0; i < 400 && g.walker!.isResting(); i++) {
       g.step(1);
-      if (g.moment) opened.push(g.moment.m.id);
+      if (g.moment) places.push(g.moment.m.id);
     }
-    expect(opened).toEqual([]);
+    await tick();
+    expect(places).toEqual([]);
+  });
+
+  it("an untouched creature goes by his pick and Wits of when it asked, as away", async () => {
+    const BRIDGE: Place = { ...CAFE, name: "Old Bridge", class: "bridge", subclass: "bridge" };
+    // Several meeting times, so a pick or riddle worked out later, on his new Wits, would differ for some.
+    for (let n = 0, t = 1_800_000_000; n < 8; t += 60) {
+      if (meetingDice(t, BRIDGE.name).randf() >= CREATURE_CHANCE) continue;
+      n++;
+      const { g } = game({ places: [BRIDGE], moments: true });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.stats.cents = 100_000;
+      g.stats.now = () => t;
+      for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+      expect(g.moment!.m.id).toBe("troll");
+      // Away, he would settle it at once on what he is now.
+      const away = Object.assign(Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON()))), { creatureKinds: g.stats.creatureKinds });
+      const troll = g.stats.creatureKinds.find((c) => c.id === "troll")!;
+      const line = away.meet(troll, BRIDGE.name, away.creaturePick(troll, BRIDGE.name, t), { you: false, t, attr: (a) => away.attr(a) });
+      // Watched, his Wits soar while the sheet is open, then the bar runs out.
+      g.stats.addBuff({ name: "Sudden genius", min: 600, attrs: { wit: 100 } });
+      run(g, MOMENT_S);
+      await tick();
+      expect(g.stats.history.entries.map((e) => e.text)).toContain(line);
+    }
   });
 
   it("a police chase that starts at a creature's stop answers the creature himself, so he runs on", async () => {
