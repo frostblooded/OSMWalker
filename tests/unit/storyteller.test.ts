@@ -6,6 +6,7 @@ import { bboxAround } from "../../src/core/geo";
 import * as Inc from "../../src/core/incidents";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
+import { skyAt } from "../../src/core/sky";
 import { ATTRS, inTime, Stats, type Place } from "../../src/core/stats";
 import { FIRE_AT, FIRE_MAX, LUCKY_H, RECENT, STYLE, STYLES, Storyteller, TENSION_MAX, WEALTH_CAP, WEALTH_STEP } from "../../src/core/storyteller";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
@@ -238,7 +239,7 @@ describe("incidents in his life", () => {
       trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\n"), parseAirports("")),
       rng: new Rng(7),
       cardRng: new Rng(8),
-      hourAt: (ms) => new Date(ms).getUTCHours(),
+      skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
       roll: () => 0.99,
     });
     const told = sum.lines.filter((l) => icons.has([...l.text][0]!));

@@ -9,6 +9,7 @@ import { Rng, seedOf } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
 import { fare, MODES, parseCities, rideS, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
+import { hourSky } from "../support/sky";
 
 const DAY = 86_400;
 const T0 = 1_800_000_000;
@@ -83,7 +84,7 @@ describe("portals", () => {
 
   it("while away, a portal takes him to the new city like a ride, and he lives on there", () => {
     const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [{ ...ARCH, lat: 0.003 }, place("Cafe", "cafe", "cafe", 0, 0.003)] };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: TRIPS, rng: new Rng(7), hourAt: (ms: number) => new Date(ms).getUTCHours(), roll: () => 0.99 };
+    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: TRIPS, rng: new Rng(7), skyAt: hourSky((ms: number) => new Date(ms).getUTCHours()), roll: () => 0.99 };
     // A start whose day holds an open portal at the arch.
     let start = Date.UTC(2026, 9, 29, 8);
     let stats = new Stats();

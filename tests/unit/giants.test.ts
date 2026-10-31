@@ -9,6 +9,7 @@ import { Rng, seedOf } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
 import { parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
+import { hourSky } from "../support/sky";
 
 const T0 = 1_800_000_000;
 const DAY = 86_400;
@@ -81,7 +82,7 @@ describe("giants seen from afar", () => {
 
   it("while away he sees them at real places too", () => {
     const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [{ ...VIEW, lat: 0.003 }, place("Cafe", "cafe", "cafe", 0, 0.003)] };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0\t0\t1000\n")), rng: new Rng(7), hourAt: (ms: number) => new Date(ms).getUTCHours(), roll: () => 0.99 };
+    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0\t0\t1000\n")), rng: new Rng(7), skyAt: hourSky((ms: number) => new Date(ms).getUTCHours()), roll: () => 0.99 };
     const stats = new Stats();
     catchUp(stats, home, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 8), deps);
     expect(stats.giants.seen.giant).toBeGreaterThan(0);

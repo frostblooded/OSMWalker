@@ -2,10 +2,11 @@
 // saves are repaired on the way back in, and why one can't be read. The game
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
 // apart under SETTINGS_KEY, so New city keeps them; so does the name you
-// sign postcards with.
+// sign postcards with. The last weather forecast is kept under WEATHER_KEY.
 import { DebugLog, type Entry } from "../core/debugLog";
 import { Problems } from "../core/problems";
 import { Stats, type Place } from "../core/stats";
+import type { WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
 
@@ -14,6 +15,8 @@ export const SAVE_KEY = "osmwalker.save";
 export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
+/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands (the catch-up uses none). */
+export const WEATHER_KEY = "osmwalker.weather";
 export const DEFAULT_ZOOM = 17;
 
 export type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -151,6 +154,24 @@ export class SaveFile {
       return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma };
     } catch {
       return "Settings were unreadable; using defaults";
+    }
+  }
+
+  /** The last forecast, or null when there is none or it can't be read. */
+  readWeather(): WeatherForecast | null {
+    try {
+      const f = JSON.parse(this.kv?.getItem(WEATHER_KEY) ?? "null") as WeatherForecast | null;
+      return f && Array.isArray(f.t) && Array.isArray(f.code) && Array.isArray(f.temp) ? f : null;
+    } catch {
+      return null;
+    }
+  }
+
+  writeWeather(f: WeatherForecast): void {
+    try {
+      this.kv?.setItem(WEATHER_KEY, JSON.stringify(f));
+    } catch {
+      // Out of space: the forecast is fetched again next time.
     }
   }
 

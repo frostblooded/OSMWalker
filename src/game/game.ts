@@ -3,8 +3,9 @@
 // core/catchup.ts), loads streets as he
 // nears new ground, and now and then sends him on a trip to another city by
 // bus, plane or car (he walks to the station first and pays the fare there).
-// At each place he does an action that changes his stats. No DOM here: the
-// app calls step() and the screens read the state.
+// At each place he does an action that changes his stats. The sky over the
+// city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
+// here: the app calls step() and the screens read the state.
 import { Activities, choose, exploreWeight, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
@@ -17,6 +18,7 @@ import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
+import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
@@ -32,11 +34,13 @@ import type { Borders } from "../core/border";
 import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
+import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
+import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -77,7 +81,7 @@ export type GameDeps = {
   cardRng?: Rng;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   rollSource?: () => number;
-  /** The hour of day; tests pin it. */
+  /** The hour of day (the sun's and the clock's); tests pin it. */
   hour?: () => number;
   /** Unix ms now; tests move it on. */
   clock?: () => number;
@@ -127,6 +131,8 @@ export class Game {
   made: Record<string, Place[]> = {};
   /** What happened while the game was closed, for the summary card; null when there is nothing to show. */
   away: Summary | null = null;
+  /** Hourly weather for the city he is in (or was in), null until fetched. */
+  weather: WeatherForecast | null = null;
   /** True once the first wake has run, so screens know whether an away card is coming. */
   woke = false;
   /** True when this reopen earned a clover, for the summary card. */
@@ -156,6 +162,8 @@ export class Game {
   private madePending = false;
   private madeFailed = "";
   private severeLogged = new Set<string>();
+  private weatherBusy: Promise<void> | null = null;
+  private weatherRetryAt = 0;
   private readonly rng: Rng;
   /** Keepsake rolls, apart from `rng` so a card roll never uses up the dice for his goals, actions and trips. */
   private readonly cardRng: Rng;
@@ -173,6 +181,7 @@ export class Game {
     this.loader.onProblem = warn;
     deps.api.onProblem = warn;
     this.loadSettings();
+    this.weather = this.file.readWeather();
   }
 
   /** The bundled game data (actions, cities, airports). */
@@ -191,8 +200,40 @@ export class Game {
     for (const fn of this.listeners) fn();
   }
 
-  private hour(ms = this.now()): number {
-    return this.deps.hour?.() ?? new Date(ms).getHours();
+  /** The sun's hour that times of day go by (see core/sky.ts), from the sky kept on his stats. */
+  private hour(): number {
+    return (this.stats.sky ?? this.sky()).hour;
+  }
+
+  /** The sky over him now, or at unix ms over a city: weather only where the forecast is for, and none while he rides. */
+  sky(ms = this.now(), city = this.city, at: LatLon = this.origin): Sky {
+    const f = this.weather?.city === city ? this.weather : null;
+    const sky = skyAt(ms, at[0], at[1], f?.offsetS ?? offsetFromLon(at[1]), this.walker?.isTraveling() ? null : weatherAt(f, ms));
+    const pinned = this.deps.hour?.();
+    return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
+  }
+
+  /** Fetches the city's weather when the forecast is missing, for another city or over WEATHER_TTL_MS old. */
+  refreshWeather(): Promise<void> {
+    const now = this.now();
+    const fresh = this.weather?.city === this.city && now - this.weather.fetchedMs < WEATHER_TTL_MS;
+    if (!this.city || fresh || now < this.weatherRetryAt) return Promise.resolve();
+    this.weatherBusy ??= (async () => {
+      const city = this.city;
+      const f = await this.deps.api.weather(city, this.origin[0], this.origin[1], now);
+      this.weatherBusy = null;
+      if (!f) {
+        // The Api has logged why (a repeat right after the same line counts up), so he just goes on by the kept forecast.
+        this.weatherRetryAt = this.now() + WEATHER_RETRY_MS;
+        return;
+      }
+      if (city !== this.city) return;
+      this.weather = f;
+      this.file.writeWeather(f);
+      this.stats.sky = this.sky();
+      this.changed();
+    })();
+    return this.weatherBusy;
   }
 
   /** Unix ms now, by the game's clock. */
@@ -236,6 +277,7 @@ export class Game {
     this.country = this.trips.countryAt(lat, lon);
     this.origin = [lat, lon];
     this.placeStats();
+    this.stats.sky = this.sky();
     this.skipRoll = true;
     this.track();
     void this.learnCity(lat, lon);
@@ -249,7 +291,7 @@ export class Game {
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
-    w.need = (p) => needOf(this.activities.peek(p, this.country), this.stats, this.hour());
+    w.need = (p) => skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky);
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
       landed: (c, t) => this.onLanded(c, t),
@@ -306,6 +348,13 @@ export class Game {
   /** At a destination: a first-visit bonus, then an action he can do there, which sets how long he stays. */
   private onArrived(place: Place): void {
     this.track();
+    const sky = (this.stats.sky = this.sky());
+    if (!isOpen(place, sky.clock, sky.holiday)) {
+      this.stats.say(`Found ${place.name} closed`);
+      this.doing = null;
+      this.changed();
+      return;
+    }
     const bonus = this.stats.visit(place);
     this.stats.stop(place);
     this.stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
@@ -332,16 +381,16 @@ export class Game {
       return;
     }
     // Incidents roll on the card dice, so they leave his walk the same.
-    this.stats.happen(place, this.hour(), this.cardRng);
+    this.stats.happen(place, sky.hour, this.cardRng);
     // Quests roll on the card dice too; a quest step or event takes the place of an action.
-    const story = Q.questStop(this.stats, place, this.storyPlaces(), this.hour(), this.cardRng);
+    const story = Q.questStop(this.stats, place, this.storyPlaces(), sky.hour, this.cardRng);
     if (story !== null) {
       this.doing = { name: this.stats.quests.active ? "On a quest" : "Helping out", min: story };
       this.walker!.restFor(story);
       this.changed();
       return;
     }
-    const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, this.hour(), this.rng.randf());
+    const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -569,6 +618,7 @@ export class Game {
     this.placeStats();
     this.skipRoll = d.skipRoll;
     this.savedAt = d.savedAt;
+    this.stats.sky = this.sky();
     this.made = d.made;
     void this.learnCity(d.origin[0], d.origin[1]);
     this.changed();
@@ -594,6 +644,8 @@ export class Game {
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
+      // The catch-up takes no weather, so the reopen doesn't wait for it; it comes in for the watched game.
+      void this.refreshWeather();
       while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
         const here = w.position();
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
@@ -655,7 +707,7 @@ export class Game {
       trips: this.trips,
       rng: this.rng,
       cardRng: this.cardRng,
-      hourAt: (ms) => this.hour(ms),
+      skyAt: (ms, c) => this.sky(ms, c.name, c.center),
       roll: this.deps.rollSource,
       facts: this.cityFacts,
       skipRoll: this.skipRoll,
@@ -869,6 +921,8 @@ export class Game {
    * that the city has a way out and a way to earn money (severe if not).
    */
   private checkCity(): void {
+    this.stats.sky = this.sky();
+    void this.refreshWeather();
     const w = this.walker;
     if (!w || w.isTraveling()) {
       this.severeNow = [];

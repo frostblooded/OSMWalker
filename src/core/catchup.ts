@@ -7,10 +7,13 @@
 // may bring an incident at a stop (see storyteller.ts); he takes on quests
 // and joins world events as he would while watched (see quests.ts). In a city whose
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
-// in Lyon"). Pure: the game applies where he ends up.
+// in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
+// he is in. Pure: the game applies where he ends up.
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
+import { isOpen } from "./opening";
+import { skyNeed, type Sky } from "./sky";
 import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
@@ -59,8 +62,8 @@ export type CatchUpDeps = {
   rng: Rng;
   /** Rolls for keepsakes (cards and their finish), apart from `rng` so a card roll never uses up his other dice. */
   cardRng?: Rng;
-  /** The hour of day at unix ms, for actions that need a time of day. */
-  hourAt: (ms: number) => number;
+  /** The sky over `city` at unix ms: the time of day and season (the catch-up drops the weather). */
+  skyAt: (ms: number, city: AwayCity) => Sky;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   roll?: () => number;
   /** Trivia actions for the city he starts in. */
@@ -160,6 +163,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (text.startsWith("Bought")) s.bought.push(text);
   };
   const leftMin = () => (coveredS - elapsed) / 60;
+  /** The sky of the hour he is in: the sun, the season and opening hours count while away, the weather doesn't. */
+  const skyNow = () => (stats.sky = { ...deps.skyAt(startMs + elapsed * 1000, city), weather: null });
 
   /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
   const pass = (minutes: number, walkedM: number, afoot = false) => {
@@ -167,6 +172,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     while (left > 1e-9) {
       const m = Math.min(left, STEP_MIN);
       const w = (walkedM * m) / minutes;
+      skyNow();
       stats.passTime(m, w, afoot);
       if (w > 0) stats.walkFor(m, rng);
       elapsed += m * 60;
@@ -194,6 +200,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   const legMin = (leg: Leg) => (leg.airM / stats.speedMps() + leg.groundM / stats.speedMps(leg.afoot)) / 60;
   /** Goes a leg, or as far as the time left allows; false when time ran out first. */
   const walk = (leg: Leg) => {
+    skyNow();
     if (legMin(leg) > leftMin()) return false;
     if (leg.airM) pass(leg.airM / stats.speedMps() / 60, leg.airM);
     pass(leg.groundM / stats.speedMps(leg.afoot) / 60, leg.groundM, leg.afoot);
@@ -211,9 +218,25 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
       if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
+      if (!place) {
+        // Everything near is closed: like the walker, he heads for a random spot and walks on.
+        const spot = randomSpot(rng, city.bounds, here, heading);
+        if (!walk(legM(stats, here, spot, city.places))) break;
+        moveTo(null, spot);
+        yield;
+        continue;
+      }
       if (!walk(legM(stats, here, [place.lat, place.lon], city.places))) break;
       moveTo(place, [place.lat, place.lon]);
+      const sky = skyNow();
+      if (!isOpen(place, sky.clock, sky.holiday)) {
+        stats.say(`Found ${place.name} closed`);
+        pass(Math.min(restMinutes({ name: "", min: 1 }), leftMin()), 0);
+        yield;
+        continue;
+      }
       stats.stop(place);
       if (city.places) {
         const bonus = stats.visit(place);
@@ -232,7 +255,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (city.places) stats.magicAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
-      const nap = city.places ? stats.fairyAt(place, deps.hourAt(startMs + elapsed * 1000)) : 0;
+      const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;
       if (nap) {
         s.stops++;
         pass(Math.min(nap, leftMin()), 0);
@@ -247,15 +270,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, deps.hourAt(startMs + elapsed * 1000), cardRng);
+      stats.happen(place, sky.hour, cardRng);
       s.stops++;
-      const story = city.places ? questStop(stats, place, city.places, deps.hourAt(startMs + elapsed * 1000), cardRng) : null;
+      const story = city.places ? questStop(stats, place, city.places, sky.hour, cardRng) : null;
       if (story !== null) {
         pass(Math.min(story, leftMin()), 0);
         yield;
         continue;
       }
-      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, deps.hourAt(startMs + elapsed * 1000), rng.randf());
+      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
@@ -326,13 +349,13 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     skipRoll = true;
   }
 
-  /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded. */
-  function pickPlace(): Place {
+  /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded; null when every one is closed. */
+  function pickPlace(): Place | null {
     const real = city.places ?? [];
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
-    const hour = deps.hourAt(startMs + elapsed * 1000);
-    const need = flat.kinds.map((p) => needOf(activities.peek(p, city.code), stats, hour));
+    const sky = skyNow();
+    const need = flat.kinds.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
@@ -345,11 +368,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       any = true;
       return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
     });
-    if (any) return real[pickIndex(weights, r)]!;
+    const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
+    if (any) return pick(real, weights, r);
     const made = madeUp();
-    const madeNeed = made.map((p) => needOf(activities.peek(p, city.code), stats, hour));
+    const madeNeed = made.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
     const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
-    return made[pickIndex(made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade)]!;
+    return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }
 
   function madeUp(): Place[] {

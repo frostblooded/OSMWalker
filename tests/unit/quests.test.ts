@@ -8,6 +8,8 @@ import { Rng } from "../../src/core/rng";
 import { ATTRS, Stats, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
+import { skyAt } from "../../src/core/sky";
+import { hourSky } from "../support/sky";
 
 const BANK = JSON.parse(dataFile("quests.json")) as Q.Bank;
 const ACTIONS = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
@@ -155,6 +157,37 @@ describe("going on a quest", () => {
     expect(Q.questGoal(s, TOWN, HERE, new Rng(5))).not.toBeNull();
   });
 
+  it("waits for closed places: no giver or step there at night, and the quest holds until morning", () => {
+    const { s } = setup();
+    const at = (clock: number) => (s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock });
+    s.quests.since = 9;
+    at(23);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))).toBeNull();
+    expect(s.quests.active).toBeNull();
+    at(10);
+    const giver = Q.questGoal(s, TOWN, HERE, new Rng(4))!;
+    expect(giver.class).toBe("post");
+    Q.questStop(s, giver, TOWN, 12, new Rng(4));
+    at(21);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))).toBeNull();
+    expect(s.quests.active?.step).toBe(1);
+    at(9);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))?.class).toBe("cafe");
+  });
+
+  it("picks an open place for a step at night when one fits", () => {
+    const f = fresh({ names: ["Ana"], quests: [one({ steps: [{ at: ["post"], say: ["At {PLACE}."] }, { at: ["cafe", "bar"], say: ["At {PLACE}."] }] })], events: [] });
+    f.s.quests.roll("Testville", 300_000, TOWN, new Rng(3));
+    f.s.quests.since = 9;
+    f.s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock: 19 };
+    Q.questStop(f.s, Q.questGoal(f.s, TOWN, HERE, new Rng(4))!, TOWN, 12, new Rng(4));
+    f.s.sky = { ...f.s.sky, clock: 22 };
+    for (let seed = 1; seed <= 20; seed++) {
+      f.s.quests.active!.target = null;
+      expect(Q.questGoal(f.s, TOWN, HERE, new Rng(seed * 7919))?.class).toBe("bar");
+    }
+  });
+
   it("takes the quest you nudged first, without waiting", () => {
     const f = fresh({ names: ["Ana"], quests: [one({ id: "a" }), one({ id: "b" }), one({ id: "c" })], events: [] });
     f.s.quests.roll("Testville", 300_000, TOWN, new Rng(6));
@@ -231,6 +264,20 @@ describe("world events", () => {
     expect(s.quests.log.at(-1)).toMatchObject({ title: "Test event", event: true });
   });
 
+  it("never start at a closed place, and one that closes isn't picked until it opens", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [], events: [ev({ at: ["museum"] })] });
+    const museum = TOWN.find((p) => p.class === "museum")!;
+    s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock: 22 };
+    expect(Q.startEvent(s, null, museum, TOWN, 12, new Rng(8))).toBeNull();
+    s.sky = { ...s.sky, clock: 19 };
+    expect(Q.startEvent(s, null, museum, TOWN, 12, new Rng(8))).not.toBeNull();
+    s.sky = { ...s.sky, clock: 20 };
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))).toBeNull();
+    expect(s.quests.events).toHaveLength(1);
+    s.sky = { ...s.sky, clock: 8 };
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))?.name).toBe(museum.name);
+  });
+
   it("the one you nudged comes first, however far he has walked from it", () => {
     const { s } = fresh({ names: ["Ana"], quests: [], events: [ev()] });
     const far = place("Far Park", "park", 30);
@@ -275,7 +322,7 @@ describe("quests while he is away", () => {
     const box = bboxAround(HERE[0], HERE[1], 2000);
     const city: AwayCity = { name: "Testville, France", code: "FR", center: HERE, bounds: box, places: TOWN, pop: 300_000 };
     const trips = new Trips(parseCities(dataFile("cities.tsv")), parseAirports(dataFile("airports.tsv")));
-    const sum = catchUp(s, city, HERE, 12 * 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), hourAt: () => 12, roll: () => 0.999 });
+    const sum = catchUp(s, city, HERE, 12 * 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), skyAt: hourSky(() => 12), roll: () => 0.999 });
     expect(sum.lines.some((l) => l.text.includes("New quest"))).toBe(true);
     expect(s.quests.log.length).toBeGreaterThan(0);
   });
@@ -286,7 +333,7 @@ describe("quests while he is away", () => {
     s.quests.bank = BANK;
     const city: AwayCity = { name: "Testville, France", code: "FR", center: HERE, bounds: bboxAround(HERE[0], HERE[1], 2000), places: TOWN, pop: 300_000 };
     const trips = new Trips(parseCities(dataFile("cities.tsv")), parseAirports(dataFile("airports.tsv")));
-    catchUp(s, city, HERE, 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), hourAt: () => 12, roll: () => 0.999 });
+    catchUp(s, city, HERE, 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), skyAt: hourSky(() => 12), roll: () => 0.999 });
     expect(s.quests.rolled).toBe(true);
   });
 });

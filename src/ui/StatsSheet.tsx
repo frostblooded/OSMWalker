@@ -1,7 +1,7 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// six meters and Magic as bars, the spells he knows, four attributes with
-// what his gear adds, every gear slot, the bag and his buffs. Items with a
-// story open to show it. His records close it.
+// six meters and Magic as bars, the sky over him, the spells he knows,
+// four attributes with what his gear adds, every gear slot, the bag and his
+// buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -9,6 +9,9 @@ import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
+import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
+import type { Vehicle } from "../core/speeds";
+import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dist, speed } from "./format";
@@ -35,6 +38,32 @@ const SLOT: Record<Slot, [string, string]> = {
 };
 
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString();
+/** Hours as a 24-hour clock time. */
+const hhmm = (h: number) => {
+  const m = Math.round(h * 60) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+const cap = (t: string) => t[0]!.toUpperCase() + t.slice(1);
+
+function SkyCard({ sky, vehicle }: { sky: Sky; vehicle: Vehicle }) {
+  const w = sky.weather;
+  // What the weather does to him now, in short: speed, indoors, thirst, energy, mood.
+  const fx = [
+    speedShare(sky, vehicle) < 1 && `speed ${Math.round(SNOW_SPEED * 100)}%`,
+    isWet(sky) && `indoors, mood −${WET_MOOD_PER_H}/h`,
+    isHot(sky) && `thirst ×${HOT_THIRST}`,
+    isCold(sky) && `energy −${COLD_ENERGY_PER_H}/h`,
+    isSunny(sky) && `mood +${SUNNY_MOOD_PER_H}/h`,
+  ].filter(Boolean);
+  return (
+    <Card icon="🌦" title="Sky" right={`${SEASON_ICON[sky.season]} ${cap(sky.season)}`}>
+      <KV k="Weather" v={w ? `${skyIcon(sky)} ${cap(w.kind)}, ${Math.round(w.tempC)}°C` : <span class="dim">Unknown yet</span>} />
+      <KV k="🕒 City time" v={hhmm(sky.clock)} />
+      <KV k="🌅 Sunrise · sunset" v={`${hhmm(sky.rise)} · ${hhmm(sky.set)}`} />
+      {fx.length > 0 && <KV k="✨ Weather does" v={fx.join(" · ")} tone={isSunny(sky) ? "ok" : "warning"} />}
+    </Card>
+  );
+}
 
 function ItemName({ item }: { item: Item }) {
   return (
@@ -169,6 +198,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           </div>
         </div>
       </Card>
+      {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
       <Spells stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">

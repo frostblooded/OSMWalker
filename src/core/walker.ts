@@ -27,6 +27,8 @@ export const SPEED_MPS = 200 / 60;
 export const REST_M = SPEED_MPS * 60;
 /** Close enough to a destination to call it reached. */
 export const ARRIVE_M = 30;
+/** Why he walks to a random spot when every place near him is closed: normal at night, not a warning. */
+export const ALL_CLOSED = "every place near enough is closed";
 /** Destinations come from the searched place's box, kept between these sizes. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
@@ -198,22 +200,24 @@ export class Walker {
       options = options.filter((q) => distanceM(p[0], p[1], q.lat, q.lon) > ARRIVE_M);
     }
     info.too_close = (info.in_box as number) - options.length;
-    if (options.length > 0) {
-      // Need depends only on the kind of place, so it is worked out once per kind.
-      const kinds = new Map<string, Need>();
-      const needs = options.map((q) => {
-        const k = kindOf(q);
-        let v = kinds.get(k);
-        if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
-        return v;
-      });
-      const [keep, r] = urgentRules(needs, this.rng.randf());
-      let pairs = options.map((q, i) => [q, needs[i]!] as const);
-      if (keep) {
-        pairs = pairs.filter(([, v]) => keep(v));
-        info.urgent_fixes = pairs.length;
-      }
-      const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
+    const near = options.length;
+    // Need depends only on the kind of place, so it is worked out once per kind.
+    const kinds = new Map<string, Need>();
+    const needs = options.map((q) => {
+      const k = kindOf(q);
+      let v = kinds.get(k);
+      if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
+      return v;
+    });
+    const [keep, r] = urgentRules(needs, this.rng.randf());
+    let pairs = options.map((q, i) => [q, needs[i]!] as const);
+    if (keep) {
+      pairs = pairs.filter(([, v]) => keep(v));
+      info.urgent_fixes = pairs.length;
+    }
+    const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
+    // Closed places weigh nothing; when every one is closed he walks to a spot.
+    if (parts.some((w) => w.weight > 0)) {
       const weights = parts.map((w) => w.weight);
       const i = pickIndex(weights, r);
       const [pl, need] = pairs[i]!;
@@ -233,8 +237,9 @@ export class Walker {
     const spot = this.randomSpot();
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : `every loaded place is within ${ARRIVE_M} m of him`;
-    this.events.problem?.(`Picked a random spot: ${info.fallback}`);
+    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? ALL_CLOSED : `every loaded place is within ${ARRIVE_M} m of him`;
+    // Night closures are normal, not a problem worth a warning.
+    if (!near) this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);
   }
 

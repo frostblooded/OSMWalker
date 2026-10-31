@@ -7,6 +7,7 @@ import { BRICKS_PER_DAY } from "../../src/core/bricks";
 import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
+import { skyAt } from "../../src/core/sky";
 import { HITCH_BELOW, HOSTEL_CENTS, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
@@ -29,7 +30,7 @@ function deps(o: Partial<CatchUpDeps> = {}): CatchUpDeps {
     activities: new Activities(JSON.parse(dataFile("actions.json"))),
     trips: new Trips(parseCities(CITIES), parseAirports(AIRPORTS)),
     rng: new Rng(7),
-    hourAt: (ms) => new Date(ms).getUTCHours(),
+    skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
     roll: () => 0.99,
     ...o,
   };
@@ -377,5 +378,66 @@ describe("catch-up", () => {
     const s = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps());
     expect(s.firstVisits).toBeLessThanOrEqual(PLACES.length);
     expect(s.lines.filter((l) => l.text.includes(`(+${FIRST_VISIT_XP} XP)`)).length).toBe(s.firstVisits);
+  });
+
+  it("lives by the sky: closed shops at night, hour by hour", () => {
+    const shops: AwayCity = { ...HOME, places: [place("Shoe Shop", "shop", "shoes", 0.003, 0), place("Shoe Shop Two", "shop", "shoes", 0, 0.004)] };
+    const night = Date.UTC(2026, 9, 29, 22);
+    const seen: number[] = [];
+    const s = catchUp(new Stats(), shops, [0, 0], 4 * 3600, night, deps({ skyAt: (ms, c) => (seen.push(ms), skyAt(ms, c.center[0], c.center[1], 0, { kind: "snow", tempC: -3 })) }));
+    expect(s.walkedM).toBeGreaterThan(0);
+    // Every place is closed, so he walks to random spots: no stops, no made-up places.
+    expect(s.stops).toBe(0);
+    expect(s.lines.filter((l) => l.text.startsWith("Reached"))).toEqual([]);
+    expect(Math.max(...seen)).toBeGreaterThan(night + 3 * 3600_000);
+  });
+
+  it("finds a shop closed when it shuts while he walks there, and it isn't a stop", () => {
+    const shop: AwayCity = { ...HOME, places: [place("Shoe Shop", "shop", "shoes", 0.003, 0)] };
+    // Picked open at 19:59, reached after 20:00.
+    const s = catchUp(new Stats(), shop, [0, 0], 30 * 60, Date.UTC(2026, 9, 29, 19, 59), deps({ skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null) }));
+    expect(s.lines.map((l) => l.text)).toContain("Found Shoe Shop closed");
+    expect(s.lines.some((l) => l.text.startsWith("Reached Shoe Shop"))).toBe(false);
+    // Stops count only the places he reached.
+    expect(s.stops).toBe(s.lines.filter((l) => /^Reached (?!level )/.test(l.text)).length);
+  });
+
+  it("lets a quest step at a closed place wait for it to open, instead of going back all night", () => {
+    const stats = new Stats();
+    const shop = place("Shoe Shop", "shop", "shoes", 0.003, 0);
+    const town: AwayCity = { ...HOME, places: [shop, place("Duck Park", "park", "park", 0, 0.003)] };
+    stats.quests.city = town.name;
+    stats.quests.rolled = true;
+    const at = { name: shop.name, class: shop.class, subclass: shop.subclass, lat: shop.lat, lon: shop.lon };
+    stats.quests.active = { key: "k", kind: "none", giver: "Ana", item: 0, twist: 0, at, step: 0, target: at };
+    const s = catchUp(stats, town, [0, 0], 3 * 3600, Date.UTC(2026, 9, 29, 22), deps({ skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null) }));
+    expect(s.lines.some((l) => l.text.includes("Shoe Shop"))).toBe(false);
+    expect(s.lines.some((l) => l.text.startsWith("Reached Duck Park"))).toBe(true);
+    expect(stats.quests.active?.key).toBe("k");
+  });
+
+  it("doesn't let a closed fix for an urgent need hold him: he goes where it's open", () => {
+    const stats = new Stats();
+    stats.meters.fullness = 0;
+    // Hungry at 23:00, and the only food is a bakery shut for the night.
+    const town: AwayCity = { ...HOME, places: [place("Night Bakery", "bakery", "bakery", 0.003, 0), place("Duck Park", "park", "park", 0, 0.003)] };
+    const s = catchUp(stats, town, [0, 0], 2 * 3600, Date.UTC(2026, 9, 29, 23), deps());
+    expect(s.lines.some((l) => l.text.startsWith("Reached Duck Park"))).toBe(true);
+    expect(s.lines.some((l) => l.text.startsWith("Reached Night Bakery"))).toBe(false);
+  });
+
+  it("leaves the weather out while away, on foot and on rides alike", () => {
+    const seen: boolean[] = [];
+    class Watched extends Stats {
+      override passTime(minutes: number, walkedM: number, afoot?: boolean): void {
+        seen.push(!!this.sky?.weather);
+        super.passTime(minutes, walkedM, afoot);
+      }
+    }
+    const hot = { kind: "clear" as const, tempC: 35 };
+    const s = catchUp(new Watched(), HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1, skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, hot) }));
+    expect(s.lines.some((l) => l.text.startsWith("Took the"))).toBe(true);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.filter(Boolean)).toEqual([]);
   });
 });

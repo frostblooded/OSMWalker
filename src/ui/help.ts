@@ -32,10 +32,12 @@ import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
 import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
+import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
+import * as Sky from "../core/sky";
 import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
@@ -48,6 +50,7 @@ import * as Kit from "../core/travelKit";
 import * as Townies from "../core/townies";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Weather from "../core/weather";
 import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
@@ -547,6 +550,29 @@ export function values(data: GameData): Record<string, string> {
     CARDS_SHOWN: String(K.CARDS_SHOWN),
     FEAT_LIST: Collection.FEATS.map(featLine).join("\n").replace(/,$/, "."),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
+    SKY_ACTIONS: String(Object.values(data.actions).reduce((n, list) => n + list.filter((a) => a.needs?.season || a.needs?.weather).length, 0)),
+    SUNRISE_AT: `${String(Sky.SUNRISE_H).padStart(2, "0")}:00`,
+    SUNSET_AT: `${String(Sky.SUNSET_H).padStart(2, "0")}:00`,
+    HALF_DAY_H: num(Sky.SUNSET_H - Sky.SUNRISE_H),
+    OPEN_H: `${String(Opening.OPEN_H).padStart(2, "0")}:00`,
+    CLOSE_H: `${String(Opening.CLOSE_H).padStart(2, "0")}:00`,
+    HOT_C: num(Sky.HOT_C),
+    HOT_THIRST: num(Sky.HOT_THIRST),
+    COLD_C: num(Sky.COLD_C),
+    COLD_ENERGY_PER_H: num(Sky.COLD_ENERGY_PER_H),
+    WET_MOOD_PER_H: num(Sky.WET_MOOD_PER_H),
+    SUNNY_MOOD_PER_H: num(Sky.SUNNY_MOOD_PER_H),
+    SUNNY_MIN_C: num(Sky.SUNNY_MIN_C),
+    SNOW_SPEED_PCT: pct(Sky.SNOW_SPEED),
+    WET_OUTDOOR: num(Sky.WET_OUTDOOR),
+    WET_SHELTER: num(Sky.WET_SHELTER),
+    HOT_COOL: num(Sky.HOT_COOL),
+    MIN_DAY_H: num(Sky.MIN_DAY_H),
+    MAX_DAY_H: num(Sky.MAX_DAY_H),
+    TROPICS_LAT: num(Sky.TROPICS_LAT),
+    NIGHT_SHADE_PCT: pct(Sky.NIGHT_SHADE),
+    NIGHT_DEG: num(-Sky.NIGHT_DEG),
+    WEATHER_TTL_MIN: num(Weather.WEATHER_TTL_MS / 60_000),
     TENSION_MAX: num(Story.TENSION_MAX),
     STORY_RATES: Story.STYLES.map((k) => `${Story.STYLE[k].icon} ${Story.STYLE[k].name} ${num(Story.STYLE[k].per_h)}`).join(", "),
     STORY_BAD: Story.STYLES.map((k) => `${Story.STYLE[k].name} ${pct(Story.STYLE[k].bad)}`).join(", "),

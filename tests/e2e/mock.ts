@@ -19,6 +19,10 @@ export const STYLE = {
   ],
 };
 
+/** Light rain at 9°C in Sofia, a day either side of now. */
+const hours = Array.from({ length: 72 }, (_, i) => Math.floor(Date.now() / 3600_000) * 3600 - 24 * 3600 + i * 3600);
+const RAIN = { utc_offset_seconds: 7200, hourly: { time: hours, temperature_2m: hours.map(() => 9), weather_code: hours.map(() => 61) } };
+
 export type Mock = { asked: string[] };
 
 export async function mockServices(context: BrowserContext, opts: { failSearch?: boolean } = {}): Promise<Mock> {
@@ -42,6 +46,7 @@ export async function mockServices(context: BrowserContext, opts: { failSearch?:
     }
     if (url.includes("/planet/test/")) return route.fulfill({ body: Buffer.alloc(0) }); // other zooms: nothing to draw
     if (url.startsWith("https://query.wikidata.org/")) return route.fulfill({ json: { results: { bindings: [] } } });
+    if (url.startsWith("https://api.open-meteo.com/")) return route.fulfill({ json: RAIN });
     return route.fulfill({ status: 404 });
   });
   return { asked };

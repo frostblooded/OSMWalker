@@ -26,6 +26,23 @@ test("picks a city and walks its streets", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("shows the weather in his city on the top card and the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".pill.sky")).toHaveText("🌧 9°", { timeout: 10000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.locator(".card", { hasText: "Sky" })).toContainText("Rain, 9°C");
+});
+
+test("shades the map after dark and not by day", async ({ page }) => {
+  // 22:30 in Sofia, long after sunset.
+  await page.clock.setFixedTime(new Date("2026-10-29T20:30:00Z"));
+  await startInSofia(page);
+  await expect(page.locator(".night")).toHaveCSS("opacity", "0.45");
+  await page.clock.setFixedTime(new Date("2026-10-29T10:00:00Z"));
+  await expect(page.locator(".night")).toHaveCount(0, { timeout: 5000 });
+});
+
 test("on a dragon he can feed, it shows at his side", async ({ page }) => {
   await startInSofia(page);
   // He starts with enough money to feed it, so it eats as soon as he sets off.

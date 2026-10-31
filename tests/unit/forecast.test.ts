@@ -5,6 +5,7 @@ import { Activities } from "../../src/core/activities";
 import { catchUp } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
+import { skyAt } from "../../src/core/sky";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 import * as S from "../../src/core/stats";
@@ -107,7 +108,7 @@ describe("daily forecast", () => {
       activities: new Activities(JSON.parse(dataFile("actions.json"))),
       trips: new Trips(parseCities(""), parseAirports("")),
       rng: new Rng(1),
-      hourAt: (ms) => new Date(ms).getUTCHours(),
+      skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
       roll: () => 0.99,
     });
     expect(seen.length).toBeGreaterThan(10);
