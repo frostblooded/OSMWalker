@@ -867,8 +867,9 @@ export class Stats {
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
-  visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string }): number {
-    this.sayIf(this.spots.visit(this.where.city, place));
+  visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string; made?: unknown }): number {
+    // Only a real place can be his spot.
+    if (!place.made) this.sayIf(this.spots.visit(this.where.city, place));
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);

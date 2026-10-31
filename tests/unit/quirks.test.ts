@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { minded, placePull } from "../../src/core/activities";
 import { NO_NEED } from "../../src/core/goals";
+import { spotIcons } from "../../src/core/mapIcons";
 import * as Q from "../../src/core/quirks";
 import * as Sp from "../../src/core/spot";
 import { Rng } from "../../src/core/rng";
@@ -71,6 +72,14 @@ describe("his spot", () => {
     expect(s.pull(CITY, place("Other", "cafe"), 8)).toBe(1);
   });
 
+  it("shows a house icon on the map, only once he has one", () => {
+    const s = new Sp.Spots();
+    const a = place("Cafe A", "cafe");
+    expect(spotIcons(s.spot(CITY))).toEqual([]);
+    for (let i = 0; i < Sp.SPOT_MIN; i++) s.visit(CITY, a);
+    expect(spotIcons(s.spot(CITY))).toEqual([{ id: "spot", at: [1, 2], icon: "home", label: "His spot: Cafe A", kind: "place" }]);
+  });
+
   it("keeps SPOT_KEEP places a city", () => {
     const s = new Sp.Spots();
     for (let i = 0; i < Sp.SPOT_KEEP + 5; i++) s.visit(CITY, place(`P${i}`, "cafe", 1 + i / 100));
@@ -100,6 +109,12 @@ describe("through Stats", () => {
     const s = at();
     for (let i = 0; i < 5; i++) s.wakeInHospital("City Hospital");
     expect(s.quirks.have).toEqual(["hospital"]);
+  });
+
+  it("a made-up place never becomes his spot", () => {
+    const s = at();
+    for (let i = 0; i < Sp.SPOT_MIN; i++) s.visit({ ...place("a cafe in Sofia", "cafe"), made: true });
+    expect(s.spots.spot(CITY)).toBeNull();
   });
 
   it("visits make his spot, which pulls in the morning and costs less", () => {
