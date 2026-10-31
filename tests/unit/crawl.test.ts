@@ -1,5 +1,6 @@
 // Ruin crawls: rooms passed by attribute rolls, turning back on a fail, loot that gets rarer with depth, once a week per place, and saves.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { FEATS } from "../../src/core/collection";
 import * as C from "../../src/core/crawl";
 import { CRAWL_EVERY_S, getCrawler, isRuin, LOG_SIZE, Ruins, setCrawler, type Log } from "../../src/core/ruins";
 import { Rng } from "../../src/core/rng";
@@ -107,6 +108,14 @@ describe("Ruins", () => {
     expect(r.count).toBe(LOG_SIZE + 2);
     r.done("late", log(CRAWL_EVERY_S + 20));
     expect(Object.keys(r.last)).toEqual(["late"]);
+  });
+
+  it("the Delver badge counts every crawl of his life", () => {
+    const s = new Stats();
+    const delver = FEATS.find((f) => f.id === "ruins")!;
+    expect(delver.count(s)).toBe(0);
+    for (let i = 0; i < LOG_SIZE + 1; i++) s.ruins.done(`p${i}`, log(i));
+    expect(delver.count(s)).toBe(LOG_SIZE + 1);
   });
 
   it("round-trips through JSON, and stats saved before ruins load with none", () => {
