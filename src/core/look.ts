@@ -3,6 +3,7 @@
 // and while he stays somewhere a pose for what he does there (zZz, steam, a
 // note).
 import { NEED_AT } from "./activities";
+import { AURA_AT } from "./repute";
 import type { Vehicle } from "./speeds";
 import { ATTRS, DIRTY_AT, TIRED_ENERGY, type Action, type Attr, type Meter } from "./stats";
 
@@ -14,8 +15,14 @@ export const LOW_MOOD = 30;
 
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
-/** `mount`: the fantasy mount he rides, beside his face, or "". */
-export type Look = { face: string; bubble: string; pose: Pose | null; mount: string };
+/** `mount`: the fantasy mount he rides, beside his face, or "". `aura`: a halo or horns at very good or very bad karma (repute.ts AURA_AT). */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; aura?: Aura };
+export type Aura = "halo" | "horns";
+
+/** A halo at karma AURA_AT or more, horns at -AURA_AT or less. */
+export function aura(karma: number): Aura | undefined {
+  return karma >= AURA_AT ? "halo" : karma <= -AURA_AT ? "horns" : undefined;
+}
 type Kind = { class: string; subclass: string };
 
 /** Fantasy mounts show beside his face; everyday vehicles don't. */
@@ -102,7 +109,8 @@ export function pose(a: Action, cls: string): Pose {
 }
 
 /** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about. */
-export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = ""): Look {
+export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = "", karma = 0): Look {
   const p = doing ? pose(doing, goal?.class ?? "") : null;
-  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "" };
+  const a = aura(karma);
+  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "", ...(a ? { aura: a } : {}) };
 }

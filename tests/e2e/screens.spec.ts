@@ -91,6 +91,18 @@ test("Stats shows his level, meters, attributes and gear", async ({ page }) => {
   await expect(sheet).toBeHidden();
 });
 
+test("A wanted walker shows his stars on the top card, a halo of good karma, and his Reputation on the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".pill.wanted")).toHaveCount(0);
+  await reopenWith(page, "d.stats.law = { heat: 45, topStars: 2 }; d.stats.bond.lean = 80;");
+  await expect(page.locator(".pill.wanted")).toHaveText("🚨 ★★", { timeout: 20000 });
+  await expect(page.locator(".marker.him .aura.halo")).toBeVisible();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  for (const t of ["Reputation", "😇 Kind (+80 of ±100)", "Fame here", "Stranger", "−5%", "2 of 5 stars", "Paying it off"]) await expect(sheet).toContainText(t);
+});
+
 test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {
   await startInSofia(page);
   await reopenWith(page, `${KEEPSAKES} d.stats.keepsakes.title = "Globetrotter";`);

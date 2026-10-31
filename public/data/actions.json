@@ -2389,6 +2389,23 @@
    "fx": {
     "xp": 5
    }
+  },
+  {
+   "name": "Pay off his bounty",
+   "min": 10,
+   "bounty": true,
+   "fx": {
+    "xp": 5
+   }
+  },
+  {
+   "name": "Help find a lost dog",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "xp": 15
+   },
+   "deed": 1
   }
  ],
  "fire_station": [
@@ -2410,6 +2427,16 @@
     "cha": 0.2,
     "xp": 15
    }
+  },
+  {
+   "name": "Volunteer for the street clean-up",
+   "min": 45,
+   "fx": {
+    "mood": 10,
+    "str": 0.1,
+    "xp": 15
+   },
+   "deed": 1
   }
  ],
  "laundry": [
@@ -3120,6 +3147,16 @@
     "cha": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/shoes": [
@@ -3160,6 +3197,16 @@
     "cha": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/sports": [
@@ -3198,6 +3245,16 @@
    "fx": {
     "mood": 10,
     "cha": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
     "xp": 5
    }
   }
@@ -3271,6 +3328,16 @@
     "cha": 3
    },
    "deed": -1
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/watches": [
@@ -3342,6 +3409,16 @@
     "mood": 4
    },
    "pack": true
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/second_hand": [
@@ -3385,6 +3462,16 @@
     "cha": 3
    },
    "deed": -1
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/charity": [

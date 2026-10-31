@@ -54,6 +54,7 @@ export class MapView implements MapPort {
   private him!: Marker;
   private pin!: Marker;
   private rival!: Marker;
+  private police!: Marker;
   private following = true;
   /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
   autoFollow = true;
@@ -111,6 +112,7 @@ export class MapView implements MapPort {
     this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
     this.rival = new ml.Marker({ element: markerEl("rival", RIVAL_ICON), anchor: "center" }).setLngLat([center[1], center[0]]);
+    this.police = new ml.Marker({ element: markerEl("police", "🚓"), anchor: "center" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
         this.following = false;
@@ -209,11 +211,14 @@ export class MapView implements MapPort {
    * GPU is idle again after a few seconds.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.aura ?? ""}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
     const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
+    const aura = el.querySelector<HTMLElement>(".aura")!;
+    aura.className = `aura ${l.aura ?? ""}`;
+    aura.hidden = !l.aura;
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
@@ -247,6 +252,14 @@ export class MapView implements MapPort {
       return;
     }
     this.rival.setLngLat([at[1], at[0]]).addTo(this.map);
+  }
+
+  setPolice(at: LatLon | null): void {
+    if (!at) {
+      this.police.remove();
+      return;
+    }
+    this.police.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
   /** Shows or hides his trail and the History markers. */
@@ -414,7 +427,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head and his fantasy mount, if any, at his side. */
+/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side, and a halo or horns at very good or bad karma. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -426,7 +439,10 @@ function himMarker(): HTMLElement {
   const mount = document.createElement("span");
   mount.className = "mount";
   mount.hidden = true;
-  el.append(face, bubble, mount);
+  const aura = document.createElement("span");
+  aura.className = "aura";
+  aura.hidden = true;
+  el.append(face, bubble, mount, aura);
   return el;
 }
 

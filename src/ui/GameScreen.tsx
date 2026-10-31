@@ -138,6 +138,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
+              {h.wanted > 0 && (
+                <span class="pill wanted" title="Wanted by the police">
+                  🚨 {"★".repeat(h.wanted)}
+                </span>
+              )}
               {h.sky && (
                 <span class="pill sky">
                   {h.sky.icon}

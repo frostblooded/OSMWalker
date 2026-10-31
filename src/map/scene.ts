@@ -28,6 +28,8 @@ export interface MapPort {
   setGoal(at: LatLon | null): void;
   /** Viktor, his rival, while he is about. */
   setRival(at: LatLon | null): void;
+  /** The police car, during a chase. */
+  setPolice(at: LatLon | null): void;
   setTrip(path: LatLon[] | null): void;
   showTrail(on: boolean): void;
   setTrail(key: string, segments: () => LatLon[][]): void;
@@ -88,6 +90,7 @@ export class MapScene {
     v.setLook(look(g));
     v.setGoal(g.goalTarget());
     v.setRival(g.rivalAt());
+    v.setPolice(g.policeAt());
     v.setTrip(w.travel ? w.travel.path : null);
     const h = g.stats.history;
     v.setTrail(`${h.id}:${h.trailVersion}`, () => h.segments());

@@ -217,7 +217,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, stats.bond.leaning());
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -266,6 +266,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       if (door) {
         s.stops++;
         landIn(door, "portal", place.lon, [door.lat, door.lon], 0);
+        yield;
+        continue;
+      }
+      // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
+      const chase = stats.reputeAt(place);
+      const jail = chase ? stats.runChase(chase, place.name) : 0;
+      if (jail) {
+        s.stops++;
+        pass(Math.min(jail, leftMin()), 0);
         yield;
         continue;
       }

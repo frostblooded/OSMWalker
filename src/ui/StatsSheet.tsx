@@ -1,13 +1,16 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // six meters and Magic as bars, the sky over him, the spells he knows,
-// four attributes with what his gear adds, every gear slot, the bag and his
-// buffs. Items with a story open to show it. His records close it.
+// four attributes with what his gear adds, his karma, fame and the police,
+// every gear slot, the bag and his buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
+import { FAME_NAMES } from "../core/fame";
+import { LEAN_MAX } from "../core/bond";
+import { payoffOf, STARS_MAX } from "../core/repute";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -155,6 +158,27 @@ function Records({ stats: s }: { stats: Stats }) {
 }
 
 /** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
+const LEAN_WORD = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
+
+/** His karma, how well this city knows him, what it does to prices, and the police. */
+function Repute({ stats: s }: { stats: Stats }) {
+  const lean = s.bond.lean;
+  const off = s.shopDiscount();
+  const law = s.law;
+  const stars = law.stars();
+  return (
+    <Card icon="⚖" title="Reputation" right={stars ? <span class="tone-error">🚨 {"★".repeat(stars)}</span> : undefined}>
+      <KV k="Karma" v={`${LEAN_WORD[s.bond.leaning()]} (${lean > 0 ? "+" : ""}${Math.round(lean)} of ±${LEAN_MAX})`} />
+      <Bar share={(lean + LEAN_MAX) / (2 * LEAN_MAX)} color={lean < 0 ? "var(--error)" : "var(--ok)"} />
+      <KV k="⭐ Fame here" v={`${FAME_NAMES[s.fame.tier(s.here())]} (${Math.floor(s.fame.points(s.here()))})`} />
+      <KV k="🏷 Prices" v={off ? `${off > 0 ? "−" : "+"}${Math.round(Math.abs(off) * 100)}%` : "As listed"} tone={off < 0 ? "error" : off > 0 ? "ok" : undefined} />
+      <KV k="🚨 Wanted" v={stars ? `${stars} of ${STARS_MAX} stars` : "No"} tone={stars ? "error" : undefined} />
+      {stars > 0 && <KV k="🚓 Paying it off" v={euro(payoffOf(law.heat))} />}
+      {law.chases > 0 && <KV k="Chases" v={`${law.chases}: got away ${law.escapes + law.bribes}, caught ${law.caught}, jailed ${law.jailed}`} />}
+    </Card>
+  );
+}
+
 export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: boolean }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);
@@ -221,6 +245,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
         {s.meters.hygiene < DIRTY_AT && <p class="small tone-warning">🧼 Dirty: Charm counts less and mood drains.</p>}
       </Card>
+      <Repute stats={s} />
       <Card icon="🛡" title="Gear">
         <div class="zebra">
           {SLOTS.map((slot) => {

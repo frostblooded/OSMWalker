@@ -20,6 +20,7 @@ import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
+import * as R from "../../src/core/repute";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -236,6 +237,37 @@ describe("game", () => {
     expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
     r.seenUntil = 2_000_000_000;
     expect(g.rivalAt()).toBeNull();
+  });
+
+  it("in a police chase the car follows the streets he ran, catching up, until the chase ends by his own pick", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.stats.bond.lean = 100;
+    const spot = vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => R.chaseMoment(g.stats.him()));
+    for (let i = 0; i < 400 && !g.chase; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    expect(spot).toHaveBeenCalled();
+    const start = g.policeAt()!;
+    expect(start).not.toBeNull();
+    for (let i = 0; i < R.CHASE_S - 1; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    const near = g.policeAt()!;
+    const him = g.walker!.position();
+    expect(Math.hypot(near[0] - him[0], near[1] - him[1])).toBeLessThan(Math.hypot(start[0] - him[0], start[1] - him[1]) + 1e-9);
+    now += 2000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.policeAt()).toBeNull();
+    expect(g.stats.law.chases).toBe(1);
+    // A saint gives himself up and pays.
+    expect(g.stats.law.caught).toBe(1);
+    expect(g.stats.law.heat).toBe(0);
   });
 
   it("switches the storyteller from the menu and keeps it in the save", async () => {

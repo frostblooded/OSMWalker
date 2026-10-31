@@ -40,7 +40,7 @@ export const RASCAL_SELL = 1.15;
 export const DODGE_CHANCE = 0.25;
 export const CAUGHT_CHANCE = 0.3;
 export const FINE_MULT = 2;
-/** A kind walker's kind deeds weigh this much more when he picks what to do. */
+/** A kind walker's kind deeds, and a rascal's rascal deeds, weigh this much more when he picks what to do. */
 export const KIND_DEED_WEIGHT = 2;
 
 export type Lean = "kind" | "rascal" | "";

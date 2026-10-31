@@ -3,7 +3,7 @@
 // places we have no actions for yet and "_spot" for random spots.
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
-// Picks an action he can do, leaning towards what he needs.
+// Picks an action he can do, leaning towards what he needs and his karma.
 import { KIND_DEED_WEIGHT } from "./bond";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
@@ -11,6 +11,8 @@ import { ATTRS, visitKey, type Action, type Attr, type Meter, type Place, type S
 
 export type ActionTable = Record<string, Action[]>;
 
+/** Extra weight for paying off the police, once he can (see Stats.canPayOff), so he does it when he gets to a police station. */
+export const BOUNTY_WEIGHT = 20;
 /** Every action takes this many minutes, whatever its listed time, so he is never still for long. */
 export const MAX_MINUTES = 1;
 /** Below this many cents (€20) he looks for work and avoids spending. */
@@ -155,6 +157,8 @@ export function weight(action: Action, stats: Stats): number {
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
   if (action.sell) w += 2;
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
+  if (action.deed! < 0 && stats.bond.leaning() === "rascal") w += KIND_DEED_WEIGHT;
+  if (action.bounty) w += BOUNTY_WEIGHT;
   if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
@@ -211,10 +215,12 @@ export function choose(actions: Action[], stats: Stats, hour: number, roll: numb
   return options.at(-1) ?? null;
 }
 
-/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. */
+/** While he follows a whisper to explore, a real place he has never been to pulls EXPLORE_PULL times as hard. While he is wanted enough to pay off the police and can, police stations pull PAYOFF_PULL times as hard. */
 export const EXPLORE_PULL = 3;
+export const PAYOFF_PULL = 20;
 export function exploreWeight(p: Place, stats: Stats): number {
-  return stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
+  const explore = stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
+  return explore * (p.class === "police" && stats.canPayOff() ? PAYOFF_PULL : 1);
 }
 
 export function restMinutes(_action: Action): number {

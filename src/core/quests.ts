@@ -65,6 +65,8 @@ export type QuestKind = {
   title: string;
   /** Light fantasy: rarer, see FANTASY_SHARE. */
   fantasy?: boolean;
+  /** Only on the board while he leans this way (see repute.ts). */
+  side?: "kind" | "rascal";
   time?: TimeOfDay;
   /** {ITEM} in the lines is one of these. */
   items: string[];
@@ -169,8 +171,8 @@ export class Quests {
     return { icon: k.icon, title: k.title, text: fill(k.steps[0]!.say[0]!, { giver: o.giver, item: k.items[o.item], place: o.at.name, town }) };
   }
 
-  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded; a new city drops the old board, events and quest at once. */
-  roll(city: string, pop: number, places: readonly Place[], rng: Rng): void {
+  /** Rolls the board of `city` (of `pop` people) from its loaded `places`, once enough are loaded, with only the kind or rascal quests that fit his `lean`; a new city drops the old board, events and quest at once. */
+  roll(city: string, pop: number, places: readonly Place[], rng: Rng, lean = ""): void {
     if (this.city !== city) {
       // Another city's board, events and quest stay behind (a free ride can take him away mid-quest).
       this.city = city;
@@ -196,6 +198,7 @@ export class Quests {
       const k = rng.pick(this.bank.quests);
       if (used.has(k.id) && used.size < this.bank.quests.length) continue;
       if (k.fantasy && fantasy >= Math.floor(n * FANTASY_SHARE)) continue;
+      if (k.side && k.side !== lean) continue;
       const givers = k.steps[0]!.at.flatMap((key) => byKind.get(key) ?? []);
       if (!givers.length) continue;
       const giver = rng.pick(this.bank.names);
@@ -448,6 +451,7 @@ export function check(bank: Bank, keys: Set<string>, attrs: readonly string[]): 
       if (!s.say.length) out.push(`${q.id}: a step with nothing to say`);
     }
     if (!attrs.includes(q.lean)) out.push(`${q.id}: lean ${q.lean}`);
+    if (q.side && q.side !== "kind" && q.side !== "rascal") out.push(`${q.id}: side ${q.side}`);
     if (q.reward.item && !(q.reward.item in Items.KINDS)) out.push(`${q.id}: item kind ${q.reward.item}`);
   }
   const events = new Set(bank.events.map((e) => e.id));

@@ -21,7 +21,9 @@ import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
+import type { Moment } from "../core/moments";
 import { Problems } from "../core/problems";
+import * as R from "../core/repute";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
@@ -106,6 +108,8 @@ export class Game {
   cityFacts: Action[] = [];
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
+  /** A police chase under way: the timed moment, where it began, when it ends (ms) and the streets he ran since, once a second. Not saved. */
+  chase: { m: Moment; place: string; ends: number; trail: LatLon[] } | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -330,6 +334,7 @@ export class Game {
       this.checkTimer = 0;
       this.checkCity();
       this.checkLey();
+      this.checkChase();
       this.rollBoard();
     }
     this.saveTimer += dt;
@@ -378,6 +383,15 @@ export class Game {
       this.stats.care.guess = null;
       this.stats.history.breakTrail();
       this.walker!.rideNow(door, "portal");
+      return;
+    }
+    // The police roll their own dice; a chase takes the place of an action, and he runs on.
+    const chase = this.chase ? null : this.stats.reputeAt(place);
+    if (chase) {
+      const at = this.walker!.position();
+      this.chase = { m: chase, place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
+      this.doing = null;
+      this.changed();
       return;
     }
     // Incidents roll on the card dice, so they leave his walk the same.
@@ -559,6 +573,35 @@ export class Game {
     this.debugLog = new DebugLog();
     this.city = "";
     this.file.clear();
+    this.changed();
+  }
+
+  /** Where the police car is during a chase: on the streets he ran, catching up with him as the chase runs out; null otherwise. */
+  policeAt(): LatLon | null {
+    const c = this.chase;
+    if (!c) return null;
+    const p = Math.min(Math.max(1 - (c.ends - this.now()) / (R.CHASE_S * 1000), 0), 1);
+    const f = (c.trail.length - 1) * p;
+    const i = Math.floor(f);
+    const a = c.trail[i]!;
+    const b = c.trail[Math.min(i + 1, c.trail.length - 1)]!;
+    return [a[0] + (b[0] - a[0]) * (f - i), a[1] + (b[1] - a[1]) * (f - i)];
+  }
+
+  /** Once a second in a chase: notes where he ran, and when it runs out, ends it; caught short of money, he sits in jail (a stop, like any other, while you watch). */
+  private checkChase(): void {
+    const c = this.chase;
+    const w = this.walker;
+    if (!c || !w) return;
+    if (!w.isTraveling()) c.trail.push(w.position());
+    if (this.now() < c.ends) return;
+    this.chase = null;
+    // Until the timed choices can ask you, he takes his own pick.
+    const jail = this.stats.runChase(c.m, c.place);
+    if (jail && !w.isTraveling()) {
+      this.doing = { name: "In jail", min: jail };
+      w.restFor(jail);
+    }
     this.changed();
   }
 
@@ -1022,7 +1065,7 @@ export class Game {
     const q = this.stats.quests;
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
-    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng);
+    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng, this.stats.bond.leaning());
     if (q.rev !== rev) this.changed();
   }
 
