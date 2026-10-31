@@ -126,6 +126,7 @@ describe("the incident deck", () => {
     expect(Inc.pick(deck, "bad", castle, inTime, fixed(0.99 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("plain");
     expect(Inc.pick(deck, "bad", castle, inTime, fixed(1.01 / (1 + Inc.LEGEND_WEIGHT)))!.id).toBe("ghost");
     expect(Inc.check([card({ id: "x", legend: true })], new Set(), ATTRS)).toEqual(["x: a legend needs night and places"]);
+    expect(Inc.check([card({ id: "s", stray: "owl" as "dog" })], new Set(), ATTRS)).toEqual(["s: no pet kind owl"]);
   });
 
   it("plays a card out: money, meters and a feed line with the place", () => {

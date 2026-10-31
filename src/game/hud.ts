@@ -107,8 +107,9 @@ export function doing(g: Game): string {
 /** His face, bubble and pose: the goal's kind while he walks, what he does while he stays, nothing on a trip. */
 export function look(g: Game): Looks.Look {
   const w = g.walker!;
-  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "" };
-  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout());
+  const pet = g.stats.pets.icon();
+  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "", pet };
+  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout(), pet);
 }
 
 /** What the city sound plays now. */

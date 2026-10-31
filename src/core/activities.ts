@@ -204,6 +204,12 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
+/** `need` with its pull times how his wants and fears pull him to a place of `p`'s kind (see mind.ts). */
+export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
+  const m = stats.mind.pull(p.class);
+  return m === 1 ? need : { ...need, pull: need.pull * m };
+}
+
 /** True while any meter he feels (see Stats.felt) is under URGENT_AT, so he stays to fix it rather than set off on a trip. */
 export function anyUrgent(stats: Stats): boolean {
   return (Object.keys(stats.meters) as Meter[]).some((m) => stats.felt(m) < URGENT_AT);

@@ -3,6 +3,8 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bills from "../core/bills";
+import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Chron from "../core/chronicle";
@@ -12,6 +14,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Mind from "../core/mind";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -34,6 +37,7 @@ import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
 import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
+import * as Pet from "../core/pet";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
@@ -57,6 +61,7 @@ import * as Weather from "../core/weather";
 import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
+import * as Words from "../core/words";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -246,6 +251,31 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    VISA_LIST: Visas.VISAS.map((v) => `- ${v.name}${v.from ? ` (after ${v.from} days)` : " (at first)"}: ${v.stay === Infinity ? "stays as long as he likes" : `stays of up to ${v.stay} days`}, ${v.pay ? `+${pct(v.pay)}` : "no extra"} pay`).join("\n"),
+    VISA_URGE: num(Visas.VISA_URGE),
+    VISA_PAY_MAX: pct(Visas.VISAS.at(-1)!.pay),
+    VISA_PUSH: num(Visas.VISA_PUSH),
+    BILLS_L1: euro(Bills.billsAt(1)),
+    BILLS_L10: euro(Bills.billsAt(10)),
+    BILLS_L30: euro(Bills.billsAt(30)),
+    ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
+    PET_FOOD: euro(Pet.PET_FOOD),
+    PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
+    PET_MOOD_PER_LEVEL: num(Pet.PET_MOOD_PER_LEVEL),
+    PET_KM_2: num(Pet.kmFor(2)),
+    PET_KM_3: num(Pet.kmFor(3)),
+    PET_MAX_LEVEL: num(Pet.PET_MAX_LEVEL),
+    PET_KM_MAX: num(Pet.kmFor(Pet.PET_MAX_LEVEL)),
+    DOG_FIND_PCT: pct(Pet.DOG_FIND_PER_LEVEL),
+    CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
+    PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
+    PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
+    PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
+    PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
+    MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
@@ -376,6 +406,24 @@ export function values(data: GameData): Record<string, string> {
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
+    WANT_PULL: num(Mind.WANT_PULL),
+    FEAR_PULL: num(Mind.FEAR_PULL),
+    SHORT_H: num(Mind.SHORT_H),
+    SHAKE_H: num(Mind.SHAKE_H),
+    FEAR_PCT: pct(Mind.FEAR_CHANCE),
+    MAX_FEARS: String(Mind.MAX_FEARS),
+    MAX_MOODLETS: String(Mind.MAX_MOODLETS),
+    WANT_XP_LONG: String(Mind.WANT_XP.long),
+    WANT_XP_SHORT: String(Mind.WANT_XP.short),
+    WANT_XP_SHAKE: String(Mind.WANT_XP.shake),
+    WANT_XP_FACE: String(Mind.WANT_XP.face),
+    WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
+    WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    WISH_MOOD_SHAKE: `+${Mind.WANT_MOOD.shake[0]} an hour for ${Mind.WANT_MOOD.shake[1]} hours`,
+    RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
+    SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
+    FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
+    LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
@@ -547,6 +595,12 @@ export function values(data: GameData): Record<string, string> {
     JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
     JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
+    WORD_COUNTRIES: num(Object.keys(data.words?.countries ?? {}).length),
+    WORD_LANGUAGES: num(Object.keys(data.words?.languages ?? {}).length),
+    WORD_EACH: num(Math.round(Object.values(data.words?.languages ?? {}).reduce((n, l) => n + l.words.length, 0) / Math.max(Object.keys(data.words?.languages ?? {}).length, 1))),
+    WORD_PCT: pct(Words.LEARN_CHANCE),
+    WORD_WIT: num(Words.WORD_WIT),
+    WORD_XP: num(Words.WORD_XP),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),

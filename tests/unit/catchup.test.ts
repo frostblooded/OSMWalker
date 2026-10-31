@@ -211,6 +211,19 @@ describe("catch-up", () => {
     expect(s.lines.some((l) => l.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
   });
 
+  it("leans abroad on the last day of his visa, as in a watched trip", () => {
+    const away = (lastDay: boolean) => {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      stats.visas.enter("AAA");
+      if (lastDay) stats.visas.stay = 3;
+      let rolls = 0;
+      return catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.05) })).lines.map((l) => l.text);
+    };
+    expect(away(false).some((t) => t.startsWith("Took the bus to Nexttown"))).toBe(true);
+    expect(away(true).some((t) => t.startsWith("Took the plane to Farcity"))).toBe(true);
+  });
+
   it("packs a travel kit as he boards, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 500_000;
@@ -319,16 +332,13 @@ describe("catch-up", () => {
   });
 
   it("draws no Magic and learns no spells at made-up churches and libraries", () => {
-    // A few days' dice, so some reach a made-up church or library.
-    let reached = false;
-    for (const seed of [7, 8, 9]) {
-      const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
-      catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps({ rng: new Rng(seed) }));
-      reached ||= stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text));
-      expect(stats.magic).toBe(0);
-      expect(stats.lore.known).toEqual([]);
-    }
-    expect(reached).toBe(true);
+    const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    // He wants a library all day, so his day surely holds one; every line counts, not only the feed's last ones.
+    stats.mind.wants = [{ kind: "long", place: "library", until: 0 }, { kind: "short", place: "library", until: START_MS / 1000 + 48 * 3600 }];
+    const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(s.lines.some((l) => /^Reached a (church|library) in /.test(l.text))).toBe(true);
+    expect(stats.magic).toBe(0);
+    expect(stats.lore.known).toEqual([]);
   });
 
   it("builds no monument at made-up places, which are no real parks", () => {
