@@ -222,6 +222,7 @@ export function values(data: GameData): Record<string, string> {
     CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
     PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
     PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
     PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
     PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
     MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),

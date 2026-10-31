@@ -710,7 +710,7 @@ It grows a level with the km it walks at his side, on foot or by bike; on other 
 - 🐕 a dog sniffs out money on the street: {DOG_FIND_PCT} likelier a level (see Luck),
 - 🐈 a cat keeps mishaps away: mishaps and bad incidents {CAT_RISK_PCT} rarer a level.
 
-From level {PET_FAIRY_LEVEL}, at a real castle or old monument, {PET_FAIRY_PCT} of the time it shows what it really is: a dog was a 🐺 cù sìth, a fairy hound, and a cat a 🐈‍⬛ cat sìth. From then on its perk counts twice.
+From level {PET_FAIRY_LEVEL}, at a real castle or old monument, {PET_FAIRY_PCT} of the time it shows what it really is: a dog was a 🐺 cù sìth, a fairy hound, and a cat a 🐈‍⬛ cat sìth. From then on its perk counts {PET_FAIRY_MULT} times as much.
 
 A pet lives with him for {PET_LIFE_MIN} to {PET_LIFE_MAX} days. Then it passes away in its sleep (a fairy one goes back to the hills), he misses it ({MISSING_MOOD_PER_H} mood an hour for {PET_MISSING_H} hours), and a new stray may stay. The Stats sheet shows his pet, and the ones he had under Remembered.
 # 📱 Screens and buttons

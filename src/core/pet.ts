@@ -23,9 +23,10 @@ export const PET_MAX_LEVEL = 10;
 /** A dog makes money on the street this much likelier per level; a cat makes mishaps this much rarer per level. */
 export const DOG_FIND_PER_LEVEL = 0.05;
 export const CAT_RISK_PER_LEVEL = 0.02;
-/** From this level, at a real old place (see FAIRY_AT) it may show its fairy self, this often per stop; that doubles its perk. */
+/** From this level, at a real old place (see FAIRY_AT) it may show its fairy self, this often per stop; that multiplies its perk by FAIRY_PERK_MULT. */
 export const FAIRY_LEVEL = 8;
 export const FAIRY_CHANCE = 0.1;
+export const FAIRY_PERK_MULT = 2;
 /** Place classes where the old folk live: castles (ruins too) and old monuments. */
 export const FAIRY_AT = ["castle", "monument"];
 /** How many days a pet lives with him, rolled when it stays. */
@@ -96,10 +97,10 @@ export class Pets {
     return p ? (p.fairy ? KINDS[p.kind].fairy.icon : KINDS[p.kind].icon) : "";
   }
 
-  /** How much its perk counts: its level, doubled once it is a fairy creature. */
+  /** How much its perk counts: its level, times FAIRY_PERK_MULT once it is a fairy creature. */
   private perk(kind: PetKind): number {
     const p = this.pet;
-    return p?.kind === kind ? this.level() * (p.fairy ? 2 : 1) : 0;
+    return p?.kind === kind ? this.level() * (p.fairy ? FAIRY_PERK_MULT : 1) : 0;
   }
 
   /** Multiplies his chance to find money on the street. */

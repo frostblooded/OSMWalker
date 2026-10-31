@@ -120,7 +120,7 @@ describe("his pet", () => {
     expect(s!.pets.pet!.fairy).toBe(true);
     expect(s!.pets.title()).toMatch(/the cù sìth$/);
     expect(s!.pets.icon()).toBe(Pt.KINDS.dog.fairy.icon);
-    expect(s!.pets.findMult()).toBeCloseTo(1 + 2 * Pt.FAIRY_LEVEL * Pt.DOG_FIND_PER_LEVEL);
+    expect(s!.pets.findMult()).toBeCloseTo(1 + Pt.FAIRY_PERK_MULT * Pt.FAIRY_LEVEL * Pt.DOG_FIND_PER_LEVEL);
     expect(s!.history.latest()).toMatch(/was a cù sìth all along$/);
   });
 
