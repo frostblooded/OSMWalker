@@ -502,10 +502,10 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 
 Once there is an heir, every card in the Collection says which walker of the family found it. Near the end of the Stats sheet is the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. Below it, the hall of walkers compares them (see Hall of walkers).
 ## Hall of walkers {hall}
-Once there is an heir, the Stats sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. The records are:
+Once there is an heir, the Stats sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
 {HALL_LIST}
 
-He counts as he is now, so he can take a record from an ancestor while you watch; on a tie the walker who got there first keeps it. For each walker it counts the km he walked in his life, his level and his Records (see Records). A walker who retired before the hall only counts for distance, level and cities. Each record he takes from the walkers before him counts for the 🏛 Pride of the family badge (see Badges and titles). The hall is only for looking: nothing changes how he lives.
+He counts as he is now, so he can take a record from an ancestor while you watch; on a tie the walker who got there first keeps it, and a record no walker has above 0 says nobody yet. For each walker it counts the km he walked in his life, his level and his Records (see Records). A walker who retired before the hall only counts for distance, level and cities. Each record he takes from the walkers before him counts for the 🏛 Pride of the family badge (see Badges and titles). The hall is only for looking: nothing changes how he lives.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).

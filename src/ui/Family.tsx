@@ -4,11 +4,11 @@
 // retires; and the hall of walkers (core/hall.ts). Part of the Stats sheet's
 // chunk and the farewell's own.
 import { useState } from "preact/hooks";
-import { hall } from "../core/hall";
+import { hall, heldBy, LIFE_ROWS, type HallRow } from "../core/hall";
 import * as L from "../core/life";
 import { euro } from "../core/money";
 import type { Stats } from "../core/stats";
-import { Card, KV } from "./kit";
+import { Card, Collapsible, KV } from "./kit";
 
 const TIER_WORD = { good: "Good", fine: "Fine", poor: "Poor" } as const;
 const TIER_TONE = { good: "ok", fine: undefined, poor: "warning" } as const;
@@ -105,18 +105,19 @@ export function FamilyTree({ life, level, city }: { life: L.Life; level: number;
   );
 }
 
-/** The family's records and who holds each, his own in green; only once there is an heir. */
+/** The family's records and who holds each, his own in green; only once there is an heir. His life's four first, his Records' bests folded below (see Records). */
 export function Hall({ stats: s }: { stats: Stats }) {
   if (!s.life.family.length) return null;
   const rows = hall(s);
-  const mine = rows.filter((r) => r.gen === s.life.gen).length;
+  const row = (r: HallRow) => (
+    <KV key={r.id} k={`${r.icon} ${r.name}`} v={r.gen ? `${r.text} · ${L.walkerName(r.gen)}` : <span class="dim">nobody yet</span>} tone={r.gen === s.life.gen ? "ok" : undefined} />
+  );
   return (
-    <Card icon="🏛" title="Hall of walkers" right={`${mine} / ${rows.length} his`}>
-      <div class="zebra">
-        {rows.map((r) => (
-          <KV key={r.id} k={`${r.icon} ${r.name}`} v={`${r.text} · ${L.walkerName(r.gen)}`} tone={r.gen === s.life.gen ? "ok" : undefined} />
-        ))}
-      </div>
+    <Card icon="🏛" title="Hall of walkers" right={`${heldBy(s).length} / ${rows.length} his`}>
+      <div class="zebra">{rows.slice(0, LIFE_ROWS).map(row)}</div>
+      <Collapsible title="Bests">
+        <div class="zebra">{rows.slice(LIFE_ROWS).map(row)}</div>
+      </Collapsible>
     </Card>
   );
 }

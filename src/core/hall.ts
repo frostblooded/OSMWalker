@@ -1,6 +1,7 @@
 // The hall of walkers (Godville's pantheons, with no server): his family's
 // records compared across its walkers. Each record names the walker who
-// holds it, the first to reach it on a tie, with him counting as he is now.
+// holds it, the first to reach it on a tie, with him counting as he is now;
+// a record nobody has above 0 has no holder yet.
 // Ancestors from before the hall only have what the family tree kept.
 import { euro } from "./money";
 import { type Best, span } from "./records";
@@ -25,6 +26,10 @@ export const HALL: { id: string; icon: string; name: string; of: (w: Walker) => 
   { id: "noFaintS", icon: "❤", name: "Longest without fainting", of: best("noFaintS"), show: span },
 ];
 
+/** The first rows are his whole life (km, countries, cities, level); the rest are his Records' bests. */
+export const LIFE_ROWS = 4;
+
+/** `gen` 0 while no walker has any of it yet. */
 export type HallRow = { id: string; icon: string; name: string; gen: number; value: number; text: string };
 
 /** Him as the hall counts him now. */
@@ -36,13 +41,12 @@ function me(s: Stats): Walker {
 export function hall(s: Stats): HallRow[] {
   const all: Walker[] = [...s.life.family, me(s)];
   return HALL.map((h) => {
-    let gen = all[0]!.gen;
-    let value = -1;
+    let gen = 0;
+    let value = 0;
     for (const w of all) {
       const v = h.of(w);
       if (v !== undefined && v > value) [gen, value] = [w.gen, v];
     }
-    value = Math.max(value, 0);
     return { id: h.id, icon: h.icon, name: h.name, gen, value, text: h.show(value) };
   });
 }
@@ -51,6 +55,6 @@ export function hall(s: Stats): HallRow[] {
 export function heldBy(s: Stats): string[] {
   if (!s.life.family.length) return [];
   return hall(s)
-    .filter((r) => r.gen === s.life.gen && r.value > 0)
+    .filter((r) => r.gen === s.life.gen)
     .map((r) => r.id);
 }

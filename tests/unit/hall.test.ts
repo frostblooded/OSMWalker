@@ -39,10 +39,18 @@ describe("hall of walkers", () => {
     expect(rows.countries).toMatchObject({ gen: 2, value: 1 });
   });
 
-  it("has the first walker hold every record alone, so he holds none over a family", () => {
+  it("gives a record nobody has above 0 no holder, and the first walker holds none over a family", () => {
     const s = new Stats();
-    expect(hall(s).every((r) => r.gen === 1)).toBe(true);
+    const rows = Object.fromEntries(hall(s).map((r) => [r.id, r]));
+    expect(rows.level!.gen).toBe(1);
+    expect(rows.cents).toMatchObject({ gen: 0, value: 0 });
     expect(heldBy(s)).toEqual([]);
+    // An heir on his first day, after an ancestor from before the hall: the bests have no holder yet.
+    const { countries: _c, best: _b, ...old } = OLD;
+    s.life.gen = 2;
+    s.life.family = [old];
+    expect(heldBy(s)).toEqual([]);
+    expect(hall(s).find((r) => r.id === "noFaintS")!.gen).toBe(0);
   });
 
   it("keeps his countries and bests on the family tree when he retires", () => {
