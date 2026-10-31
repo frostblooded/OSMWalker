@@ -329,6 +329,17 @@ describe("save file", () => {
     expect(back.pantry.dishes).toEqual([]);
   });
 
+  it("loads saves from before the bucket list: an empty list that fills on the next new day or city", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.bucket;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.bucket.toJSON()).toEqual({ list: [], done: [] });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

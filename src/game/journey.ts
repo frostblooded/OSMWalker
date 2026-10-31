@@ -8,7 +8,7 @@ import type { Entry } from "../core/debugLog";
 import { euro } from "../core/money";
 import type { Rng } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
-import { cityBounds, heading, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
+import { cityBounds, cityKey, heading, isPlan, NO_PLACES_BOOST, roll, tripWeight, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
 
 /** Where he is when a trip comes up. */
 export type Where = { here: LatLon; city: string; country: string; places: Place[]; noPlaces: boolean };
@@ -50,7 +50,7 @@ export class Journey {
     const kind = roll(r, boost, abroad);
     this.log = { roll: r, boost, ...(abroad > 1 ? { abroad } : {}), outcome: kind };
     if (kind === "stay") return null;
-    const found = this.destination(kind, at);
+    const found = this.destination(kind, at, stats);
     if (!found) return null;
     const dest = { ...found, bounds: cityBounds(found) };
     const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
@@ -88,7 +88,7 @@ export class Journey {
   /** Debug: a city of `kind` to land in right now (with its city box), or null when there is none. */
   pickNow(kind: "city" | "country", at: Where, stats: Stats): City | null {
     this.log = {};
-    const dest = this.destination(kind, at);
+    const dest = this.destination(kind, at, stats);
     if (!dest) return null;
     setOff(stats, `Set off for ${dest.name}, ${dest.country}`);
     return { ...dest, bounds: cityBounds(dest) };
@@ -102,17 +102,18 @@ export class Journey {
   }
 
   /** A city for a trip of `kind`, with how many there were and its odds noted for the log. */
-  private destination(kind: Kind, at: Where): City | null {
+  private destination(kind: Kind, at: Where, stats: Stats): City | null {
     const { trips, rng } = this.deps;
+    const pull = (c: City) => stats.bucket.pull(cityKey(c));
     const opts = trips.options(kind, at.country, at.here[0], at.here[1]);
-    const dest = trips.pick(kind, at.country, at.here[0], at.here[1], rng);
+    const dest = trips.pick(kind, at.country, at.here[0], at.here[1], rng, pull);
     if (!dest) {
       this.log.no_trip = "no other city to go to";
       this.deps.problem(`A trip was rolled but there is no city to go to from ${at.city}`);
       return null;
     }
-    const total = opts.reduce((a, c) => a + c.pop, 0);
-    Object.assign(this.log, { options: opts.length, chance: dest.pop / Math.max(total, 1) });
+    const total = opts.reduce((a, c) => a + tripWeight(c, pull), 0);
+    Object.assign(this.log, { options: opts.length, chance: tripWeight(dest, pull) / Math.max(total, 1) });
     return dest;
   }
 

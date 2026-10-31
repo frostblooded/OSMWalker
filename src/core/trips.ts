@@ -301,9 +301,9 @@ export class Trips {
     return this.cities.filter((c) => (c.code === country) === (kind === "city") && distanceM(lat, lon, c.lat, c.lon) >= SAME_CITY_M);
   }
 
-  /** A city for a trip of `kind`, weighted by population, or null when there is nowhere to go. */
-  pick(kind: Kind, country: string, lat: number, lon: number, rng: Rng): City | null {
-    return byPop(this.options(kind, country, lat, lon), rng);
+  /** A city for a trip of `kind`, weighted by population times `pull` (his bucket list's, see bucket.ts), or null when there is nowhere to go. */
+  pick(kind: Kind, country: string, lat: number, lon: number, rng: Rng, pull: Pull = noPull): City | null {
+    return byPop(this.options(kind, country, lat, lon), rng, pull);
   }
 
   /** A city anywhere he has never been (`been` says which he has), weighted by population, or null when he has been everywhere. */
@@ -315,12 +315,18 @@ export class Trips {
   }
 }
 
-/** One of `opts`, weighted by population, or null when there are none. */
-function byPop(opts: City[], rng: Rng): City | null {
+/** How much more than its size a city weighs as a destination. */
+export type Pull = (c: City) => number;
+const noPull: Pull = () => 1;
+/** A city's weight as a destination: its population times `pull`. */
+export const tripWeight = (c: City, pull: Pull = noPull) => c.pop * pull(c);
+
+/** One of `opts`, weighted by population times `pull`, or null when there are none. */
+function byPop(opts: City[], rng: Rng, pull: Pull = noPull): City | null {
   if (opts.length === 0) return null;
-  let r = rng.randf() * opts.reduce((acc, c) => acc + c.pop, 0);
+  let r = rng.randf() * opts.reduce((acc, c) => acc + tripWeight(c, pull), 0);
   for (const c of opts) {
-    r -= c.pop;
+    r -= tripWeight(c, pull);
     if (r < 0) return c;
   }
   return opts[opts.length - 1]!;

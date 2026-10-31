@@ -5,6 +5,7 @@
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
 import * as Biz from "../core/business";
+import * as Bucket from "../core/bucket";
 import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
@@ -882,6 +883,12 @@ export function values(data: GameData): Record<string, string> {
     TICKET_BACK_MAX: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.LUCK_MULT_MAX)),
     QUEST_PRACTICE_MIN: num(Skills.QUEST_PRACTICE_MIN),
     BIG_MATCH: num(Lot.BIG_MATCH),
+    BUCKET_SIZE: num(Bucket.BUCKET_SIZE),
+    GOAL_LIST: Bucket.listOf(Bucket.GOALS.map((d) => d.text[0]!.toLowerCase() + d.text.slice(1))),
+    SIGHT_COUNT: num(Bucket.SIGHTS.length),
+    DREAM_XP: num(Bucket.DREAM_XP),
+    DREAM_MOOD: num(Bucket.DREAM_MOOD),
+    DREAM_PULL: num(Bucket.DREAM_PULL),
     SKILL_MAX: num(Skills.SKILL_MAX),
     SKILL_STEP: num(Skills.SKILL_STEP),
     SKILL_L4: num(Skills.stepsTo(4)),

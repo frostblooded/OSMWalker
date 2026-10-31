@@ -4,6 +4,7 @@
 // Gold gives him a title. A new feature adds its SETS and FEATS here, and the
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
+import { DREAMS } from "./bucket";
 import { BUSINESSES } from "./business";
 import { listOf, RECIPES } from "./cooking";
 import { dayOf } from "./gifts";
@@ -372,6 +373,20 @@ export const SETS: CSet[] = [
     facts: (s) => [["💵 Taken in", euro(s.business.earned)]],
   },
   {
+    id: "dreams",
+    tab: "world",
+    icon: "📝",
+    title: "Bucket list",
+    entries: (s) =>
+      DREAMS.map((d) => {
+        const done = s.bucket.done.find((x) => x.id === d.id);
+        const on = s.bucket.list.includes(d.id);
+        const where = d.city?.split(",")[0];
+        return { id: d.id, icon: d.icon, name: d.text, got: !!done, info: done ? `Ticked off${done.city ? ` in ${done.city.split(",")[0]}` : ""}` : on ? "On his list now" : where ? `In ${where}` : "Some day" };
+      }),
+    facts: (s) => [["📝 Ticked off", `${s.bucket.done.length} / ${DREAMS.length}`]],
+  },
+  {
     id: "repute",
     tab: "world",
     icon: "⚖",
@@ -425,6 +440,7 @@ export const FEATS: Feat[] = [
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
   { id: "shares", tab: "world", icon: "🏠", name: "Regular", what: "{n} shares in his spots", tiers: [1, 3, 10], title: "Shareholder", count: (s) => s.business.shares.length },
+  { id: "dreamer", tab: "world", icon: "📝", name: "Dreamer", what: "{n} dreams ticked off his bucket list", tiers: [1, 10, 30], title: "Dreamer", count: (s) => s.bucket.done.length },
   { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },

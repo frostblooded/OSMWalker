@@ -132,7 +132,8 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   await sheet.getByRole("tab", { name: /Places/ }).click();
   for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /World/ }).click();
-  await sheet.getByRole("button", { name: /^All/ }).last().click();
+  // The Souvenirs card's All, after the Countries card's.
+  await sheet.getByRole("button", { name: /^All/ }).nth(1).click();
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
   await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
