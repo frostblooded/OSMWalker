@@ -113,7 +113,11 @@ describe("the bundled moments", () => {
 
   it("tempt him only through `rascal`: a choice's one shady option is its rascal, never his default or lean", () => {
     for (const [k, m] of Object.entries(moments)) {
-      if (m.game) continue;
+      // A mini-game's result is luck or skill, never a deed: no outcome of one costs karma.
+      if (m.game) {
+        for (const [id, o] of Object.entries(m.outcomes)) expect(o.fx?.karma ?? 0, `${k}.${id}`).toBeGreaterThanOrEqual(0);
+        continue;
+      }
       const shady = m.options.filter((o) => (m.outcomes[o.id]!.fx?.karma ?? 0) < 0).map((o) => o.id);
       expect(shady, k).toEqual(m.rascal ? [m.rascal] : []);
       if (m.rascal) expect([m.default, m.options[0]!.id], k).not.toContain(m.rascal);
