@@ -24,6 +24,7 @@ import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { TOP_RANK, type Careers } from "../core/careers";
 import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
 import { LANG_LEVELS, LANGS_SHOWN } from "../core/languages";
 import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
@@ -283,6 +284,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="Weekly bills" v={euro(billsAt(s.level))} />
       </Card>
       <QuestCard q={s.quests} now={s.now()} />
+      <CareersCard c={s.careers} />
       {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
           {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
@@ -405,6 +407,30 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
             <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : e.event ? "dim" : "tone-error"}>{e.good ? "✔ Went well" : e.event ? "Went badly" : "✖ Failed"}</span>} />
           ))}
         </div>
+      )}
+    </Card>
+  );
+}
+
+/** His careers, most shifts first: his title and rank, and the way to the next rank. Past SHOWN the rest fold away. */
+function CareersCard({ c }: { c: Careers }) {
+  const list = c.worked();
+  const row = (k: (typeof list)[number]) => {
+    const st = c.standing(k);
+    return (
+      <div key={k.id} class="meter">
+        <KV k={`${k.icon} ${k.name} · ${st.title}`} v={st.left ? `${st.left} shift${st.left > 1 ? "s" : ""} to go` : "Top rank"} />
+        <Bar share={st.share} />
+      </div>
+    );
+  };
+  return (
+    <Card icon="🪜" title="Careers" right={list.length ? `Rank ${c.standing(list[0]!).rank} / ${TOP_RANK}` : undefined}>
+      {list.length ? <div class="meters">{list.slice(0, SHOWN).map(row)}</div> : <p class="dim small">No shifts yet. He finds work as he goes.</p>}
+      {list.length > SHOWN && (
+        <Collapsible title="More" right={list.length - SHOWN}>
+          <div class="meters">{list.slice(SHOWN).map(row)}</div>
+        </Collapsible>
       )}
     </Card>
   );

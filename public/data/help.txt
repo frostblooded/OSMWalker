@@ -190,7 +190,7 @@ An action can:
 - raise or lower his meters (health, energy, fullness, thirst, mood, hygiene),
 - raise his attributes (strength, charm, wits, luck), usually by a small step such as 0.1,
 - give XP,
-- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent, and more as he grows: see Wages),
+- cost money or pay money (jobs pay a fixed amount or a random amount in a range, to the cent, and more as he rises in his careers: see Wages),
 - give him a buff or debuff for a while (see Buffs and debuffs),
 - offer him an item to buy, or sell something from his bag.
 
@@ -208,6 +208,7 @@ At each place he first throws out every action he can't do right now (see Requir
 - Browsing the shop of the vehicle he has saved up for: +{GOAL_SHOP}.
 - A kind deed while he leans kind, or a rascal deed while he leans rascal: +{KIND_DEED_WEIGHT} (see Kind or rascal).
 - Paying off the police, once he can: +{BOUNTY_WEIGHT} (see The police).
+- A job in his best career: x{CAREER_PULL} (see Careers).
 
 His needs here are the ones he feels: while he follows an Eat or Rest whisper, the meters it names count as empty (see Whispers).
 
@@ -238,6 +239,7 @@ An action can only be picked when he meets all of its requirements:
 - Language: guiding and translating need {GUIDE_LEVEL} in the local language, learned abroad: not his own, nor English (see Languages).
 - Cooking needs ingredients for a recipe he knows, and buying them room in his pantry (see Cooking).
 - Level: some need a minimum level.
+- Career rank: a rank's own shift needs exactly that rank in its career (see Careers).
 - Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
 - Season: some only happen in one season, such as mulled wine in winter (see Seasons).
 - Weather: some need wet weather (rain, snow or a storm), snow, heat, frost or sunshine, such as building a snowman (see Weather).
@@ -245,7 +247,7 @@ An action can only be picked when he meets all of its requirements:
 ## Money {coins}
 His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He starts with {START_CENTS}. Money never goes below €0.
 
-Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he levels up (see Wages).
+Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he rises in his careers (see Wages and Careers).
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
@@ -256,13 +258,26 @@ At the start of each week (Monday at midnight by your phone's clock), his bills 
 
 At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
 ## Wages {wages}
-Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need and no skill pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
-- {WAGE_LEVEL_PCT} more for every level above 1,
+Every job lists a real-world wage for a shift, such as a café paying for washing cups. At rank 1 of its career a job with no attribute need and no skill pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he works he earns more, well above real wages, so that vehicles come within reach:
+- {WAGE_RANK_PCT} more for every rank above 1 in the job's career (see Careers),
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 - up to {VISA_PAY_MAX} more with a better visa in the country (see Visas),
 - {SKILL_FX_PCT} more for every level of the job's skill, such as music for a street concert, on top of the rest (see Skills).
 
-For example a job with no attribute need and no skill pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
+For example a café job with no attribute need and no skill pays {WAGE_RANK3} its listed wage at rank 3, and {WAGE_RANK5} at the top rank. His level doesn't raise pay; only working does. Only pay grows: prices stay the same. Bets, lucky finds (such as the coin by the ATM), skill and language jobs (see Skills and Languages) and jobs at places with no career get no rank pay. Selling items and money found while walking don't grow.
+## Careers {careers}
+His paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds) count toward the career of the place, except skill and language jobs, such as a street concert or translating, which grow with that skill or language instead. He climbs by himself, and you never have to do anything. There are {CAREER_COUNT} careers, each with {TOP_RANK} ranks:
+{CAREER_LIST}
+
+He is promoted to rank 2 after {SHIFTS_R2} shift in a career, rank 3 after {SHIFTS_R3} shifts, rank 4 after {SHIFTS_R4} and the top rank after {SHIFTS_R5}. The feed says each promotion ("Promoted to Barista in his Café career!"), and his life story notes his first promotion and every top rank he reaches.
+
+Every rank pays more:
+- the career's jobs pay {WAGE_RANK_PCT} more for every rank above 1 (see Wages),
+- from rank 2, its places offer a shift of his rank, such as {CAREER_EXAMPLE}. It lists {RANK_PAY_LIST} the career's base wage at ranks 2 to {TOP_RANK}, and gets the rank pay above on top, like the career's other jobs. A new rank's shift takes the place of the last one.
+
+He leans to his best career, the one he has worked most shifts in: its jobs weigh {CAREER_PULL} times as much when he picks what to do at a place (see How he chooses). It doesn't change where he walks.
+
+His ranks are his for good, in every city and country. The Stats sheet lists each career he has worked in, with his rank and the shifts to the next one.
 ## Chance cards at work {work_cards}
 After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
 {WORK_CARD_LIST}
@@ -656,7 +671,7 @@ He saves them for a monument with his name:
 
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
-History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), the first time he gets away from the police and his first time in jail (see Police chases), every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -858,6 +873,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
+- Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Visa: his visa in the country he is in, this stay against its limit, the extra pay at work and the days to the next visa (see Visas).
