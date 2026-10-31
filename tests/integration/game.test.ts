@@ -11,6 +11,7 @@ import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
 import { type Place, Stats, visitKey } from "../../src/core/stats";
 import { MOMENT_S } from "../../src/core/moments";
+import { BEAUTY_EVERY_S, PRETTY } from "../../src/core/comforts";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
@@ -717,5 +718,21 @@ describe("game", () => {
     const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
     expect(again.load()).toBe(false);
     expect(again.problems.warnings.map((w) => w.text)).toContain("kept");
+  });
+
+  it("looks at the land the map shows around him every few minutes, and it moves his mood", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    const asked: [number, number][] = [];
+    g.land = (at) => {
+      asked.push(at);
+      return ["park", "water"];
+    };
+    run(g, BEAUTY_EVERY_S - 1);
+    expect(asked).toHaveLength(0);
+    run(g, 1);
+    expect(asked).toHaveLength(1);
+    expect(g.stats.mind.moodlets.map((m) => m.name)).toContain(PRETTY[0]);
   });
 });
