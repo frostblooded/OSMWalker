@@ -87,6 +87,14 @@ describe("the real help", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
 
+  it("lists every sky event with its mood, the real eclipses and what hides them", () => {
+    const sky = page("sky_events").body;
+    expect(sky).toContain("- ☄ Perseids, 12 August: mood +2 an hour for 4 hours");
+    expect(sky).toContain("- 🌝 Full moon: mood +1 an hour for 3 hours");
+    expect(sky).toContain("3 March 2026");
+    expect(sky).toContain("Under real clouds, fog, rain, snow or a storm he misses it");
+  });
+
   it("has no unused values", () => {
     const unused = Object.keys(Help.values(data)).filter((k) => !raw.includes(`{${k}}`));
     expect(unused).toEqual([]);

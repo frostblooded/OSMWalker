@@ -32,6 +32,7 @@ import * as Moments from "../core/moments";
 import * as Rep from "../core/repute";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
+import * as SkyEv from "../core/skyEvents";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -358,6 +359,16 @@ export function values(data: GameData): Record<string, string> {
     NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
     FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
     STORY_MAGIC: num(Fairy.STORY_MAGIC),
+    SKY_LIST: Object.values(SkyEv.EVENTS)
+      .map((e) => {
+        const peak = SkyEv.SHOWERS.find(([id]) => id === e.id);
+        const when = peak ? `, ${new Date(Date.UTC(2000, peak[1] - 1, peak[2])).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" })}` : "";
+        return `- ${e.icon} ${e.name}${when}: mood +${e.mood[0]} an hour for ${e.mood[1]} hours`;
+      })
+      .join("\n"),
+    FULL_WITHIN_H: num(SkyEv.FULL_WITHIN_DAYS * 24),
+    ECLIPSE_LIST: SkyEv.ECLIPSES.map((t) => new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })).join(", "),
+    HIDING_LIST: ((w) => `${w.slice(0, -1).join(", ")} or ${w.at(-1)}`)(SkyEv.HIDING.map((k) => ({ cloudy: "clouds", storm: "a storm" })[k] ?? k)),
     GIANT_PCT: pct(Giants.GIANT_CHANCE),
     GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
     GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),

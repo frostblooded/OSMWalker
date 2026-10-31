@@ -12,6 +12,7 @@ import { dayOf } from "./gifts";
 import { GIANTS } from "./giants";
 import { HOME_PRICE, HOME_THINGS } from "./home";
 import { STORIES } from "./fairy";
+import { EVENTS } from "./skyEvents";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
@@ -237,6 +238,18 @@ export const SETS: CSet[] = [
       }),
     ],
     facts: (s) => [["🍄 Naps in fairy rings", String(s.rings.naps)]],
+  },
+  {
+    id: "sky",
+    tab: "places",
+    icon: "🌌",
+    title: "Night sky",
+    entries: (s) =>
+      Object.values(EVENTS).map((e) => {
+        const n = s.stars.seen[e.id] ?? 0;
+        return { id: e.id, icon: e.icon, name: e.name, got: n > 0, info: n > 0 ? `Seen ${n === 1 ? "once" : `${n} times`}` : "Seen on a clear night when it comes round" };
+      }),
+    facts: (s) => [["⛅ Nights clouds hid one", String(s.stars.clouded)]],
   },
   {
     id: "spells",
@@ -484,6 +497,7 @@ export const FEATS: Feat[] = [
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "heir", tab: "world", icon: "🏛", name: "Pride of the family", what: "{n} family records held over the walkers before him", tiers: [1, 3, HALL.length], title: "Family Legend", count: (s) => heldBy(s).length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
+  { id: "stars", tab: "places", icon: "🌌", name: "Stargazer", what: "{n} sky events seen", tiers: [1, 10, 30], title: "Stargazer", count: (s) => s.stars.count() },
   { id: "ruins", tab: "places", icon: "🏰", name: "Delver", what: "{n} ruins crawled", tiers: [1, 5, 20], title: "Delver", count: (s) => s.ruins.count },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
