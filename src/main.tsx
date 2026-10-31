@@ -1,5 +1,6 @@
 import { render } from "preact";
 import { loadData, whenIdle } from "./app/data";
+import { getCrawler, setCrawler } from "./core/ruins";
 import { App } from "./ui/App";
 import { HELP_URL } from "./ui/HelpSheet";
 // Latin-only subsets of the Cozy style's two fonts (about 16 KB each), shown with swap so text never waits on them.
@@ -17,6 +18,10 @@ document.getElementById("boot")?.remove();
 // The perf job times the game from navigation to this mark: the first frame of
 // the game is on screen (its first layout, with the emoji font, is part of getting ready).
 requestAnimationFrame(() => setTimeout(() => performance.mark("osmwalker:ready")));
+
+// Ruin crawls load once the game data is in and the page is idle; until then a ruin is just a castle.
+const crawls = () => void import("./core/crawl").then((m) => getCrawler() || setCrawler(m.explore), () => undefined);
+addEventListener("load", () => whenIdle(() => void loadData().then(crawls, crawls)));
 
 // Offline play and instant restarts; registered after the game is up so it doesn't compete with first load.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

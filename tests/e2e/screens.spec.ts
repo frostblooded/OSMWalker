@@ -169,6 +169,29 @@ test("Stats tells a bought item's story", async ({ page }) => {
   expect(await smallButtons(page)).toEqual([]);
 });
 
+test("The ruin crawl rooms load at idle once the game is up", async ({ page }) => {
+  const crawl = page.waitForRequest(/\/crawl-[\w-]+\.js$/);
+  await startInSofia(page);
+  await crawl;
+});
+
+test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(
+    page,
+    `d.stats.ruins = { last: {}, count: 1, logs: [{ name: "Tsarevets", city: "Sofia", t: 1, of: 3, found: { name: "Bronze Ring", rarity: "Rare", slot: "trinket" },
+      rooms: [{ text: "a stuck oak door", won: true, how: "he shouldered it open" }, { text: "a ghost in a torn cloak", won: false, how: "it wailed and he fled" }] }] };`,
+  );
+  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Collection/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Collection/ });
+  await sheet.getByRole("tab", { name: /Places/ }).click();
+  await sheet.getByRole("button", { name: /Tsarevets/ }).click();
+  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "💍 Rare Bronze Ring"]) await expect(sheet).toContainText(t);
+  expect(await smallButtons(page)).toEqual([]);
+});
+
 test("History lists what he did and shows it on the map", async ({ page }) => {
   await startInSofia(page);
   // The test tiles have no places of note, so a Debug trip makes the first event.
