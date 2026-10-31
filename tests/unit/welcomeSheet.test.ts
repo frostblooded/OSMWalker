@@ -3,6 +3,7 @@
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import type { Dilemma } from "../../src/core/dilemmas";
+import { BOOST } from "../../src/core/boost";
 import { Week } from "../../src/core/week";
 import { WelcomeSheet } from "../../src/ui/WelcomeSheet";
 
@@ -16,7 +17,7 @@ describe("welcome-back card", () => {
   it("says how long you were away and how long he runs 10x, and the clover only when earned", () => {
     const text = shown().textContent ?? "";
     expect(text).toContain("Time away8 h");
-    expect(text).toContain("⏩ 10× speed for53 min");
+    expect(text).toContain(`⏩ ${BOOST}× speed for53 min`);
     expect(text).not.toContain("Clover");
     expect(shown({ clover: true }).textContent).toContain("☘ Clover for checking in+1");
   });

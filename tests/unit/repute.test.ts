@@ -13,7 +13,7 @@ import { defaultPick, RASCAL_BASE, RASCAL_MAX, RASCAL_MIN, rascalOdds, type Mome
 import * as R from "../../src/core/repute";
 import { Rng, seedOf } from "../../src/core/rng";
 import { KEEP_CENTS, Stats, type Action, type Place } from "../../src/core/stats";
-import { parseCities, } from "../../src/core/trips";
+import { parseCities } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 
 const T0 = 1_800_000_000;

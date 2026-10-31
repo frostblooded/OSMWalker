@@ -193,7 +193,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             ⏩ {BOOST}× {clock(game.boostS)}
           </span>
         )}
-        {game.welcome && !game.welcome.card && game.welcome.boostS > 0 && (
+        {game.welcome && !game.welcome.card && (
           <div class="toast story" role="status" key={`welcome${game.welcome.n}`}>
             👋 Welcome back! {BOOST}× speed for {duration(game.welcome.boostS)}
             {game.welcome.clover && " · ☘ +1 clover"}

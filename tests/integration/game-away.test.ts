@@ -1,6 +1,6 @@
 // A reopen with real Sofia streets, fake servers and fixed dice: the boost, clovers, the welcome-back card and dilemmas.
 import { describe, expect, it, vi } from "vitest";
-import { FULLNESS_PER_H, } from "../../src/core/stats";
+import { FULLNESS_PER_H } from "../../src/core/stats";
 import { cityBounds, LONG_WALK_MAX_S, SLEEPER_FROM_M } from "../../src/core/trips";
 import { MOMENT_S } from "../../src/core/moments";
 import { BOOST } from "../../src/core/boost";
@@ -54,6 +54,19 @@ describe("game", () => {
       run(again, 3);
       expect(again.boostS).toBeCloseTo(60);
       expect(again.moment!.left).toBeCloseTo(again.moment!.total - 3);
+    });
+
+    it("uses up only the boost he lived when a moment opens mid-step", async () => {
+      const { again } = await reopen(9 * 60_000);
+      const g = again as unknown as { live: (s: number) => void };
+      const live = g.live.bind(again);
+      g.live = (s) => {
+        live(s);
+        if (!again.moment) void again.ask({ id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }], default: "a" });
+      };
+      again.step(1);
+      // One sub-step (a tenth of a real second at 10x) ran before the moment held him.
+      expect(again.boostS).toBeCloseTo(60 - 1 / BOOST);
     });
 
     it("gives no boost after a short break or from an old save", async () => {

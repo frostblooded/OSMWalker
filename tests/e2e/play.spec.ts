@@ -1,4 +1,4 @@
-
+// Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
 import { mockServices, reopenAfter, reopenWith } from "./mock";
 
@@ -139,8 +139,8 @@ test("after time away he runs 10x for a while: a welcome note with its clover, a
 
 test("you can whisper to him three times a day, and praise his latest line once", async ({ page }) => {
   await startInSofia(page);
-  // A reopen gives him trust from the check-in, and the boost soon some deeds to praise.
-  await reopenAfter(page, 3);
+  // A reopen gives him trust from the check-in; a deed of his to praise is written in.
+  await reopenWith(page, 'd.saved_at -= 3 * 3600_000; d.stats.history.entries.push({ text: "Had a coffee at Cafe Near", t: Math.floor(Date.now() / 1000) - 60, at: null, ti: 0 });');
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Care package/ }).click();
   const care = page.getByRole("dialog", { name: /Care package/ });

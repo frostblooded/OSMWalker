@@ -1,6 +1,6 @@
 // The sheets: Help, Stats, Collection, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { KEEPSAKES, mockServices, reopenAfter, reopenWith } from "./mock";
+import { KEEPSAKES, mockServices, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -402,9 +402,8 @@ test("a full-screen sheet drags down to show the map", async ({ page }) => {
 
 test("History fits the map to the room left above its sheet after a drag", async ({ page }) => {
   await startInSofia(page);
-  // Hours away fill History, so its sheet is tall enough to drag down without closing.
-  await reopenAfter(page, 8);
-  await page.getByRole("button", { name: "Carry on" }).click({ timeout: 20000 });
+  // A long History, so its sheet is tall enough to drag down without closing.
+  await reopenWith(page, 'for (let i = 0; i < 30; i++) d.stats.history.entries.push({ text: `Had a coffee at Cafe ${i}`, t: Math.floor(Date.now() / 1000) - 3600 + i * 60, at: [42.687 + i * 0.0002, 23.319], ti: 0 });');
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });

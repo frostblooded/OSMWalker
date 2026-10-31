@@ -1,14 +1,14 @@
 // The game: picks a city, keeps the walker moving in real time while the app
 // is open (after time closed it runs faster for a while, see core/boost.ts),
-// loads streets as he nears new ground, and now and then sends him on a trip to another city by
-// bus, plane or car (he walks to the station first and pays the fare there).
+// loads streets as he nears new ground, and now and then sends him on a trip
+// to another city by bus, plane or car (he walks to the station first and pays the fare there).
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
 import { hisPick, momentOf, settle as settleCard, type Pick as CardPick } from "../core/workCards";
 import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
-import { boostFor, MIN_AWAY_S, spend } from "../core/boost";
+import { BOOST, boostFor, MIN_AWAY_S } from "../core/boost";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
@@ -361,10 +361,15 @@ export class Game {
       const here = w.position();
       this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
     }
-    // A boost after time away makes the step BOOST x as long, lived in steps of at most MAX_STEP_S.
-    const b = spend(Math.min(dt, MAX_STEP_S), this.boostS);
-    this.boostS = b.leftS;
-    for (let left = b.gameS; left > 1e-9 && this.walker === w && !this.retiring && !this.moment; left -= MAX_STEP_S) this.live(Math.min(left, MAX_STEP_S));
+    // A boost after time away makes the step BOOST x as long, lived in steps of at most MAX_STEP_S. Only boost
+    // actually lived is used up, so a moment that opens mid-step (or a retirement) keeps the rest.
+    for (let real = Math.min(dt, MAX_STEP_S); real > 1e-9 && this.walker === w && !this.retiring && !this.moment; ) {
+      const fast = Math.min(real, this.boostS, MAX_STEP_S / BOOST);
+      const slow = fast > 0 ? 0 : real;
+      this.boostS -= fast;
+      real -= fast + slow;
+      this.live(fast * BOOST + slow);
+    }
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;

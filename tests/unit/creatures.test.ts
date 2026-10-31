@@ -11,7 +11,6 @@ import { optionFor } from "../../src/core/moments";
 import { Stats } from "../../src/core/stats";
 
 const T0 = 1_800_000_000;
-const _DAY = 86_400;
 const CREATURES = JSON.parse(dataFile("creatures.json")) as Creature[];
 const kind = (id: string) => CREATURES.find((c) => c.id === id)!;
 const creatureOf = (cls: string) => kindAt(CREATURES, cls);
@@ -19,21 +18,8 @@ const TOLL = kind("troll").outcomes.pay!.pay!;
 const COIN = kind("sprite").outcomes.coin!.pay!;
 /** Stats that know the creatures, as the game sets them. */
 const stats = () => Object.assign(new Stats(), { creatureKinds: CREATURES });
-const _at = (cls: string, name = "Somewhere") => ({ class: cls, name });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
 /** The first time from `t` on at which a creature shows up at `place` for `s`, minute by minute. */
-function _firstMeeting(s: Stats, place: { class: string; name: string }, t = T0): number {
-  for (let m = 0; m < 2000; m++) {
-    s.now = () => t + m * 60;
-    const probe = Creatures.fromJSON(s.creatures.toJSON());
-    const was = s.creatures;
-    s.creatures = probe;
-    const c = s.creatureAt(place);
-    s.creatures = was;
-    if (c) return t + m * 60;
-  }
-  throw new Error("no meeting");
-}
 
 describe("place creatures", () => {
   it("live at the places of their kind: a troll at bridges, a sprite in fountains and wells, a dryad in parks", () => {

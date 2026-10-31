@@ -12,9 +12,3 @@ export const MIN_AWAY_S = 60;
 export function boostFor(awayS: number): number {
   return awayS < MIN_AWAY_S ? 0 : awayS / (BOOST - 1);
 }
-
-/** `realS` seconds go by with `leftS` of boost: the game seconds they make, and the boost left after. */
-export function spend(realS: number, leftS: number): { gameS: number; leftS: number } {
-  const fast = Math.min(Math.max(realS, 0), Math.max(leftS, 0));
-  return { gameS: fast * BOOST + (realS - fast), leftS: Math.max(leftS - fast, 0) };
-}

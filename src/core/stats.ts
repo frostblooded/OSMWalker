@@ -338,7 +338,7 @@ export class Stats {
   incidentLine = "";
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
-  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); off, he picks by himself. Not saved. */
+  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); when false, he picks by himself. Not saved. */
   askCards = false;
   /** A chance card at work waiting for your tap, and its dice, for the game to ask; not saved. */
   workCard: { d: Work.Drawn; dice: Rng } | null = null;

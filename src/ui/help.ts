@@ -16,6 +16,7 @@ import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
 import * as Boost from "../core/boost";
 import { duration } from "./format";
+
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Crawl from "../core/crawl";
@@ -88,6 +89,9 @@ import { CITIES_SHOWN, STREET_MARK } from "../core/streetBook";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
+
+/** Hours away in the boost example on the Welcome back page. */
+const EXAMPLE_AWAY_H = 8;
 
 export type Page = { id: string; title: string; body: string };
 export type Section = { title: string; pages: Page[] };
@@ -263,7 +267,8 @@ export function values(data: GameData): Record<string, string> {
     MIN_AWAY_MIN: num(Boost.MIN_AWAY_S / 60),
     BOOST: num(Boost.BOOST),
     BOOST_DIV: num(Boost.BOOST - 1),
-    EIGHT_H_BOOST: duration(Boost.boostFor(8 * 3600)),
+    EXAMPLE_AWAY_H: num(EXAMPLE_AWAY_H),
+    EXAMPLE_BOOST: duration(Boost.boostFor(EXAMPLE_AWAY_H * 3600)),
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
     CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
