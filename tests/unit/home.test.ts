@@ -93,6 +93,16 @@ describe("his home", () => {
     expect(s.bag.map((i) => i.name)).toEqual(["Hot Watch", "Sofia Mug", "Old Map"]);
   });
 
+  it("knows a thing from home by place, under either of its city's names", () => {
+    const s = inSofia(1000);
+    s.home.bought = s.now();
+    const picked = "Sofia, Sofia City, Bulgaria";
+    s.life.mark(picked, [42.7, 23.3]);
+    s.bag = [thing("Sofia Mug", 3000, picked), thing("Silk Shawl", 2000)];
+    nextDay(s);
+    expect(s.home.things.map((i) => i.name)).toEqual(["Silk Shawl"]);
+  });
+
   it("a night at a hostel in his home city is free and cheers him, more with each thing up", () => {
     const s = inSofia(1000, 10_000);
     nextDay(s);

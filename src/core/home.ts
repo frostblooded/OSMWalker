@@ -76,9 +76,9 @@ export class Home {
   }
 }
 
-/** The thing from his travels he would put up next: the dearest one in `bag` from a city not in `local` (his home's names, as a story's `from` keeps them), that isn't stolen or treasured (`treasured` says), or null. */
-export function nextThing(bag: Item[], local: string[], treasured: (i: Item) => boolean): Item | null {
+/** The thing from his travels he would put up next: the dearest one in `bag` whose story's city (`from`) isn't `local`, that isn't stolen or treasured (`treasured` says), or null. */
+export function nextThing(bag: Item[], local: (from: string) => boolean, treasured: (i: Item) => boolean): Item | null {
   let best: Item | null = null;
-  for (const it of bag) if (it.story && !local.includes(it.story.from) && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
+  for (const it of bag) if (it.story && !local(it.story.from) && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
   return best;
 }

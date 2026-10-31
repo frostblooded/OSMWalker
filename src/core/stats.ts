@@ -793,8 +793,13 @@ export class Stats {
 
   /** True in his home's city. */
   atHome(): boolean {
+    return this.isHome(this.where.city);
+  }
+
+  /** True when `city` (by name, as `where.city` and an item's story keep it) is his home's city: the same name, or a city whose middle is near his flat. */
+  isHome(city: string): boolean {
     const h = this.home;
-    return h.has() && (this.where.city === h.city || h.near(this.life.cityAt[this.where.city]));
+    return h.has() && (city === h.city || h.near(this.life.cityAt[city]));
   }
 
   /**
@@ -824,7 +829,7 @@ export class Stats {
       return;
     }
     if (!this.atHome() || h.things.length >= Hm.HOME_THINGS) return;
-    const it = Hm.nextThing(this.bag, [h.city, this.where.city], Items.isTreasured);
+    const it = Hm.nextThing(this.bag, (from) => this.isHome(from), Items.isTreasured);
     if (!it) return;
     this.bag.splice(this.bag.indexOf(it), 1);
     h.things.push(it);
