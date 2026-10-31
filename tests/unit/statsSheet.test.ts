@@ -86,6 +86,23 @@ describe("Stats sheet", () => {
     expect(text).not.toContain("none yet");
   });
 
+  it("shows the local words he knows by language, with the last one", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("🗣Local wordsLearnednone so far");
+    stats.wordBook = { at: {}, languages: { bg: { name: "Bulgarian", words: [["здравей (zdravey)", "hello"], ["кафе (kafe)", "coffee"]] } }, countries: { BGR: "bg" } };
+    stats.words.known = { bg: ["hello", "coffee"] };
+    expect(shown(stats)).toContain("🗣Local words2Bulgarian 2 / 2кафе (kafe) = coffee");
+    // Past four languages, the ones with fewest words fold away.
+    for (const k of ["a", "b", "c", "d"]) {
+      stats.wordBook.languages[k] = { name: `Lang${k}`, words: [["x", "one"]] };
+      stats.words.known[k] = ["one"];
+    }
+    const text = shown(stats);
+    expect(text).toContain("Bulgarian 2 / 2");
+    expect(text).toContain("More languages ▸1");
+    expect(text).not.toContain("Langd");
+  });
+
   it("lists his clubs on the Friends card, with their city and night", () => {
     const stats = new Stats();
     stats.clubs.list = [{ kind: "chess", host: "x", city: "Sofia, Bulgaria", place: { name: "Café Rila", lat: 0, lon: 0 }, day: 2, hour: 19, joined: 0, last: "", nights: 0 }];
