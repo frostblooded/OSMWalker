@@ -541,7 +541,8 @@ export class Game {
   /** Debug button: makes him a stage older at once (as an elder, due to retire). */
   debugAge(): void {
     const l = this.stats.life;
-    l.born -= l.leftS(Math.floor(this.now() / 1000));
+    const t = this.stats.now();
+    l.born = (l.born || t) - l.leftS(t);
     this.stats.passTime(0, 0);
     this.changed();
   }

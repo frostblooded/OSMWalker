@@ -953,6 +953,19 @@ describe("game", () => {
       expect(g.stats.life.gen).toBe(2);
     });
 
+    it("the debug button makes him a stage older, and an elder due to retire", async () => {
+      const { g } = game();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.debugAge();
+      expect(g.stats.life.title()).toContain("Settled");
+      g.debugAge();
+      g.debugAge();
+      expect(g.stats.life.stage).toBe(ELDER);
+      expect(g.stats.life.retireDue).toBe(false);
+      g.debugAge();
+      expect(g.stats.life.retireDue).toBe(true);
+    });
+
     it("you can retire him from the menu only once he is an elder", async () => {
       const { g } = await elder(3600);
       g.stats.life.stage = ELDER - 1;

@@ -685,7 +685,7 @@ If the trip is called off before he boards (he can't pay, or he faints), the gue
 
 The whole card travels inside the link, after the #, so no server keeps it. When a friend opens it, their game shows "A postcard from Ivan in Sofia" (your name, or "a friend" if you left it empty), right away on the city picker, or in a game once its While you were away card and any open sheet are closed, with 📮 Send one back if they have a game going, or Start my own walk if they don't. Opening a postcard changes nothing in their game.
 ## One choice on reopen {dilemma}
-Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
+Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires brings none (see Retiring). Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
 
 When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} for each point of the attribute he leans on above 1, up to {LEAN_CAP_PCT}. Below 1 it stays even. The choices:
 {DILEMMA_LIST}
@@ -845,7 +845,7 @@ Its buttons change the game right away:
 - New country sends him straight to a city in another country.
 - ⏩ A stage older (in the 🎂 Life stage card) makes him a stage older at once; as an elder it makes him due to retire (see Life stages).
 
-The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice (see One choice on reopen), for testing. The switch is remembered.
+The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires (see One choice on reopen), for testing. The switch is remembered.
 ## New city {new_city}
 New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 
