@@ -1,3 +1,4 @@
+// The pre-push plan, the docs-only filter and the check scoping in tools/verify.ts.
 import { describe, expect, it } from "vitest";
 import { docsOnly, pushPlan, scope } from "../../tools/verify";
 
