@@ -988,7 +988,7 @@ export class Stats {
       this.say(home);
       this.diary.note("spot", place.name);
     }
-    const gift = this.spots.isSpot(this.where.city, place) ? this.mail.pickUp(this.where.city) : null;
+    const gift = !place.made && this.spots.isSpot(this.where.city, place) ? this.mail.pickUp(this.where.city) : null;
     if (gift) {
       this.applyFx(gift.gift.fx);
       this.say(`${gift.gift.icon} Found a gift at ${place.name} from ${gift.from}: ${gift.gift.line.toLowerCase()}`);
