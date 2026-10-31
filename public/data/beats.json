@@ -18,7 +18,8 @@
 "say": "I love this one!",
 "fx": {
 "mood": 3
-}
+},
+"sky": "day"
 },
 {
 "id": "lost_tourist",
@@ -28,7 +29,8 @@
 "say": "That way. I think.",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "dog_sniff",
@@ -78,7 +80,8 @@
 "say": "Hi there!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "smell_bread",
@@ -115,7 +118,8 @@
 "say": "Knight to f3!",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "street_art",
@@ -142,7 +146,8 @@
 "say": "Sorry!",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "delivery",
@@ -152,7 +157,8 @@
 "say": "Second left",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "balloon",
@@ -189,14 +195,16 @@
 "icon": "🪟",
 "at": "walk",
 "text": "He looked into a shop window at things he can't afford",
-"say": "One day…"
+"say": "One day…",
+"sky": "day"
 },
 {
 "id": "flyer",
 "icon": "📄",
 "at": "walk",
 "text": "Someone handed him a flyer for a concert",
-"say": "Maybe I'll go"
+"say": "Maybe I'll go",
+"sky": "day"
 },
 {
 "id": "church_bell",
@@ -213,7 +221,8 @@
 "say": "Busy little guys",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "squirrel",
@@ -223,7 +232,8 @@
 "say": "What are you looking at?",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "grandma",
@@ -234,7 +244,8 @@
 "fx": {
 "mood": 3,
 "karma": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "double_take",
@@ -282,7 +293,8 @@
 "say": "Not bad",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "wrong_turn",
@@ -303,7 +315,8 @@
 "fx": {
 "fullness": 2,
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "drop_phone",
@@ -320,7 +333,8 @@
 "say": "One, two, three!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "parade_honk",
@@ -330,7 +344,8 @@
 "say": "Congratulations!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "spider_web",
@@ -360,7 +375,8 @@
 "say": "Ooh, close one",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "lost_glove",
@@ -411,7 +427,8 @@
 "say": "Pretty song",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "construction",
@@ -506,7 +523,8 @@
 "say": "Nice to meet you all",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "stroll_couple",
@@ -516,7 +534,8 @@
 "say": "Aww",
 "fx": {
 "mood": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "frisbee",
@@ -526,7 +545,8 @@
 "say": "Got it!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "trash_bin",
@@ -536,16 +556,6 @@
 "say": "Keep {CITY} tidy",
 "fx": {
 "karma": 1
-}
-},
-{
-"id": "street_vendor",
-"icon": "🌰",
-"at": "walk",
-"text": "Roasted chestnuts smelled great on {STREET}",
-"say": "Smells like winter",
-"fx": {
-"mood": 1
 }
 },
 {
@@ -564,7 +574,8 @@
 "fx": {
 "mood": 1,
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "puzzle_door",
@@ -589,7 +600,8 @@
 "fx": {
 "mood": 2,
 "energy": -1
-}
+},
+"sky": "day"
 },
 {
 "id": "music_car",
@@ -613,7 +625,8 @@
 "icon": "🗣",
 "at": "walk",
 "text": "He overheard neighbours gossiping in a doorway",
-"say": "Oh really?"
+"say": "Oh really?",
+"sky": "day"
 },
 {
 "id": "cobbles",
@@ -643,7 +656,8 @@
 "say": "Look at that!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "bookstall",
@@ -653,7 +667,8 @@
 "say": "Interesting…",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "gum_shoe",
@@ -684,7 +699,8 @@
 "fx": {
 "karma": 1,
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "alarm",
@@ -701,7 +717,8 @@
 "say": "Bubbles!",
 "fx": {
 "mood": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "fruit_drop",
@@ -711,7 +728,8 @@
 "say": "Catch!",
 "fx": {
 "karma": 1
-}
+},
+"sky": "day"
 },
 {
 "id": "hat_wind",
@@ -742,7 +760,8 @@
 "say": "Hmm, three?",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "misheard",
@@ -769,7 +788,8 @@
 "say": "Seven down is 'atlas'",
 "fx": {
 "xp": 2
-}
+},
+"sky": "day"
 },
 {
 "id": "smell_coffee",
@@ -786,7 +806,8 @@
 "icon": "🌗",
 "at": "walk",
 "text": "He noticed his own shadow walking beside him",
-"say": "Hi, me"
+"say": "Hi, me",
+"sky": "day"
 },
 {
 "id": "motorcade",
@@ -827,7 +848,8 @@
 "icon": "🧒",
 "at": "walk",
 "text": "A child asked him why the sky is blue",
-"say": "Uh… science?"
+"say": "Uh… science?",
+"sky": "day"
 },
 {
 "id": "echo",
@@ -1002,6 +1024,17 @@
 "say": "Freezing!",
 "fx": {
 "energy": -1
+},
+"sky": "cold"
+},
+{
+"id": "street_vendor",
+"icon": "🌰",
+"at": "walk",
+"text": "Roasted chestnuts smelled great on {STREET}",
+"say": "Smells like winter",
+"fx": {
+"mood": 1
 },
 "sky": "cold"
 },
@@ -1362,8 +1395,8 @@
 "id": "train_tea",
 "icon": "🍵",
 "at": "ride",
-"text": "He bought a tea from the trolley",
-"say": "Ahh",
+"text": "The lady across the aisle offered him tea from her flask",
+"say": "Ahh, thanks",
 "fx": {
 "thirst": 3
 },
@@ -1962,7 +1995,7 @@
 "id": "ride_daydream",
 "icon": "💭",
 "at": "ride",
-"text": "He daydreamed about what {CITY} will be like… or was it the next city?",
+"text": "He daydreamed about the city he is heading to",
 "say": "Hmm…"
 },
 {
@@ -1970,7 +2003,18 @@
 "icon": "✉",
 "at": "ride",
 "text": "He wrote a postcard in his head",
-"say": "Dear Mum…"
+"say": "Dear Mum…",
+"modes": [
+"plane",
+"bus",
+"train",
+"ferry",
+"car",
+"hitch",
+"walk",
+"taxi",
+"metro"
+]
 },
 {
 "id": "ride_stretch",
@@ -1980,7 +2024,17 @@
 "say": "Ahh",
 "fx": {
 "energy": 1
-}
+},
+"modes": [
+"plane",
+"bus",
+"train",
+"ferry",
+"car",
+"hitch",
+"taxi",
+"metro"
+]
 },
 {
 "id": "ride_playlist",
@@ -1990,14 +2044,31 @@
 "say": "Perfect",
 "fx": {
 "mood": 1
-}
+},
+"modes": [
+"plane",
+"bus",
+"train",
+"ferry",
+"car",
+"hitch",
+"taxi",
+"metro"
+]
 },
 {
 "id": "ride_count",
 "icon": "🔢",
 "at": "ride",
 "text": "He counted red cars to pass the time. Twelve",
-"say": "Thirteen!"
+"say": "Thirteen!",
+"modes": [
+"bus",
+"train",
+"car",
+"hitch",
+"taxi"
+]
 },
 {
 "id": "rest_people",
@@ -2202,7 +2273,7 @@
 "id": "think_hurt",
 "icon": "🤕",
 "at": "any",
-"text": "His knee ached a little with every step",
+"text": "His knee ached a little",
 "say": "Ow, ow",
 "low": "health"
 },

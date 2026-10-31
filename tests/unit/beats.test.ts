@@ -40,6 +40,7 @@ describe("little moments", () => {
     expect(B.fits(beat({ low: "fullness" }), now())).toBe(false);
     expect(B.fits(beat({ low: "fullness" }), now({ meters: { ...new Stats().meters, fullness: B.LOW_AT - 1 } }))).toBe(true);
     expect(B.fits(beat({ text: "On {STREET}" }), now({ street: "" }))).toBe(false);
+    expect(B.fits(beat({ say: "{STREET}… right?" }), now({ street: "" }))).toBe(false);
     expect(B.fits(beat({ text: "At {PLACE}" }), now())).toBe(false);
     expect(B.fits(beat({ text: "At {PLACE}", at: "rest" }), now({ at: "rest", place: "Cafe One" }))).toBe(true);
   });
@@ -86,6 +87,10 @@ describe("little moments", () => {
     expect(B.Beats.fromJSON(undefined).seen.size).toBe(0);
     const s = Stats.fromJSON(JSON.parse(JSON.stringify(Object.assign(new Stats(), { beats: b }))));
     expect(s.beats.seen.size).toBe(1);
+    // A save from before the beats: nothing had yet.
+    const old = JSON.parse(JSON.stringify(new Stats()));
+    delete old.beats;
+    expect(Stats.fromJSON(old).beats.seen.size).toBe(0);
   });
 });
 
@@ -102,8 +107,9 @@ describe("the beats deck", () => {
       for (const m of b.modes ?? []) expect(WAYS.has(m), `${b.id}: ${m}`).toBe(true);
       for (const k of `${b.text} ${b.say}`.match(/\{\w+\}/g) ?? []) expect(["{CITY}", "{STREET}", "{PLACE}"]).toContain(k);
       // A place is only named while he stays at one, a street only off a ride.
-      if (b.text.includes("{PLACE}")) expect(b.at).toBe("rest");
-      if (b.text.includes("{STREET}")) expect(b.at).not.toBe("ride");
+      const words = `${b.text} ${b.say}`;
+      if (words.includes("{PLACE}")) expect(b.at).toBe("rest");
+      if (words.includes("{STREET}")) expect(b.at).not.toBe("ride");
       for (const v of Object.values(b.fx ?? {})) expect(Math.abs(v)).toBeLessThanOrEqual(3);
     }
     for (const c of DECK.comments) expect(c.text).toContain("{NEAR}");

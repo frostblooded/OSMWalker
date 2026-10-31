@@ -45,8 +45,9 @@ export function fits(b: Beat, now: Now): boolean {
   if (b.modes && !b.modes.includes(now.mode ?? "")) return false;
   if (b.sky && !skyOk(b.sky, now.sky)) return false;
   if (b.low && now.meters[b.low] >= LOW_AT) return false;
-  if (b.text.includes("{STREET}") && !now.street) return false;
-  return !(b.text.includes("{PLACE}") && !now.place);
+  const words = `${b.text} ${b.say}`;
+  if (words.includes("{STREET}") && !now.street) return false;
+  return !(words.includes("{PLACE}") && !now.place);
 }
 
 export class Beats {
@@ -73,7 +74,7 @@ export class Beats {
     const vars = { CITY: now.city.split(",")[0]!, STREET: now.street, PLACE: now.place };
     if (now.near && now.at === "walk" && deck.comments.length && rng.randf() < COMMENT_SHARE) {
       const c = this.pickFresh(deck.comments, () => 1, rng)!;
-      return this.said(c.id, `${now.near.icon} ${fill(c.text, { ...vars, NEAR: now.near.name })}`, fill(c.say, { NEAR: now.near.name }), {});
+      return this.said(c.id, `${now.near.icon} ${fill(c.text, { ...vars, NEAR: now.near.name })}`, fill(c.say, { ...vars, NEAR: now.near.name }), {});
     }
     const fit = deck.beats.filter((b) => fits(b, now));
     // A beat for this very moment (a mode, the sky, a low meter) weighs more than one for anywhere.

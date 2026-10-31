@@ -910,7 +910,7 @@ export function values(data: GameData): Record<string, string> {
     BEAT_MIN_S: num(Beats.BEAT_MIN_S),
     BEAT_MAX_S: num(Beats.BEAT_MAX_S),
     SAY_S: num(Beats.SAY_S),
-    BEAT_COUNT: num(data.beats?.beats.length ?? 0),
+    BEAT_COUNT: num((data.beats?.beats.length ?? 0) + (data.beats?.comments.length ?? 0)),
     LOW_AT: num(Beats.LOW_AT),
     BEAT_NEAR_M: num(Beats.NEAR_M),
     COMMENT_PCT: pct(Beats.COMMENT_SHARE),

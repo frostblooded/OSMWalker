@@ -18,7 +18,7 @@ import type { Dilemma } from "../core/dilemmas";
 import { getCrawler, setCrawler } from "../core/ruins";
 import { bboxAround, distanceM, type BBox } from "../core/geo";
 import { NEAR_M, SAY_S, type Deck as BeatDeck, type Now as BeatNow } from "../core/beats";
-import { placeIcon } from "../core/look";
+import { placeIcon, pose, SLEEP_ICON } from "../core/look";
 import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
@@ -348,6 +348,7 @@ export class Game {
 
   private attach(w: Walker): void {
     this.walker = w;
+    this.saying = null;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.hopper = (plan, roadM) => this.hop(plan, roadM);
@@ -426,30 +427,32 @@ export class Game {
     const deck = this.deps.data.beats;
     if (!deck) return;
     const b = this.stats.beats;
-    const rng = new Rng(seedOf(`beat${this.stats.now()}`));
+    const rng = () => new Rng(seedOf(`beat${this.stats.now()}`));
     const last = this.stats.history.entries.at(-1) ?? null;
     if (last !== this.lastHeard) {
       this.lastHeard = last;
-      b.heard(rng);
+      b.heard(rng());
       return;
     }
     if (!b.tick(dt)) return;
-    b.heard(rng);
-    const said = b.deal(deck, this.beatNow(), rng);
-    if (!said) return;
+    const now = this.beatNow();
+    const said = now && b.deal(deck, now, rng());
+    // Nothing fits (or he sleeps): wait another spell. A beat's own line starts the next one.
+    if (!said) return b.heard(rng());
     this.stats.applyFx(said.fx);
     this.stats.say(said.line);
     if (said.say) this.saying = { text: said.say, leftS: SAY_S };
     this.changed();
   }
 
-  /** What he is doing, for the beats: on a ride (or in a taxi or the metro to a station), staying at a place, or walking past one. */
-  private beatNow(): BeatNow {
+  /** What he is doing, for the beats: on a ride (or in a taxi or the metro to a station), staying at a place, or walking past one; null while he sleeps. */
+  private beatNow(): BeatNow | null {
     const w = this.walker!;
     const t = w.travel;
     const across = w.flight?.mps ? hopBy(this.stats.getsAbout(), this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0) : null;
     const mode = t?.mode ?? (across === "taxi" || across === "metro" ? across : undefined);
     const resting = !mode && w.isResting();
+    if (resting && this.doing && pose(this.doing, w.place?.class ?? "").icon === SLEEP_ICON) return null;
     const base = { sky: this.stats.sky, meters: this.stats.meters, city: this.city, place: resting ? (w.place?.name ?? "") : "" };
     if (mode) return { ...base, at: "ride", mode, street: "", near: null };
     if (resting) return { ...base, at: "rest", street: w.streetName(), near: null };
@@ -1221,6 +1224,7 @@ export class Game {
     if (wait <= 0 || this.moment || this.away) return Promise.resolve({ id: his(), you: false });
     return new Promise((done) => {
       this.moment = { m, left: wait, total: wait, done, his };
+      this.saying = null;
       this.changed();
     });
   }
