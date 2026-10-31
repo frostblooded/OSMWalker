@@ -1,11 +1,14 @@
 // His life and his family (core/life.ts): the Life card with his stage, the
 // care so far and the family perk; the drawn family tree, whose walkers open
 // into their farewell letter; and the farewell card shown once when one
-// retires. Part of the Stats sheet's chunk and the farewell's own.
+// retires; and the hall of walkers (core/hall.ts). Part of the Stats sheet's
+// chunk and the farewell's own.
 import { useState } from "preact/hooks";
+import { hall, heldBy, LIFE_ROWS, type HallRow } from "../core/hall";
 import * as L from "../core/life";
 import { euro } from "../core/money";
-import { Card, KV } from "./kit";
+import type { Stats } from "../core/stats";
+import { Card, Collapsible, KV } from "./kit";
 
 const TIER_WORD = { good: "Good", fine: "Fine", poor: "Poor" } as const;
 const TIER_TONE = { good: "ok", fine: undefined, poor: "warning" } as const;
@@ -99,6 +102,23 @@ export function FamilyTree({ life, level, city }: { life: L.Life; level: number;
         </li>
       </ol>
       {life.gen === 1 && <p class="dim small">When he retires, his heir carries on and joins the tree.</p>}
+    </Card>
+  );
+}
+
+/** The family's records and who holds each, his own in green; only once there is an heir. His life's four first, his Records' bests folded below (see Records). */
+export function Hall({ stats: s }: { stats: Stats }) {
+  if (!s.life.family.length) return null;
+  const rows = hall(s);
+  const row = (r: HallRow) => (
+    <KV key={r.id} k={`${r.icon} ${r.name}`} v={r.gen ? `${r.text} · ${L.walkerName(r.gen)}` : <span class="dim">nobody yet</span>} tone={r.gen === s.life.gen ? "ok" : undefined} />
+  );
+  return (
+    <Card icon="🏛" title="Hall of walkers" right={`${heldBy(s).length} / ${rows.length} his`}>
+      <div class="zebra">{rows.slice(0, LIFE_ROWS).map(row)}</div>
+      <Collapsible title="Bests">
+        <div class="zebra">{rows.slice(LIFE_ROWS).map(row)}</div>
+      </Collapsible>
     </Card>
   );
 }

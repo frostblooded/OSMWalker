@@ -52,7 +52,7 @@ export class MemStorage {
   }
 }
 
-export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number } = {}) {
+export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number; moments?: boolean } = {}) {
   const api = new Api(async () => new Response("", { status: 503 }));
   const data = {
     actions: JSON.parse(dataFile("actions.json")),
@@ -62,6 +62,7 @@ export function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolea
     creatures: JSON.parse(dataFile("creatures.json")),
     spells: JSON.parse(dataFile("spells.json")),
     words: JSON.parse(dataFile("words.json")),
+    moments: opts.moments ? JSON.parse(dataFile("moments.json")) : undefined,
   };
   const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });

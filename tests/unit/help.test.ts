@@ -22,6 +22,7 @@ const data = {
   quests: (() => { const b = JSON.parse(dataFile("quests.json")); b.quests.push(...JSON.parse(dataFile("city-quests.json"))); return b; })(),
   creatures: JSON.parse(dataFile("creatures.json")),
   spells: JSON.parse(dataFile("spells.json")),
+  moments: JSON.parse(dataFile("moments.json")),
   borders: JSON.parse(dataFile("borders.json")),
   words: JSON.parse(dataFile("words.json")),
 };
@@ -151,10 +152,12 @@ describe("the real help", () => {
     expect(page("away").body).toContain("at most 24 hours");
     expect(page("away").body).toContain("at least 1 minute");
     expect(page("offline").body).toContain("While you were away");
-    expect(page("guess").body).toContain("with up to 3 choices");
     expect(page("postcards").body).toContain("up to 24 letters");
-    expect(page("guess").body).toContain("earns 1 ☘ clover");
-    expect(page("guess").body).toContain("leaving the game for 1 minute or more");
+    expect(page("moments").body).toContain("5 seconds at first");
+    expect(page("moments").body).toContain("(3, 5, 10, 20 seconds, or Off; remembered)");
+    expect(page("moments").body).toMatch(/\(\d+ kinds of places, \d+ of them with a mini-game/);
+    expect(page("moments").body).toContain("work 50% of the time, plus 5% for each point of Luck above 1, up to 90%");
+    expect(page("minigames").body).toContain("tap 12 times");
     expect(page("care").body).toContain("after at least 1 hour away earns 1 ☘ clover");
     expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
   });

@@ -4,7 +4,7 @@
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
 // moves his mood), his character (emotion, tastes found and perks), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
-// second, and his records and family tree close it.
+// second, and his records, family tree and the hall of walkers close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -37,7 +37,7 @@ import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skil
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
-import { FamilyTree, LifeCard } from "./Family";
+import { FamilyTree, Hall, LifeCard } from "./Family";
 import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -446,6 +446,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <Records stats={s} />
       <FamilyTree life={s.life} level={s.level} city={s.where.city} />
+      <Hall stats={s} />
     </>
   );
 }

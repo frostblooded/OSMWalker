@@ -17,6 +17,7 @@ import { skyNeed, type Sky } from "./sky";
 import { Rng, seedOf } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
+import { momentDice, tripMoment } from "./placeMoments";
 import type { Action, Place, Stats } from "./stats";
 import { cityBounds, cityKey, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
@@ -302,7 +303,11 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf(), place.class);
-      if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
+      if (action) {
+        stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
+        // Nobody to ask: he takes his own pick of the place's moment, as game.ts does when you don't tap.
+        stats.byHimself(stats.momentAt(place), place.name, momentDice(stats.now(), place.name));
+      }
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
@@ -359,6 +364,9 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       return true;
     }
     for (const line of stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code)) stats.say(line);
+    // A moment on the way, as game.ts asks as he boards; nobody to ask, so his own pick.
+    const dice = momentDice(stats.now(), dest.name);
+    stats.byHimself(tripMoment(stats.placeMoments, dice), dest.name, dice);
     pass(rideMin, 0);
     landIn(dest, plan.mode, plan.station.lon, plan.arrive, plan.distance_m);
     return true;

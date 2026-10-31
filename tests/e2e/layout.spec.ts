@@ -3,7 +3,7 @@
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { encode } from "../../src/core/postcard";
-import { KEEPSAKES, mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
+import { KEEPSAKES, mockServices, reopenAfter, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -13,7 +13,7 @@ test.beforeEach(async ({ context }) => {
 const FAMILY = `const ago = (d) => Math.floor(Date.now() / 1000) - d * 86400;
 const letter = "Dear heir,\\nI walked 812 km through 14 cities and reached level 23. Sofia felt most like home.\\nTake my Mighty Bronze Sword of the Fox.\\n— Walker I, Hearty Elder";
 const a = (gen, title) => ({ gen, born: ago(200 - gen * 56), retired: ago(144 - gen * 56), by: "age", title, level: 23, km: 812, cities: 14, home: "Villeneuve-lès-Avignon, France", heirloom: "Mighty Bronze Sword of the Fox", letter, chronicle: [] });
-d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
+d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), { ...a(2, "Weary Elder"), countries: 3, best: { stretchM: 9000, dayM: 31000, dayStops: 24, cents: 1234500, noFaintS: 900000 } }] };`;
 
 /** Drags a sheet's title bar down by dy px. */
 async function dragTitle(page: Page, sheet: Locator, dy: number) {
@@ -171,6 +171,12 @@ for (const width of [360, 412]) {
       await family.getByRole("button", { name: /Walker II ·/ }).click();
       await family.locator(".tree").scrollIntoViewIfNeeded();
       await check(page, "stats-family");
+      const hall = family.locator(".card", { hasText: "Hall of walkers" });
+      await hall.scrollIntoViewIfNeeded();
+      await hall.getByRole("button", { name: /Bests/ }).click();
+      await expect(hall).toContainText("Most money held");
+      await expect(hall).toContainText("€12,345 · Walker II");
+      await check(page, "stats-hall");
       await family.getByRole("button", { name: /Close/ }).click();
 
     });
@@ -298,9 +304,21 @@ for (const width of [360, 412]) {
       await check(page, "care-sent");
       await care.getByRole("button", { name: /Close/ }).click();
 
-      await reopenDeparting(page);
-      await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
-      await check(page, "guess");
+      // The timed moments: a plain choice, then each mini-game, with the timer at 20 s so none closes mid-shot.
+      await openMenuItem(page, /Choice timer/);
+      await page.getByRole("button", { name: /Choice timer/ }).click();
+      await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
+      await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
+      for (const kind of ["choice", "timing", "cards", "taps", "odd"]) {
+        await openMenuItem(page, /Debug/);
+        await page.getByRole("dialog", { name: /Debug/ }).getByRole("button", { name: /Try a moment/ }).click();
+        const moment = page.getByRole("dialog", { name: kind === "choice" ? /Quick choice/ : /Timing|Pick a card|Tap fast|Odd one out/ });
+        await expect(moment.getByRole("timer")).toBeVisible();
+        await check(page, `moment-${kind}`);
+        await moment.getByRole("button", { name: /Close/ }).click();
+        await expect(moment).toBeHidden();
+      }
+
 
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await page.reload(); // only the fragment changed, so the page has to load again to read it

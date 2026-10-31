@@ -24,10 +24,10 @@ When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or 
 
 He doesn't walk the map while you are away, so no streets have to load. Instead he hops from place to place by the usual rules:
 - he picks each place like any goal (see Picking the next goal), from the places already loaded in his city, and walks the straight line to it times {ROAD_FACTOR}, at his usual speed,
-- he does one action there and stays {STAY_MIN} minute (see What he does at places),
+- he does one action there and stays {STAY_MIN} minute (see What he does at places), and takes his own pick of its timed moment, so History says "Decided by himself" (see Timed moments),
 - his meters, buffs and money change as they always do, so he can get hungry, earn, buy gear, level up, and faint and wake in hospital,
 - he takes on quests and joins world events as usual (see Quests),
-- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
+- he rolls the trip dice as usual and pays for the trip (see Trips to other cities), but not while he is on a quest. As he boards he takes his own pick of the moment on the way. A trip that wouldn't be over before you come back doesn't start: he stays, and the trip dice roll again at his next stop.
 
 While you are away day and night still follow the real sun and the season counts, and closed places stay closed (when every place near enough is closed he walks to a random spot instead), but the weather doesn't: the catch-up lives through those hours with no weather at all, so it can't rain on him while you're gone (see Weather).
 
@@ -197,6 +197,27 @@ An action can:
 Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
+## Timed moments {moments}
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap.
+
+A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
+
+Every tap is optional:
+- When the bar runs out, you close the sheet or you leave the game, he picks himself, and his History says "Decided by himself". Once you have started Tap fast, you get what your taps have scored so far instead.
+- With the timer Off the sheet never opens and he always picks himself.
+- While you are away he lives through the same moments, at the same places and trips, and always picks himself (see While you were away).
+
+At a choice he takes the usual option, unless his attribute tilts him to the bolder first one: {MOMENT_LEAN_PCT} for each point above 1 of the attribute that choice leans on, up to {MOMENT_LEAN_CAP_PCT}. A choice with a shady option (robbing a till, skipping the bill) may tempt him: he takes it by himself as often as his karma says, more often the worse it is (see Karma).
+
+Some options are a gamble, like walking out without paying or robbing a till: they work {RISK_BASE_PCT} of the time, plus {RISK_PER_POINT_PCT} for each point of Luck above 1, up to {RISK_CAP_PCT}. When one fails he is caught: he may pay a fine (only what he has), get hurt and lose mood. Kind picks raise his karma and shady ones lower it, and a shady pick is a crime the police may come after (see Karma and The police).
+## Mini-games {minigames}
+A mini-game's result picks one of its options, from worst to best:
+- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle (marked ✔) for the best result, in the light green between the dashed lines for the middle one.
+- 🂠 Pick a card: {CARDS} cards lie face down, one bad, one middling and one good.
+- 👆 Tap fast: tap {TAPS} times before the bar runs out. If it runs out first, you get what your taps have scored so far.
+- 🔍 Odd one out: {ODD_CELLS} icons, one of them different. Tap it at once for the best result, after one wrong tap for the middle one; two wrong taps give the worst.
+
+When you don't play, he plays himself and scores the middle result, never the worst. With some skill he scores the best: {MOMENT_LEAN_PCT} for each point above 1 of Charm at Timing, Luck at Pick a card, Strength at Tap fast and Wits at Odd one out, up to {MOMENT_LEAN_CAP_PCT}.
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
@@ -519,7 +540,7 @@ He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of thing
 - Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
 Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet, which goes on the next morning. His first dreams go on his list as soon as he sets out (for an older walker, on his next morning). Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel, and never less than {DREAM_SHARE_PCT} of all the cities he could go to, so even a small one comes up now and then (see Trips). He drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
-The Stats sheet ends with his records over his whole life. Each best only goes up:
+Near the end of the Stats sheet are his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
 - Most walked, and most places stopped at, in one day
 - Most money he has held at once
@@ -558,7 +579,12 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 - his home, rented or his own, with the things he put up (see His home),
 - your clovers, care packages and storyteller.
 
-Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
+Once there is an heir, every card in the Collection says which walker of the family found it. Near the end of the Stats sheet is the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. Below it, the hall of walkers compares them (see Hall of walkers).
+## Hall of walkers {hall}
+Once there is an heir, the Stats sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
+{HALL_LIST}
+
+He counts as he is now, so he can take a record from an ancestor while you watch; on a tie the walker who got there first keeps it, and a record no walker has above 0 says nobody yet. For each walker it counts the km he walked in his life, his level and his Records (see Records). A walker who retired before the hall only counts for distance, level and cities. Each record he takes from the walkers before him counts for the 🏛 Pride of the family badge (see Badges and titles). The hall is only for looking: nothing changes how he lives.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).
@@ -626,7 +652,7 @@ While no places of note are loaded in the city box, the odds double to {NO_PLACE
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most, and a city with a sight on his bucket list weighs {DREAM_PULL} times as much, and at least {DREAM_SHARE_PCT} of all of them (see Bucket list).
 
-While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
+As he boards, a moment on the way comes (see Timed moments).
 
 He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
@@ -768,7 +794,7 @@ You never steer him, but you can leave him a small gift. Gifts cost clovers, and
 ☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:
 {GIFT_LIST}
 
-A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip). Each package he opens adds to his trust in you (see His trust in you).
+A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. Each package he opens adds to his trust in you (see His trust in you).
 ## His trust in you {trust}
 He doesn't know who you are, but he can tell someone is looking out for him. His trust in you runs from 0 to {TRUST_MAX} and starts at {TRUST_START}. The Care package sheet shows it.
 - A check-in that earns a clover adds {TRUST_PER_CHECKIN}, and each care package he opens adds {TRUST_PER_GIFT}.
@@ -791,16 +817,6 @@ From {LEAN_AT} either way it shows:
 - Rascal: rascal deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more. Things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has). Either way a skipped ticket is a rascal deed.
 
 His lean is his karma: it also sets his prices, his perks, how the police treat him and the halo or horns on him (see Karma).
-## Guess the next trip {guess}
-When the trip dice send him to another city, the top card shows "🎲 Where to?" with up to {GUESS_CHOICES} choices while he walks to the station:
-- for a trip in his country, the right city and other cities of the country,
-- for a trip abroad, the right country and other countries.
-
-The city he is in is never a choice. When the bundled city list has no other city to offer, there are fewer choices, or no guess for that trip.
-
-Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
-
-If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. So does leaving the game for {MIN_AWAY_MIN} minute or more before he boards: the catch-up starts him afresh at a place (see While you were away). Trips he takes while you are away have no guess.
 ## Suggest a line {phrases}
 ✍ Suggest a line in the menu opens a new GitHub issue (you need a free GitHub account) with three things to fill in: the kind of place, a dry line he might add after what he did there, and the name you want credited. If the line fits, it ships in a later update with "(line by your name)" at its end, and from then on it can show up in anyone's feed (see What he does at places). Nothing is sent until you press Submit on GitHub.
 ## Postcards to friends {postcards}
@@ -808,24 +824,24 @@ If the trip is called off before he boards (he can't pay, or he faints), the gue
 
 The whole card travels inside the link, after the #, so no server keeps it. When a friend opens it, their game shows "A postcard from Ivan in Sofia" (your name, or "a friend" if you left it empty), right away on the city picker, or in a game once its While you were away card and any open sheet are closed, with 📮 Send one back if they have a game going, or Start my own walk if they don't. Opening a postcard changes nothing in their game.
 ## One choice on reopen {dilemma}
-Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires, or is due to, brings none (see Retiring). Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
+Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires, or is due to, brings none (see Retiring). Tap an option before its bar runs out (the Choice timer, see Timed moments; it starts when you see the card) and it happens. Or just carry on: when the bar runs out, the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". With the Choice timer Off he decides at once, and the card shows what he chose. Nothing waits for you.
 
 When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} for each point of the attribute he leans on above 1, up to {LEAN_CAP_PCT}. Below 1 it stays even. The choices:
 {DILEMMA_LIST}
 
 At chess he wins {CHESS_BASE_PCT} of the time, plus {CHESS_PER_WIT_PCT} for each point of Wits, up to {CHESS_MAX_PCT}.
 
-A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for, and its guess.
+A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for.
 # ⚖ Reputation
 ## Karma {karma}
-His karma is his lean, from {LEAN_MIN} (a rascal) to +{LEAN_MAX} (kind), starting at 0 (see Kind or rascal). Praise and scold move it, and so do his deeds: kind and rascal actions, choices at work, some quests and events, shoplifting (−{STEAL_KARMA}), bribing the police (−{BRIBE_KARMA}) and giving himself up to them (+{SURRENDER_KARMA}).
+His karma is his lean, from {LEAN_MIN} (a rascal) to +{LEAN_MAX} (kind), starting at 0 (see Kind or rascal). Praise and scold move it, and so do his deeds: kind and rascal actions, choices at work, picks at timed moments (see Timed moments), some quests and events, shoplifting (−{STEAL_KARMA}), bribing the police (−{BRIBE_KARMA}) and giving himself up to them (+{SURRENDER_KARMA}).
 
 From {LEAN_AT} either way:
 - Kind: prices at places and shops (not fares) are {KIND_DISCOUNT_PCT} lower, on top of his fame's discount (see Fame). On a bus or train the driver or conductor waves him on for free {FREE_RIDE_PCT} of the time. At each stop a local may give him something for being so kind: {GIFT_PCT_KARMA} of the time, times 1 + his fame tier in that city. Quests only for the kind can come up on a city's board (see Quests).
 - Rascal: prices at places and shops (not fares) are {RASCAL_MARKUP_PCT} higher and his fame gives no discount, but he sells at fence prices (see Kind or rascal) and may shoplift at clothes, sports, shoe, jewellery, gift and second-hand shops, taking the item for free. Shady quests only for rascals can come up on a city's board. Every bad deed is a crime (see The police).
 - In between, he only gets his fame's discount.
 
-His karma pulls his own picks: kind deeds weigh more for a kind walker and rascal deeds for a rascal (see How he chooses), and when a choice with a rascal's option comes up (for now, how a police chase ends) he takes that option {RASCAL_BASE_PCT} of the time at karma 0, {RASCAL_PER_KARMA_PCT} more for each point below 0 and less for each above, never under {RASCAL_MIN_PCT} or over {RASCAL_MAX_PCT}. So a saint stays kind and a crook keeps at it, with a small chance to change.
+His karma pulls his own picks: kind deeds weigh more for a kind walker and rascal deeds for a rascal (see How he chooses), and when a choice with a rascal's option comes up (a timed moment's shady option, or how a police chase ends, see Timed moments) he takes that option {RASCAL_BASE_PCT} of the time at karma 0, {RASCAL_PER_KARMA_PCT} more for each point below 0 and less for each above, never under {RASCAL_MIN_PCT} or over {RASCAL_MAX_PCT}. So a saint stays kind and a crook keeps at it, with a small chance to change.
 
 At {AURA_AT} or more he wears a small gold halo on the map, and at −{AURA_AT} or less two red horns (see His face and bubble). The Stats sheet shows it all on its Reputation card.
 ## Fame {fame}
@@ -938,13 +954,13 @@ From level {PET_FAIRY_LEVEL}, at a real castle or old monument, {PET_FAIRY_PCT} 
 A pet lives with him for {PET_LIFE_MIN} to {PET_LIFE_MAX} days. Then it passes away in its sleep (a fairy one goes back to the hills), he misses it ({MISSING_MOOD_PER_H} mood an hour for {PET_MISSING_H} hours), and a new stray may stay. The Stats sheet shows his pet, and the ones he had under Remembered.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city and what he is doing (and how he feels, unless he is just Fine: see Emotions), his money and level, a red 🚨 with his wanted stars while the police want him (see The police), the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+The card at the top shows the city and what he is doing (and how he feels, unless he is just Fine: see Emotions), his money and level, a red 🚨 with his wanted stars while the police want him (see The police), the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -995,6 +1011,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Effects: his buffs with the minutes they have left.
 - Records: his bests and totals (see Records).
 - Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
+- Hall of walkers, once there is an heir: the family's records and who holds each (see Hall of walkers).
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
 
@@ -1030,7 +1047,7 @@ Its buttons change the game right away:
 - New country sends him straight to a city in another country.
 - ⏩ A stage older (in the 🎂 Life stage card) makes him a stage older at once; as an elder it makes him due to retire (see Life stages).
 
-The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires or is due to (see One choice on reopen), for testing. The switch is remembered.
+In the 🤔 Choices card, the switch "One on every long reopen" makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires or is due to (see One choice on reopen), for testing; it is remembered. ⏱ Try a moment opens a timed moment where he is: a plain choice, then each mini-game in turn (see Timed moments). It counts like any other.
 ## New city {new_city}
 New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 

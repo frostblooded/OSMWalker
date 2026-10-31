@@ -11,6 +11,7 @@ import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
+import { HALL } from "../core/hall";
 import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
@@ -40,7 +41,7 @@ import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Inc from "../core/incidents";
 import * as Goals from "../core/goals";
-import * as Guess from "../core/guess";
+import * as Minigames from "../core/minigames";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Jokes from "../core/jokes";
@@ -258,9 +259,19 @@ export function values(data: GameData): Record<string, string> {
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
     CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
-    GUESS_CHOICES: num(Guess.GUESS_CHOICES),
     POSTCARD_NAME_MAX: num(Postcard.NAME_MAX),
-    GUESS_CLOVERS: num(Guess.GUESS_CLOVERS),
+    MOMENT_S: num(Moments.MOMENT_S),
+    MOMENT_TIMERS: Moments.MOMENT_TIMERS.filter(Boolean).map(num).join(", "),
+    MOMENT_KINDS: num(Object.keys(data.moments ?? {}).filter((k) => !k.startsWith("_")).length),
+    MOMENT_GAMES: num(Object.entries(data.moments ?? {}).filter(([k, m]) => !k.startsWith("_") && m.game).length),
+    MOMENT_LEAN_PCT: pct(Moments.LEAN_PER_POINT),
+    MOMENT_LEAN_CAP_PCT: pct(Moments.LEAN_CAP),
+    RISK_BASE_PCT: pct(Moments.RISK_BASE),
+    RISK_PER_POINT_PCT: pct(Moments.RISK_PER_POINT),
+    RISK_CAP_PCT: pct(Moments.RISK_CAP),
+    TAPS: num(Minigames.TAPS),
+    CARDS: num(Minigames.CARDS.length),
+    ODD_CELLS: num(Minigames.ODD_CELLS),
     DILEMMA_AWAY_H: num(Dilemmas.DILEMMA_AWAY_S / 3600),
     DILEMMA_PCT: pct(Dilemmas.DILEMMA_CHANCE),
     LEAN_PCT: pct(Dilemmas.LEAN_PER_POINT),
@@ -314,9 +325,9 @@ export function values(data: GameData): Record<string, string> {
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
-    RIDDLE_PCT: pct(Creatures.RISK_BASE),
-    RIDDLE_PER_WIT_PCT: pct(Creatures.RISK_PER_POINT),
-    RIDDLE_CAP_PCT: pct(Creatures.RISK_CAP),
+    RIDDLE_PCT: pct(Moments.RISK_BASE),
+    RIDDLE_PER_WIT_PCT: pct(Moments.RISK_PER_POINT),
+    RIDDLE_CAP_PCT: pct(Moments.RISK_CAP),
     CREATURE_LIST: (data.creatures ?? []).map((c) => {
       const said = (o: Creatures.Outcome) => [o.pay ? `pays ${euro(o.pay)}` : "", Gifts.effect(o)].filter(Boolean).join(", ");
       const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
@@ -353,6 +364,7 @@ export function values(data: GameData): Record<string, string> {
     GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),
     ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
     TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
+    HALL_LIST: HALL.map((h) => `- ${h.icon} ${h.name}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     STAGE_DAYS: num(Life.STAGE_DAYS),
