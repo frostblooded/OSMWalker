@@ -9,11 +9,11 @@ test.beforeEach(async ({ context }) => {
   await mockServices(context);
 });
 
-/** An elder of the third generation whose time ran out, with a long home name and heirloom on the tree; his heir sets out in Sofia, whose streets the mock serves. */
+/** An elder of the third generation, with a long home name and heirloom on the tree; his heir sets out in Sofia, whose streets the mock serves. */
 const FAMILY = `const ago = (d) => Math.floor(Date.now() / 1000) - d * 86400;
 const letter = "Dear heir,\\nI walked 812 km through 14 cities and reached level 23. Sofia felt most like home.\\nTake my Mighty Bronze Sword of the Fox.\\n— Walker I, Hearty Elder";
 const a = (gen, title) => ({ gen, born: ago(200 - gen * 56), retired: ago(144 - gen * 56), by: "age", title, level: 23, km: 812, cities: 14, home: "Villeneuve-lès-Avignon, France", heirloom: "Mighty Bronze Sword of the Fox", letter, chronicle: [] });
-d.stats.life = { born: ago(57), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
+d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
 
 /** Drags a sheet's title bar down by dy px. */
 async function dragTitle(page: Page, sheet: Locator, dy: number) {
@@ -256,8 +256,12 @@ for (const width of [360, 412]) {
       await expect(page.getByRole("group", { name: "Guess where he is going" })).toBeVisible({ timeout: 20000 });
       await check(page, "guess");
 
-      // An elder whose time ran out, with two walkers before him: his farewell letter, then the family tree.
+      // An elder with two walkers before him, retired from the menu: the confirm, his farewell letter, then the family tree.
       await reopenWith(page, FAMILY, "family-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Retire him now/);
+      await check(page, "retire");
+      await page.getByRole("dialog", { name: /Retire him now/ }).getByRole("button", { name: "Retire" }).click();
       const farewell = page.getByRole("dialog", { name: /farewell letter/ });
       await expect(farewell).toBeVisible({ timeout: 20000 });
       await check(page, "farewell");

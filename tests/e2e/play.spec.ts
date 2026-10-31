@@ -236,7 +236,7 @@ test("an elder can be retired early from the menu, after a confirm", async ({ pa
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Retire him now/ }).click();
-  const ask = page.getByRole("alertdialog", { name: "Retire him" });
+  const ask = page.getByRole("dialog", { name: /Retire him now/ });
   await ask.getByRole("button", { name: "Keep walking" }).click();
   await expect(ask).toBeHidden();
   await page.getByRole("button", { name: "Menu" }).click();

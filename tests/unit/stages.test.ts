@@ -156,6 +156,24 @@ describe("Stats through his life", () => {
     expect(s.xpMult()).toBeCloseTo(L.STAGES[3].xp);
   });
 
+  it("a stage skipped in one go gets its own care and title; the ones after it start with clean care", () => {
+    const t = { now: T0 };
+    const s = him(t);
+    s.passTime(1, 0);
+    s.life.faints = L.POOR_FAINTS;
+    t.now += 3 * L.STAGE_DAYS * DAY;
+    s.meters.fullness = s.meters.thirst = 100;
+    s.passTime(1, 0);
+    const said = s.history.entries.map((e) => e.text).filter((x) => x.startsWith("🏡") || x.startsWith("🧭") || x.startsWith("🧓"));
+    expect(said).toEqual(["🏡 Now a Weary Settled (Charm −1)", "🧭 Now a Hearty Veteran (Strength +1)", "🧓 Now a Hearty Elder (Wits +1)"]);
+    expect(s.chronicle.lines.map((l) => l.text)).toContain("Became a Weary Settled");
+  });
+
+  it("an Elder with fine care is an Elder", () => {
+    expect(L.withArticle("Elder")).toBe("an Elder");
+    expect(L.withArticle("Hearty Elder")).toBe("a Hearty Elder");
+  });
+
   it("says once that he is ready to retire", () => {
     const t = { now: T0 };
     const s = him(t);

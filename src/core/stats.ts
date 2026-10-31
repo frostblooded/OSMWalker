@@ -589,12 +589,12 @@ export class Stats {
     const due = this.life.retireDue;
     for (const stage of this.life.pass(minutes, t, this.where.city, walkedM, starving)) {
       const st = L.STAGES[stage]!;
-      const nudge = L.TIERS[this.life.tier()].nudge;
-      const title = this.life.title();
+      const nudge = L.TIERS[this.life.tier(stage)].nudge;
+      const title = L.withArticle(this.life.title(stage));
       if (nudge && st.attr) this.attrs[st.attr] = Math.max(this.attrs[st.attr] + nudge, 0);
       const name = st.attr && Inc.ATTR_NAMES[st.attr];
-      this.say(`${st.icon} Now a ${title}${nudge && name ? ` (${name} ${nudge > 0 ? "+" : "−"}${Math.abs(nudge)})` : ""}`);
-      this.milestone(`stage${stage}`, `Became a ${title}`);
+      this.say(`${st.icon} Now ${title}${nudge && name ? ` (${name} ${nudge > 0 ? "+" : "−"}${Math.abs(nudge)})` : ""}`);
+      this.milestone(`stage${stage}`, `Became ${title}`);
     }
     if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.life.favourite(this.where.city).split(",")[0]}`);
   }

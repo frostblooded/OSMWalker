@@ -311,7 +311,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {sheet === "retire" && (
-        <RetireDialog
+        <RetireSheet
           heir={walkerName(s.life.gen + 1)}
           home={s.life.favourite(s.where.city).split(",")[0]!}
           onCancel={() => setSheet(null)}
@@ -540,20 +540,19 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
 }
 
 /** Retiring him early, from the menu while he is an elder; he would retire by himself at the end of the stage. */
-function RetireDialog({ heir, home, onCancel, onConfirm }: { heir: string; home: string; onCancel: () => void; onConfirm: () => void }) {
+function RetireSheet({ heir, home, onCancel, onConfirm }: { heir: string; home: string; onCancel: () => void; onConfirm: () => void }) {
   return (
-    <div class="dialog-bg">
-      <div class="card dialog" role="alertdialog" aria-label="Retire him">
-        <h2>🌅 Retire him now?</h2>
-        <p class="dim">He settles in {home} and {heir} sets out from there with his heirloom. He retires by himself at the end of this stage anyway.</p>
+    <SheetBox title="🌅 Retire him now?" onClose={onCancel}>
+      <Card icon="🌱" title={`${heir} sets out`} right={home}>
+        <p class="dim">He settles in {home}, and his heir sets out from there with his heirloom. He retires by himself at the end of this stage anyway.</p>
         <button class="btn danger" onClick={onConfirm}>
           Retire
         </button>
         <button class="btn" onClick={onCancel}>
           Keep walking
         </button>
-      </div>
-    </div>
+      </Card>
+    </SheetBox>
   );
 }
 

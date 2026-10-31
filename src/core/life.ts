@@ -64,6 +64,9 @@ export function roman(n: number): string {
   return out;
 }
 
+/** "a Veteran", "an Elder". */
+export const withArticle = (title: string) => `${/^[AEIOU]/.test(title) ? "an" : "a"} ${title}`;
+
 /** "Walker I", "Walker II"... */
 export const walkerName = (gen: number) => `Walker ${roman(gen)}`;
 
@@ -123,13 +126,14 @@ export class Life {
     return STAGES[this.stage]!;
   }
 
-  tier(): Tier {
-    return this.tiers[this.stage] ?? "fine";
+  /** The care tier stage `stage` (his current one by default) got on entering it. */
+  tier(stage = this.stage): Tier {
+    return this.tiers[stage] ?? "fine";
   }
 
-  /** "Hearty Veteran", or just "Veteran". */
-  title(): string {
-    return [TIERS[this.tier()].word, this.info().name].filter(Boolean).join(" ");
+  /** "Hearty Veteran", or just "Veteran", for stage `stage` (his current one by default). */
+  title(stage = this.stage): string {
+    return [TIERS[this.tier(stage)].word, STAGES[stage]!.name].filter(Boolean).join(" ");
   }
 
   /** Whole days old at unix seconds `t`. */

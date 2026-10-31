@@ -33,15 +33,18 @@ export function LifeCard({ life, now }: { life: L.Life; now: number }) {
   );
 }
 
-/** A walker's spot on the tree: a drawn node with his number, joined to the next generation's below. */
+/** A walker's spot on the tree: a drawn node with his number, and below it the line to the next generation's (none for him, the last). */
 function Node({ gen, now }: { gen: number; now?: boolean }) {
   return (
-    <svg class="tree-node" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="14" fill={now ? "var(--accent)" : "var(--zebra)"} stroke="var(--ink)" stroke-width="3" />
-      <text x="16" y="20.5" text-anchor="middle" font-size={gen > 3 ? 9 : 12} font-weight="800" fill="var(--ink)">
-        {L.roman(gen)}
-      </text>
-    </svg>
+    <div class="tree-rail" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill={now ? "var(--accent)" : "var(--zebra)"} stroke="var(--ink)" stroke-width="3" />
+        <text x="16" y="20.5" text-anchor="middle" font-size="12" font-weight="800" fill="var(--ink)">
+          {L.roman(gen)}
+        </text>
+      </svg>
+      {!now && <div class="tree-line" />}
+    </div>
   );
 }
 
