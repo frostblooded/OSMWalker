@@ -247,9 +247,8 @@ export const SETS: CSet[] = [
     entries: (s) =>
       Object.values(EVENTS).map((e) => {
         const n = s.stars.seen[e.id] ?? 0;
-        return { id: e.id, icon: e.icon, name: e.name, got: n > 0, info: n > 0 ? `Seen ${n === 1 ? "once" : `${n} times`}` : "Seen on a clear night when it comes round" };
+        return { id: e.id, icon: e.icon, name: e.name, got: n > 0, info: n > 0 ? `Seen ${n === 1 ? "once" : `${n} times`}` : "Seen on a night when the sky puts on a show" };
       }),
-    facts: (s) => [["⛅ Nights clouds hid one", String(s.stars.clouded)]],
   },
   {
     id: "spells",

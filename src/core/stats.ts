@@ -1727,15 +1727,10 @@ export class Stats {
     if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
   }
 
-  /** The first dark moment of a night with a sky event (see skyEvents.ts): a clear sky gives a line and a moodlet, clouds a grumble. */
+  /** The first dark moment of a night with a sky event (see skyEvents.ts): a line and a moodlet. */
   private lookUp(t: number): void {
-    const got = this.stars.look(t, this.sky);
-    if (!got) return;
-    const { ev, hidden } = got;
-    if (hidden) {
-      this.say(`${ev.icon} Clouds hid ${ev.what} tonight. He looked up anyway`);
-      return;
-    }
+    const ev = this.stars.look(t, this.sky, this.where.city);
+    if (!ev) return;
     this.mind.feel(ev.name, ev.icon, ...ev.mood);
     this.say(`${ev.icon} ${ev.say}`);
     this.milestone("sky", `Looked up and saw ${ev.what}`);
