@@ -21,6 +21,7 @@ import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
@@ -73,7 +74,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     creatures: JSON.parse(dataFile("creatures.json")),
     spells: JSON.parse(dataFile("spells.json")),
   };
-  const storage = new MemStorage();
+  const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
   g.problems.quiet = true;
   return { g, storage };
@@ -397,6 +398,38 @@ describe("game", () => {
     expect(g.walker!.isResting()).toBe(true);
     expect(g.doing).not.toBeNull();
     expect(look(g).pose).not.toBeNull();
+  });
+
+  it("notices a public holiday once, closes day businesses, fetches each country's list once a year, and keeps it on the device", async () => {
+    const asked: string[] = [];
+    const day = Date.UTC(2026, 2, 3, 10); // Liberation Day in Bulgaria
+    const api = new Api(async (url) => {
+      if (!url.includes("nager")) return new Response("", { status: 503 });
+      asked.push(url);
+      return new Response(JSON.stringify([{ date: "2026-03-03", name: "Liberation Day", localName: "Освобождение", global: true, types: ["Public"] }]));
+    });
+    const { g, storage } = game({ api, places: [CAFE], clock: () => day });
+    // The code table and the list both arrive in the background.
+    const settle = async (x: Game) => {
+      for (let i = 0; i < 100 && !x.holiday; i++) {
+        run(x, 1);
+        await new Promise((r) => setTimeout(r, 5));
+      }
+    };
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await settle(g);
+    expect(g.holiday?.name).toBe("Liberation Day");
+    expect(g.stats.sky?.holiday).toBe(true);
+    const said = () => g.stats.history.entries.filter((e) => e.text.includes("Liberation Day")).map((e) => e.text);
+    expect(said()).toEqual(["It's Liberation Day (Освобождение) here, a public holiday"]);
+    run(g, 400);
+    expect(said()).toHaveLength(1);
+    expect(asked).toEqual(["https://date.nager.at/api/v3/PublicHolidays/2026/BG"]);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    await settle(again);
+    expect(again.holiday?.name).toBe("Liberation Day");
+    expect(asked).toHaveLength(1);
   });
 
   it("keeps the walk across a save", async () => {
@@ -879,6 +912,17 @@ describe("game", () => {
       expect(again.walker!.totalM).toBeGreaterThan(0);
     });
 
+    it("knows the holiday kept on the device on reopen, so time away on a holiday has holiday actions", async () => {
+      // The list was fetched on an earlier day; Nager.Date is down now.
+      const storage = new MemStorage();
+      storage.setItem(HOLIDAYS_KEY, JSON.stringify({ lists: { "BG:2026": [{ date: "2026-10-29", name: "Test Day", localName: "" }] }, said: "" }));
+      // A park stays open on a holiday, so he has somewhere to celebrate.
+      const park: Place = { name: "Holiday Park", class: "park", subclass: "park", rank: 1, lat: CAFE.lat, lon: CAFE.lon };
+      const { again } = await reopen(6 * HOUR, { storage, places: [park] });
+      const names: string[] = JSON.parse(dataFile("actions.json"))._holiday.map((a: { name: string }) => a.name);
+      expect(again.away!.lines.some((l) => names.some((n) => l.text.includes(n)))).toBe(true);
+    });
+
     it("has nothing to catch up after a short break or from an old save", async () => {
       expect((await reopen(30_000)).again.away).toBeNull();
       const { g, storage } = game();
@@ -1087,11 +1131,13 @@ describe("game", () => {
     });
 
     it("still finishes a reopen when the dilemma code can't load", async () => {
-      vi.doMock("../../src/core/dilemmas", () => {
-        throw new Error("offline");
-      });
+      // Mocked once the game's other lazy code is in, so only the dilemma code fails to load.
+      const offline = () =>
+        vi.doMock("../../src/core/dilemmas", () => {
+          throw new Error("offline");
+        });
       try {
-        const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true));
+        const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true), offline);
         expect(again.away).not.toBeNull();
         expect(again.dilemma).toBeNull();
       } finally {
@@ -1238,7 +1284,7 @@ describe("game", () => {
       expect(weatherCalls()).toBe(1);
       // The network is gone: a new game reads the kept forecast and keeps using it.
       let down = 0;
-      const offline = new Api(async () => (down++, new Response("", { status: 503 })));
+      const offline = new Api(async (u) => (u.includes("open-meteo") && down++, new Response("", { status: 503 })));
       now += 2 * 3600_000;
       const again = new Game({ ...(first.g as unknown as { deps: GameDeps }).deps, api: offline, storage: first.storage });
       again.problems.quiet = true;

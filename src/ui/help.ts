@@ -393,6 +393,7 @@ export function values(data: GameData): Record<string, string> {
     SHEET_TALL_PCT: String(Math.round(Snap.TALL * 100)),
     SHEET_CLOSE_PCT: String(Math.round(Snap.CLOSE_AT * 100)),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
+    POSE_EVERY_S: String(Looks.POSE_EVERY_S),
     LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
