@@ -1,18 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // E2E against the production build. PW_CHROMIUM points at a local Chromium
-// (the cloud sandbox); CI uses the runner's Chrome. LIVE_URL plays the
-// deployed site instead (after a deploy), with no local server.
+// (npm run verify finds the cloud sessions' one); otherwise Playwright's own
+// (npx playwright install chromium). LIVE_URL plays the deployed site instead,
+// with no local server.
 const live = process.env.LIVE_URL;
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
   // One browser per core; the default is half.
   workers: "100%",
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  reporter: "list",
   use: {
     ...devices["Pixel 7"],
-    channel: process.env.CI ? "chrome" : undefined,
     launchOptions: {
       executablePath: process.env.PW_CHROMIUM || undefined,
       args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
@@ -22,5 +22,5 @@ export default defineConfig({
     // Most tests want the network as the mocks answer it; offline.spec turns the service worker on.
     serviceWorkers: "block",
   },
-  webServer: live ? undefined : { command: "npm run preview", url: "http://localhost:4173/", reuseExistingServer: !process.env.CI },
+  webServer: live ? undefined : { command: "npm run preview", url: "http://localhost:4173/", reuseExistingServer: true },
 });

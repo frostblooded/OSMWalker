@@ -8,8 +8,8 @@ make.
 
 Every PR gets a review before it is merged:
 
-1. With the PR open and `npm run verify` passed on its head (the pre-push
-   hook refuses the push otherwise), start a fresh review agent (Agent tool,
+1. With the PR open and `npm run verify` passed on its head (pushes to a
+   branch only need `npm run check`), start a fresh review agent (Agent tool,
    general-purpose). Give it only `git diff origin/master...HEAD`, this
    file and the PR body. Ask for violations of the rules below, each with
    file, line and the rule broken, and nothing else.
