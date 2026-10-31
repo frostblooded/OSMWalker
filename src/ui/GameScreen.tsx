@@ -139,6 +139,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
+              {h.wanted > 0 && (
+                <span class="pill wanted" title="Wanted by the police">
+                  🚨 {"★".repeat(h.wanted)}
+                </span>
+              )}
               {h.sky && (
                 <span class="pill sky">
                   {h.sky.icon}
@@ -334,7 +339,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {game.retired && !game.away && sheet === null && (
         <SheetBox title="✉ A farewell letter" onClose={() => game.dismissRetired()} full>
           <Lazy load={() => import("./Family")} what="the farewell letter">
-            {(m) => <m.Farewell a={game.retired!} gen={s.life.gen} onDone={() => game.dismissRetired()} />}
+            {(m) => <m.Farewell a={game.retired!} life={s.life} onDone={() => game.dismissRetired()} />}
           </Lazy>
         </SheetBox>
       )}

@@ -221,14 +221,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     stats.history.breakTrail();
     while (leftMin() > 0) {
       // His elder stage ran out, or you asked: the game retires him, and his heir starts on the real clock.
-      if (stats.life.retireDue || stats.life.asked) break;
+      if (stats.life.leaving) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name, stats.bond.leaning());
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -283,6 +283,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
+      // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
+      if (stats.reputeAt(place)) {
+        // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
+        const jail = stats.runChase(place.name);
+        s.stops++;
+        pass(Math.min(jail || restMinutes({ name: "", min: 1 }), leftMin()), 0);
+        yield;
+        continue;
+      }
       // Incidents roll on the card dice too, so they leave his walk the same.
       stats.happen(place, sky.hour, cardRng);
       s.stops++;
@@ -297,7 +306,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (stats.life.retireDue || stats.life.asked) {
+    if (stats.life.leaving) {
       s.retire = "soon";
       s.coveredS = Math.min(elapsed, coveredS);
     } else if (leftMin() > 0) pass(leftMin(), 0);

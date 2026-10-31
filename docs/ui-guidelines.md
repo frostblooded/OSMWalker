@@ -73,6 +73,7 @@ things at a time. A block full of lines is the most common mistake here.
   - green `--ok` / `--fu`: OK, good, gains, fullness
   - orange `--accent`: him, his route, the main button
   - gold `--coin`: money; lilac `--lilac`: level
+  - pale gold `--halo`: his halo at good karma (red `--hp` draws his horns)
   - indigo `--magic`: Magic, ley lines and other magic (also the magic map
     icons, `map/icons.ts`, and the ley line layer, `map/mapView.ts`)
 - Rarity follows the colours players know from other games: grey common,
