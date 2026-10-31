@@ -331,6 +331,8 @@ describe("game", () => {
     expect(texts).toContain("🌀 The old stones of Old Monument shimmered like a door, and he stepped through");
     expect(texts).toContain(`🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`);
     expect(g.walker!.isTraveling()).toBe(false);
+    // The jump marks no squares on the way: 400 s on foot crosses only a few.
+    expect(g.stats.explored.size).toBeLessThan(10);
   });
 
   it("at dawn a fairy ring in a park he reaches may take him for a nap in place of an action, and he wakes with a gift or a story", async () => {

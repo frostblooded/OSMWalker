@@ -70,7 +70,8 @@ things at a time. A block full of lines is the most common mistake here.
 - One meaning per colour, used the same way everywhere:
   - red `--error` / `--hp`: error, danger, health
   - amber `--warning` / `--en`: warning, energy
-  - green `--ok` / `--fu`: OK, good, gains, fullness
+  - green `--ok` / `--fu`: OK, good, gains, fullness (also the explored
+    squares layer, `map/mapView.ts`)
   - orange `--accent`: him, his route, the main button
   - gold `--coin`: money; lilac `--lilac`: level
   - indigo `--magic`: Magic, ley lines and other magic (also the magic map

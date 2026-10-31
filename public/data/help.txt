@@ -759,7 +759,7 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
 ## Explored {explored}
-👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Only walking the streets counts: bus, car and plane rides, long walks between cities and the time the game was closed don't.
+👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Getting about in his city counts: on foot, with his own vehicle, or flying his own mount straight over the streets (see Speed and vehicles). Trips to other cities, portals, long walks between cities and the time the game was closed don't.
 
 The sheet shows the share of the squares in his city box (the box his goals are picked in, see Choosing a city) he has walked, such as "Sofia 14% explored", and the number of squares and km² he has walked in the whole world. While it is open the map shows his squares in green, zoomed to the ones in this city. They are kept for good, in every city he has been to, until New city.
 ## Debug {debug}

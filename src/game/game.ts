@@ -321,9 +321,9 @@ export class Game {
   step(dt: number): void {
     const w = this.walker;
     if (!w || this.waking) return;
-    const walking = !w.isTraveling();
-    const from = w.position();
-    if (walking) this.loader.request(cellsByPriority(from[0], from[1], STREET_RING, this.goalHeading()));
+    const from = w.isTraveling() ? null : w.position();
+    const graph = w.graph;
+    if (from) this.loader.request(cellsByPriority(from[0], from[1], STREET_RING, this.goalHeading()));
     // He walks what is loaded and waits at the edge until more streets arrive.
     const s = Math.min(dt, MAX_STEP_S);
     const before = w.totalM;
@@ -336,8 +336,8 @@ export class Game {
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
-    // Only steps walked from start to end mark squares, so a ride's start or end never draws a line of them.
-    if (walking && !w.isTraveling() && w.totalM > before) this.stats.explored.walk(from, w.position());
+    // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
+    if (from && !w.isTraveling() && w.graph === graph && w.totalM > before) this.stats.explored.walk(from, w.position());
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();

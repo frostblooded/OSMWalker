@@ -1,3 +1,5 @@
+// The 200 m squares: their size and place, marking them along a walk, the
+// city counts, the map boxes and the compact save.
 import { describe, expect, it } from "vitest";
 import { bboxAround, distanceM, moved } from "../../src/core/geo";
 import { CELL_M, cellOf, Explored } from "../../src/core/explored";
