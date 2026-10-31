@@ -51,7 +51,7 @@ export class Journey {
     this.log = { roll: r, boost, ...(abroad > 1 ? { abroad } : {}), outcome: kind };
     if (kind === "stay") return null;
     // A share of trips go home; their own dice, so the walk's stay the same.
-    const home = stats.home.has() ? this.deps.trips.homeward(stats.home, stats.where.city, new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
+    const home = stats.home.has() ? this.deps.trips.homeward(stats.home, stats.atHome(), new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
     if (home) this.log.home = home.name;
     const found = home ?? this.destination(kind, at);
     if (!found) return null;

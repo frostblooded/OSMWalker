@@ -8,7 +8,8 @@
 // more things are up. He retires there too.
 // Pure; Stats owns one.
 import type { Item } from "./items";
-import type { LatLon } from "./trips";
+import { distanceM } from "./geo";
+import { SAME_CITY_M, type LatLon } from "./trips";
 
 /** The fame tier (see fame.ts) a city must know him at before he rents there: Regular. */
 export const RENT_TIER = 2;
@@ -55,9 +56,14 @@ export class Home {
     return HOME_MOOD + HOME_MOOD_PER_THING * this.things.length;
   }
 
-  /** True when a trip roll `r` (0-1) from `city` takes him home. */
-  callsHome(r: number, city: string): boolean {
-    return !!this.city && city !== this.city && r < HOME_TRIP;
+  /** True when a city whose middle is `at` is his home's city. By place, not name: the city he set out from is named by the place search ("Sofia, Sofia City, Bulgaria"), a city reached by trip by the city list ("Sofia, Bulgaria"). */
+  near(at: LatLon | undefined): boolean {
+    return !!this.city && !!at && distanceM(at[0], at[1], this.at[0], this.at[1]) < SAME_CITY_M;
+  }
+
+  /** True when a trip roll `r` (0-1) takes him home, away from it (`atHome` false). */
+  callsHome(r: number, atHome: boolean): boolean {
+    return !!this.city && !atHome && r < HOME_TRIP;
   }
 
   toJSON() {
@@ -70,9 +76,9 @@ export class Home {
   }
 }
 
-/** The thing from his travels he would put up next: the dearest one in `bag` from another city (`city` and a story's `from` are both "Sofia, Bulgaria") that isn't stolen or treasured (`treasured` says), or null. */
-export function nextThing(bag: Item[], city: string, treasured: (i: Item) => boolean): Item | null {
+/** The thing from his travels he would put up next: the dearest one in `bag` from a city not in `local` (his home's names, as a story's `from` keeps them), that isn't stolen or treasured (`treasured` says), or null. */
+export function nextThing(bag: Item[], local: string[], treasured: (i: Item) => boolean): Item | null {
   let best: Item | null = null;
-  for (const it of bag) if (it.story && it.story.from !== city && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
+  for (const it of bag) if (it.story && !local.includes(it.story.from) && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
   return best;
 }

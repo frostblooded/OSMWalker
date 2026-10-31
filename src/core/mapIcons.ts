@@ -69,5 +69,5 @@ export const monumentIcons = (built: Monument[], city: string): MapIcon[] =>
 /** A house icon on his spot, if he has one in this city. */
 export const spotIcons = (spot: Visits | null): MapIcon[] => (spot ? [{ id: "spot", at: [spot.lat, spot.lon], icon: "home", label: `His spot: ${spot.name}`, kind: "place" }] : []);
 
-/** His home's icon, in its city. */
-export const homeIcons = (home: Home, city: string): MapIcon[] => (home.has() && home.city === city ? [{ id: "home", at: home.at, icon: "flat", label: home.bought ? "His home" : "His flat (rented)", kind: "place" }] : []);
+/** His home's icon, while he is in its city (`here`, see Stats.atHome). */
+export const homeIcons = (home: Home, here: boolean): MapIcon[] => (here ? [{ id: "home", at: home.at, icon: "flat", label: home.bought ? "His home" : "His flat (rented)", kind: "place" }] : []);

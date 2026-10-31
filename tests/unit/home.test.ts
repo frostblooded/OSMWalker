@@ -143,18 +143,35 @@ describe("his home", () => {
     const sofia: City = { name: "Sofia", code: "BG", country: "Bulgaria", lat: 42.69, lon: 23.32, pop: 1e6 };
     const trips = new Trips([sofia]);
     const h = new Hm.Home();
-    expect(trips.homeward(h, "Plovdiv, Bulgaria", 0)).toBeNull();
+    expect(trips.homeward(h, false, 0)).toBeNull();
     h.rent(SOFIA, "BG", [42.69, 23.32], T0);
-    expect(trips.homeward(h, "Plovdiv, Bulgaria", Hm.HOME_TRIP - 0.01)).toBe(sofia);
-    expect(trips.homeward(h, "Plovdiv, Bulgaria", Hm.HOME_TRIP)).toBeNull();
-    expect(trips.homeward(h, SOFIA, 0)).toBeNull();
+    expect(trips.homeward(h, false, Hm.HOME_TRIP - 0.01)).toBe(sofia);
+    expect(trips.homeward(h, false, Hm.HOME_TRIP)).toBeNull();
+    expect(trips.homeward(h, true, 0)).toBeNull();
+  });
+
+  it("knows his home city by place, not name: the city he set out from has a place-search name", () => {
+    const sofia: City = { name: "Sofia", code: "BG", country: "Bulgaria", lat: 42.69, lon: 23.32, pop: 1e6 };
+    const s = new Stats();
+    const picked = "Sofia, Sofia City, Bulgaria";
+    s.where = { city: picked, code: "BG", country: "Bulgaria" };
+    s.life.mark(picked, [42.7, 23.3]);
+    s.home.rent(picked, "BG", [42.7, 23.3], T0);
+    expect(new Trips([sofia]).homeward(s.home, false, 0)).toBe(sofia);
+    // Back by a trip, under the city list's name.
+    s.where = { city: SOFIA, code: "BG", country: "Bulgaria" };
+    s.life.mark(SOFIA, [42.69, 23.32]);
+    expect(s.atHome()).toBe(true);
+    s.where = { city: "Plovdiv, Bulgaria", code: "BG", country: "Bulgaria" };
+    s.life.mark("Plovdiv, Bulgaria", [42.14, 24.75]);
+    expect(s.atHome()).toBe(false);
   });
 
   it("shows on the map in its city, and is where he retires; his heir keeps it", () => {
     const s = inSofia(1000);
     nextDay(s);
-    expect(homeIcons(s.home, SOFIA)).toEqual([{ id: "home", at: [42.69, 23.32], icon: "flat", label: "His flat (rented)", kind: "place" }]);
-    expect(homeIcons(s.home, "Plovdiv, Bulgaria")).toEqual([]);
+    expect(homeIcons(s.home, s.atHome())).toEqual([{ id: "home", at: [42.69, 23.32], icon: "flat", label: "His flat (rented)", kind: "place" }]);
+    expect(homeIcons(s.home, false)).toEqual([]);
     s.where = { city: "Varna, Bulgaria", code: "BG", country: "Bulgaria" };
     s.life.cityMin["Varna, Bulgaria"] = 1e6;
     expect(s.homeCity()).toBe(SOFIA);

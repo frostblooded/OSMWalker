@@ -1303,7 +1303,7 @@ export class Game {
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...homeIcons(this.stats.home, this.stats.where.city), ...this.questIcons()];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...homeIcons(this.stats.home, this.stats.atHome()), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */
