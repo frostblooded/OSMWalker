@@ -113,8 +113,9 @@ describe("timed moments", () => {
     const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
     expect(again.away).not.toBeNull();
     const m = { id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" };
-    expect(await again.ask(m)).toEqual({ id: "b", you: false });
+    const p = again.ask(m);
     expect(again.moment).toBeNull();
+    expect(await p).toEqual({ id: "b", you: false });
     again.dismissAway();
     void again.ask(m);
     expect(again.moment).not.toBeNull();
