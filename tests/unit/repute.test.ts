@@ -135,8 +135,12 @@ describe("perks", () => {
     expect(s.shopDiscount()).toBeCloseTo(R.KIND_DISCOUNT + Fm.FAME_DISCOUNT[3]);
     s.bond.lean = -LEAN_AT;
     expect(s.priced(1000)).toBe(Math.round(1000 * (1 + R.RASCAL_MARKUP)));
+    const espresso = action("cafe", "Espresso at the bar");
+    s.cents = 300;
+    expect(s.canDo(espresso, 12)).toBe(false);
+    s.cents = 20_000;
     const before = s.cents;
-    s.do(action("cafe", "Espresso at the bar"), "Cafe", new Rng(1), "cafe");
+    s.do(espresso, "Cafe", new Rng(1), "cafe");
     expect(before - s.cents).toBe(s.priced(300));
   });
 

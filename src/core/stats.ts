@@ -717,7 +717,7 @@ export class Stats {
     if (action.pack && !this.cityPool) return false;
     if (action.steal && this.bond.leaning() !== "rascal") return false;
     if (action.bounty && !this.canPayOff()) return false;
-    if (toCents(action.cost ?? 0) > this.cents) return false;
+    if (this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
