@@ -1,5 +1,6 @@
 // His home: rented once a city knows him as a Regular, bought with money to spare, furnished from his travels, nights there, trips home; and fame's greetings and paper story.
 import { describe, expect, it } from "vitest";
+import { choose } from "../../src/core/activities";
 import { billsAt } from "../../src/core/bills";
 import { cityKey, FAME_TIERS, GREET_PER_TIER, greeting } from "../../src/core/fame";
 import * as Hm from "../../src/core/home";
@@ -114,6 +115,16 @@ describe("his home", () => {
     expect(s.cents).toBe(10_000);
     expect(s.history.latest()).toBe("🏡 Slept at home in his own bed");
     expect(rolls.length).toBeGreaterThan(0);
+  });
+
+  it("a night at home is on offer even when he can't pay for the hostel", () => {
+    const s = inSofia(1000);
+    s.cents = 100;
+    expect(s.canDo(HOSTEL, 22, "lodging")).toBe(true);
+    expect(choose([HOSTEL], s, 22, 0, "lodging")).toBe(HOSTEL);
+    expect(s.canDo(HOSTEL, 22, "museum")).toBe(false);
+    s.where = { city: "Plovdiv, Bulgaria", code: "BG", country: "Bulgaria" };
+    expect(s.canDo(HOSTEL, 22, "lodging")).toBe(false);
   });
 
   it("a nap at a museum, or a hostel in another city, isn't at home", () => {

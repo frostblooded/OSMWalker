@@ -786,6 +786,11 @@ export class Stats {
     return this.home.city || this.life.favourite(this.where.city);
   }
 
+  /** True when `action` at a place of map class `kind` is a night in his own bed: a hostel or hotel night in his home city, free, and it cheers him. */
+  nightAtHome(action: Action, kind: string): boolean {
+    return !!action.sleep && kind === "lodging" && this.atHome();
+  }
+
   /** True in his home's city. */
   atHome(): boolean {
     return this.home.has() && this.where.city === this.home.city;
@@ -999,14 +1004,14 @@ export class Stats {
   }
 
   /** True when he has the coins, attributes, skills, language, level, timing, season and weather for `action`, and the ingredients to cook or room to buy them. */
-  canDo(action: Action, hour: number): boolean {
+  canDo(action: Action, hour: number, kind = ""): boolean {
     if (action.pack && !this.cityPool) return false;
     if (action.steal && this.bond.leaning() !== "rascal") return false;
     if (action.bounty && !this.canPayOff()) return false;
     if (action.cook && !this.pantry.best(this.skills.level("cooking"))) return false;
     if (action.lottery && this.lottery.ticket) return false;
     if (action.groceries && !this.pantry.pick(action.groceries, this.skills.level("cooking"))) return false;
-    if (this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
+    if (!this.nightAtHome(action, kind) && this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
     if (action.item && !action.steal && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
@@ -1120,8 +1125,7 @@ export class Stats {
     if (action.lottery) return this.buyTicket(action, where);
     // A regular's discount at his spot.
     const regular = !!where && this.atSpot;
-    // A night in a hostel or hotel in his home city is a night in his own bed: free, and it cheers him.
-    const home = !!action.sleep && kind === "lodging" && this.atHome();
+    const home = this.nightAtHome(action, kind);
     let spent = home ? 0 : this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
     const fx: Fx = { ...action.fx };
     if (home) fx.mood = (fx.mood ?? 0) + this.home.mood();
