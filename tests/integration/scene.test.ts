@@ -51,6 +51,13 @@ class FakeMap implements MapPort {
     this.leyKey = key;
     this.leys = key ? lines() : [];
   }
+  explored: BBox[] = [];
+  exploredKey = "";
+  setExplored(key: string, boxes: () => BBox[]) {
+    if (key === this.exploredKey) return;
+    this.exploredKey = key;
+    this.explored = key ? boxes() : [];
+  }
   setArea() {}
   setEvents() {
     this.calls.push("events");
@@ -116,6 +123,31 @@ describe("map scene", () => {
     w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
     scene.draw(0.25, 250);
     expect(map.icons).toEqual([]);
+  });
+
+  it("draws his squares only while the Explored sheet is open, fitted above it, and again when he walks a new one", () => {
+    const w = game.walker!;
+    w.bounds = PLUS_BBOX;
+    const at = w.position();
+    game.stats.explored.walk(at, at);
+    scene.draw(0.25, 250);
+    expect(map.explored).toEqual([]);
+    scene.showExplored(true, 300);
+    scene.draw(0.25, 250);
+    expect(map.explored).toHaveLength(1);
+    expect(map.fits.at(-1)!.padding.bottom).toBe(324);
+    expect(following.at(-1)).toBe(false);
+    game.stats.explored.walk(at, [at[0] + 0.01, at[1]]);
+    scene.draw(0.25, 250);
+    expect(map.explored.length).toBeGreaterThan(1);
+    scene.showExplored(false);
+    scene.draw(0.25, 250);
+    expect(map.explored).toEqual([]);
+    expect(following.at(-1)).toBe(true);
+    // Opening History tells Explored it is closed, which leaves History's view alone.
+    scene.showHistory(true, 300);
+    scene.showExplored(false);
+    expect(following.at(-1)).toBe(false);
   });
 
   it("draws the ley lines only while the Stats sheet is open, again when they change, and none on a ride", () => {

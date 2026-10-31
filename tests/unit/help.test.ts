@@ -172,7 +172,7 @@ describe("the real help", () => {
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "explored", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
   });
 });
 

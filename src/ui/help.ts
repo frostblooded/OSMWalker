@@ -35,6 +35,7 @@ import * as Fairy from "../core/fairy";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
+import * as Explored from "../core/explored";
 import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Inc from "../core/incidents";
@@ -717,6 +718,7 @@ export function values(data: GameData): Record<string, string> {
     CITY_COUNT: String(data.cities.length),
     COUNTRY_COUNT: String(new Set(data.cities.map((c) => c.code)).size),
     HISTORY_SIZE: String(History.SIZE),
+    CELL_M: String(Explored.CELL_M),
     TRAIL_KM: String(Math.round((History.MAX_TRAIL * History.TRAIL_STEP_M) / 1000)),
     DEBUG_SIZE: String(DebugLog.SIZE),
     MAX_WARNINGS: String(Problems.MAX_WARNINGS),
