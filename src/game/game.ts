@@ -272,14 +272,14 @@ export class Game {
    * Starts walking in a city: waits for the streets where he starts, then
    * puts him on the nearest one. Returns an error for the picker, or "".
    */
-  async startCity(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}, stats = new Stats()): Promise<string> {
+  async startCity(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}, stats = new Stats(), quiet = false): Promise<string> {
     const w = new Walker();
     this.loader.setGraph(w.graph);
     const home = cellOf(lat, lon);
     while (!w.graph.cells.has(cellKey(home))) {
       if (this.loader.hasFailed(home)) {
         this.loader.resetFailures();
-        this.problems.warn(`Couldn't load the streets where he starts in ${name}`);
+        if (!quiet) this.problems.warn(`Couldn't load the streets where he starts in ${name}`);
         return "Couldn't load streets. Check your connection and try again.";
       }
       this.loader.request(cellsByPriority(lat, lon, STREET_RING));
@@ -288,7 +288,7 @@ export class Game {
     }
     const start = w.graph.nearestNode(lat, lon);
     if (start === null) {
-      this.problems.warn(`No walkable streets at the start of ${name}`);
+      if (!quiet) this.problems.warn(`No walkable streets at the start of ${name}`);
       return "No walkable streets there. Try another place.";
     }
     w.startAt(start);
@@ -599,6 +599,9 @@ export class Game {
   async retire(by: Ancestor["by"], inWake = false): Promise<void> {
     const w = this.walker;
     if (!w || this.retiring || this.stats.life.stage < ELDER) return;
+    // A choice still open on the away card is the old walker's, so he decides it now; a free ride he takes puts this off until he lands.
+    if (!inWake) this.leaveDilemma();
+    const first = this.retryRetireAt === 0;
     // Mid catch-up (wake) the walker and his stats are still the catch-up's, so only wake's own call goes on.
     if (w.isTraveling() || this.now() < this.retryRetireAt || (this.waking && !inWake)) {
       // He can't yet: your ask is kept, and he retires at the next chance.
@@ -616,16 +619,20 @@ export class Game {
       const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
       const at = life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
       const here = { city: this.city, origin: this.origin, bounds: w.bounds };
+      // He stands still while the streets load, so the feed says why (once, not on each retry).
+      if (first) this.stats.say(`🌅 Retiring in ${home.split(",")[0]}…`);
+      this.changed();
       let out = this.stats.retire(by, home);
-      let failed = await this.startCity(home, at[0], at[1], known?.bounds ?? null, () => {}, out.heir);
+      let failed = await this.startCity(home, at[0], at[1], known?.bounds ?? null, () => {}, out.heir, true);
       // Where the favourite city's streets won't load, he stops where he is instead, and his letter says so.
       if (failed && home !== here.city) {
         out = this.stats.retire(by, here.city);
-        failed = await this.startCity(here.city, here.origin[0], here.origin[1], here.bounds, () => {}, out.heir);
+        failed = await this.startCity(here.city, here.origin[0], here.origin[1], here.bounds, () => {}, out.heir, true);
       }
       if (failed) {
         // startCity pointed the loader at the heir's streets; he walks on in his own, and tries again later, your ask kept.
         this.loader.setGraph(w.graph);
+        if (first) this.problems.warn(`Couldn't load the streets for his heir; he tries again every ${RETIRE_RETRY_MS / 60_000} min`);
         this.retryRetireAt = this.now() + RETIRE_RETRY_MS;
         if (by === "you") life.asked = true;
         return;
@@ -634,6 +641,7 @@ export class Game {
       this.stats.say(`🌱 ${walkerName(ancestor.gen + 1)} takes over from ${walkerName(ancestor.gen)}`);
       this.doing = null;
       this.retired = ancestor;
+      this.retryRetireAt = 0;
     } finally {
       this.retiring = false;
       this.changed();
@@ -758,9 +766,10 @@ export class Game {
       const old = this.stats;
       if (old.life.retireDue || old.life.asked) await this.retire(old.life.asked ? "you" : "age", true);
       const retired = this.stats !== old;
-      if (retired && this.away) this.away.retire = "done";
+      const due = !retired && (old.life.retireDue || old.life.asked);
+      if (this.away && (retired || due)) this.away.retire = retired ? "done" : "soon";
       // A reopen on which he retires, or will once streets load, brings no dilemma.
-      this.dilemma = retired || this.away?.retire
+      this.dilemma = retired || due
         ? null
         : D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.

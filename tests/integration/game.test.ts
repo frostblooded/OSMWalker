@@ -943,6 +943,8 @@ describe("game", () => {
       expect(g.city).toBe("Sofia, Bulgaria");
       expect(g.stats.life.gen).toBe(2);
       expect(g.stats.history.entries.filter((l) => l.text.includes("takes over"))).toHaveLength(1);
+      // The fallback worked, so no street warning for Paris.
+      expect(g.problems.warnings.filter((w) => w.text.includes("streets"))).toEqual([]);
     });
 
     it("when no streets load, he walks on and tries again later", async () => {
@@ -960,6 +962,8 @@ describe("game", () => {
       expect(g.retired).toBeNull();
       expect(g.walker).toBe(before);
       expect(g.stats.life.gen).toBe(1);
+      expect(g.stats.history.entries.filter((l) => l.text === "🌅 Retiring in Paris…")).toHaveLength(1);
+      expect(g.problems.warnings.map((w) => w.text).filter((t) => t.includes("heir"))).toEqual(["Couldn't load the streets for his heir; he tries again every 1 min"]);
       run(g, 5);
       expect(g.walker!.totalM).toBeGreaterThan(0);
       down = false;
@@ -999,6 +1003,21 @@ describe("game", () => {
       now += 5 * 3600 * 1000;
       await g.wake();
       expect(g.dilemma).not.toBeNull();
+    });
+
+    it("a choice still open on the away card is decided before the heir takes over", async () => {
+      let now = Date.now();
+      const { g } = await elder(86400, { clock: () => now });
+      g.setAlwaysDilemma(true);
+      g.save();
+      now += 5 * 3600 * 1000;
+      await g.wake();
+      expect(g.dilemma).not.toBeNull();
+      const old = g.stats;
+      await g.retire("you");
+      expect(g.stats.life.gen).toBe(2);
+      expect(old.history.entries.some((l) => l.text.includes("Decided by himself"))).toBe(true);
+      expect(g.stats.history.entries.some((l) => l.text.includes("Decided by himself"))).toBe(false);
     });
 
     it("a Retire from the menu that can't load streets is kept and done on a later try", async () => {
@@ -1149,6 +1168,20 @@ describe("game", () => {
       });
       expect(again.stats.life.gen).toBe(2);
       expect(again.stats.bond.trust).toBe(TRUST_START);
+    });
+
+    it("due to retire only past the catch-up's limit, with no streets, the card still says he stopped to retire and brings no dilemma", async () => {
+      let down = false;
+      const ok = streets().load;
+      const { again } = await reopen(30 * HOUR, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)) }, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 26 * 3600;
+        down = true;
+      });
+      expect(again.stats.life.gen).toBe(1);
+      expect(again.away!.retire).toBe("soon");
+      expect(again.dilemma).toBeNull();
     });
 
     it("when his elder stage runs out past the catch-up's limit, he still retires on reopen, with no dilemma", async () => {
