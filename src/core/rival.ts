@@ -5,7 +5,7 @@
 // Viktor remembers every meeting, levels up when he wins, and over many
 // meetings a grudge or a friendship forms. All of it plays out by itself.
 // Pure; Stats owns one.
-import type { GameId, Moment, Pick } from "./moments";
+import { GAME_ATTR, type GameId, type Moment, type Pick } from "./moments";
 import type { Rng } from "./rng";
 import type { Attr, Fx, Stats } from "./stats";
 
@@ -39,8 +39,8 @@ export type Contest = { id: string; at: string[]; attr: Attr; text: string; won:
 
 /** How the game asks a contest as a mini-game: show `m`, then `settle` with your result or his own; settle returns the feed line. */
 export type ContestAsk = (m: Moment, his: () => string, settle: (p: Pick) => string) => void;
-/** The mini-game each contest attribute is played as (moments.ts GAME_ATTR the other way round). */
-export const CONTEST_GAME: Partial<Record<Attr, GameId>> = { cha: "timing", luck: "cards", str: "taps", wit: "odd" };
+/** The mini-game each contest attribute is played as: moments.ts GAME_ATTR the other way round. */
+export const CONTEST_GAME = Object.fromEntries(Object.entries(GAME_ATTR).map(([g, a]) => [a, g])) as Partial<Record<Attr, GameId>>;
 
 /** What a win and a loss do. */
 export const WIN_FX: Fx = { mood: 10, xp: 30 };
@@ -120,8 +120,9 @@ export class Rival {
     };
     if (!ask) return stats.say(`${opening} ${settle(his, true)}`);
     const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: opening, game: CONTEST_GAME[c.attr] ?? "timing", options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
+    const line = stats.say(opening);
     ask(m, () => (his ? "won" : "lost"), (p) => stats.say(`${RIVAL_ICON} ${settle(p.id === "won", p.you)}`));
-    return stats.say(opening);
+    return line;
   }
 
   /** Where Viktor shows on the map at unix seconds `t`, or null. */

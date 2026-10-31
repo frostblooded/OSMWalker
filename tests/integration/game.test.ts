@@ -180,6 +180,25 @@ describe("game", () => {
     expect(g.stats.incidentLatest()).toBe(true);
   });
 
+  it("with the Choice timer Off, a story choice settles at once, before the action he then chooses", async () => {
+    const { g } = game({ places: [CAFE] });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    while (g.momentS !== 0) g.nextMomentTimer();
+    const at = () => g.stats.history.entries.findIndex((e) => e.text.startsWith("🎻 A busker"));
+    for (let i = 0; i < 3 * 3600 && at() < 0; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment).toBeNull();
+    const line = g.stats.history.entries[at()]!.text;
+    expect(line).toMatch(/^🎻 A busker at Cafe Near\. Decided by himself: (Sings|Listens):/);
+    // It came after he reached the cafe, and what he then did there came after it, in the same step.
+    expect(g.stats.history.entries.slice(0, at()).some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
+    expect(at()).toBeLessThan(g.stats.history.entries.length - 1);
+  });
+
   it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {
     const { g } = game({ places: [CAFE] });
     Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], friends: JSON.parse(dataFile("friends.json")) });

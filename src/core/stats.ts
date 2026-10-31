@@ -1798,7 +1798,8 @@ export class Stats {
       return (this.incidentLine = this.say(club));
     }
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng, ask && ((m, his, settle) => ask(m, his, (p) => void (this.incidentLine = settle(p)))));
-    if (met) return (this.incidentLine = met);
+    // The contest's result when it settled at once, else its opening.
+    if (met) return (this.incidentLine = this.history.latest() || met);
     const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
     if (f) return (this.incidentLine = this.say(f));
     // Where they know him, someone may greet him; its own dice.

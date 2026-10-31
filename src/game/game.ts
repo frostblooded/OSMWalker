@@ -463,13 +463,19 @@ export class Game {
     this.changed();
   }
 
-  /** Asks a moment from inside a story rule (Stats.happen) and saves once it settles. */
-  private storyAsk: Ask = (m, his, settle) =>
+  /**
+   * Asks a moment from inside a story rule (Stats.happen) and saves once it
+   * settles. When none can open (timer Off, or one already open) he picks at
+   * once, so it lands before the action he then chooses, as in the catch-up.
+   */
+  private storyAsk: Ask = (m, his, settle) => {
+    if (this.momentS <= 0 || this.moment) return settle({ id: his(), you: false });
     void this.ask(m, { his }).then((p) => {
       settle(p);
       this.save();
       this.changed();
     });
+  };
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
   private askAt(place: Place, maxS: number): void {
