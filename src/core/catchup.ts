@@ -271,10 +271,11 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
       const chase = stats.reputeAt(place);
-      const jail = chase ? stats.runChase(chase, place.name) : 0;
-      if (jail) {
+      if (chase) {
+        // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
+        const jail = stats.runChase(chase, place.name);
         s.stops++;
-        pass(Math.min(jail, leftMin()), 0);
+        pass(Math.min(jail || restMinutes({ name: "", min: 1 }), leftMin()), 0);
         yield;
         continue;
       }
@@ -287,7 +288,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
+      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;

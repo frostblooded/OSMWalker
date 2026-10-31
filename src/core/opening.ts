@@ -1,6 +1,6 @@
 // When places are open: shops, offices, museums and other day businesses
 // close at night by the city's own clock (and all day when the sky says it is
-// a holiday; nothing sets that yet); bars,
+// a public holiday, which Game.sky() sets from core/holidays.ts); bars,
 // fast food, hotels, kiosks, parks and the rest stay open. Pure.
 import type { Place } from "./stats";
 

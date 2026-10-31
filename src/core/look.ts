@@ -12,11 +12,13 @@ export const SICK_AT = 30;
 /** Mood at or above this makes him beam; below LOW_MOOD he looks down. */
 export const HAPPY_MOOD = 75;
 export const LOW_MOOD = 30;
+/** While he stays, his pose moves again this often, and holds still in between. */
+export const POSE_EVERY_S = 60;
 
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
-/** `mount`: the fantasy mount he rides, beside his face, or "". `aura`: a halo or horns at very good or very bad karma (repute.ts AURA_AT). */
-export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; aura?: Aura };
+/** `mount`: the fantasy mount he rides, beside his face, or ""; `pet`: his pet on his other side, or ""; `aura`: a halo or horns at very good or very bad karma (repute.ts AURA_AT). */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string; aura?: Aura };
 export type Aura = "halo" | "horns";
 
 /** A halo at karma AURA_AT or more, horns at -AURA_AT or less. */
@@ -108,9 +110,9 @@ export function pose(a: Action, cls: string): Pose {
   return POSE[best]!;
 }
 
-/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about. */
-export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = "", karma = 0): Look {
+/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about; `pet`: his pet's icon; `karma`: his lean. */
+export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = "", pet = "", karma = 0): Look {
   const p = doing ? pose(doing, goal?.class ?? "") : null;
   const a = aura(karma);
-  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "", ...(a ? { aura: a } : {}) };
+  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "", pet, ...(a ? { aura: a } : {}) };
 }

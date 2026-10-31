@@ -205,6 +205,7 @@ describe("the law", () => {
     faded.cents = 0;
     faded.law.addHeat(R.STAR_HEAT - 1);
     expect(faded.chased("surrender", 0.99)).toBe(R.JAIL_MIN_PER_STAR);
+    expect(faded.history.latest()).toMatch(/: 1 hour in jail$/);
     expect(faded.cents).toBe(0);
   });
 
@@ -268,6 +269,9 @@ describe("the law", () => {
     expect(lines.some((l) => l.startsWith("🚨 The police spotted him"))).toBe(true);
     expect(lines.some((l) => l.startsWith("🚓 "))).toBe(true);
     expect(stats.law.chases).toBeGreaterThan(0);
+    // A chase takes the place of the stop's action, as while you watch.
+    const spotted = lines.findIndex((l) => l.startsWith("🚨"));
+    expect(lines[spotted + 1]).toMatch(/^🚓 /);
   });
 });
 

@@ -81,7 +81,7 @@ describe("look", () => {
   const cafe = { class: "cafe", subclass: "cafe" };
 
   it("walking: a need wins over the goal's icon", () => {
-    expect(look(fine(), cafe, null)).toEqual({ face: "🙂", bubble: "☕", pose: null, mount: "" });
+    expect(look(fine(), cafe, null)).toEqual({ face: "🙂", bubble: "☕", pose: null, mount: "", pet: "" });
     expect(look({ ...fine(), thirst: 5 }, cafe, null).bubble).toBe("🥤");
   });
 
