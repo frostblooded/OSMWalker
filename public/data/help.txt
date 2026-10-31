@@ -304,7 +304,7 @@ The Side income card on the Stats sheet shows how many he owns, what they brough
 ## Shares in his spot {shares}
 In a city where he has a spot (see His spot), he buys a share in it, one share a city: each morning, if he could pay {SHARE_PRICE} and still keep what he saves up for, and never less than his reserve, as for a business (see Side businesses). Shares come before the next business.
 
-A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day, for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line, also while you're away.
+A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day (another place with the same name, such as a chain's other shop, doesn't count), for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line (once he has more than one share, as "N shares in his spots"), also while you're away.
 ## The lottery {lottery}
 Kiosks, corner shops and newsagents sell lottery tickets for {TICKET}. He buys one now and then, by himself, one ticket a draw. The draw is every day at {DRAW_HOUR} by your phone's clock, also while you're away; a ticket bought after that is for the next day's. The odds are a real lottery's:
 {PRIZE_LIST}
@@ -484,10 +484,10 @@ Every time he levels up, his highest attribute (not counting gear) grows by 1, a
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
 ## Bucket list {bucket}
-He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of things to do in the game and real sights in real cities. There is always a sight on it while any are left. You never pick them: he ticks them off by himself.
+He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of things to do in the game and real sights in real cities. Each morning's new dreams include a sight whenever none is on it, while any are left. You never pick them: he ticks them off by himself.
 - Things to do: {GOAL_LIST}.
 - Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
-Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet. Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel (see Trips), so he drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
+Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet, which goes on the next morning. His first dreams go on his list as soon as he sets out (for an older walker, on his next morning). Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel, and never less than {DREAM_SHARE_PCT} of all the cities he could go to, so even a small one comes up now and then (see Trips). He drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
 The Stats sheet ends with his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
@@ -593,7 +593,7 @@ Apart from the dice, an old monument or castle ruin very rarely opens as a porta
 
 While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas).
 
-The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most, and a city with a sight on his bucket list weighs {DREAM_PULL} times as much (see Bucket list).
+The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most, and a city with a sight on his bucket list weighs {DREAM_PULL} times as much, and at least {DREAM_SHARE_PCT} of all of them (see Bucket list).
 
 While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
 

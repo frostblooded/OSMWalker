@@ -7,7 +7,7 @@ import * as C from "../../src/core/collection";
 import * as Items from "../../src/core/items";
 import { Rng } from "../../src/core/rng";
 import { Stats } from "../../src/core/stats";
-import { Trips, type City } from "../../src/core/trips";
+import { Trips, tripWeights, type City, type Pull } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 
 const NOON = new Date(2026, 5, 10, 12, 0, 0).getTime() / 1000;
@@ -70,8 +70,7 @@ describe("Bucket", () => {
   it("pulls his trips toward a city with a sight on his list", () => {
     const b = new Bk.Bucket();
     b.list = ["eiffel", "dragon"];
-    expect(b.pull("Paris, France")).toBe(Bk.DREAM_PULL);
-    expect(b.pull("Lyon, France")).toBe(1);
+    expect(b.pull()).toEqual({ cities: new Set(["Paris, France"]), mult: Bk.DREAM_PULL, share: Bk.DREAM_SHARE });
   });
 
   it("comes back from a save, and an old save starts empty", () => {
@@ -86,17 +85,40 @@ describe("Bucket", () => {
 });
 
 describe("Trips.pick with a pull", () => {
-  const cities: City[] = [
-    { name: "Big", code: "AAA", country: "A", lat: 0, lon: 0, pop: 1000 },
-    { name: "Small", code: "AAA", country: "A", lat: 1, lon: 1, pop: 1000 },
-  ];
-  it("makes a pulled city DREAM_PULL times likelier", () => {
+  const city = (name: string, pop: number, lat = 1): City => ({ name, code: "AAA", country: "A", lat, lon: 1, pop });
+  const pull = (name: string): Pull => ({ cities: new Set([`${name}, A`]), mult: Bk.DREAM_PULL, share: Bk.DREAM_SHARE });
+  const odds = (cities: City[], name: string) => {
     const trips = new Trips(cities, []);
     const rng = new Rng(7);
-    let small = 0;
+    let hit = 0;
     const n = 4000;
-    for (let i = 0; i < n; i++) if (trips.pick("city", "AAA", 5, 5, rng, (c) => (c.name === "Small" ? Bk.DREAM_PULL : 1))?.name === "Small") small++;
-    expect(small / n).toBeCloseTo(Bk.DREAM_PULL / (Bk.DREAM_PULL + 1), 1);
+    for (let i = 0; i < n; i++) if (trips.pick("city", "AAA", 5, 5, rng, pull(name))?.name === name) hit++;
+    return hit / n;
+  };
+
+  it("makes a pulled city DREAM_PULL times likelier", () => {
+    expect(odds([city("Big", 1000, 0), city("Small", 1000)], "Small")).toBeCloseTo(Bk.DREAM_PULL / (Bk.DREAM_PULL + 1), 1);
+  });
+
+  it("gives a small pulled city at least about DREAM_SHARE of the trips, as among the real cities", () => {
+    const many = [...Array.from({ length: 200 }, (_, i) => city(`C${i}`, 1_000_000, 0.01 * i)), city("Siem Reap", 100_000, 3)];
+    expect(tripWeights(many, pull("Siem Reap")).at(-1)).toBe(Bk.DREAM_SHARE * (200 * 1_000_000 + 100_000));
+    expect(odds(many, "Siem Reap")).toBeGreaterThan(Bk.DREAM_SHARE * 0.8);
+    // On the real map the pull lifts Siem Reap from about 1 trip abroad in 7,000 to 1 in 20.
+    const real = new Trips(
+      dataFile("cities.tsv")
+        .split("\n")
+        .filter((l) => l && !l.startsWith("#"))
+        .map((l) => {
+          const [name, code, country, lat, lon, pop] = l.split("\t");
+          return { name: name!, code: code!, country: country!, lat: +lat!, lon: +lon!, pop: +pop! };
+        }),
+      [],
+    );
+    const opts = real.options("country", "BGR", 42.7, 23.3);
+    const w = tripWeights(opts, { cities: new Set(["Siem Reap, Cambodia"]), mult: Bk.DREAM_PULL, share: Bk.DREAM_SHARE });
+    const i = opts.findIndex((c) => c.name === "Siem Reap");
+    expect(w[i]! / w.reduce((a, x) => a + x, 0)).toBeGreaterThan(0.04);
   });
 });
 
@@ -118,6 +140,10 @@ describe("Stats and his bucket list", () => {
     const mood = s.meters.mood;
     s.arrive("Paris, France", "FRA", "France");
     expect(s.bucket.done.map((x) => x.id)).toEqual(["eiffel"]);
+    // The slot stays open until the morning.
+    expect(s.bucket.list).toEqual(["dragon", "level25"]);
+    s.now = () => NOON + 86400;
+    s.passTime(1, 0);
     expect(s.bucket.list).toHaveLength(Bk.BUCKET_SIZE);
     expect(s.xp + s.level * 1000).toBeGreaterThan(xp);
     expect(s.meters.mood).toBeGreaterThan(mood);
@@ -125,6 +151,24 @@ describe("Stats and his bucket list", () => {
     expect(said.some((t) => t.includes(`Ticked off his bucket list: See the Eiffel Tower! (+${Bk.DREAM_XP} XP)`))).toBe(true);
     expect(said.some((t) => t.startsWith("📝 New on his bucket list:"))).toBe(true);
     expect(s.chronicle.lines.some((l) => l.text === "Ticked off his bucket list: See the Eiffel Tower")).toBe(true);
+  });
+
+  it("a walker who hasn't had a morning yet has no dreams, so arriving anywhere ticks nothing", () => {
+    const s = new Stats();
+    s.arrive("Sofia, Bulgaria", "BGR", "Bulgaria");
+    s.arrive("Paris, France", "FRA", "France");
+    expect(s.bucket.list).toEqual([]);
+    expect(s.chronicle.lines.some((l) => l.text.includes("bucket list"))).toBe(false);
+  });
+
+  it("counts a carpet or a dragon as a car or something faster, so that dream can't get stuck", () => {
+    const s = inSofia();
+    for (const kind of ["cars", "carpets", "dragons"] as const) {
+      s.equip(Items.build(Items.KINDS[kind][0]!, Items.MATERIALS[0]!, []));
+      expect(s.facts().car, kind).toBe(1);
+    }
+    s.equip(Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS[0]!, []));
+    expect(s.facts().car).toBe(0);
   });
 
   it("ticks off a game goal the next morning", () => {
