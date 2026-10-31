@@ -3,18 +3,24 @@
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls), the
 // storyteller that paces the incidents that happen to him, his quests, and
 // the people in his life: friends, their clubs and news, and his anniversaries,
-// and his life stages and family (life.ts): retire() hands over to an heir.
+// what he has learned (skills, cooking and languages), and his life stages
+// and family (life.ts): retire() hands over to an heir.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as Bl from "./bills";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
+import * as Ca from "./careers";
 import { Clubs } from "./clubs";
+import * as Cook from "./cooking";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
-import { Mind, WANT_XP } from "./mind";
+import { Mind, noun, WANT_XP } from "./mind";
+import * as Qk from "./quirks";
+import { Diary, type DiaryData } from "./diary";
+import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
 import * as Po from "./portals";
@@ -29,6 +35,7 @@ import * as L from "./life";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
+import * as Lang from "./languages";
 import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
@@ -38,6 +45,7 @@ import { meets, speedShare, weatherPerH, type Season, type Sky, type WeatherNeed
 import * as Speeds from "./speeds";
 import { Quests } from "./quests";
 import { Rival, type Contest } from "./rival";
+import { isSkill, PHOTO_SHINE, SKILLS, Skills, type Skill } from "./skills";
 import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
 import { Townies, type News } from "./townies";
@@ -55,8 +63,8 @@ export type Meter = (typeof METERS)[number];
 export type Attr = (typeof ATTRS)[number];
 /** Effect keys an action's fx may use. */
 export const FX_KEYS = [...METERS, ...ATTRS, "xp"] as const;
-/** Requirement keys an action's needs may use. */
-export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below", "season", "weather"] as const;
+/** Requirement keys an action's needs may use: a skill's key needs that skill's level, `lang` that level of the local language. */
+export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "rank", "time", "below", "season", "weather", ...SKILLS, "lang"] as const;
 /** Sun hours (sunrise 6, sunset 18, see sky.ts) that count as each time of day (night wraps past midnight). */
 export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5], midnight: [0, 3] } as const;
 export type TimeOfDay = keyof typeof TIMES;
@@ -109,8 +117,7 @@ export const FIRST_VISIT_XP = 50;
 /** Cents the hospital charges after he faints, but never more than HOSPITAL_MAX_SHARE of his money. */
 export const HOSPITAL_FEE = 6000;
 export const HOSPITAL_MAX_SHARE = 0.5;
-/** Job pay rises this share per level above 1, and per point of the attribute the job needs. */
-export const WAGE_PER_LEVEL = 0.03;
+/** Job pay rises this share per point of the attribute the job needs (and per career rank, see careers.ts). */
 export const WAGE_PER_ATTR = 0.02;
 /** Cents he starts with. */
 export const START_CENTS = 20000;
@@ -139,7 +146,7 @@ export type Action = {
   cost?: number;
   earn?: number | [number, number];
   fx?: Fx;
-  needs?: Partial<Record<Attr | "level", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>>; season?: Season; weather?: WeatherNeed };
+  needs?: Partial<Record<Attr | Skill | "level" | "lang" | "rank", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>>; season?: Season; weather?: WeatherNeed };
   risk?: { p: number; text?: string; fx?: Fx; cost?: number };
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
@@ -151,8 +158,20 @@ export type Action = {
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
   resale?: boolean;
   flavour?: boolean;
+  /** A nap or a night's sleep: he may dream (see diary.ts). */
+  sleep?: boolean;
+  /** The career (see careers.ts) this job counts for; a `rank` need is a rank in it. */
+  career?: string;
   /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
   deed?: number;
+  /** The skill it trains, and whose level makes its gains and pay bigger (see skills.ts). */
+  skill?: Skill;
+  /** Ingredients sold here: he buys one for his pantry (see cooking.ts). */
+  groceries?: Cook.Ingredient[];
+  /** Cooks the best meal his pantry and cooking level allow; its fx stand for a typical meal while he picks (see cooking.ts). */
+  cook?: boolean;
+  /** A chat with the locals, which counts towards the local language (see languages.ts). */
+  lang?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -192,12 +211,17 @@ export class Stats {
   words = new Words();
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
+  /** His shifts and ranks in each career. */
+  careers = new Ca.Careers();
   /** Clovers and the care package on its way to him. */
   care = new Care();
   /** His trust in you, his lean and your whispers. */
   bond = new B.Bond();
   /** His letters to you from data/letters.json; not saved, the game sets it. */
   letters: B.Letters | null = null;
+  /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
+  diary = new Diary();
+  diaryData: DiaryData | null = null;
   /** Golden bricks and the monuments they paid for. */
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
@@ -229,6 +253,9 @@ export class Stats {
   quests = new Quests();
   /** His moodlets, wants and fears. */
   mind = new Mind();
+  /** His quirks from habits, and his spot in each city. */
+  quirks = new Qk.Quirks();
+  spots = new Spots();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
@@ -245,6 +272,12 @@ export class Stats {
   townNews: readonly News[] = [];
   /** His birthday (the day he set out) and month marks. */
   anniversaries = new Anniversaries();
+  /** His six skills. */
+  skills = new Skills();
+  /** The ingredients he carries for cooking. */
+  pantry = new Cook.Pantry();
+  /** The languages he speaks, and how well. */
+  languages = new Lang.Languages();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
@@ -262,14 +295,20 @@ export class Stats {
   /** Hears every feed line as it is said; the catch-up collects them for its summary. */
   onSay: ((line: string, t: number) => void) | null = null;
 
-  /** An attribute with his gear's and buffs' bonuses; Charm counts less while he is dirty. */
+  /** An attribute with his gear's and buffs' bonuses, and for Charm a finished city card set and the local language; Charm counts less while he is dirty. */
   attr(name: Attr): number {
     let v = this.attrs[name];
     for (const item of Object.values(this.gear)) v += item?.stats[name] ?? 0;
     for (const b of this.buffs) v += b.attrs?.[name] ?? 0;
     if (name === "cha" && this.where.code && this.keepsakes.sets.includes(this.where.code)) v += CC.SET_CHARM;
+    if (name === "cha") v += this.languages.charm(this.lang());
     if (name === "cha" && this.meters.hygiene < DIRTY_AT) v *= 1 - (DIRTY_CHARM_CUT * (DIRTY_AT - this.meters.hygiene)) / DIRTY_AT;
     return v;
+  }
+
+  /** The language spoken where he is, or "" when the country is unknown. */
+  lang(): string {
+    return Lang.languageOf(this.borders?.languages, this.where.code, this.where.country);
   }
 
   /** Today's forecast, by his clock. */
@@ -357,10 +396,11 @@ export class Stats {
     return this.meters[m];
   }
 
-  /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_LEVEL a level and WAGE_PER_ATTR per point of the attributes it needs. */
+  /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_RANK a rank above 1 in its career and WAGE_PER_ATTR per point of the attributes it needs, times its skill's (see skills.ts). */
   wageMult(action: Action): number {
-    let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
+    let m = 1 + (action.career ? Ca.WAGE_PER_RANK * (this.careers.rank(action.career) - 1) : 0);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
+    if (action.skill) m *= this.skills.mult(action.skill);
     return m * F.mult(this.forecast(), "wage") * this.visas.payMult(this.where.code) * this.life.info().wage;
   }
 
@@ -593,6 +633,10 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
+    // Time in a country teaches its language; the first country he is in is his own.
+    const lang = this.lang();
+    this.languages.setNative(lang);
+    this.sayIf(this.languages.add(lang, minutes / 60));
     fx.mood = (fx.mood ?? 0) + this.mind.pass(minutes);
     this.mind.refill(t, () => new Rng(seedOf(`want${t}`)));
     // Enchanted gear gathers Magic as he walks.
@@ -662,6 +706,7 @@ export class Stats {
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
+    if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.visaDay();
     const f = this.friends;
@@ -806,15 +851,19 @@ export class Stats {
     k.sets = [...pool.byCountry.keys()].filter((code) => CC.hasSet(pool, k.cityCards, code));
   }
 
-  /** True when he has the coins, skills, level, timing, season and weather for `action`. */
+  /** True when he has the coins, attributes, skills, language, level, timing, season and weather for `action`, and the ingredients to cook or room to buy them. */
   canDo(action: Action, hour: number): boolean {
     if (action.pack && !this.cityPool) return false;
+    if (action.cook && !this.pantry.best(this.skills.level("cooking"))) return false;
+    if (action.groceries && !this.pantry.pick(action.groceries, this.skills.level("cooking"))) return false;
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
         if (this.level < (need as number)) return false;
+      } else if (k === "rank") {
+        if (this.careers.rank(action.career ?? "") !== need) return false;
       } else if (k === "time") {
         if (!inTime(need as TimeOfDay, hour)) return false;
       } else if (k === "season") {
@@ -823,6 +872,12 @@ export class Stats {
         if (!meets(need as WeatherNeed, this.sky)) return false;
       } else if (k === "below") {
         for (const [m, v] of Object.entries(need as object)) if (this.meters[m as Meter] >= v) return false;
+      } else if (k === "lang") {
+        // A language learned abroad: his own and English, which he had from the start, don't count.
+        const lang = this.lang();
+        if (!this.languages.learned(lang) || this.languages.level(lang) < (need as number)) return false;
+      } else if (isSkill(k)) {
+        if (this.skills.level(k) < (need as number)) return false;
       } else if (this.attr(k as Attr) < (need as number)) return false;
     }
     return true;
@@ -844,13 +899,38 @@ export class Stats {
   do(action: Action, where: string, rng: Rng, kind = ""): string {
     this.mishap = false;
     const line = this.act(action, where, rng, kind);
+    // A nap or a night's sleep may bring a dream, on its own dice.
+    if (action.sleep) {
+      const dream = this.diary.dream(this.diaryData, new Rng(seedOf(`dream${this.now()}${where}`)));
+      if (dream) this.say(`💤 ${dream}`);
+    }
     if (!kind) return line;
     // Its own dice, so the walk's stay the same.
-    const { met, lines } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
-    for (const w of met) this.addXp(WANT_XP[w.kind]);
+    const { met, lines, feared } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
+    for (const w of met) {
+      this.addXp(WANT_XP[w.kind]);
+      this.diary.note(w.kind === "face" ? "brave" : "wish", where || noun(kind));
+    }
     for (const l of lines) this.say(l);
+    if (feared) this.diary.note("fear", where || noun(kind));
+    else if (this.mishap && where) this.diary.note("mishap", where);
+    this.habit(kind);
     return line;
   }
+
+  /** One more time at a place of map class `kind`: his quirks there cheer him, and he may gain a quirk (and lose the oldest). */
+  private habit(kind: string): void {
+    const { here, gained, lost } = this.quirks.count(kind);
+    for (const q of here) this.mind.feel(q.treat, q.icon, ...Qk.QUIRK_MOOD);
+    if (gained) {
+      this.say(`${gained.icon} He has become a ${gained.name}`);
+      this.diary.note("quirk", gained.name);
+    }
+    if (lost) this.say(`${lost.icon} He is no longer a ${lost.name}`);
+  }
+
+  /** Set by stop(): he is at his spot in this city (the same name and spot on the map). */
+  private atSpot = false;
 
   /** Set by act() when the action's risk went wrong. */
   private mishap = false;
@@ -877,8 +957,13 @@ export class Stats {
       this.applyFx(action.fx ?? {});
       return this.openPack(rng, `Bought a card pack${where ? ` at ${where}` : ""} (${signed(-toCents(action.cost ?? 0))})`);
     }
-    let spent = toCents(action.cost ?? 0);
+    if (action.groceries) return this.buyGroceries(action, where);
+    if (action.cook) return this.cook(action, where);
+    // A regular's discount at his spot.
+    const regular = !!where && this.atSpot;
+    let spent = Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1));
     const fx: Fx = { ...action.fx };
+    if (action.skill) skilled(fx, this.skills.mult(action.skill));
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
     let text = action.name;
     const risk = action.risk;
@@ -898,22 +983,68 @@ export class Stats {
     if (action.buff) this.addBuff(action.buff);
     if (action.deed) this.bond.deed(action.deed);
     if (earned) this.milestone("job", `First wage: ${action.name}${where ? ` at ${where}` : ""}`);
+    const learned = [action.skill ? this.skills.train(action.skill, action.min) : "", action.lang ? this.languages.add(this.lang(), Lang.CHAT_H) : ""];
+    if (earned && where) this.diary.note("work", where);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     const jokes = jokesFor(this.jokes, kind);
     // No jokes loaded, no roll, so the dice stay the same as without them.
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    for (const l of learned) this.sayIf(l);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
-    if (earned && action.min >= Work.SHIFT_MIN && !action.risk) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (action.career && Ca.isShift(action)) this.promote(action.career, where);
+    return line;
+  }
+
+  /** Counts a shift in career `id`, and says so when it promotes him. */
+  private promote(id: string, where: string): void {
+    const rank = this.careers.shift(id);
+    const c = Ca.careerOf(id);
+    if (!rank || !c) return;
+    const title = c.ranks[rank - 1]!;
+    this.say(`Promoted to ${title} in his ${c.name} career!`);
+    this.milestone("promoted", `First promotion: ${title}${where ? ` at ${where}` : ""}`);
+    if (rank === Ca.TOP_RANK) this.milestone(`career_${id}`, `Became ${title}, the top of his ${c.name} career`);
+  }
+
+  /** Buys the ingredient his pantry needs most of those `action` sells (see Pantry.pick); returns the feed line. */
+  private buyGroceries(action: Action, where: string): string {
+    const i = this.pantry.pick(action.groceries!, this.skills.level("cooking"))!;
+    const cost = toCents(action.cost ?? 0);
+    this.cents = Math.max(this.cents - cost, 0);
+    this.pantry.items.push(i);
+    this.applyFx(action.fx ?? {});
+    return this.say(`${Cook.INGREDIENT[i][0]} Bought ${Cook.INGREDIENT[i][1]} for cooking${where ? ` at ${where}` : ""}${cost ? ` (${signed(-cost)})` : ""}`);
+  }
+
+  /** Cooks the best meal his pantry and cooking level allow: its gains, bigger with his cooking, and `action`'s XP. Returns the feed line. */
+  private cook(action: Action, where: string): string {
+    const r = this.pantry.best(this.skills.level("cooking"))!;
+    this.pantry.use(r);
+    const fx: Fx = { ...r.fx, xp: action.fx?.xp ?? 0 };
+    skilled(fx, this.skills.mult("cooking"));
+    if (fx.xp) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
+    this.applyFx(fx);
+    this.pantry.cooked++;
+    const line = this.say(`${r.icon} Cooked ${/^[aeiou]/.test(r.name) ? "an" : "a"} ${r.name} with ${Cook.listOf(r.uses)}${where ? ` at ${where}` : ""}`);
+    this.sayIf(this.skills.train("cooking", action.min));
     return line;
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
-  visit(place: Pick<Place, "name" | "lat" | "lon">): number {
+  visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string; made?: unknown }): number {
+    // Only a real place can be his spot.
+    const home = place.made ? "" : this.spots.visit(this.where.city, place);
+    if (home) {
+      this.say(home);
+      this.diary.note("spot", place.name);
+    }
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
+    this.diary.note("first", place.name);
     this.week.newPlace();
     const xp = Math.round(FIRST_VISIT_XP * F.mult(this.forecast(), "visit"));
     this.addXp(xp);
@@ -928,6 +1059,7 @@ export class Stats {
     this.visas.enter(code);
     if (city) this.milestone("start", `Set out from ${city}`);
     if (was.city && was.city !== city) this.milestone("trip", `First trip away: to ${city}`);
+    if (was.city !== city && city) this.diary.note("arrive", city.split(",")[0]!);
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
@@ -968,7 +1100,9 @@ export class Stats {
     const key = visitKey(place);
     const kind = K.kindOf(place);
     if (K.isLandmark(place) && !k.cards.has(key)) {
-      const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now(), ...this.finder() };
+      // Photography makes a shiny finish likelier.
+      const finish = K.rollFinish(rng.randf() / (1 + PHOTO_SHINE * this.skills.level("photo")));
+      const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish, t: this.now(), ...this.finder() };
       k.cards.set(key, card);
       this.say(`New card: ${place.name} (${[card.rarity, K.FINISH_NAME[card.finish]].filter(Boolean).join(", ")})`);
     }
@@ -1278,7 +1412,8 @@ export class Stats {
   }
 
   /** Notes a stop at a place, for the weekly recap. */
-  stop(place: { class: string; subclass: string }): void {
+  stop(place: { class: string; subclass: string } & Partial<Pick<Place, "name" | "lat" | "lon">> & { made?: unknown }): void {
+    this.atSpot = !place.made && place.name !== undefined && this.spots.isSpot(this.where.city, place as Pick<Place, "name" | "lat" | "lon">);
     this.week.stop(place.class);
     this.sayIf(this.records.stopped(dayOf(this.now() * 1000)));
   }
@@ -1298,7 +1433,10 @@ export class Stats {
     this.meters.fullness = Math.max(this.meters.fullness, 30);
     this.meters.thirst = Math.max(this.meters.thirst, 30);
     this.milestone("faint", `Fainted for the first time and woke up at ${hospital || "the hospital"}`);
-    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
+    const line = this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
+    this.diary.note("faint", hospital || "the hospital");
+    this.habit(Qk.FAINT);
+    return line;
   }
 
   say(line: string): string {
@@ -1321,7 +1459,9 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
+      skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
+      careers: this.careers.toJSON(),
       life: this.life.toJSON(),
     };
   }
@@ -1370,6 +1510,11 @@ export class Stats {
     s.visas = V.Visas.fromJSON(d.visas);
     // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.
     s.mind = Mind.fromJSON(d.mind);
+    // A save from before quirks and spots: no habits counted yet.
+    s.quirks = Qk.Quirks.fromJSON(d.quirks);
+    s.spots = Spots.fromJSON(d.spots);
+    // A save from before the diary: an empty one, starting with the next day.
+    s.diary = Diary.fromJSON(d.diary);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
@@ -1380,10 +1525,23 @@ export class Stats {
     // A save from before local words: none learned yet.
     s.words = Words.fromJSON(d.words);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
+    // A save from before the diary is already on today, so its day starts now.
+    if (!s.diary.today.date) Object.assign(s.diary.today, { date: s.anniversaries.day, city: s.where.city });
+    // A save from before careers: no shifts yet, so every career starts at rank 1.
+    s.careers = Ca.Careers.fromJSON(d.careers);
+    // A save from before skills, cooking and languages: none yet, an empty pantry, and English; the country he is in next becomes his own (see passTime).
+    s.skills = Skills.fromJSON(d.skills);
+    s.pantry = Cook.Pantry.fromJSON(d.pantry);
+    s.languages = Lang.Languages.fromJSON(d.languages);
     // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
     s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;
   }
+}
+
+/** Makes the gains in `fx` (positive meters, attributes, Magic and XP) `mult` times as big. */
+function skilled(fx: Fx, mult: number): void {
+  for (const [k, v] of Object.entries(fx) as [keyof Fx, number][]) if (v > 0) fx[k] = v * mult;
 }
 
 /** The key a place is remembered by: its name and where it is. */

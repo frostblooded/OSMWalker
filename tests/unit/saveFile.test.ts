@@ -181,6 +181,19 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
   });
 
+  it("loads saves from before careers: no shifts, every career at rank 1, and keeps his ranks", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    const s = saved();
+    s.stats.careers.shifts.cafe = 12;
+    f.write(s);
+    expect((f.read() as Saved).stats.careers.rank("cafe")).toBe(3);
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.careers;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.careers.shifts).toEqual({});
+  });
+
   it("loads saves from before Viktor: they haven't met yet", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -224,6 +237,31 @@ describe("save file", () => {
     expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
   });
 
+  it("loads saves from before quirks and spots: no habits counted, no spot", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.quirks;
+    delete d.stats.spots;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    expect(stats.quirks.toJSON()).toEqual({ counts: {}, have: [], faded: [] });
+    expect(stats.spots.toJSON()).toEqual({ cities: {} });
+  });
+
+  it("loads saves from before the diary: an empty one, its first day the save's day", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.diary;
+    d.stats.anniversaries = { ...d.stats.anniversaries, day: "2026-10-30" };
+    d.stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -249,6 +287,21 @@ describe("save file", () => {
     expect(back.clubs.list).toEqual([]);
     expect(back.townies).toMatchObject({ day: "", done: {} });
     expect(back.anniversaries).toMatchObject({ born: 1234, day: "" });
+  });
+
+  it("loads saves from before skills, cooking and languages: none yet, an empty pantry, English only", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.skills;
+    delete d.stats.pantry;
+    delete d.stats.languages;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(Object.values(back.skills.steps)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(back.pantry).toMatchObject({ items: [], cooked: 0 });
+    expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
   });
 
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {

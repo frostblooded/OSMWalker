@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, and what the sky does to him.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, and his skills, languages and pantry.
+// Also the Diary sheet: its days, newest first, with their dreams.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -7,8 +8,11 @@ import { euro } from "../../src/core/money";
 import { Rng } from "../../src/core/rng";
 import { skyAt, SNOW_SPEED } from "../../src/core/sky";
 import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
+import { PANTRY_MAX } from "../../src/core/cooking";
+import { stepsTo } from "../../src/core/skills";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
+import { DiarySheet } from "../../src/ui/DiarySheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
@@ -19,6 +23,30 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("lists his careers with his title and the shifts to the next rank", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No shifts yet.");
+    stats.careers.shifts = { cafe: 41, bar: 150 };
+    const text = shown(stats);
+    expect(text).toContain("🍸 Bar · Bar managerTop rank");
+    expect(text).toContain("☕ Café · Head barista19 shifts to go");
+    expect(text).toContain("Rank 5 / 5");
+  });
+
+  it("shows his quirks, and his spot once he has one", () => {
+    const stats = new Stats();
+    stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    expect(shown(stats)).toContain("None yet.");
+    expect(shown(stats)).not.toContain("His spot");
+    stats.quirks.have = ["culture"];
+    for (let i = 0; i < 3; i++) stats.visit({ name: "Cafe A", class: "cafe", lat: 1, lon: 2 });
+    const text = shown(stats);
+    expect(text).toContain("🌟Quirks1 / 5");
+    expect(text).toContain("🎭 Culture vulture");
+    expect(text).toContain("🏠His spotCafe A");
+    expect(text).toContain("−10%");
+  });
+
   it("shows his wants, fears and the total that moves his mood", () => {
     const stats = new Stats();
     stats.now = () => 1_800_000_000;
@@ -136,5 +164,38 @@ describe("Stats sheet", () => {
     expect(shown(stats)).not.toContain("From enchanted gear");
     stats.equip(Items.build(Items.KINDS.trinkets[0]!, Items.MATERIALS[0]!, [Items.ENCHANTMENTS.find((e) => e.name === "of the Moon")!]));
     expect(shown(stats)).toContain("🌙 From enchanted gear+2 a km");
+  });
+
+  it("shows each skill's level, the languages he speaks with the local one marked, and his pantry", () => {
+    const stats = new Stats();
+    stats.skills.steps.music = stepsTo(3);
+    stats.arrive("Lyon", "FRA", "France");
+    stats.languages.add("France's language", 6);
+    stats.pantry.items = ["bread", "cheese"];
+    const text = shown(stats);
+    expect(text).toContain("🎵 Music3");
+    expect(text).toContain("France's language · herebasic");
+    expect(text).toContain("Englishfluent");
+    expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
+  });
+});
+
+describe("Diary sheet", () => {
+  it("lists days newest first, each opening to its lines and dreams", () => {
+    const stats = new Stats();
+    const root = document.createElement("div");
+    render(h(DiarySheet, { diary: stats.diary }), root);
+    expect(root.textContent).toContain("Nothing yet.");
+    stats.diary.entries = [
+      { date: "2026-10-29", city: "Sofia, Bulgaria", day: 1, lines: ["Sofia, day 1.", "Found Cafe East today."], dreams: [] },
+      { date: "2026-10-30", city: "Sofia, Bulgaria", day: 2, lines: ["Sofia, day 2.", "A quiet day."], dreams: ["Dreamt Cafe East was full of pigeons."] },
+    ];
+    render(h(DiarySheet, { diary: stats.diary }), root);
+    const rows = [...root.querySelectorAll("button.row")];
+    expect(rows.map((r) => r.textContent)).toEqual(["📔 Sofia, day 2. ▸", "📔 Sofia, day 1. ▸"]);
+    (rows[0] as HTMLButtonElement).click();
+    return Promise.resolve().then(() => {
+      expect(root.textContent).toContain("💤 Dreamt Cafe East was full of pigeons.");
+    });
   });
 });

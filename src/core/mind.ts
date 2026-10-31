@@ -32,7 +32,7 @@ export const LONG_KINDS = ["castle", "museum", "zoo", "aquarium", "lookout", "th
 export const SHORT_KINDS = ["cafe", "bakery", "ice_cream", "restaurant", "park", "bar", "cinema", "library", "fast_food", "beer", "art_gallery", "swimming_pool"];
 export const SHAKE_KINDS = ["cafe", "ice_cream", "bar", "park", "bakery"];
 /** Classes whose name reads badly as a noun. */
-const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence" };
+const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence", ice_cream: "ice cream parlour" };
 export const noun = (kind: string) => NOUNS[kind] ?? kind.replace(/_/g, " ");
 
 export type WantKind = "long" | "short" | "shake" | "face";
@@ -112,11 +112,12 @@ export class Mind {
    * He did something at a place of map class `kind` at `now`, with a mishap
    * or not. Wants of that kind come true (a "face" want only with no mishap,
    * which also beats the fear); a mishap rattles him, wants him to shake it
-   * off and may leave a fear. Returns what came true and the feed lines.
+   * off and may leave a fear. Returns what came true, the feed lines and whether a new fear came.
    */
-  did(kind: string, mishap: boolean, now: number, rng: Rng): { met: Want[]; lines: string[] } {
+  did(kind: string, mishap: boolean, now: number, rng: Rng): { met: Want[]; lines: string[]; feared: boolean } {
     const met: Want[] = [];
     const lines: string[] = [];
+    let feared = false;
     for (const w of this.wants) {
       if (w.place !== kind || (w.kind === "face" && mishap)) continue;
       met.push(w);
@@ -140,10 +141,11 @@ export class Mind {
         this.wants = this.wants.filter((w) => w.place !== kind);
         this.wants.push({ kind: "face", place: kind, until: 0 });
         this.feel(`Scared of the ${noun(kind)}`, "😨", ...SHAKEN);
+        feared = true;
         lines.push(`😨 Now he is wary of ${noun(kind)}s`);
       }
     }
-    return { met, lines };
+    return { met, lines, feared };
   }
 
   toJSON() {

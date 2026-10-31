@@ -31,7 +31,7 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
+type Sheet = "menu" | "history" | "diary" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -192,6 +192,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => setSheet("history")}>
               📜 History
             </button>
+            <button class="btn" onClick={() => setSheet("diary")}>
+              📔 Diary
+            </button>
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
@@ -248,6 +251,13 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
           <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
+        </SheetBox>
+      )}
+      {sheet === "diary" && (
+        <SheetBox title="📔 Diary" onClose={close}>
+          <Lazy load={() => import("./DiarySheet")} what="the Diary">
+            {(m) => <m.DiarySheet diary={game.stats.diary} />}
+          </Lazy>
         </SheetBox>
       )}
       {sheet === "stats" && (
