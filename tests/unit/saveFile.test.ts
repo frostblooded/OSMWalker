@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
+import { hall } from "../../src/core/hall";
 import { LONG_H } from "../../src/core/mind";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
@@ -499,6 +500,20 @@ describe("save file", () => {
     delete d.stats.finds;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect((f.read() as Saved).stats.finds.got).toEqual([]);
+  });
+
+  it("loads ancestors from before the hall of walkers, who count only for km, level and cities", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.life.gen = 2;
+    d.stats.life.family = [{ gen: 1, born: 0, retired: 1, by: "age", title: "Elder", level: 30, km: 900, cities: 12, home: "Sofia, Bulgaria", heirloom: "", letter: "", chronicle: [] }];
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    const rows = Object.fromEntries(hall(back).map((r) => [r.id, r.gen]));
+    expect(rows.km).toBe(1);
+    expect(rows.countries).not.toBe(1);
   });
 
   it("says why a save is unreadable", () => {

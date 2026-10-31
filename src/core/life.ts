@@ -5,6 +5,7 @@
 // end of elder he retires by himself (or sooner, from the menu, once he is an
 // elder), in the city he spent most time in, and an heir sets out from there
 // with one heirloom and the family perk, which grows each generation.
+import type { Best } from "./records";
 import type { LatLon } from "./trips";
 
 export const DAY_S = 86400;
@@ -55,6 +56,9 @@ export type Ancestor = {
   letter: string;
   /** His life story (chronicle.ts), oldest first. */
   chronicle: { t: number; text: string }[];
+  /** Countries he walked in and his records' bests (records.ts), for the hall of walkers; missing on walkers who retired before it. */
+  countries?: number;
+  best?: Record<Best, number>;
 };
 
 const ROMAN: [number, string][] = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
