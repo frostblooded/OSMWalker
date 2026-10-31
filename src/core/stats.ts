@@ -213,7 +213,7 @@ export class Stats {
   bond = new B.Bond();
   /** His letters to you from data/letters.json; not saved, the game sets it. */
   letters: B.Letters | null = null;
-  /** His diary, and its templates from data/diary.json (not saved, the game sets them). */
+  /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
   diary = new Diary();
   diaryData: DiaryData | null = null;
   /** Golden bricks and the monuments they paid for. */

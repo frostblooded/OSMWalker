@@ -35,9 +35,16 @@ export class Diary {
   /** Days written in each city. */
   days: Record<string, number> = {};
 
-  /** Notes that `kind` happened at `place` (a place or city name) today. */
+  /** Notes that `kind` happened at `place` (a place or city name) today. Past MAX_NOTES, it takes the place of the note that matters least, if it matters more. */
   note(kind: NoteKind, place: string): void {
-    if (this.today.notes.length < MAX_NOTES) this.today.notes.push({ kind, place });
+    const notes = this.today.notes;
+    if (notes.length < MAX_NOTES) {
+      notes.push({ kind, place });
+      return;
+    }
+    const rank = (k: NoteKind) => NOTE_KINDS.indexOf(k);
+    const worst = notes.reduce((w, n, i) => (rank(n.kind) >= rank(notes[w]!.kind) ? i : w), 0);
+    if (rank(kind) < rank(notes[worst]!.kind)) notes[worst] = { kind, place };
   }
 
   /**

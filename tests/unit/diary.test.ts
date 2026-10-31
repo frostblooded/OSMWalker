@@ -37,6 +37,17 @@ describe("diary", () => {
     expect(d.close("2026-10-31", CITY, DATA, new Rng(1))!.lines[0]).toMatch(/2/);
   });
 
+  it("keeps what matters most on a busy day, past MAX_NOTES notes", () => {
+    const d = new D.Diary();
+    d.close("2026-10-29", CITY, DATA, new Rng(1));
+    for (let i = 0; i < D.MAX_NOTES; i++) d.note("first", `Place ${i}`);
+    d.note("faint", "City Hospital");
+    d.note("work", "Late Cafe"); // matters less than any first visit: not kept
+    expect(d.today.notes).toHaveLength(D.MAX_NOTES);
+    expect(d.today.notes.map((n) => n.kind)).toContain("faint");
+    expect(d.today.notes.map((n) => n.kind)).not.toContain("work");
+  });
+
   it("writes a quiet line on a day with nothing noted, and keeps KEEP_DAYS days", () => {
     const d = new D.Diary();
     d.close("d0", CITY, DATA, new Rng(1));
