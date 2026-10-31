@@ -31,7 +31,7 @@ export const BELIEFS: Belief[] = [
   { id: "old_magic", name: "The old magic", icon: "✨", what: "believes in the old magic", seeds: ["castle", "monument"], kinds: ["castle", "monument", "memorial"], treat: "Felt the old magic" },
 ];
 
-export const belief = (id: string) => BELIEFS.find((b) => b.id === id);
+const belief = (id: string) => BELIEFS.find((b) => b.id === id);
 /** True when `b` is lived by doing `deed` at a place of map class `kind`. */
 const livedBy = (b: Belief, kind: string, deed: Deed) => b.kinds.includes(kind) || !!b.favours?.(deed);
 

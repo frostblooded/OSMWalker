@@ -412,6 +412,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
             return <KV key={slot} k={`${SLOT[slot][0]} ${SLOT[slot][1]}`} v={<span class="dim">Empty</span>} />;
           })}
         </div>
+        {s.tattered() && <p class="small tone-warning">🧵 Tattered clothes: they add nothing and cost Charm.</p>}
       </Card>
       <Card icon="🎒" title="Bag">
         <KV k="🧺 Pantry" v={`${s.pantry.items.map((i) => INGREDIENT[i][0]).join("") || "empty"} · ${s.pantry.items.length} / ${PANTRY_MAX}`} />
