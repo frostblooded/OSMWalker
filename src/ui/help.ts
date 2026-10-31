@@ -43,6 +43,9 @@ import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
 import * as Anniv from "../core/anniversaries";
 import * as Clubs from "../core/clubs";
+import * as Cook from "../core/cooking";
+import * as Lang from "../core/languages";
+import * as Skills from "../core/skills";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
@@ -168,6 +171,20 @@ const crawlKinds = (c: K.Crawl) => {
   return c.id === "sights" ? `${words} (see Landmark cards)` : words;
 };
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
+/** One Help line per skill: the actions that train it, and those that need a level of it. */
+const skillLines = (actions: Activities.ActionTable) => {
+  const all = Object.values(actions).flat();
+  return Skills.SKILLS.map((k) => {
+    const [icon, name] = Skills.SKILL[k];
+    const of = all.filter((a) => a.skill === k);
+    const names = (l: S.Action[]) => [...new Set(l.map((a) => a.name.toLowerCase()))];
+    const free = names(of.filter((a) => !a.needs?.[k]));
+    const gated = [...new Map(of.filter((a) => a.needs?.[k]).map((a) => [a.name, a] as const)).values()].sort((a, b) => a.needs![k]! - b.needs![k]!);
+    return `- ${icon} ${name}: ${free.join(", ")}${gated.length ? `; at level ${gated.map((a) => `${a.needs![k]} ${a.name.toLowerCase()}`).join(", at ")}` : ""}.`;
+  }).join("\n");
+};
+const recipeLines = () =>
+  Cook.RECIPES.map((r) => `- ${r.icon} ${r.name[0]!.toUpperCase()}${r.name.slice(1)} (cooking ${r.level}): ${Cook.listOf(r.uses)}, ${Object.entries(r.fx).map(([k, v]) => `+${num(v)} ${k === "str" ? "strength" : k === "magic" ? "Magic" : k}`).join(", ")}.`).join("\n");
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
 /** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
@@ -656,6 +673,24 @@ export function values(data: GameData): Record<string, string> {
     CLUB_MAX: num(Clubs.MAX_CLUBS),
     CLUB_NIGHT_H: num(Clubs.NIGHT_H),
     CLUB_LIST: Clubs.helpList(),
+    SKILL_MAX: num(Skills.SKILL_MAX),
+    SKILL_STEP: num(Skills.SKILL_STEP),
+    SKILL_L4: num(Skills.stepsTo(4)),
+    SKILL_L10: num(Skills.stepsTo(Skills.SKILL_MAX)),
+    PRACTICE_MIN: num(Skills.PRACTICE_MIN),
+    SKILL_FX_PCT: pct(Skills.SKILL_FX),
+    SKILL_FX_MAX_PCT: pct(Skills.SKILL_FX * Skills.SKILL_MAX),
+    SKILL_LEAN_MAX: num(1 + Skills.SKILL_LEAN),
+    PHOTO_SHINE_PCT: pct(Skills.PHOTO_SHINE),
+    SKILL_LIST: skillLines(data.actions),
+    PANTRY_MAX: num(Cook.PANTRY_MAX),
+    GROCERIES_WEIGHT: num(Activities.GROCERIES_WEIGHT),
+    RECIPE_LIST: recipeLines(),
+    LANG_LIST: Lang.LANG_LEVELS.slice(1).map((l, i) => `- ${l}: ${num(Lang.LANG_HOURS[i + 1]!)} hour${Lang.LANG_HOURS[i + 1] === 1 ? "" : "s"}`).join(",\n"),
+    LANG_CHAT_H: num(Lang.CHAT_H),
+    LANG_CHARM: num(Lang.LANG_CHARM),
+    LANG_CHARM_MAX: num(Lang.LANG_CHARM * Lang.FLUENT),
+    FLUENT: Lang.LANG_LEVELS[Lang.FLUENT]!,
     NEWS_PCT: pct(Townies.NEWS_CHANCE),
     NEWS_AT: num(Townies.NEWS_AT),
     PARTY_AT: num(Anniv.PARTY_AT),

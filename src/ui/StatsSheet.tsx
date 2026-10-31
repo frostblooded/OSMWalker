@@ -1,7 +1,8 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // six meters and Magic as bars, the sky over him, the spells he knows,
-// four attributes with what his gear adds, every gear slot, the bag and his
-// buffs. Items with a story open to show it. His records close it.
+// four attributes with what his gear adds, his skills and languages, every
+// gear slot, the bag and pantry, and his buffs. Items with a story open to
+// show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -14,6 +15,9 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
+import { LANG_LEVELS } from "../core/languages";
+import { SKILL, SKILL_MAX, SKILLS } from "../core/skills";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -130,6 +134,41 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** His six skills, each with its level and a bar towards the next. */
+function SkillsCard({ stats: s }: { stats: Stats }) {
+  return (
+    <Card icon="🎓" title="Skills">
+      <div class="meters">
+        {SKILLS.map((k) => {
+          const [icon, name] = SKILL[k];
+          const l = s.skills.level(k);
+          return (
+            <div key={k} class="meter">
+              <KV k={`${icon} ${name}`} v={l >= SKILL_MAX ? `${l} (top)` : l} />
+              <Bar share={s.skills.progress(k)} color="var(--lilac)" />
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/** The languages he speaks, his best first; 📍 marks the one spoken where he is. */
+function LanguagesCard({ stats: s }: { stats: Stats }) {
+  const here = s.lang();
+  const list = s.languages.list();
+  return (
+    <Card icon="🗣" title="Languages" right={list.length}>
+      <div class="zebra">
+        {list.map(({ lang, level }) => (
+          <KV key={lang} k={`${lang === here ? "📍 " : ""}${lang}`} v={LANG_LEVELS[level]} />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
@@ -221,6 +260,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
         {s.meters.hygiene < DIRTY_AT && <p class="small tone-warning">🧼 Dirty: Charm counts less and mood drains.</p>}
       </Card>
+      <SkillsCard stats={s} />
+      <LanguagesCard stats={s} />
       <Card icon="🛡" title="Gear">
         <div class="zebra">
           {SLOTS.map((slot) => {
@@ -231,6 +272,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
       </Card>
       <Card icon="🎒" title="Bag">
+        <KV k="🧺 Pantry" v={`${s.pantry.items.map((i) => INGREDIENT[i][0]).join("") || "empty"} · ${s.pantry.items.length} / ${PANTRY_MAX}`} />
         {bag.length ? (
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
