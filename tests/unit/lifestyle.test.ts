@@ -131,6 +131,8 @@ describe("clothes wear", () => {
     s.gear.body = shirt();
     s.passTime(1, 1000, false);
     expect(s.gear.body.wear).toBe(1);
+    s.passTime(1, 1000, true, true); // a metro or taxi hop
+    expect(s.gear.body.wear).toBe(1);
     s.gear.vehicle = { name: "Bike", slot: "vehicle", stats: { speed: 10 }, rarity: "Common", price: 100, vehicle: "bike" };
     s.passTime(1, 1000, false);
     expect(s.gear.body.wear).toBe(1);

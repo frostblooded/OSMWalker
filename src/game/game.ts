@@ -381,7 +381,8 @@ export class Game {
     w.speedMps = this.stats.speedMps(w.afoot);
     w.flies = FLYERS.has(this.stats.getsAbout());
     w.advance(s * SPEED_MPS);
-    this.stats.passTime(s / 60, w.totalM - before, w.afoot);
+    // A ride (a trip, or a metro, taxi or flying hop) wears no clothes.
+    this.stats.passTime(s / 60, w.totalM - before, w.afoot, w.isTraveling() || !!w.flight);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (w.totalM > before) this.walkStreet(w.streetName());
     if (!w.isTraveling()) this.leyM += w.totalM - before;

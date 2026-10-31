@@ -5,6 +5,7 @@
 // down on his own: the habit is gone, and for QUIT_DAYS cafés pull him less
 // and cups build no habit.
 // It always stays gentle: nothing worse than a headache. Pure; Stats owns one.
+import type { Feel } from "./comforts";
 
 export const CUP_HABIT = 0.2;
 export const DAY_FADE = 0.15;
@@ -17,7 +18,7 @@ export const QUIT_DAYS = 5;
 export const QUIT_PULL = 0.5;
 export const COFFEE_KINDS = ["cafe"];
 /** The headache moodlet: name, icon, mood an hour, hours. */
-export const HEADACHE: readonly [string, string, number, number] = ["Coffee headache", "🤕", -2, 3];
+export const HEADACHE: Feel = ["Coffee headache", "🤕", -2, 3];
 
 const H = 3600;
 

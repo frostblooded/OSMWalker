@@ -776,8 +776,8 @@ export class Stats {
     return this.buffs.map((b) => b.name);
   }
 
-  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
-  passTime(minutes: number, walkedM: number, afoot = false): void {
+  /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about; `riding` a trip or hop, which wears no clothes). */
+  passTime(minutes: number, walkedM: number, afoot = false, riding = false): void {
     const t = this.now();
     if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
@@ -818,7 +818,7 @@ export class Stats {
     this.business.pass(h);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
-    if (walkedM && (afoot || !this.getsAbout())) {
+    if (walkedM && !riding && (afoot || !this.getsAbout())) {
       const worn = Cl.wear(this.gear, walkedM / 1000, isWet(this.sky));
       for (const l of worn.lines) this.say(l);
       if (worn.tattered) this.mind.feel(...Cl.TATTERED);
