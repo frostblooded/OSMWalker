@@ -4,9 +4,12 @@ import { BEAT_MAX_S, SAY_S } from "../../src/core/beats";
 import { look } from "../../src/game/hud";
 import { game, START } from "../support/game";
 
+/** Midday in Sofia, so no night-sky line (skyEvents.ts) lands between a beat and its bubble. */
+const NOON = () => Date.UTC(2026, 9, 29, 10);
+
 describe("little moments", () => {
   it("fill a quiet spell with a History line and words in his bubble, then let it go", async () => {
-    const { g } = game({ beats: true, places: [] });
+    const { g } = game({ clock: NOON, beats: true, places: [] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     const lines = () => g.stats.history.entries.map((e) => e.text);
     let said = "";
@@ -30,7 +33,7 @@ describe("little moments", () => {
   });
 
   it("never come while a timed moment is open", async () => {
-    const { g } = game({ beats: true, moments: true, places: [] });
+    const { g } = game({ clock: NOON, beats: true, moments: true, places: [] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.debugMoment();
     expect(g.moment).not.toBeNull();
@@ -42,7 +45,7 @@ describe("little moments", () => {
   });
 
   it("keep his bubble up for SAY_S real seconds during a boost", async () => {
-    const { g } = game({ beats: true, places: [] });
+    const { g } = game({ clock: NOON, beats: true, places: [] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.boostS = 600;
     g.debugBeat();

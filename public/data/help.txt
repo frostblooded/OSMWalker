@@ -465,7 +465,12 @@ Day and night follow the real sun over his city, worked out on your device from 
 
 For actions, sunrise counts as {SUNRISE_AT} and sunset as {SUNSET_AT}, with the day stretched or squeezed to the {HALF_DAY_H} hours between them and the night to the rest, so "evening" starts around sunset in every season. In the far north and south, where the sun may not rise or set, a day counts as at least {MIN_DAY_H} and at most {MAX_DAY_H} hours.
 
-After sunset the map darkens under a blue shade as the sun sinks, until it is {NIGHT_SHADE_PCT} dark once the sun is {NIGHT_DEG}° below the horizon, and lightens again at dawn. At night he may stroll under the street lamps.
+After sunset the map darkens under a blue shade as the sun sinks, until it is {NIGHT_SHADE_PCT} dark once the sun is {NIGHT_DEG}° below the horizon, and lightens again at dawn. At night he may stroll under the street lamps. On some nights the sky puts on a show (see Sky events).
+## Sky events {sky_events}
+Now and then a night puts on a show. These are the game's own, not the real sky's: each night in each city rolls its own dice, and about {SKY_PCT} of nights have one. On the first dark moment of such a night he looks up, wherever he is, whatever he is doing and whatever the weather, once a night:
+{SKY_LIST}
+
+A night the game is closed goes by unseen, unless you open it while it is still dark. He says what he saw in History, and the moodlet lifts his mood for its hours (see Moodlets). The first one goes in his life story. The Collection's Places tab keeps every event he has seen and how often, and the 🌌 Stargazer badge counts them all. A quest and a night-time event also send him to look at the stars.
 ## Opening hours {opening}
 Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
 
@@ -801,7 +806,7 @@ He saves them for a monument with his name:
 
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
-History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), renting and buying his home (see His home), each city's paper story when he becomes its Local hero (see Fame), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), the first sky event he sees (see Sky events), renting and buying his home (see His home), each city's paper story when he becomes its Local hero (see Fame), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Ruin crawls {ruins}
 Castles and ruins on the map hide a few rooms. When he reaches one he hasn't crawled in the last {CRAWL_DAYS} days, he crawls it: {MIN_ROOMS} to {MAX_ROOMS} rooms, each a stuck door, a riddle, a grumpy caretaker or, now and then, something out of a legend, such as a ghost or a sleeping stone dragon. Nothing is ever fought.
 
@@ -996,7 +1001,7 @@ The card at the top shows the city and what he is doing (and how he feels, unles
 
 What he just did pops up under it for a few seconds.
 
-Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
+Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when the map has moved away from him while the camera follows him.
 ## The menu {menu}
 ☰ Menu (bottom right) opens from the bottom of the screen and holds History, Explored, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
@@ -1056,7 +1061,7 @@ His records and the hall of walkers have their own sheet, 🏆 Records in the me
 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
-- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings), the crawls and his last ruin crawls (see Ruin crawls).
+- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings), the night sky (see Sky events), the crawls and his last ruin crawls (see Ruin crawls).
 - 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), his bucket list (see Bucket list), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases), and a life of his own: a pet, a fairy pet, a flat, his own home, a full home, a long stay visa and citizenship (see His pet, His home, Visas).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
@@ -1068,7 +1073,7 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints.
 
-While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
+While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened, then "Back to him" (while the camera follows him) to follow him again. Trips break the trail, long walks too, because they aren't drawn street by street.
 ## Explored {explored}
 👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Getting about in his city counts: on foot, with his own vehicle, or flying his own mount straight over the streets (see Speed and vehicles). Trips to other cities, portals, long walks between cities and the time the game was closed don't.
 

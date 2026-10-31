@@ -88,6 +88,13 @@ describe("the real help", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
 
+  it("lists every sky event with its odds and mood", () => {
+    const sky = page("sky_events").body;
+    expect(sky).toContain("- 🌝 Full moon: 8% of nights, mood +1 an hour for 3 hours");
+    expect(sky).toContain("- 🌒 Lunar eclipse: 0.5% of nights, mood +3 an hour for 6 hours");
+    expect(sky).toContain("about 17.3% of nights have one");
+  });
+
   it("has no unused values", () => {
     const unused = Object.keys(Help.values(data)).filter((k) => !raw.includes(`{${k}}`));
     expect(unused).toEqual([]);

@@ -37,6 +37,7 @@ import * as Pt from "./pet";
 import * as Po from "./portals";
 import * as Gi from "./giants";
 import * as Fa from "./fairy";
+import * as Sk from "./skyEvents";
 import * as F from "./forecast";
 import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
@@ -298,6 +299,8 @@ export class Stats {
   portals = new Po.Portals();
   giants = new Gi.Sightings();
   rings = new Fa.Rings();
+  /** The sky events he looked up at (see skyEvents.ts). */
+  stars = new Sk.Stargazing();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -812,6 +815,7 @@ export class Stats {
     const lang = this.lang();
     this.languages.setNative(lang);
     this.sayIf(this.languages.add(lang, minutes / 60));
+    this.lookUp(t);
     fx.mood = (fx.mood ?? 0) + this.mind.pass(minutes);
     this.mind.refill(t, () => new Rng(seedOf(`want${t}`)));
     this.tastes.roll(() => new Rng(seedOf(`tastes${t}`)));
@@ -883,6 +887,7 @@ export class Stats {
     heir.creatures = this.creatures;
     heir.giants = this.giants;
     heir.rings = this.rings;
+    heir.stars = this.stars;
     heir.finds = this.finds;
     heir.portals = this.portals;
     // The squares walked are the family's map of the world.
@@ -1870,6 +1875,15 @@ export class Stats {
     if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
   }
 
+  /** The first dark moment of a night with a sky event (see skyEvents.ts): a line and a moodlet. */
+  private lookUp(t: number): void {
+    const ev = this.stars.look(t, this.sky, this.where.city);
+    if (!ev) return;
+    this.mind.feel(ev.name, ev.icon, ...ev.mood);
+    this.say(`${ev.icon} ${ev.say}`);
+    this.milestone("sky", `Looked up and saw ${ev.what}`);
+  }
+
   /** Right after reaching `place` at local `hour`: at dawn a fairy ring in a real park or garden may take him for a nap (see fairy.ts). Returns the nap's minutes, or 0. He wakes rested with a fairy gift (worn if an upgrade, else bagged) or Magic and a strange story. Its own dice, so his walk stays the same. */
   fairyAt(place: Place, hour: number): number {
     const t = this.now();
@@ -2076,7 +2090,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), stars: this.stars.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(), streets: this.streets.toJSON(),
       pets: this.pets.toJSON(),
       home: this.home.toJSON(),
@@ -2129,6 +2143,7 @@ export class Stats {
     s.portals = Po.Portals.fromJSON(d.portals);
     s.giants = Gi.Sightings.fromJSON(d.giants);
     s.rings = Fa.Rings.fromJSON(d.rings);
+    s.stars = Sk.Stargazing.fromJSON(d.stars);
     s.records = Records.fromJSON(d.records);
     s.ruins = Ruins.fromJSON(d.ruins);
     // A save from before the storyteller starts calm, on Classic.

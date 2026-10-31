@@ -1081,6 +1081,8 @@ export class Game {
       const clover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, clover));
       // Days, weeks and his life stages go by the clock, so they turn over now; his elder stage may have run out, and the heir sets out.
+      // Under the sky of now, so a tab hidden since the evening doesn't look up at last night's sky.
+      this.stats.sky = this.sky();
       this.stats.passTime(0, 0);
       const leaving = this.stats.life.leaving;
       if (leaving) await this.retire(leaving, true);

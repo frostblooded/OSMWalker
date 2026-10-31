@@ -39,6 +39,7 @@ import * as Moments from "../core/moments";
 import * as Rep from "../core/repute";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
+import * as SkyEv from "../core/skyEvents";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -392,6 +393,10 @@ export function values(data: GameData): Record<string, string> {
     FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
     FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
     STORY_MAGIC: num(Fairy.STORY_MAGIC),
+    SKY_LIST: Object.values(SkyEv.EVENTS)
+      .map((e) => `- ${e.icon} ${e.name}: ${pct(e.chance)} of nights, mood +${e.mood[0]} an hour for ${e.mood[1]} hours`)
+      .join("\n"),
+    SKY_PCT: pct(Object.values(SkyEv.EVENTS).reduce((a, e) => a + e.chance, 0)),
     GIANT_PCT: pct(Giants.GIANT_CHANCE),
     GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
     GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),

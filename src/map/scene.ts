@@ -180,9 +180,10 @@ export class MapScene {
     this.game.zoom = this.map.zoomBy(step);
   }
 
-  /** A History row: centres on where it happened. */
+  /** A History row: centres on where it happened, with Back to him to follow him again. */
   focusEvent(at: LatLon): void {
     this.map.focus(at, EVENT_ZOOM);
+    this.onFollowing(false);
   }
 
   /** A goal view ends by itself when he picks a new goal; a trip shows the whole ride, and landing follows him again. */

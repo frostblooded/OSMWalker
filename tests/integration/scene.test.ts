@@ -271,6 +271,14 @@ describe("map scene", () => {
     expect(map.calls.slice(-3)).toEqual(["trail:false", "padding:80", "follow:17"]);
   });
 
+  it("shows a History row's place with Back to him, even after he was followed again", () => {
+    scene.showHistory(true, 300);
+    scene.backToHim();
+    scene.focusEvent([42.001, 23.0]);
+    expect(map.calls.at(-1)).toBe(`focus:${EVENT_ZOOM}`);
+    expect(following.at(-1)).toBe(false);
+  });
+
   it("keeps the camera still while History is open", () => {
     const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
     scene.showHistory(true, 300);

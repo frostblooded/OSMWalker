@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import * as DebugLog from "../../src/core/debugLog";
 import { NO_NEED } from "../../src/core/goals";
+import type { Sky } from "../../src/core/sky";
 import type { Place } from "../../src/core/stats";
 import { Game, type GameDeps } from "../../src/game/game";
 import { Api } from "../../src/net/api";
@@ -105,6 +106,26 @@ describe("game", () => {
       again.stats.passTime = (m, w) => (weather.push(again.stats.sky?.weather ?? null), pass(m, w));
       await again.wake();
       expect(weather[0]).toBeNull();
+    });
+
+    it("looks up under the sky of now when the tab shows again, not the sky it was hidden under", async () => {
+      let now = NOW;
+      const { api } = weatherApi(0, 15);
+      const { g } = game({ api, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      // Hidden at night; shown again by day.
+      g.stats.sky = { ...g.sky(), dark: 1 };
+      g.save();
+      // Within the hour, so no weather fetch sets the sky first.
+      now += 30 * 60_000;
+      const skies: Sky[] = [];
+      const pass = g.stats.passTime.bind(g.stats);
+      g.stats.passTime = (m, w) => (skies.push(g.stats.sky!), pass(m, w));
+      await g.wake();
+      expect(skies[0]?.dark).toBe(g.sky().dark);
+      expect(g.stats.stars.night).toBe("");
     });
 
     it("goes on by the forecast kept on the device, and retries a failed fetch later", async () => {

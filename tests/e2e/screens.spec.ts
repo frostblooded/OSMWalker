@@ -11,6 +11,8 @@ async function startInSofia(page: Page) {
   await page.getByLabel("City name").fill("Sofia");
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  // The map scene is up (GameScreen marks it), so a sheet opened next reaches it.
+  await page.waitForFunction(() => performance.getEntriesByName("osmwalker:map").length > 0);
 }
 
 /** Visible buttons smaller than a 48 px tap target. */
