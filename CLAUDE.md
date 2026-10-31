@@ -6,7 +6,7 @@ A tamagotchi-like game played in mobile browsers: a little character walks real 
 
 These mirror the Claude project instructions. Keep both in sync.
 
-- **CLAUDE.md** goes straight to `master`, no PR. **Everything else**: open a PR into `master`, run the review step in `CODING_STANDARDS.md`, and merge by hand once `npm run verify` passed on the branch with the newest `master` merged in. No auto-merge.
+- **CLAUDE.md** goes straight to `master`, no PR. **Everything else**: open a PR into `master`, run the review step in `CODING_STANDARDS.md` as a **ponytail review** (user, 2026-10-31: a fresh review agent using the ponytail skill, checking the diff against `CODING_STANDARDS.md` too), and merge by hand once `npm run verify` passed on the branch with the newest `master` merged in. No auto-merge.
 - **Checks run locally, not on GitHub** (user, 2026-10-31): `npm run check` (~25 s) before a branch push, `npm run verify` (~3.5 min: everything incl. e2e and perf) before a merge. The pre-push hook (`.githooks/pre-push`, set up by `npm ci`) refuses unchecked code. Run them yourself with a long Bash timeout before `git push`, so the push is instant. PRs show no CI checks.
 - **Deploy**: `.github/workflows/web.yml` only builds and deploys `master`. After each push to `master`, check that it passed. No need to check the live site by hand.
 - **Clarify first**: before acting, grill the user with decision cards (`request_decision`, one per question). Plain-text option lists and HTML widgets can't send answers back.
