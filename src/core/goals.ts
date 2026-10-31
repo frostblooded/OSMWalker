@@ -43,7 +43,7 @@ export function urgentRules(needs: Pick<Need, "urgent" | "bottom">[], r: number)
 }
 export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number; urgent?: true };
 
-export const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
+const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
 
 /** 1 at GOAL_PEAK_M, falling off smoothly (log-normal) nearer and further. */
 export function distanceWeight(dM: number): number {

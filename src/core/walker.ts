@@ -42,7 +42,7 @@ export const SNAP_M = 100;
 export const FLY_MIN_M = 400;
 export const LAND_MAX_M = 1500;
 export const LAND_SHARE = 0.5;
-export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
+const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /**
  * A flight over the city: from where he took off to the corner `node` by the
  * park he lands in. With `mps`, a ride across town to a trip's station at that

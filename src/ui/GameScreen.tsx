@@ -10,6 +10,7 @@ import type { Sound } from "../app/sound";
 import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { BOOST } from "../core/boost";
+import { CLOVERS_PER_CHECKIN } from "../core/gifts";
 import { GAME_NAME } from "../core/moments";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
@@ -199,7 +200,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         {game.welcome && !game.welcome.card && (
           <div class="toast story" role="status" key={`welcome${game.welcome.n}`}>
             👋 Welcome back! {BOOST}× speed for {duration(game.welcome.boostS)}
-            {game.welcome.clover && " · ☘ +1 clover"}
+            {game.welcome.clover && ` · ☘ +${CLOVERS_PER_CHECKIN} clover`}
           </div>
         )}
         {s.history.entries.length > 0 && (

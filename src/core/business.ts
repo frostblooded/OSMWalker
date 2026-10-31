@@ -1,10 +1,11 @@
 // Side businesses (Godville's investments, Stardew's sheds): once he has a
 // business's price to spare past what he saves up for, he buys the next one,
 // cheapest first, in the city he is in. A local partner runs it, so it brings
-// in money by the hour wherever he is, and pays him once a day. The last one is a small fantasy touch: a potion stall. He also
-// buys a share in his spot (see spot.ts) in each city that has one: it pays
-// a little each day, and more for each time he dropped by since, so it is a
-// reason to come back. All by himself. Pure; Stats owns one.
+// in money by the hour wherever he is, and pays him once a day. The last one is
+// a small fantasy touch: a potion stall. He also buys a share in his spot (see
+// spot.ts) in each city that has one: it pays a little each day, and more for
+// each time he dropped by since, so it is a reason to come back. All by
+// himself. Pure; Stats owns one.
 
 import { same } from "./spot";
 import { list } from "./travelKit";
