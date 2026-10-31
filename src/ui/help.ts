@@ -382,6 +382,7 @@ export function values(data: GameData): Record<string, string> {
     WANT_XP_FACE: String(Mind.WANT_XP.face),
     WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
     WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    WISH_MOOD_SHAKE: `+${Mind.WANT_MOOD.shake[0]} an hour for ${Mind.WANT_MOOD.shake[1]} hours`,
     RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
     SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
     FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
