@@ -520,6 +520,10 @@ Each time he arrives in a different country than the one he left, by any kind of
 - a dry remark about the border guard.
 
 {BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
+## Local words {words}
+In {WORD_COUNTRIES} countries he picks up everyday words in the local language ({WORD_LANGUAGES} languages, about {WORD_EACH} words each): hello, thank you, coffee, bread, the bill, cheers and the like. At {WORD_PCT} of his stops there he learns one he doesn't know yet, with how to say it in Latin letters where the language uses another script, for example "🗣 Learned a Bulgarian word at Cafe Rila: "кафе (kafe)" means coffee".
+
+A word that fits the place comes first: coffee at a café, bread at a bakery, the bill at a restaurant, beer and cheers at a bar or pub, water at a fountain, a church (or mosque or temple) at a place of worship, station at a station, pharmacy at a pharmacy, ice cream at an ice cream parlour. Words like hello and thank you he learns anywhere. Each word gives wits +{WORD_WIT} and {WORD_XP} XP. Words carry over between countries that share a language, and he learns them while you are away too. The Stats sheet lists them, and the Polyglot badge counts them (see Badges and titles).
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -734,6 +738,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
+- Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.

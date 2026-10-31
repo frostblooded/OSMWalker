@@ -40,6 +40,7 @@ import * as Kit from "./travelKit";
 import * as T from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
+import { WORD_WIT, WORD_XP, Words, type WordBook } from "./words";
 import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
@@ -177,6 +178,10 @@ export class Stats {
   jokes: Jokes = {};
   /** Border words and quips from data/borders.json; not saved, the game sets it. */
   borders: Borders | null = null;
+  /** Everyday words by language from data/words.json; not saved, the game sets it once loaded. */
+  wordBook: WordBook | null = null;
+  /** The local words he has learned. */
+  words = new Words();
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
@@ -927,6 +932,15 @@ export class Stats {
   }
 
   /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
+  /** Right after reaching `place`: now and then a local word that fits it (words.ts). Its own dice, so his walk stays the same. */
+  wordAt(place: Pick<Place, "class" | "name">): void {
+    if (!this.wordBook) return;
+    const w = this.words.learn(this.wordBook, this.where.code, place.class, new Rng(seedOf(`word${this.now()}${place.name}`)).randf());
+    if (!w) return;
+    this.applyFx({ wit: WORD_WIT, xp: WORD_XP });
+    this.say(`🗣 Learned a ${w.language} word at ${place.name}: "${w.word}" means ${w.meaning}`);
+  }
+
   magicAt(place: Pick<Place, "class" | "name" | "lat" | "lon">): void {
     const t = this.now();
     if (Mg.isLeyPlace(place) && this.lore.tap(visitKey(place), dayOf(t * 1000))) {
@@ -1118,7 +1132,7 @@ export class Stats {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
-      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
     };
   }
 
@@ -1167,6 +1181,8 @@ export class Stats {
     // A save from before clubs, townies and anniversaries: no clubs yet, news from the next day on, and his birthday is the day he set out, if his life story knows it.
     s.clubs = Clubs.fromJSON(d.clubs);
     s.townies = Townies.fromJSON(d.townies);
+    // A save from before local words: none learned yet.
+    s.words = Words.fromJSON(d.words);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     return s;
   }

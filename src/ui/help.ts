@@ -54,6 +54,7 @@ import * as Weather from "../core/weather";
 import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
+import * as Words from "../core/words";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -509,6 +510,12 @@ export function values(data: GameData): Record<string, string> {
     JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
     JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
+    WORD_COUNTRIES: num(Object.keys(data.words?.countries ?? {}).length),
+    WORD_LANGUAGES: num(Object.keys(data.words?.languages ?? {}).length),
+    WORD_EACH: num(Math.round(Object.values(data.words?.languages ?? {}).reduce((n, l) => n + l.words.length, 0) / Math.max(Object.keys(data.words?.languages ?? {}).length, 1))),
+    WORD_PCT: pct(Words.LEARN_CHANCE),
+    WORD_WIT: num(Words.WORD_WIT),
+    WORD_XP: num(Words.WORD_XP),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),

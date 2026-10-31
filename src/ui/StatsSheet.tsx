@@ -1,5 +1,6 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// six meters and Magic as bars, the sky over him, the spells he knows,
+// six meters and Magic as bars, the sky over him, the spells he knows, the
+// local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
 // buffs. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
@@ -130,6 +131,27 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** The local words he knows, by language, with the last one learned. */
+function LocalWords({ stats: s }: { stats: Stats }) {
+  const book = s.wordBook;
+  const langs = Object.entries(s.words.known).filter(([k, l]) => l.length && book?.languages[k]);
+  return (
+    <Card icon="🗣" title="Local words" right={s.words.count() || undefined}>
+      {langs.length && book ? (
+        <div class="zebra">
+          {langs.map(([k, l]) => {
+            const lang = book.languages[k]!;
+            const last = lang.words.find(([, m]) => m === l.at(-1));
+            return <KV key={k} k={`${lang.name} ${l.length} / ${lang.words.length}`} v={last ? `${last[0]} = ${last[1]}` : ""} />;
+          })}
+        </div>
+      ) : (
+        <KV k="Learned" v="none so far" />
+      )}
+    </Card>
+  );
+}
+
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
@@ -200,6 +222,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
       <Spells stats={s} />
+      <LocalWords stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {

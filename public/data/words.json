@@ -1,0 +1,2657 @@
+{
+ "at": {
+  "coffee": [
+   "cafe"
+  ],
+  "bread": [
+   "bakery"
+  ],
+  "the bill": [
+   "restaurant",
+   "fast_food"
+  ],
+  "beer": [
+   "beer",
+   "bar"
+  ],
+  "cheers": [
+   "bar",
+   "beer"
+  ],
+  "water": [
+   "drinking_water",
+   "fountain"
+  ],
+  "church": [
+   "place_of_worship"
+  ],
+  "mosque": [
+   "place_of_worship"
+  ],
+  "temple": [
+   "place_of_worship"
+  ],
+  "shrine": [
+   "place_of_worship",
+   "shrine"
+  ],
+  "synagogue": [
+   "place_of_worship"
+  ],
+  "pagoda": [
+   "place_of_worship"
+  ],
+  "station": [
+   "railway",
+   "bus"
+  ],
+  "pharmacy": [
+   "pharmacy"
+  ],
+  "ice cream": [
+   "ice_cream"
+  ]
+ },
+ "languages": {
+  "bg": {
+   "name": "Bulgarian",
+   "words": [
+    [
+     "здравей (zdravey)",
+     "hello"
+    ],
+    [
+     "благодаря (blagodarya)",
+     "thank you"
+    ],
+    [
+     "моля (molya)",
+     "please"
+    ],
+    [
+     "довиждане (dovizhdane)",
+     "goodbye"
+    ],
+    [
+     "кафе (kafe)",
+     "coffee"
+    ],
+    [
+     "хляб (hlyab)",
+     "bread"
+    ],
+    [
+     "сметката (smetkata)",
+     "the bill"
+    ],
+    [
+     "бира (bira)",
+     "beer"
+    ],
+    [
+     "наздраве (nazdrave)",
+     "cheers"
+    ],
+    [
+     "вода (voda)",
+     "water"
+    ],
+    [
+     "църква (tsarkva)",
+     "church"
+    ],
+    [
+     "гара (gara)",
+     "station"
+    ],
+    [
+     "аптека (apteka)",
+     "pharmacy"
+    ],
+    [
+     "сладолед (sladoled)",
+     "ice cream"
+    ]
+   ]
+  },
+  "es": {
+   "name": "Spanish",
+   "words": [
+    [
+     "hola",
+     "hello"
+    ],
+    [
+     "gracias",
+     "thank you"
+    ],
+    [
+     "por favor",
+     "please"
+    ],
+    [
+     "adiós",
+     "goodbye"
+    ],
+    [
+     "café",
+     "coffee"
+    ],
+    [
+     "pan",
+     "bread"
+    ],
+    [
+     "la cuenta",
+     "the bill"
+    ],
+    [
+     "cerveza",
+     "beer"
+    ],
+    [
+     "salud",
+     "cheers"
+    ],
+    [
+     "agua",
+     "water"
+    ],
+    [
+     "iglesia",
+     "church"
+    ],
+    [
+     "estación",
+     "station"
+    ],
+    [
+     "farmacia",
+     "pharmacy"
+    ],
+    [
+     "helado",
+     "ice cream"
+    ]
+   ]
+  },
+  "fr": {
+   "name": "French",
+   "words": [
+    [
+     "bonjour",
+     "hello"
+    ],
+    [
+     "merci",
+     "thank you"
+    ],
+    [
+     "s'il vous plaît",
+     "please"
+    ],
+    [
+     "au revoir",
+     "goodbye"
+    ],
+    [
+     "café",
+     "coffee"
+    ],
+    [
+     "pain",
+     "bread"
+    ],
+    [
+     "l'addition",
+     "the bill"
+    ],
+    [
+     "bière",
+     "beer"
+    ],
+    [
+     "santé",
+     "cheers"
+    ],
+    [
+     "eau",
+     "water"
+    ],
+    [
+     "église",
+     "church"
+    ],
+    [
+     "gare",
+     "station"
+    ],
+    [
+     "pharmacie",
+     "pharmacy"
+    ],
+    [
+     "glace",
+     "ice cream"
+    ]
+   ]
+  },
+  "de": {
+   "name": "German",
+   "words": [
+    [
+     "hallo",
+     "hello"
+    ],
+    [
+     "danke",
+     "thank you"
+    ],
+    [
+     "bitte",
+     "please"
+    ],
+    [
+     "tschüss",
+     "goodbye"
+    ],
+    [
+     "Kaffee",
+     "coffee"
+    ],
+    [
+     "Brot",
+     "bread"
+    ],
+    [
+     "die Rechnung",
+     "the bill"
+    ],
+    [
+     "Bier",
+     "beer"
+    ],
+    [
+     "Prost",
+     "cheers"
+    ],
+    [
+     "Wasser",
+     "water"
+    ],
+    [
+     "Kirche",
+     "church"
+    ],
+    [
+     "Bahnhof",
+     "station"
+    ],
+    [
+     "Apotheke",
+     "pharmacy"
+    ],
+    [
+     "Eis",
+     "ice cream"
+    ]
+   ]
+  },
+  "it": {
+   "name": "Italian",
+   "words": [
+    [
+     "ciao",
+     "hello"
+    ],
+    [
+     "grazie",
+     "thank you"
+    ],
+    [
+     "per favore",
+     "please"
+    ],
+    [
+     "arrivederci",
+     "goodbye"
+    ],
+    [
+     "caffè",
+     "coffee"
+    ],
+    [
+     "pane",
+     "bread"
+    ],
+    [
+     "il conto",
+     "the bill"
+    ],
+    [
+     "birra",
+     "beer"
+    ],
+    [
+     "salute",
+     "cheers"
+    ],
+    [
+     "acqua",
+     "water"
+    ],
+    [
+     "chiesa",
+     "church"
+    ],
+    [
+     "stazione",
+     "station"
+    ],
+    [
+     "farmacia",
+     "pharmacy"
+    ],
+    [
+     "gelato",
+     "ice cream"
+    ]
+   ]
+  },
+  "pt": {
+   "name": "Portuguese",
+   "words": [
+    [
+     "olá",
+     "hello"
+    ],
+    [
+     "obrigado",
+     "thank you"
+    ],
+    [
+     "por favor",
+     "please"
+    ],
+    [
+     "adeus",
+     "goodbye"
+    ],
+    [
+     "café",
+     "coffee"
+    ],
+    [
+     "pão",
+     "bread"
+    ],
+    [
+     "a conta",
+     "the bill"
+    ],
+    [
+     "cerveja",
+     "beer"
+    ],
+    [
+     "saúde",
+     "cheers"
+    ],
+    [
+     "água",
+     "water"
+    ],
+    [
+     "igreja",
+     "church"
+    ],
+    [
+     "estação",
+     "station"
+    ],
+    [
+     "farmácia",
+     "pharmacy"
+    ],
+    [
+     "gelado",
+     "ice cream"
+    ]
+   ]
+  },
+  "pt-BR": {
+   "name": "Portuguese",
+   "words": [
+    [
+     "oi",
+     "hello"
+    ],
+    [
+     "obrigado",
+     "thank you"
+    ],
+    [
+     "por favor",
+     "please"
+    ],
+    [
+     "tchau",
+     "goodbye"
+    ],
+    [
+     "café",
+     "coffee"
+    ],
+    [
+     "pão",
+     "bread"
+    ],
+    [
+     "a conta",
+     "the bill"
+    ],
+    [
+     "cerveja",
+     "beer"
+    ],
+    [
+     "saúde",
+     "cheers"
+    ],
+    [
+     "água",
+     "water"
+    ],
+    [
+     "igreja",
+     "church"
+    ],
+    [
+     "estação",
+     "station"
+    ],
+    [
+     "farmácia",
+     "pharmacy"
+    ],
+    [
+     "sorvete",
+     "ice cream"
+    ]
+   ]
+  },
+  "nl": {
+   "name": "Dutch",
+   "words": [
+    [
+     "hallo",
+     "hello"
+    ],
+    [
+     "dank je",
+     "thank you"
+    ],
+    [
+     "alsjeblieft",
+     "please"
+    ],
+    [
+     "doei",
+     "goodbye"
+    ],
+    [
+     "koffie",
+     "coffee"
+    ],
+    [
+     "brood",
+     "bread"
+    ],
+    [
+     "de rekening",
+     "the bill"
+    ],
+    [
+     "bier",
+     "beer"
+    ],
+    [
+     "proost",
+     "cheers"
+    ],
+    [
+     "water",
+     "water"
+    ],
+    [
+     "kerk",
+     "church"
+    ],
+    [
+     "station",
+     "station"
+    ],
+    [
+     "apotheek",
+     "pharmacy"
+    ],
+    [
+     "ijsje",
+     "ice cream"
+    ]
+   ]
+  },
+  "pl": {
+   "name": "Polish",
+   "words": [
+    [
+     "cześć",
+     "hello"
+    ],
+    [
+     "dziękuję",
+     "thank you"
+    ],
+    [
+     "proszę",
+     "please"
+    ],
+    [
+     "do widzenia",
+     "goodbye"
+    ],
+    [
+     "kawa",
+     "coffee"
+    ],
+    [
+     "chleb",
+     "bread"
+    ],
+    [
+     "rachunek",
+     "the bill"
+    ],
+    [
+     "piwo",
+     "beer"
+    ],
+    [
+     "na zdrowie",
+     "cheers"
+    ],
+    [
+     "woda",
+     "water"
+    ],
+    [
+     "kościół",
+     "church"
+    ],
+    [
+     "dworzec",
+     "station"
+    ],
+    [
+     "apteka",
+     "pharmacy"
+    ],
+    [
+     "lody",
+     "ice cream"
+    ]
+   ]
+  },
+  "cs": {
+   "name": "Czech",
+   "words": [
+    [
+     "ahoj",
+     "hello"
+    ],
+    [
+     "děkuji",
+     "thank you"
+    ],
+    [
+     "prosím",
+     "please"
+    ],
+    [
+     "na shledanou",
+     "goodbye"
+    ],
+    [
+     "káva",
+     "coffee"
+    ],
+    [
+     "chléb",
+     "bread"
+    ],
+    [
+     "účet",
+     "the bill"
+    ],
+    [
+     "pivo",
+     "beer"
+    ],
+    [
+     "na zdraví",
+     "cheers"
+    ],
+    [
+     "voda",
+     "water"
+    ],
+    [
+     "kostel",
+     "church"
+    ],
+    [
+     "nádraží",
+     "station"
+    ],
+    [
+     "lékárna",
+     "pharmacy"
+    ],
+    [
+     "zmrzlina",
+     "ice cream"
+    ]
+   ]
+  },
+  "sk": {
+   "name": "Slovak",
+   "words": [
+    [
+     "ahoj",
+     "hello"
+    ],
+    [
+     "ďakujem",
+     "thank you"
+    ],
+    [
+     "prosím",
+     "please"
+    ],
+    [
+     "dovidenia",
+     "goodbye"
+    ],
+    [
+     "káva",
+     "coffee"
+    ],
+    [
+     "chlieb",
+     "bread"
+    ],
+    [
+     "účet",
+     "the bill"
+    ],
+    [
+     "pivo",
+     "beer"
+    ],
+    [
+     "na zdravie",
+     "cheers"
+    ],
+    [
+     "voda",
+     "water"
+    ],
+    [
+     "kostol",
+     "church"
+    ],
+    [
+     "stanica",
+     "station"
+    ],
+    [
+     "lekáreň",
+     "pharmacy"
+    ],
+    [
+     "zmrzlina",
+     "ice cream"
+    ]
+   ]
+  },
+  "sl": {
+   "name": "Slovenian",
+   "words": [
+    [
+     "živijo",
+     "hello"
+    ],
+    [
+     "hvala",
+     "thank you"
+    ],
+    [
+     "prosim",
+     "please"
+    ],
+    [
+     "nasvidenje",
+     "goodbye"
+    ],
+    [
+     "kava",
+     "coffee"
+    ],
+    [
+     "kruh",
+     "bread"
+    ],
+    [
+     "račun",
+     "the bill"
+    ],
+    [
+     "pivo",
+     "beer"
+    ],
+    [
+     "na zdravje",
+     "cheers"
+    ],
+    [
+     "voda",
+     "water"
+    ],
+    [
+     "cerkev",
+     "church"
+    ],
+    [
+     "postaja",
+     "station"
+    ],
+    [
+     "lekarna",
+     "pharmacy"
+    ],
+    [
+     "sladoled",
+     "ice cream"
+    ]
+   ]
+  },
+  "hr": {
+   "name": "Croatian",
+   "words": [
+    [
+     "bok",
+     "hello"
+    ],
+    [
+     "hvala",
+     "thank you"
+    ],
+    [
+     "molim",
+     "please"
+    ],
+    [
+     "doviđenja",
+     "goodbye"
+    ],
+    [
+     "kava",
+     "coffee"
+    ],
+    [
+     "kruh",
+     "bread"
+    ],
+    [
+     "račun",
+     "the bill"
+    ],
+    [
+     "pivo",
+     "beer"
+    ],
+    [
+     "živjeli",
+     "cheers"
+    ],
+    [
+     "voda",
+     "water"
+    ],
+    [
+     "crkva",
+     "church"
+    ],
+    [
+     "kolodvor",
+     "station"
+    ],
+    [
+     "ljekarna",
+     "pharmacy"
+    ],
+    [
+     "sladoled",
+     "ice cream"
+    ]
+   ]
+  },
+  "sr": {
+   "name": "Serbian",
+   "words": [
+    [
+     "здраво (zdravo)",
+     "hello"
+    ],
+    [
+     "хвала (hvala)",
+     "thank you"
+    ],
+    [
+     "молим (molim)",
+     "please"
+    ],
+    [
+     "довиђења (doviđenja)",
+     "goodbye"
+    ],
+    [
+     "кафа (kafa)",
+     "coffee"
+    ],
+    [
+     "хлеб (hleb)",
+     "bread"
+    ],
+    [
+     "рачун (račun)",
+     "the bill"
+    ],
+    [
+     "пиво (pivo)",
+     "beer"
+    ],
+    [
+     "живели (živeli)",
+     "cheers"
+    ],
+    [
+     "вода (voda)",
+     "water"
+    ],
+    [
+     "црква (crkva)",
+     "church"
+    ],
+    [
+     "станица (stanica)",
+     "station"
+    ],
+    [
+     "апотека (apoteka)",
+     "pharmacy"
+    ],
+    [
+     "сладолед (sladoled)",
+     "ice cream"
+    ]
+   ]
+  },
+  "mk": {
+   "name": "Macedonian",
+   "words": [
+    [
+     "здраво (zdravo)",
+     "hello"
+    ],
+    [
+     "благодарам (blagodaram)",
+     "thank you"
+    ],
+    [
+     "ве молам (ve molam)",
+     "please"
+    ],
+    [
+     "довидување (doviduvanje)",
+     "goodbye"
+    ],
+    [
+     "кафе (kafe)",
+     "coffee"
+    ],
+    [
+     "леб (leb)",
+     "bread"
+    ],
+    [
+     "сметка (smetka)",
+     "the bill"
+    ],
+    [
+     "пиво (pivo)",
+     "beer"
+    ],
+    [
+     "на здравје (na zdravje)",
+     "cheers"
+    ],
+    [
+     "вода (voda)",
+     "water"
+    ],
+    [
+     "црква (crkva)",
+     "church"
+    ],
+    [
+     "станица (stanica)",
+     "station"
+    ],
+    [
+     "аптека (apteka)",
+     "pharmacy"
+    ],
+    [
+     "сладолед (sladoled)",
+     "ice cream"
+    ]
+   ]
+  },
+  "ro": {
+   "name": "Romanian",
+   "words": [
+    [
+     "salut",
+     "hello"
+    ],
+    [
+     "mulțumesc",
+     "thank you"
+    ],
+    [
+     "vă rog",
+     "please"
+    ],
+    [
+     "la revedere",
+     "goodbye"
+    ],
+    [
+     "cafea",
+     "coffee"
+    ],
+    [
+     "pâine",
+     "bread"
+    ],
+    [
+     "nota",
+     "the bill"
+    ],
+    [
+     "bere",
+     "beer"
+    ],
+    [
+     "noroc",
+     "cheers"
+    ],
+    [
+     "apă",
+     "water"
+    ],
+    [
+     "biserică",
+     "church"
+    ],
+    [
+     "gară",
+     "station"
+    ],
+    [
+     "farmacie",
+     "pharmacy"
+    ],
+    [
+     "înghețată",
+     "ice cream"
+    ]
+   ]
+  },
+  "hu": {
+   "name": "Hungarian",
+   "words": [
+    [
+     "szia",
+     "hello"
+    ],
+    [
+     "köszönöm",
+     "thank you"
+    ],
+    [
+     "kérem",
+     "please"
+    ],
+    [
+     "viszlát",
+     "goodbye"
+    ],
+    [
+     "kávé",
+     "coffee"
+    ],
+    [
+     "kenyér",
+     "bread"
+    ],
+    [
+     "a számla",
+     "the bill"
+    ],
+    [
+     "sör",
+     "beer"
+    ],
+    [
+     "egészségedre",
+     "cheers"
+    ],
+    [
+     "víz",
+     "water"
+    ],
+    [
+     "templom",
+     "church"
+    ],
+    [
+     "pályaudvar",
+     "station"
+    ],
+    [
+     "gyógyszertár",
+     "pharmacy"
+    ],
+    [
+     "fagylalt",
+     "ice cream"
+    ]
+   ]
+  },
+  "el": {
+   "name": "Greek",
+   "words": [
+    [
+     "γεια σου (yia sou)",
+     "hello"
+    ],
+    [
+     "ευχαριστώ (efcharistó)",
+     "thank you"
+    ],
+    [
+     "παρακαλώ (parakaló)",
+     "please"
+    ],
+    [
+     "αντίο (antío)",
+     "goodbye"
+    ],
+    [
+     "καφές (kafés)",
+     "coffee"
+    ],
+    [
+     "ψωμί (psomí)",
+     "bread"
+    ],
+    [
+     "ο λογαριασμός (o logariasmós)",
+     "the bill"
+    ],
+    [
+     "μπύρα (býra)",
+     "beer"
+    ],
+    [
+     "στην υγειά μας (stin igiá mas)",
+     "cheers"
+    ],
+    [
+     "νερό (neró)",
+     "water"
+    ],
+    [
+     "εκκλησία (ekklisía)",
+     "church"
+    ],
+    [
+     "σταθμός (stathmós)",
+     "station"
+    ],
+    [
+     "φαρμακείο (farmakío)",
+     "pharmacy"
+    ],
+    [
+     "παγωτό (pagotó)",
+     "ice cream"
+    ]
+   ]
+  },
+  "tr": {
+   "name": "Turkish",
+   "words": [
+    [
+     "merhaba",
+     "hello"
+    ],
+    [
+     "teşekkürler",
+     "thank you"
+    ],
+    [
+     "lütfen",
+     "please"
+    ],
+    [
+     "hoşça kal",
+     "goodbye"
+    ],
+    [
+     "kahve",
+     "coffee"
+    ],
+    [
+     "ekmek",
+     "bread"
+    ],
+    [
+     "hesap",
+     "the bill"
+    ],
+    [
+     "bira",
+     "beer"
+    ],
+    [
+     "şerefe",
+     "cheers"
+    ],
+    [
+     "su",
+     "water"
+    ],
+    [
+     "cami",
+     "mosque"
+    ],
+    [
+     "istasyon",
+     "station"
+    ],
+    [
+     "eczane",
+     "pharmacy"
+    ],
+    [
+     "dondurma",
+     "ice cream"
+    ]
+   ]
+  },
+  "ru": {
+   "name": "Russian",
+   "words": [
+    [
+     "привет (privet)",
+     "hello"
+    ],
+    [
+     "спасибо (spasibo)",
+     "thank you"
+    ],
+    [
+     "пожалуйста (pozhaluysta)",
+     "please"
+    ],
+    [
+     "до свидания (do svidaniya)",
+     "goodbye"
+    ],
+    [
+     "кофе (kofe)",
+     "coffee"
+    ],
+    [
+     "хлеб (khleb)",
+     "bread"
+    ],
+    [
+     "счёт (schyot)",
+     "the bill"
+    ],
+    [
+     "пиво (pivo)",
+     "beer"
+    ],
+    [
+     "за здоровье (za zdorovye)",
+     "cheers"
+    ],
+    [
+     "вода (voda)",
+     "water"
+    ],
+    [
+     "церковь (tserkov)",
+     "church"
+    ],
+    [
+     "вокзал (vokzal)",
+     "station"
+    ],
+    [
+     "аптека (apteka)",
+     "pharmacy"
+    ],
+    [
+     "мороженое (morozhenoye)",
+     "ice cream"
+    ]
+   ]
+  },
+  "uk": {
+   "name": "Ukrainian",
+   "words": [
+    [
+     "привіт (pryvit)",
+     "hello"
+    ],
+    [
+     "дякую (dyakuyu)",
+     "thank you"
+    ],
+    [
+     "будь ласка (bud laska)",
+     "please"
+    ],
+    [
+     "до побачення (do pobachennya)",
+     "goodbye"
+    ],
+    [
+     "кава (kava)",
+     "coffee"
+    ],
+    [
+     "хліб (khlib)",
+     "bread"
+    ],
+    [
+     "рахунок (rakhunok)",
+     "the bill"
+    ],
+    [
+     "пиво (pyvo)",
+     "beer"
+    ],
+    [
+     "будьмо (budmo)",
+     "cheers"
+    ],
+    [
+     "вода (voda)",
+     "water"
+    ],
+    [
+     "церква (tserkva)",
+     "church"
+    ],
+    [
+     "вокзал (vokzal)",
+     "station"
+    ],
+    [
+     "аптека (apteka)",
+     "pharmacy"
+    ],
+    [
+     "морозиво (morozyvo)",
+     "ice cream"
+    ]
+   ]
+  },
+  "sv": {
+   "name": "Swedish",
+   "words": [
+    [
+     "hej",
+     "hello"
+    ],
+    [
+     "tack",
+     "thank you"
+    ],
+    [
+     "snälla",
+     "please"
+    ],
+    [
+     "hej då",
+     "goodbye"
+    ],
+    [
+     "kaffe",
+     "coffee"
+    ],
+    [
+     "bröd",
+     "bread"
+    ],
+    [
+     "notan",
+     "the bill"
+    ],
+    [
+     "öl",
+     "beer"
+    ],
+    [
+     "skål",
+     "cheers"
+    ],
+    [
+     "vatten",
+     "water"
+    ],
+    [
+     "kyrka",
+     "church"
+    ],
+    [
+     "station",
+     "station"
+    ],
+    [
+     "apotek",
+     "pharmacy"
+    ],
+    [
+     "glass",
+     "ice cream"
+    ]
+   ]
+  },
+  "no": {
+   "name": "Norwegian",
+   "words": [
+    [
+     "hei",
+     "hello"
+    ],
+    [
+     "takk",
+     "thank you"
+    ],
+    [
+     "vær så snill",
+     "please"
+    ],
+    [
+     "ha det",
+     "goodbye"
+    ],
+    [
+     "kaffe",
+     "coffee"
+    ],
+    [
+     "brød",
+     "bread"
+    ],
+    [
+     "regningen",
+     "the bill"
+    ],
+    [
+     "øl",
+     "beer"
+    ],
+    [
+     "skål",
+     "cheers"
+    ],
+    [
+     "vann",
+     "water"
+    ],
+    [
+     "kirke",
+     "church"
+    ],
+    [
+     "stasjon",
+     "station"
+    ],
+    [
+     "apotek",
+     "pharmacy"
+    ],
+    [
+     "is",
+     "ice cream"
+    ]
+   ]
+  },
+  "da": {
+   "name": "Danish",
+   "words": [
+    [
+     "hej",
+     "hello"
+    ],
+    [
+     "tak",
+     "thank you"
+    ],
+    [
+     "vær så venlig",
+     "please"
+    ],
+    [
+     "farvel",
+     "goodbye"
+    ],
+    [
+     "kaffe",
+     "coffee"
+    ],
+    [
+     "brød",
+     "bread"
+    ],
+    [
+     "regningen",
+     "the bill"
+    ],
+    [
+     "øl",
+     "beer"
+    ],
+    [
+     "skål",
+     "cheers"
+    ],
+    [
+     "vand",
+     "water"
+    ],
+    [
+     "kirke",
+     "church"
+    ],
+    [
+     "station",
+     "station"
+    ],
+    [
+     "apotek",
+     "pharmacy"
+    ],
+    [
+     "is",
+     "ice cream"
+    ]
+   ]
+  },
+  "fi": {
+   "name": "Finnish",
+   "words": [
+    [
+     "hei",
+     "hello"
+    ],
+    [
+     "kiitos",
+     "thank you"
+    ],
+    [
+     "ole hyvä",
+     "please"
+    ],
+    [
+     "näkemiin",
+     "goodbye"
+    ],
+    [
+     "kahvi",
+     "coffee"
+    ],
+    [
+     "leipä",
+     "bread"
+    ],
+    [
+     "lasku",
+     "the bill"
+    ],
+    [
+     "olut",
+     "beer"
+    ],
+    [
+     "kippis",
+     "cheers"
+    ],
+    [
+     "vesi",
+     "water"
+    ],
+    [
+     "kirkko",
+     "church"
+    ],
+    [
+     "asema",
+     "station"
+    ],
+    [
+     "apteekki",
+     "pharmacy"
+    ],
+    [
+     "jäätelö",
+     "ice cream"
+    ]
+   ]
+  },
+  "et": {
+   "name": "Estonian",
+   "words": [
+    [
+     "tere",
+     "hello"
+    ],
+    [
+     "aitäh",
+     "thank you"
+    ],
+    [
+     "palun",
+     "please"
+    ],
+    [
+     "head aega",
+     "goodbye"
+    ],
+    [
+     "kohv",
+     "coffee"
+    ],
+    [
+     "leib",
+     "bread"
+    ],
+    [
+     "arve",
+     "the bill"
+    ],
+    [
+     "õlu",
+     "beer"
+    ],
+    [
+     "terviseks",
+     "cheers"
+    ],
+    [
+     "vesi",
+     "water"
+    ],
+    [
+     "kirik",
+     "church"
+    ],
+    [
+     "jaam",
+     "station"
+    ],
+    [
+     "apteek",
+     "pharmacy"
+    ],
+    [
+     "jäätis",
+     "ice cream"
+    ]
+   ]
+  },
+  "lv": {
+   "name": "Latvian",
+   "words": [
+    [
+     "sveiki",
+     "hello"
+    ],
+    [
+     "paldies",
+     "thank you"
+    ],
+    [
+     "lūdzu",
+     "please"
+    ],
+    [
+     "uz redzēšanos",
+     "goodbye"
+    ],
+    [
+     "kafija",
+     "coffee"
+    ],
+    [
+     "maize",
+     "bread"
+    ],
+    [
+     "rēķins",
+     "the bill"
+    ],
+    [
+     "alus",
+     "beer"
+    ],
+    [
+     "priekā",
+     "cheers"
+    ],
+    [
+     "ūdens",
+     "water"
+    ],
+    [
+     "baznīca",
+     "church"
+    ],
+    [
+     "stacija",
+     "station"
+    ],
+    [
+     "aptieka",
+     "pharmacy"
+    ],
+    [
+     "saldējums",
+     "ice cream"
+    ]
+   ]
+  },
+  "lt": {
+   "name": "Lithuanian",
+   "words": [
+    [
+     "labas",
+     "hello"
+    ],
+    [
+     "ačiū",
+     "thank you"
+    ],
+    [
+     "prašau",
+     "please"
+    ],
+    [
+     "viso gero",
+     "goodbye"
+    ],
+    [
+     "kava",
+     "coffee"
+    ],
+    [
+     "duona",
+     "bread"
+    ],
+    [
+     "sąskaita",
+     "the bill"
+    ],
+    [
+     "alus",
+     "beer"
+    ],
+    [
+     "į sveikatą",
+     "cheers"
+    ],
+    [
+     "vanduo",
+     "water"
+    ],
+    [
+     "bažnyčia",
+     "church"
+    ],
+    [
+     "stotis",
+     "station"
+    ],
+    [
+     "vaistinė",
+     "pharmacy"
+    ],
+    [
+     "ledai",
+     "ice cream"
+    ]
+   ]
+  },
+  "sq": {
+   "name": "Albanian",
+   "words": [
+    [
+     "përshëndetje",
+     "hello"
+    ],
+    [
+     "faleminderit",
+     "thank you"
+    ],
+    [
+     "ju lutem",
+     "please"
+    ],
+    [
+     "mirupafshim",
+     "goodbye"
+    ],
+    [
+     "kafe",
+     "coffee"
+    ],
+    [
+     "bukë",
+     "bread"
+    ],
+    [
+     "fatura",
+     "the bill"
+    ],
+    [
+     "birrë",
+     "beer"
+    ],
+    [
+     "gëzuar",
+     "cheers"
+    ],
+    [
+     "ujë",
+     "water"
+    ],
+    [
+     "kishë",
+     "church"
+    ],
+    [
+     "stacion",
+     "station"
+    ],
+    [
+     "farmaci",
+     "pharmacy"
+    ],
+    [
+     "akullore",
+     "ice cream"
+    ]
+   ]
+  },
+  "ja": {
+   "name": "Japanese",
+   "words": [
+    [
+     "こんにちは (konnichiwa)",
+     "hello"
+    ],
+    [
+     "ありがとう (arigatō)",
+     "thank you"
+    ],
+    [
+     "お願いします (onegaishimasu)",
+     "please"
+    ],
+    [
+     "さようなら (sayōnara)",
+     "goodbye"
+    ],
+    [
+     "コーヒー (kōhī)",
+     "coffee"
+    ],
+    [
+     "パン (pan)",
+     "bread"
+    ],
+    [
+     "お会計 (okaikei)",
+     "the bill"
+    ],
+    [
+     "ビール (bīru)",
+     "beer"
+    ],
+    [
+     "乾杯 (kanpai)",
+     "cheers"
+    ],
+    [
+     "水 (mizu)",
+     "water"
+    ],
+    [
+     "神社 (jinja)",
+     "shrine"
+    ],
+    [
+     "駅 (eki)",
+     "station"
+    ],
+    [
+     "薬局 (yakkyoku)",
+     "pharmacy"
+    ],
+    [
+     "アイス (aisu)",
+     "ice cream"
+    ]
+   ]
+  },
+  "ko": {
+   "name": "Korean",
+   "words": [
+    [
+     "안녕하세요 (annyeonghaseyo)",
+     "hello"
+    ],
+    [
+     "감사합니다 (gamsahamnida)",
+     "thank you"
+    ],
+    [
+     "주세요 (juseyo)",
+     "please"
+    ],
+    [
+     "안녕히 계세요 (annyeonghi gyeseyo)",
+     "goodbye"
+    ],
+    [
+     "커피 (keopi)",
+     "coffee"
+    ],
+    [
+     "빵 (ppang)",
+     "bread"
+    ],
+    [
+     "계산서 (gyesanseo)",
+     "the bill"
+    ],
+    [
+     "맥주 (maekju)",
+     "beer"
+    ],
+    [
+     "건배 (geonbae)",
+     "cheers"
+    ],
+    [
+     "물 (mul)",
+     "water"
+    ],
+    [
+     "교회 (gyohoe)",
+     "church"
+    ],
+    [
+     "역 (yeok)",
+     "station"
+    ],
+    [
+     "약국 (yakguk)",
+     "pharmacy"
+    ],
+    [
+     "아이스크림 (aiseukeurim)",
+     "ice cream"
+    ]
+   ]
+  },
+  "zh": {
+   "name": "Chinese",
+   "words": [
+    [
+     "你好 (nǐ hǎo)",
+     "hello"
+    ],
+    [
+     "谢谢 (xièxie)",
+     "thank you"
+    ],
+    [
+     "请 (qǐng)",
+     "please"
+    ],
+    [
+     "再见 (zàijiàn)",
+     "goodbye"
+    ],
+    [
+     "咖啡 (kāfēi)",
+     "coffee"
+    ],
+    [
+     "面包 (miànbāo)",
+     "bread"
+    ],
+    [
+     "买单 (mǎidān)",
+     "the bill"
+    ],
+    [
+     "啤酒 (píjiǔ)",
+     "beer"
+    ],
+    [
+     "干杯 (gānbēi)",
+     "cheers"
+    ],
+    [
+     "水 (shuǐ)",
+     "water"
+    ],
+    [
+     "寺庙 (sìmiào)",
+     "temple"
+    ],
+    [
+     "车站 (chēzhàn)",
+     "station"
+    ],
+    [
+     "药店 (yàodiàn)",
+     "pharmacy"
+    ],
+    [
+     "冰淇淋 (bīngqílín)",
+     "ice cream"
+    ]
+   ]
+  },
+  "th": {
+   "name": "Thai",
+   "words": [
+    [
+     "สวัสดี (sawatdi)",
+     "hello"
+    ],
+    [
+     "ขอบคุณ (khop khun)",
+     "thank you"
+    ],
+    [
+     "กรุณา (karuna)",
+     "please"
+    ],
+    [
+     "ลาก่อน (la kon)",
+     "goodbye"
+    ],
+    [
+     "กาแฟ (kafae)",
+     "coffee"
+    ],
+    [
+     "ขนมปัง (khanom pang)",
+     "bread"
+    ],
+    [
+     "เช็คบิล (chek bin)",
+     "the bill"
+    ],
+    [
+     "เบียร์ (bia)",
+     "beer"
+    ],
+    [
+     "ชนแก้ว (chon kaeo)",
+     "cheers"
+    ],
+    [
+     "น้ำ (nam)",
+     "water"
+    ],
+    [
+     "วัด (wat)",
+     "temple"
+    ],
+    [
+     "สถานี (sathani)",
+     "station"
+    ],
+    [
+     "ร้านขายยา (ran khai ya)",
+     "pharmacy"
+    ],
+    [
+     "ไอศกรีม (aisakrim)",
+     "ice cream"
+    ]
+   ]
+  },
+  "vi": {
+   "name": "Vietnamese",
+   "words": [
+    [
+     "xin chào",
+     "hello"
+    ],
+    [
+     "cảm ơn",
+     "thank you"
+    ],
+    [
+     "làm ơn",
+     "please"
+    ],
+    [
+     "tạm biệt",
+     "goodbye"
+    ],
+    [
+     "cà phê",
+     "coffee"
+    ],
+    [
+     "bánh mì",
+     "bread"
+    ],
+    [
+     "tính tiền",
+     "the bill"
+    ],
+    [
+     "bia",
+     "beer"
+    ],
+    [
+     "dô",
+     "cheers"
+    ],
+    [
+     "nước",
+     "water"
+    ],
+    [
+     "chùa",
+     "pagoda"
+    ],
+    [
+     "nhà ga",
+     "station"
+    ],
+    [
+     "nhà thuốc",
+     "pharmacy"
+    ],
+    [
+     "kem",
+     "ice cream"
+    ]
+   ]
+  },
+  "id": {
+   "name": "Indonesian",
+   "words": [
+    [
+     "halo",
+     "hello"
+    ],
+    [
+     "terima kasih",
+     "thank you"
+    ],
+    [
+     "tolong",
+     "please"
+    ],
+    [
+     "sampai jumpa",
+     "goodbye"
+    ],
+    [
+     "kopi",
+     "coffee"
+    ],
+    [
+     "roti",
+     "bread"
+    ],
+    [
+     "minta bon",
+     "the bill"
+    ],
+    [
+     "bir",
+     "beer"
+    ],
+    [
+     "bersulang",
+     "cheers"
+    ],
+    [
+     "air",
+     "water"
+    ],
+    [
+     "masjid",
+     "mosque"
+    ],
+    [
+     "stasiun",
+     "station"
+    ],
+    [
+     "apotek",
+     "pharmacy"
+    ],
+    [
+     "es krim",
+     "ice cream"
+    ]
+   ]
+  },
+  "ms": {
+   "name": "Malay",
+   "words": [
+    [
+     "helo",
+     "hello"
+    ],
+    [
+     "terima kasih",
+     "thank you"
+    ],
+    [
+     "tolong",
+     "please"
+    ],
+    [
+     "selamat tinggal",
+     "goodbye"
+    ],
+    [
+     "kopi",
+     "coffee"
+    ],
+    [
+     "roti",
+     "bread"
+    ],
+    [
+     "bil",
+     "the bill"
+    ],
+    [
+     "bir",
+     "beer"
+    ],
+    [
+     "air",
+     "water"
+    ],
+    [
+     "masjid",
+     "mosque"
+    ],
+    [
+     "stesen",
+     "station"
+    ],
+    [
+     "farmasi",
+     "pharmacy"
+    ],
+    [
+     "aiskrim",
+     "ice cream"
+    ]
+   ]
+  },
+  "ar": {
+   "name": "Arabic",
+   "words": [
+    [
+     "مرحبا (marhaba)",
+     "hello"
+    ],
+    [
+     "شكرا (shukran)",
+     "thank you"
+    ],
+    [
+     "من فضلك (min fadlak)",
+     "please"
+    ],
+    [
+     "مع السلامة (ma'a as-salama)",
+     "goodbye"
+    ],
+    [
+     "قهوة (qahwa)",
+     "coffee"
+    ],
+    [
+     "خبز (khubz)",
+     "bread"
+    ],
+    [
+     "الحساب (al-hisab)",
+     "the bill"
+    ],
+    [
+     "بيرة (bira)",
+     "beer"
+    ],
+    [
+     "في صحتك (fi sihhatak)",
+     "cheers"
+    ],
+    [
+     "ماء (ma')",
+     "water"
+    ],
+    [
+     "مسجد (masjid)",
+     "mosque"
+    ],
+    [
+     "محطة (mahatta)",
+     "station"
+    ],
+    [
+     "صيدلية (saydaliya)",
+     "pharmacy"
+    ],
+    [
+     "آيس كريم (ays krim)",
+     "ice cream"
+    ]
+   ]
+  },
+  "hi": {
+   "name": "Hindi",
+   "words": [
+    [
+     "नमस्ते (namaste)",
+     "hello"
+    ],
+    [
+     "धन्यवाद (dhanyavaad)",
+     "thank you"
+    ],
+    [
+     "कृपया (kripaya)",
+     "please"
+    ],
+    [
+     "अलविदा (alvida)",
+     "goodbye"
+    ],
+    [
+     "कॉफ़ी (kofi)",
+     "coffee"
+    ],
+    [
+     "रोटी (roti)",
+     "bread"
+    ],
+    [
+     "पानी (pani)",
+     "water"
+    ],
+    [
+     "मंदिर (mandir)",
+     "temple"
+    ],
+    [
+     "स्टेशन (steshan)",
+     "station"
+    ],
+    [
+     "दवा की दुकान (dava ki dukan)",
+     "pharmacy"
+    ],
+    [
+     "आइसक्रीम (aiskrim)",
+     "ice cream"
+    ]
+   ]
+  },
+  "he": {
+   "name": "Hebrew",
+   "words": [
+    [
+     "שלום (shalom)",
+     "hello"
+    ],
+    [
+     "תודה (toda)",
+     "thank you"
+    ],
+    [
+     "בבקשה (bevakasha)",
+     "please"
+    ],
+    [
+     "להתראות (lehitraot)",
+     "goodbye"
+    ],
+    [
+     "קפה (kafe)",
+     "coffee"
+    ],
+    [
+     "לחם (lechem)",
+     "bread"
+    ],
+    [
+     "חשבון (cheshbon)",
+     "the bill"
+    ],
+    [
+     "בירה (bira)",
+     "beer"
+    ],
+    [
+     "לחיים (lechaim)",
+     "cheers"
+    ],
+    [
+     "מים (mayim)",
+     "water"
+    ],
+    [
+     "בית כנסת (beit knesset)",
+     "synagogue"
+    ],
+    [
+     "תחנה (tachana)",
+     "station"
+    ],
+    [
+     "בית מרקחת (beit merkachat)",
+     "pharmacy"
+    ],
+    [
+     "גלידה (glida)",
+     "ice cream"
+    ]
+   ]
+  },
+  "sw": {
+   "name": "Swahili",
+   "words": [
+    [
+     "jambo",
+     "hello"
+    ],
+    [
+     "asante",
+     "thank you"
+    ],
+    [
+     "tafadhali",
+     "please"
+    ],
+    [
+     "kwaheri",
+     "goodbye"
+    ],
+    [
+     "kahawa",
+     "coffee"
+    ],
+    [
+     "mkate",
+     "bread"
+    ],
+    [
+     "bili",
+     "the bill"
+    ],
+    [
+     "bia",
+     "beer"
+    ],
+    [
+     "afya",
+     "cheers"
+    ],
+    [
+     "maji",
+     "water"
+    ],
+    [
+     "kanisa",
+     "church"
+    ],
+    [
+     "stesheni",
+     "station"
+    ],
+    [
+     "duka la dawa",
+     "pharmacy"
+    ],
+    [
+     "aiskrimu",
+     "ice cream"
+    ]
+   ]
+  },
+  "fil": {
+   "name": "Filipino",
+   "words": [
+    [
+     "kumusta",
+     "hello"
+    ],
+    [
+     "salamat",
+     "thank you"
+    ],
+    [
+     "pakiusap",
+     "please"
+    ],
+    [
+     "paalam",
+     "goodbye"
+    ],
+    [
+     "kape",
+     "coffee"
+    ],
+    [
+     "tinapay",
+     "bread"
+    ],
+    [
+     "serbesa",
+     "beer"
+    ],
+    [
+     "tagay",
+     "cheers"
+    ],
+    [
+     "tubig",
+     "water"
+    ],
+    [
+     "simbahan",
+     "church"
+    ],
+    [
+     "istasyon",
+     "station"
+    ],
+    [
+     "botika",
+     "pharmacy"
+    ],
+    [
+     "sorbetes",
+     "ice cream"
+    ]
+   ]
+  }
+ },
+ "countries": {
+  "AGO": "pt",
+  "ALB": "sq",
+  "ALD": "sv",
+  "ARE": "ar",
+  "ARG": "es",
+  "AUT": "de",
+  "BEL": "fr",
+  "BEN": "fr",
+  "BFA": "fr",
+  "BGR": "bg",
+  "BHR": "ar",
+  "BLR": "ru",
+  "BOL": "es",
+  "BRA": "pt-BR",
+  "BRN": "ms",
+  "CHE": "de",
+  "CHL": "es",
+  "CHN": "zh",
+  "CIV": "fr",
+  "CMR": "fr",
+  "COD": "fr",
+  "COG": "fr",
+  "COL": "es",
+  "CPV": "pt",
+  "CRI": "es",
+  "CUB": "es",
+  "CYN": "tr",
+  "CYP": "el",
+  "CZE": "cs",
+  "DEU": "de",
+  "DNK": "da",
+  "DOM": "es",
+  "DZA": "ar",
+  "ECU": "es",
+  "EGY": "ar",
+  "ESP": "es",
+  "EST": "et",
+  "FIN": "fi",
+  "FRA": "fr",
+  "GAB": "fr",
+  "GIN": "fr",
+  "GNB": "pt",
+  "GNQ": "es",
+  "GRC": "el",
+  "GTM": "es",
+  "HND": "es",
+  "HRV": "hr",
+  "HTI": "fr",
+  "HUN": "hu",
+  "IDN": "id",
+  "IND": "hi",
+  "IRQ": "ar",
+  "ISR": "he",
+  "ITA": "it",
+  "JOR": "ar",
+  "JPN": "ja",
+  "KAZ": "ru",
+  "KEN": "sw",
+  "KGZ": "ru",
+  "KOR": "ko",
+  "KOS": "sq",
+  "KWT": "ar",
+  "LBN": "ar",
+  "LBY": "ar",
+  "LIE": "de",
+  "LTU": "lt",
+  "LUX": "fr",
+  "LVA": "lv",
+  "MAR": "ar",
+  "MCO": "fr",
+  "MDA": "ro",
+  "MDG": "fr",
+  "MEX": "es",
+  "MKD": "mk",
+  "MLI": "fr",
+  "MOZ": "pt",
+  "MRT": "ar",
+  "MYS": "ms",
+  "NER": "fr",
+  "NIC": "es",
+  "NLD": "nl",
+  "NOR": "no",
+  "OMN": "ar",
+  "PAN": "es",
+  "PER": "es",
+  "PHL": "fil",
+  "POL": "pl",
+  "PRT": "pt",
+  "PRY": "es",
+  "PSX": "ar",
+  "QAT": "ar",
+  "ROU": "ro",
+  "RUS": "ru",
+  "SAU": "ar",
+  "SDN": "ar",
+  "SEN": "fr",
+  "SLV": "es",
+  "SMR": "it",
+  "SRB": "sr",
+  "STP": "pt",
+  "SUR": "nl",
+  "SVK": "sk",
+  "SVN": "sl",
+  "SWE": "sv",
+  "SYR": "ar",
+  "TGO": "fr",
+  "THA": "th",
+  "TLS": "pt",
+  "TUN": "ar",
+  "TUR": "tr",
+  "TZA": "sw",
+  "UKR": "uk",
+  "URY": "es",
+  "VAT": "it",
+  "VEN": "es",
+  "VNM": "vi",
+  "YEM": "ar"
+ }
+}
