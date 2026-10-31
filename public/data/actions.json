@@ -2460,6 +2460,7 @@
   },
   {
    "name": "Hotel room",
+   "sleep": true,
    "min": 480,
    "cost": 50,
    "fx": {

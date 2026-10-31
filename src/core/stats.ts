@@ -1440,6 +1440,8 @@ export class Stats {
     // A save from before local words: none learned yet.
     s.words = Words.fromJSON(d.words);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
+    // A save from before the diary is already on today, so its day starts now.
+    if (!s.diary.today.date) Object.assign(s.diary.today, { date: s.anniversaries.day, city: s.where.city });
     // A save from before skills, cooking and languages: none yet, an empty pantry, and English; the country he is in next becomes his own (see passTime).
     s.skills = Skills.fromJSON(d.skills);
     s.pantry = Cook.Pantry.fromJSON(d.pantry);

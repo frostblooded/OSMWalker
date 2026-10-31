@@ -54,7 +54,8 @@ export class Diary {
    */
   close(date: string, city: string, data: DiaryData | null, rng: Rng): DiaryEntry | null {
     const was = this.today;
-    this.today = { date, city, notes: [], dreams: [] };
+    // No day under way yet (a new game): what he noted so far starts this one.
+    this.today = { date, city, notes: was.date ? [] : was.notes, dreams: was.date ? [] : was.dreams };
     if (!was.date || was.date === date || !data) return null;
     const town = was.city.split(",")[0] || "Somewhere";
     const day = (this.days[was.city] = (this.days[was.city] ?? 0) + 1);

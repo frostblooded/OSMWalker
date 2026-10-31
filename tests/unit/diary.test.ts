@@ -48,6 +48,13 @@ describe("diary", () => {
     expect(d.today.notes.map((n) => n.kind)).not.toContain("work");
   });
 
+  it("keeps what he noted before his first day began", () => {
+    const d = new D.Diary();
+    d.note("arrive", "Sofia");
+    d.close("2026-10-29", CITY, DATA, new Rng(1));
+    expect(d.today.notes).toEqual([{ kind: "arrive", place: "Sofia" }]);
+  });
+
   it("writes a quiet line on a day with nothing noted, and keeps KEEP_DAYS days", () => {
     const d = new D.Diary();
     d.close("d0", CITY, DATA, new Rng(1));
@@ -107,10 +114,11 @@ describe("through Stats", () => {
 
   it("knows which actions are naps and sleeps", () => {
     const actions = JSON.parse(dataFile("actions.json")) as Record<string, Action[]>;
-    const sleeps = Object.values(actions)
+    const flavour = JSON.parse(dataFile("flavour.json")) as Record<string, Record<string, Action[]>>;
+    const sleeps = [...Object.values(actions), ...Object.values(flavour).flatMap((c) => Object.values(c))]
       .flat()
       .filter((a) => a.sleep)
       .map((a) => a.name);
-    expect(new Set(sleeps)).toEqual(new Set(["Nap on a gallery bench", "Fall asleep in the film", "Nap in the reading room", "Nap under a tree", "Doze in the summer sun", "Rent a cabin and sleep", "Hostel bunk for the night", "Nap on a picnic bench"]));
+    expect(new Set(sleeps)).toEqual(new Set(["Nap on a gallery bench", "Fall asleep in the film", "Nap in the reading room", "Nap under a tree", "Doze in the summer sun", "Rent a cabin and sleep", "Hostel bunk for the night", "Hotel room", "Nap on a picnic bench", "Siesta in the shade"]));
   });
 });
