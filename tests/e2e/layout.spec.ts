@@ -171,13 +171,16 @@ for (const width of [360, 412]) {
       await family.getByRole("button", { name: /Walker II ·/ }).click();
       await family.locator(".tree").scrollIntoViewIfNeeded();
       await check(page, "stats-family");
-      const hall = family.locator(".card", { hasText: "Hall of walkers" });
+      await family.getByRole("button", { name: /Close/ }).click();
+      await openMenuItem(page, /Records/);
+      const records = page.getByRole("dialog", { name: /Records/ });
+      const hall = records.locator(".card", { hasText: "Hall of walkers" });
       await hall.scrollIntoViewIfNeeded();
       await hall.getByRole("button", { name: /Bests/ }).click();
       await expect(hall).toContainText("Most money held");
       await expect(hall).toContainText("€12,345 · Walker II");
-      await check(page, "stats-hall");
-      await family.getByRole("button", { name: /Close/ }).click();
+      await check(page, "records-hall");
+      await records.getByRole("button", { name: /Close/ }).click();
 
     });
 
@@ -269,6 +272,14 @@ for (const width of [360, 412]) {
       await mood.scrollIntoViewIfNeeded();
       await check(page, "stats-mind");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      await openMenuItem(page, /Records/);
+      const records = page.getByRole("dialog", { name: /Records/ });
+      await expect(records).toContainText("Longest walk without a stop");
+      await records.getByRole("button", { name: /Totals/ }).click();
+      await expect(records).toContainText("🏙 Cities");
+      await check(page, "records");
+      await records.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });
