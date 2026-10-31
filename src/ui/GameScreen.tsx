@@ -134,8 +134,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </span>
             <div class="grow">
               <div class="city">
-                {h.city} · {h.doing}
-                {h.feeling && ` · ${h.feeling.icon} ${h.feeling.word}`}
+                <span class="where">
+                  {h.city} · {h.doing}
+                </span>
+                {/* Shrinks first and never wraps, so a new feeling never makes the card taller. */}
+                {h.feeling && <span class="feel">&nbsp;· {h.feeling.icon} {h.feeling.word}</span>}
               </div>
               <div class="street">{h.ride ? `${h.ride.mode === "walk" ? "Walking" : "Riding"} to ${h.ride.to} ${MODES[h.ride.mode].how}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
