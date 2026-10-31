@@ -133,16 +133,12 @@ export class Activities {
 
   /** Actions for `place` (null for a random spot) in `country`, with the holiday ones on a public holiday. */
   forPlace(place: Partial<Place> | null, country = "", holiday = false): Action[] {
-    return [...this.usual(place), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
+    return [...this.usual(place), ...local(place, this.flavour[country] ?? {}), ...(holiday ? (this.data._holiday ?? []) : [])];
   }
 
   /** Like forPlace, without noting places that have no actions of their own yet. */
-  peek(place: Partial<Place> | null, country = "", holiday = false): Action[] {
-    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
-  }
-
-  private festive(holiday: boolean): Action[] {
-    return holiday ? (this.data._holiday ?? []) : [];
+  peek(place: Partial<Place> | null, country = ""): Action[] {
+    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {})];
   }
 
   private usual(place: Partial<Place> | null, note = true): Action[] {
@@ -171,7 +167,7 @@ export function skillLean(action: Action, stats: Stats): number {
   return action.skill ? 1 + (SKILL_LEAN * stats.skills.level(action.skill)) / SKILL_MAX : 1;
 }
 
-/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him (attributes and skills), and how little it hurts what he needs. */
+/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him (attributes, skills and his emotion), and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   // Shoplifting costs nothing, so money doesn't sway it.
@@ -187,7 +183,7 @@ export function weight(action: Action, stats: Stats): number {
   if (stats.saving()) {
     if (action.cost !== undefined || buys) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
-  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * harm(action, stats);
+  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * stats.emoLean(action) * harm(action, stats);
 }
 
 /**
@@ -218,9 +214,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number, kind = "")
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** `need` with its pull times how his wants, fears and quirks pull him to a place of `p`'s kind (see mind.ts). */
+/** `need` with its pull times how his wants, fears and quirks (see mind.ts), his emotion (emotion.ts) and his tastes (tastes.ts) pull him to a place of `p`'s kind. */
 export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
-  const m = stats.mind.pull(p.class) * stats.quirks.pull(p.class);
+  const m = stats.mind.pull(p.class) * stats.quirks.pull(p.class) * stats.feelPull(p.class);
   return m === 1 ? need : { ...need, pull: need.pull * m };
 }
 

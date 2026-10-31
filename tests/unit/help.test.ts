@@ -172,7 +172,7 @@ describe("the real help", () => {
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "explored", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
   });
 });
 
@@ -229,6 +229,11 @@ describe("search", () => {
 
   it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
+  });
+
+  it("words the street collector from code", () => {
+    const text = page("streets").body;
+    expect(text).toContain("Every 50 new streets in a city");
   });
 
   it("words the sight notes from code", () => {

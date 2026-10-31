@@ -44,16 +44,16 @@ export class Creatures {
   met: Record<string, number> = {};
   day = "";
 
-  /** At a place of class `cls` on `day`: the creature of `kinds` that shows up, or null. Marks the day once one does. */
+  /** At a place of class `cls` on `day`: the creature of `kinds` that shows up, or null once he has met one that day. */
   roll(kinds: readonly Creature[], cls: string, day: string, r: number): Creature | null {
     const c = creatureOf(kinds, cls);
     if (!c || this.day === day || r >= CREATURE_CHANCE) return null;
-    this.day = day;
     return c;
   }
 
-  /** What happens when `pick` is chosen at a meeting: the outcome, after a risky option's own roll. */
-  outcome(c: Creature, pick: string, attr: (a: Attr) => number, r: number): Outcome {
+  /** What happens when `pick` is chosen at a meeting on `day`: the outcome, after a risky option's own roll. Marks the day, so a meeting left open over a save isn't lost. */
+  outcome(c: Creature, pick: string, attr: (a: Attr) => number, r: number, day: string): Outcome {
+    this.day = day;
     this.met[c.id] = (this.met[c.id] ?? 0) + 1;
     const risky = c.risky?.option === pick ? c.risky : undefined;
     if (risky && r >= riskOdds(attr(risky.attr))) return risky.miss;

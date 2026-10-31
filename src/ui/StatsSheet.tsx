@@ -3,19 +3,23 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
+// moves his mood), his character (emotion, tastes found and perks), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his family tree closes it; his records have their own sheet (RecordsSheet.tsx).
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { CITIES_SHOWN } from "../core/streetBook";
 import { MAGIC_MAX } from "../core/magic";
+import { INFO as EMO } from "../core/emotion";
 import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
 import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
 import { noun, plural, wantIcon, wantText } from "../core/mind";
 import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
 import { SPOT_DISCOUNT } from "../core/spot";
+import { PERKS } from "../core/perks";
+import { DISLIKES, LIKES, plural as tastePlural } from "../core/tastes";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -235,6 +239,37 @@ function SideIncomeCard({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** The streets he walked: his city first, then the others by count (the rest folded), and the names in his city. */
+function Streets({ stats: s }: { stats: Stats }) {
+  const here = s.where.city;
+  const short = (c: string) => c.split(",")[0];
+  const cities = Object.entries(s.streets.cities)
+    .filter(([, l]) => l.length)
+    .sort(([a, la], [b, lb]) => Number(b === here) - Number(a === here) || lb.length - la.length);
+  const rows = cities.map(([c, l]) => <KV key={c} k={short(c)} v={`${l.length} ${l.length === 1 ? "street" : "streets"}`} />);
+  const more = rows.slice(CITIES_SHOWN);
+  const names = [...(s.streets.cities[here] ?? [])].sort((a, b) => a.localeCompare(b));
+  return (
+    <Card icon="🛣" title="Streets" right={s.streets.count() || undefined}>
+      {rows.length ? <div class="zebra">{rows.slice(0, CITIES_SHOWN)}</div> : <KV k="Walked" v="none so far" />}
+      {more.length > 0 && (
+        <Collapsible title="More cities" right={more.length}>
+          <div class="zebra">{more}</div>
+        </Collapsible>
+      )}
+      {names.length > 0 && (
+        <Collapsible title={`Streets in ${short(here)}`} right={names.length}>
+          <div class="zebra">
+            {names.map((n) => (
+              <KV key={n} k={n} v="" />
+            ))}
+          </div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
 /** Languages shown on the Local words card before the rest fold away. */
 const WORD_ROWS = 4;
 
@@ -343,6 +378,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       {s.where.code && <VisaCard s={s} />}
       <Spells stats={s} />
       <LocalWords stats={s} />
+      <Streets stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {
@@ -391,6 +427,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <MindCard s={s} />
+      <CharacterCard s={s} />
       <QuirksCard s={s} />
       <HomeCard s={s} />
       <SpotCard s={s} />
@@ -579,6 +616,37 @@ function MindCard({ s }: { s: Stats }) {
           ))}
         </div>
       </Collapsible>
+    </Card>
+  );
+}
+
+/** His emotion and what it does, the tastes he has found, and his lifetime points and perks. */
+function CharacterCard({ s }: { s: Stats }) {
+  const e = EMO[s.emotion()];
+  const t = s.tastes;
+  const found = (list: string[], of: number) => {
+    const known = list.filter((k) => t.known.includes(k)).map(tastePlural);
+    const left = of - known.length;
+    return [...known, ...(left ? [`${left} to find`] : [])].join(", ");
+  };
+  const next = s.perks.next();
+  const owned = PERKS.filter((p) => s.perks.has(p.id));
+  return (
+    <Card icon="🎭" title="Character" right={`${e.icon} ${e.word}`}>
+      <div class="zebra">
+        <KV k="💛 Loves" v={found(t.likes, LIKES)} />
+        <KV k="💢 Can't stand" v={found(t.dislikes, DISLIKES)} />
+        <KV k="🏆 Lifetime points" v={next ? `${s.perks.points} / ${next.cost}` : s.perks.points} />
+      </div>
+      {owned.length > 0 && (
+        <Collapsible title="🏆 Perks" right={`${owned.length} / ${PERKS.length}`}>
+          <div class="zebra">
+            {owned.map((p) => (
+              <KV key={p.id} k={`${p.icon} ${p.name}`} v={<span class="dim small">{p.what}</span>} />
+            ))}
+          </div>
+        </Collapsible>
+      )}
     </Card>
   );
 }

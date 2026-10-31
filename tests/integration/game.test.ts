@@ -1,5 +1,6 @@
 // The game loop with real Sofia streets, fake servers and fixed dice: walking, needs, stories, keepsakes and saves.
 import { describe, expect, it, vi } from "vitest";
+import { distanceM } from "../../src/core/geo";
 import { cellKey } from "../../src/core/graph";
 import { CREATURE_CHANCE, meetingDice } from "../../src/core/creatures";
 import { decode, encode } from "../../src/core/postcard";
@@ -8,7 +9,8 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
-import { visitKey, type Place } from "../../src/core/stats";
+import { type Place, Stats, visitKey } from "../../src/core/stats";
+import { MOMENT_S } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
@@ -273,12 +275,41 @@ describe("game", () => {
     }
     now += 2000;
     g.step(1);
+    // Caught up with: the timed choice asks how it ends, and the car waits by him.
+    expect(g.moment?.m.id).toBe("police_chase");
+    expect(g.policeAt()).not.toBeNull();
+    for (let i = 0; i <= g.momentS && g.moment; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    await Promise.resolve();
     expect(g.chase).toBeNull();
     expect(g.policeAt()).toBeNull();
     expect(g.stats.law.chases).toBe(1);
-    // A saint gives himself up and pays.
+    // Left to himself, a saint gives himself up and pays.
     expect(g.stats.law.caught).toBe(1);
     expect(g.stats.law.heat).toBe(0);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("🚓 Decided by himself: Gave himself up"))).toBe(true);
+  });
+
+  it("you pick how a police chase ends when the car catches up", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.stats.bond.lean = 100;
+    g.chase = { place: "Cafe", ends: now + 1000, trail: [g.walker!.position()] };
+    now += 2000;
+    g.step(1);
+    expect(g.moment?.m.options.map((o) => o.id)).toContain("run");
+    // The saint would give himself up; you make him run.
+    g.settleMoment("run");
+    await Promise.resolve();
+    expect(g.chase).toBeNull();
+    expect(g.stats.law.chases).toBe(1);
+    expect(g.stats.law.caught + g.stats.law.escapes).toBe(1);
+    const line = g.stats.history.entries.find((e) => e.text.startsWith("🚓 "))!.text;
+    expect(line).toMatch(/^🚓 (Ran for it|Tried to run)/);
   });
 
   it("the police give up a chase once the heat is gone, and praise counts towards his best karma", async () => {
@@ -362,8 +393,86 @@ describe("game", () => {
     while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
     g.stats.now = () => t;
     run(g, 400);
+    await tick();
     expect(g.stats.creatures.met).toEqual({ dryad: 1 });
-    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
+    // Untouched, the timed choice runs out and he takes her stories himself.
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
+  });
+
+  it("asks you about a creature as a timed choice, and that stop asks nothing else", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    // The park's own moment skips this visit, not even settled by himself, so he walks on without another question.
+    const places: string[] = [];
+    const settle = g.stats.settleMoment.bind(g.stats);
+    g.stats.settleMoment = (m, ...rest) => {
+      places.push(m.id);
+      return settle(m, ...rest);
+    };
+    for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+    expect(g.moment!.m.id).toBe("dryad");
+    expect(g.moment!.m.ask).not.toContain("{PLACE}");
+    g.settleMoment("acorn");
+    await tick();
+    expect(g.stats.history.entries.at(-1)!.text).toBe("🌳 Got an acorn from a dryad in Park Near");
+    for (let i = 0; i < 400 && g.walker!.isResting(); i++) {
+      g.step(1);
+      if (g.moment) places.push(g.moment.m.id);
+    }
+    await tick();
+    expect(places).toEqual([]);
+  });
+
+  it("an untouched creature goes by his pick and Wits of when it asked, as away", async () => {
+    const BRIDGE: Place = { ...CAFE, name: "Old Bridge", class: "bridge", subclass: "bridge" };
+    // Several meeting times, so a pick or riddle worked out later, on his new Wits or the dice of a later time, would differ for some.
+    const lines: string[] = [];
+    for (let n = 0, t = 1_800_000_000; n < 24; t += 60) {
+      if (meetingDice(t, BRIDGE.name).randf() >= CREATURE_CHANCE) continue;
+      n++;
+      const { g } = game({ places: [BRIDGE], moments: true });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.stats.cents = 100_000;
+      // Clever enough that he sometimes tries the riddle himself.
+      g.stats.addBuff({ name: "Sharp", min: 600, attrs: { wit: 4 } });
+      let now = t;
+      g.stats.now = () => now;
+      for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+      expect(g.moment!.m.id).toBe("troll");
+      // Away, he would settle it at once on what he is now.
+      const away = Object.assign(Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON()))), { creatureKinds: g.stats.creatureKinds });
+      const troll = g.stats.creatureKinds.find((c) => c.id === "troll")!;
+      const line = away.meet(troll, BRIDGE.name, away.creaturePick(troll, BRIDGE.name, t), { you: false, t, attr: (a) => away.attr(a) });
+      // Watched, his Wits fall away while the sheet is open (a riddle tried on them works only at the base odds), then the bar runs out.
+      g.stats.addBuff({ name: "Muddled", min: 600, attrs: { wit: -100 } });
+      now += MOMENT_S;
+      run(g, MOMENT_S);
+      await tick();
+      expect(g.stats.history.entries.map((e) => e.text)).toContain(line);
+      lines.push(line);
+    }
+    expect(lines.some((l) => l.includes("riddle"))).toBe(true);
+  });
+
+  it("a police chase that starts at a creature's stop answers the creature himself, so he runs on", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    let chased = 0;
+    g.stats.reputeAt = () => ++chased > 0;
+    for (let i = 0; i < 400 && !chased; i++) g.step(1);
+    expect(chased).toBe(1);
+    // No sheet holds him still: the dryad got his own pick as the chase began.
+    expect(g.moment).toBeNull();
+    await tick();
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
   });
 
   it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {
@@ -411,6 +520,8 @@ describe("game", () => {
     expect(texts).toContain("🌀 The old stones of Old Monument shimmered like a door, and he stepped through");
     expect(texts).toContain(`🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`);
     expect(g.walker!.isTraveling()).toBe(false);
+    // The jump marks no squares on the way: 400 s on foot crosses only a few.
+    expect(g.stats.explored.size).toBeLessThan(10);
   });
 
   it("at dawn a fairy ring in a park he reaches may take him for a nap in place of an action, and he wakes with a gift or a story", async () => {
@@ -559,6 +670,26 @@ describe("game", () => {
     expect(again.stats.sightNotes.read).toEqual([visitKey(MUSEUM)]);
   });
 
+  it("collects the named streets he walks in his city, each once, and keeps them in the save", async () => {
+    // The streets by the café and the bus station have no names in these tiles, so he heads for a corner of a named one.
+    const probe = game().g;
+    await probe.startCity("Sofia, Bulgaria", ...START, null);
+    const graph = probe.walker!.graph;
+    const corner = [...graph.nodes.keys()].find((id) => graph.neighbors(id).some((n) => graph.edgeName(id, n)) && distanceM(...graph.nodes.get(id)!, ...START) > 300)!;
+    const [lat, lon] = graph.nodes.get(corner)!;
+    const { g, storage } = game({ places: [CAFE, { name: "Corner Shop", class: "shop", subclass: "convenience", rank: 1, lat, lon }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2 * 3600);
+    const walked = g.stats.streets.cities["Sofia, Bulgaria"] ?? [];
+    expect(walked.length).toBeGreaterThan(0);
+    expect(new Set(walked).size).toBe(walked.length);
+    expect(walked.every((n) => n.length > 0)).toBe(true);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    expect(again.stats.streets.cities["Sofia, Bulgaria"]).toEqual(walked);
+  });
+
   it("drops a sight note that comes back after a new city was started", async () => {
     const MUSEUM: Place = { name: "National Gallery", class: "museum", subclass: "museum", rank: 1, lat: 42.6885, lon: 23.3215 };
     let answer = (_: Response) => {};
@@ -591,6 +722,31 @@ describe("game", () => {
     expect(again.walker!.totalM).toBeCloseTo(g.walker!.totalM, 6);
     expect(again.walker!.position()[0]).toBeCloseTo(g.walker!.position()[0], 9);
     expect(again.stats.history.entries.length).toBe(g.stats.history.entries.length);
+  });
+
+  it("marks the squares he walks, keeps them across a save, and not those under a ride", async () => {
+    const { g, storage } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.explored.size).toBe(0);
+    await tick();
+    run(g, 300);
+    const walked = g.stats.explored.size;
+    expect(walked).toBeGreaterThan(0);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.problems.quiet = true;
+    expect(again.load()).toBe(true);
+    expect(again.stats.explored.size).toBe(walked);
+    // The bus to Plovdiv crosses 150 km of squares; none of them count.
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+    const boarded = g.stats.explored.size;
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.walker!.isTraveling()).toBe(false);
+    expect(g.stats.explored.size).toBeLessThanOrEqual(boarded + 1);
   });
 
   it("starts with the route line off and remembers the switch", () => {

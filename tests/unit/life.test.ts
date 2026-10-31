@@ -715,7 +715,7 @@ describe("activities", () => {
     const acts = new Activities({ cafe: [{ name: "Coffee", min: 1 }], _spot: [{ name: "Sit", min: 1 }], _holiday: [{ name: "Parade", min: 1 }] });
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }).map((a) => a.name)).toEqual(["Coffee"]);
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "", true).map((a) => a.name)).toEqual(["Coffee", "Parade"]);
-    expect(acts.peek(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
+    expect(acts.forPlace(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
     expect(bundled().data._holiday?.length).toBeGreaterThan(2);
   });
 
@@ -751,6 +751,8 @@ describe("activities", () => {
 
   it("he shuns actions that drain a meter he needs", () => {
     const jog: Action = { name: "Jog", min: 10, fx: { energy: -20, str: 0.1 } };
+    // Rested but not full of beans, so he isn't Energised (which would weigh jogging up) in any of the three.
+    stats.meters.energy = 70;
     const w = weight(jog, stats);
     stats.meters.energy = NEED_AT / 2;
     expect(weight(jog, stats)).toBeCloseTo(0.75 * w, 6);
