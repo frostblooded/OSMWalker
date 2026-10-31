@@ -158,6 +158,10 @@ describe("his home", () => {
     s.life.mark(picked, [42.7, 23.3]);
     s.home.rent(picked, "BG", [42.7, 23.3], T0);
     expect(new Trips([sofia]).homeward(s.home, false, 0)).toBe(sofia);
+    // A town that isn't in the city list: its trip home goes to the flat itself.
+    const village = new Hm.Home();
+    village.rent("Bistritsa, Sofia City, Bulgaria", "BG", [44, 25], T0);
+    expect(new Trips([sofia]).homeward(village, false, 0)).toEqual({ name: "Bistritsa", code: "BG", country: "Bulgaria", lat: 44, lon: 25, pop: 0 });
     // Back by a trip, under the city list's name.
     s.where = { city: SOFIA, code: "BG", country: "Bulgaria" };
     s.life.mark(SOFIA, [42.69, 23.32]);

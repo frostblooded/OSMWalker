@@ -307,9 +307,11 @@ export class Trips {
     return this.cities.find((c) => `${c.name}, ${c.country}` === key) ?? null;
   }
 
-  /** On a trip roll: his home's city (see home.ts) when its own dice `r` call him home while he is away (`atHome` false), else null. By name, or else the listed city nearest his home (the city he set out from has a place-search name). */
+  /** On a trip roll: his home's city (see home.ts) when its own dice `r` call him home while he is away (`atHome` false), else null. By name, or else the listed city nearest his home (the city he set out from has a place-search name), or else, for a town not in the list, a city made from his home itself. */
   homeward(home: Home, atHome: boolean, r: number): City | null {
-    return home.callsHome(r, atHome) ? (this.byKey(home.city) ?? nearest(this.cities, home.at[0], home.at[1], SAME_CITY_M)) : null;
+    if (!home.callsHome(r, atHome)) return null;
+    const parts = home.city.split(",").map((p) => p.trim());
+    return this.byKey(home.city) ?? nearest(this.cities, home.at[0], home.at[1], SAME_CITY_M) ?? { name: parts[0]!, code: home.code, country: parts.at(-1)!, lat: home.at[0], lon: home.at[1], pop: 0 };
   }
 
   /** A city for a trip of `kind`, weighted by population, or null when there is nowhere to go. */
