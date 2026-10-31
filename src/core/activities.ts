@@ -154,7 +154,7 @@ function local(place: Partial<Place> | null, table: ActionTable): Action[] {
   return [];
 }
 
-/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him, and how little it hurts what he needs. */
+/** How much he wants to do `action` now: a base weight times how much it meets his needs, how well it suits him and his emotion, and how little it hurts what he needs. */
 export function weight(action: Action, stats: Stats): number {
   let w = 1 + (action.flavour ? FLAVOUR_WEIGHT : 0);
   if (action.item) w += stats.cents > 3 * SKINT ? 1 : 0;
@@ -164,7 +164,7 @@ export function weight(action: Action, stats: Stats): number {
   if (stats.saving()) {
     if (action.cost !== undefined || action.item) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
-  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * harm(action, stats);
+  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * stats.emoLean(action) * harm(action, stats);
 }
 
 /**
@@ -195,9 +195,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** `need` with its pull times how his wants and fears pull him to a place of `p`'s kind (see mind.ts). */
+/** `need` with its pull times how his wants and fears (see mind.ts), his emotion (emotion.ts) and his tastes (tastes.ts) pull him to a place of `p`'s kind. */
 export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
-  const m = stats.mind.pull(p.class);
+  const m = stats.mind.pull(p.class) * stats.feelPull(p.class);
   return m === 1 ? need : { ...need, pull: need.pull * m };
 }
 
