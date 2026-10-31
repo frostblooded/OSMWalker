@@ -15,6 +15,8 @@ export const SKILL_MAX = 10;
 export const SKILL_STEP = 2;
 /** An action trains a step for every this many minutes it is listed as (a 60-minute busk is two), at least one. */
 export const PRACTICE_MIN = 30;
+/** A quest or event that teaches a skill trains it as an action this many minutes long would. */
+export const QUEST_PRACTICE_MIN = 60;
 /** Each level makes its actions' gains (meters, attributes, XP) and pay this share bigger. */
 export const SKILL_FX = 0.05;
 /** Each photography level makes a landmark card's shiny (foil or gold) roll this share likelier. */

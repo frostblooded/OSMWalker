@@ -7,6 +7,7 @@
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as Bl from "./bills";
+import * as Bz from "./business";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
@@ -30,6 +31,7 @@ import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import * as Lang from "./languages";
+import * as Lt from "./lottery";
 import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
@@ -163,6 +165,8 @@ export type Action = {
   cook?: boolean;
   /** A chat with the locals, which counts towards the local language (see languages.ts). */
   lang?: boolean;
+  /** A ticket for the next lottery draw, one a draw (see lottery.ts). */
+  lottery?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -259,6 +263,10 @@ export class Stats {
   pantry = new Cook.Pantry();
   /** The languages he speaks, and how well. */
   languages = new Lang.Languages();
+  /** The businesses he owns, and what they bring in. */
+  business = new Bz.Business();
+  /** His lottery ticket and wins. */
+  lottery = new Lt.Lottery();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
@@ -594,6 +602,7 @@ export class Stats {
     if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
     if (date !== this.anniversaries.day) this.newDay(date, t);
+    if (this.lottery.ticket && t >= this.lottery.ticket) this.lotteryDraw(Lt.roll(new Rng(seedOf(`lottery${this.lottery.ticket}`)).randf(), this.attr("luck")));
     this.week.walked(walkedM);
     const h = minutes / 60;
     const sky = weatherPerH(this.sky);
@@ -622,6 +631,7 @@ export class Stats {
     // Enchanted gear gathers Magic as he walks.
     fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
+    this.business.pass(h);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     // His pet walks at his side on foot or by bike, and rides along otherwise.
@@ -633,6 +643,8 @@ export class Stats {
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
     this.petDay(date, t);
+    this.takings();
+    this.invest(t);
     this.visaDay();
     const f = this.friends;
     this.townies.prune(f.list);
@@ -651,6 +663,55 @@ export class Stats {
     const where = country || code;
     if (up) this.say(`His visa in ${where} is now ${up.name}: ${up.stay === Infinity ? "no limit on his stay" : `stays of up to ${up.stay} days`}, ${Math.round(up.pay * 100)}% more pay at work there`);
     else if (code && this.visas.left() === 0) this.say(`Last day on his visa in ${where}: he'll be moving on soon`);
+  }
+
+  /** His businesses pay out what they took in since the last day. */
+  private takings(): void {
+    const c = this.business.payout();
+    if (!c) return;
+    this.cents += c;
+    const icons = this.business.owned.map((o) => Bz.kindOf(o.id)!.icon).join("");
+    this.say(`${icons} His ${Bz.namesOf(this.business.owned)} took in ${signed(c)}`);
+  }
+
+  /** Each morning: with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
+  private invest(t: number): void {
+    const k = this.business.next();
+    if (!k || this.bond.nudge === "save") return;
+    if (this.cents - Math.max(this.savingTarget(), KEEP_CENTS) < k.cents) return;
+    const city = this.where.city.split(",")[0] || "town";
+    this.cents -= k.cents;
+    this.business.buy(k, city, t);
+    const line = `${k.icon} Bought a ${k.name} in ${city} (${signed(-k.cents)}): a local runs it, and it should bring in about ${euro(k.perH * 24)} a day`;
+    this.milestone(`business_${k.id}`, `Bought a ${k.name} in ${city}`);
+    this.say(line);
+  }
+
+  /** Tonight's lottery draw for the ticket he holds: `prize` (see lottery.ts roll) paid, or no luck. Returns the feed line. */
+  lotteryDraw(prize: Lt.Prize | null): string {
+    const l = this.lottery;
+    l.ticket = 0;
+    l.tickets++;
+    if (!prize) return this.say("🎟 Tonight's lottery draw: no luck this time");
+    this.cents += prize.cents;
+    l.prizes++;
+    l.won += prize.cents;
+    l.best = Math.max(l.best, prize.cents);
+    this.applyFx({ mood: prize.mood });
+    const say = prize.say[new Rng(seedOf(`lotterysay${this.now()}`)).randiRange(0, prize.say.length - 1)]!;
+    const line = `🎟 ${say.replace("{WON}", euro(prize.cents))}`;
+    if (prize.match >= Lt.BIG_MATCH) this.milestone(`lottery${prize.match}`, `Won ${euro(prize.cents)} on the lottery with ${prize.match} numbers`);
+    return this.say(line);
+  }
+
+  /** Buys a ticket for the next draw; returns the feed line. */
+  private buyTicket(action: Action, where: string): string {
+    const cost = toCents(action.cost ?? 0);
+    this.cents = Math.max(this.cents - cost, 0);
+    this.lottery.ticket = Lt.nextDraw(this.now());
+    this.applyFx(action.fx ?? {});
+    const today = dayOf(this.lottery.ticket * 1000) === dayOf(this.now() * 1000);
+    return this.say(`🎟 Bought a lottery ticket${where ? ` at ${where}` : ""} for ${today ? "tonight's" : "tomorrow's"} draw${cost ? ` (${signed(-cost)})` : ""}`);
   }
 
   /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
@@ -780,6 +841,7 @@ export class Stats {
   canDo(action: Action, hour: number): boolean {
     if (action.pack && !this.cityPool) return false;
     if (action.cook && !this.pantry.best(this.skills.level("cooking"))) return false;
+    if (action.lottery && this.lottery.ticket) return false;
     if (action.groceries && !this.pantry.pick(action.groceries, this.skills.level("cooking"))) return false;
     if (toCents(action.cost ?? 0) > this.cents) return false;
     if (action.item && this.cents <= KEEP_CENTS) return false;
@@ -857,6 +919,7 @@ export class Stats {
     }
     if (action.groceries) return this.buyGroceries(action, where);
     if (action.cook) return this.cook(action, where);
+    if (action.lottery) return this.buyTicket(action, where);
     let spent = toCents(action.cost ?? 0);
     const fx: Fx = { ...action.fx };
     if (action.skill) skilled(fx, this.skills.mult(action.skill));
@@ -910,7 +973,6 @@ export class Stats {
     skilled(fx, this.skills.mult("cooking"));
     if (fx.xp) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
-    this.pantry.cooked++;
     const line = this.say(`${r.icon} Cooked ${/^[aeiou]/.test(r.name) ? "an" : "a"} ${r.name} with ${Cook.listOf(r.uses)}${where ? ` at ${where}` : ""}`);
     this.sayIf(this.skills.train("cooking", action.min));
     return line;
@@ -1312,7 +1374,7 @@ export class Stats {
   }
 
   /** Says `line` unless it is empty. */
-  private sayIf(line: string): void {
+  sayIf(line: string): void {
     if (line) this.say(line);
   }
 
@@ -1326,6 +1388,7 @@ export class Stats {
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
+      business: this.business.toJSON(), lottery: this.lottery.toJSON(),
     };
   }
 
@@ -1387,6 +1450,9 @@ export class Stats {
     s.skills = Skills.fromJSON(d.skills);
     s.pantry = Cook.Pantry.fromJSON(d.pantry);
     s.languages = Lang.Languages.fromJSON(d.languages);
+    // A save from before side businesses and the lottery: none owned, no ticket.
+    s.business = Bz.Business.fromJSON(d.business);
+    s.lottery = Lt.Lottery.fromJSON(d.lottery);
     return s;
   }
 }

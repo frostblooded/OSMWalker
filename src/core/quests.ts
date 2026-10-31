@@ -21,6 +21,7 @@ import { BRIDGE } from "./ofm";
 import { isOpen } from "./opening";
 import type { Rng } from "./rng";
 import { inTime, type Attr, type Fx, type Place, type Stats, type TimeOfDay } from "./stats";
+import { isSkill, QUEST_PRACTICE_MIN, type Skill } from "./skills";
 import type { LatLon } from "./trips";
 
 /** Stops between quests: he takes the next one after this many, picked between the two. */
@@ -57,7 +58,8 @@ export const LOG_MAX = 40;
 /** Recent quests and events the Stats card shows. */
 export const CARD_RECENT = 2;
 
-export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind };
+/** What a quest or event gives: money, XP, gains, an item, practice in a `skill` (see skills.ts) and `lang` hours in the local language (see languages.ts). */
+export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind; skill?: Skill; lang?: number };
 /** One step: where (one of the named landmarks in `name` when one is loaded, for a city's own quests, else a place of the actions.json kinds in `at`, class or class/subclass) and what he does, one line picked from `say`. */
 export type Step = { at: string[]; name?: string[]; say: string[] };
 export type QuestKind = {
@@ -81,7 +83,7 @@ export type QuestKind = {
   worse: string[];
   reward: Reward;
 };
-export type Outcome = { say: string; eur?: number | [number, number]; xp?: number; fx?: Fx };
+export type Outcome = { say: string; eur?: number | [number, number]; xp?: number; fx?: Fx; skill?: Skill; lang?: number };
 export type EventKind = {
   id: string;
   icon: string;
@@ -375,6 +377,7 @@ function playEvent(stats: Stats, ev: LiveEvent, places: readonly Place[], hour: 
   const o = won ? k.win : k.lose;
   const money = pay(stats, o, 1, rng);
   stats.say(`${k.icon} ${k.title} at ${ev.at.name}: ${fill(o.say, { place: ev.at.name, town: town(stats) })}${money}`);
+  learn(stats, o);
   log(stats, { icon: k.icon, title: k.title, good: won, event: true });
   const next = q.eventKind((won ? k.next?.win : k.next?.lose) ?? "");
   if (next && rng.randf() < FOLLOW_CHANCE) startEvent(stats, next, ev.at, places, hour, rng);
@@ -404,6 +407,7 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
     const money = pay(stats, k.reward, 1, rng);
     const item = k.reward.item ? gift(stats, k.reward.item, rng) : "";
     stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(k.good), words)}${money}${item}`);
+    learn(stats, k.reward);
     q.finished++;
   }
   log(stats, { icon: k.icon, title: k.title, good: !failed });
@@ -437,6 +441,12 @@ function pay(stats: Stats, r: Reward | Outcome, share: number, rng: Rng): string
   if (xp) stats.addXp(xp);
   const parts = [cents ? signed(cents) : "", xp ? `+${xp} XP` : ""].filter(Boolean);
   return parts.length ? ` (${parts.join(", ")})` : "";
+}
+
+/** The practice `r` gives: its skill trained as by a QUEST_PRACTICE_MIN action, and its hours in the local language; says any new level. */
+function learn(stats: Stats, r: Reward | Outcome): void {
+  if (r.skill) stats.sayIf(stats.skills.train(r.skill, QUEST_PRACTICE_MIN));
+  if (r.lang) stats.sayIf(stats.languages.add(stats.lang(), r.lang));
 }
 
 /** A thank-you item of `kind` into his bag, if it has room; returns its part of the feed line. */
@@ -498,6 +508,7 @@ export function check(bank: Bank, keys: Set<string>, attrs: readonly string[]): 
     if (q.city !== undefined && !/^.+, [^,]+$/.test(q.city)) out.push(`${q.id}: city ${q.city} isn't "Name, Country"`);
     if (q.steps.some((s) => s.name && (!s.name.length || s.name.some((n) => n.trim().length < 2)))) out.push(`${q.id}: a landmark name too short`);
     if (q.reward.item && !(q.reward.item in Items.KINDS)) out.push(`${q.id}: item kind ${q.reward.item}`);
+    if (q.reward.skill && !isSkill(q.reward.skill)) out.push(`${q.id}: skill ${q.reward.skill}`);
   }
   const events = new Set(bank.events.map((e) => e.id));
   for (const e of bank.events) {
@@ -506,6 +517,7 @@ export function check(bank: Bank, keys: Set<string>, attrs: readonly string[]): 
     known(e.id, e.at);
     if (!e.text.length || !e.missed || !e.win.say || !e.lose.say) out.push(`${e.id}: needs text, missed, win and lose`);
     if (!attrs.includes(e.lean)) out.push(`${e.id}: lean ${e.lean}`);
+    for (const o of [e.win, e.lose]) if (o.skill && !isSkill(o.skill)) out.push(`${e.id}: skill ${o.skill}`);
     for (const n of [e.next?.win, e.next?.lose]) if (n && !events.has(n)) out.push(`${e.id}: no follow-up ${n}`);
   }
   for (const e of bank.events) if (e.follow && !bank.events.some((x) => x.next?.win === e.id || x.next?.lose === e.id)) out.push(`${e.id}: follow-up that nothing leads to`);

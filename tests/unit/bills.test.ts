@@ -28,6 +28,8 @@ describe("weekly bills", () => {
 
   it("are paid at the start of each week, not before", () => {
     const s = nextWeek(5, 100000);
+    // Saving up for a trip, so he spends none of it on a business (see business.ts).
+    s.savingFor = 100000;
     s.now = () => MON + 3600;
     s.passTime(1, 0);
     expect(s.cents).toBe(100000);

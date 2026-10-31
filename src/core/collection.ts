@@ -4,6 +4,8 @@
 // Gold gives him a title. A new feature adds its SETS and FEATS here, and the
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
+import { BUSINESSES } from "./business";
+import { listOf, RECIPES } from "./cooking";
 import { dayOf } from "./gifts";
 import { GIANTS } from "./giants";
 import { STORIES } from "./fairy";
@@ -11,6 +13,8 @@ import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { euro } from "./money";
+import { SKILLS } from "./skills";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
@@ -339,6 +343,30 @@ export const SETS: CSet[] = [
     },
   },
   {
+    id: "recipes",
+    tab: "world",
+    icon: "🗒",
+    title: "Recipes",
+    entries: (s) =>
+      RECIPES.map((r) => {
+        const got = s.pantry.dishes.includes(r.id);
+        return { id: r.id, icon: r.icon, name: r.name[0]!.toUpperCase() + r.name.slice(1), got, info: got ? `Cooked · ${listOf(r.uses)}` : `${listOf(r.uses)}, from cooking ${r.level}` };
+      }),
+    facts: (s) => [["🧺 Meals cooked", String(s.pantry.cooked)]],
+  },
+  {
+    id: "businesses",
+    tab: "world",
+    icon: "💹",
+    title: "Businesses",
+    entries: (s) =>
+      BUSINESSES.map((b) => {
+        const at = s.business.owned.find((o) => o.id === b.id);
+        return { id: b.id, icon: b.icon, name: b.name[0]!.toUpperCase() + b.name.slice(1), got: !!at, info: at ? `In ${at.city} · ${euro(b.perH * 24)} a day` : `${euro(b.cents)}, once he has it to spare` };
+      }),
+    facts: (s) => [["💵 Taken in", euro(s.business.earned)]],
+  },
+  {
     id: "vehicles",
     tab: "gear",
     icon: "🚲",
@@ -363,6 +391,11 @@ export const FEATS: Feat[] = [
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
+  { id: "languages", tab: "world", icon: "🗣", name: "Linguist", what: "{n} languages learned to basic or better", tiers: [1, 3, 8], title: "Linguist", count: (s) => s.languages.list().filter((l) => s.languages.learned(l.lang) && l.level >= 2).length },
+  { id: "skills", tab: "world", icon: "🎓", name: "Skilled", what: "{n} skills at level 5 or more", tiers: [1, 3, SKILLS.length], title: "Jack of All Trades", count: (s) => SKILLS.filter((k) => s.skills.level(k) >= 5).length },
+  { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
+  { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
+  { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },

@@ -54,6 +54,12 @@ export function AwaySheet({
         <KV k="⭐ Level" v={s.endLevel > s.startLevel ? `${s.startLevel} → ${s.endLevel}` : s.endLevel} tone={s.endLevel > s.startLevel ? "ok" : undefined} />
         <KV k="🛍 Bought" v={s.bought.length} />
       </Card>
+      {(s.takings > 0 || s.lotteryWon > 0) && (
+        <Card icon="💹" title="Side income">
+          {s.takings > 0 && <KV k="💹 His businesses took in" v={signed(s.takings)} tone="ok" />}
+          {s.lotteryWon > 0 && <KV k="🎟 Lottery prizes" v={signed(s.lotteryWon)} tone="ok" />}
+        </Card>
+      )}
       {s.lines.length > 0 && (
         <Card icon="📜" title="Everything he did">
           <Collapsible title={`${s.lines.length} events, newest first`}>
