@@ -23,10 +23,12 @@ import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
-import { Rng } from "../core/rng";
+import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
+import { Rng, seedOf } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
+import type { PlaceMoments } from "../core/placeMoments";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
@@ -72,7 +74,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; moments?: PlaceMoments };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -127,6 +129,10 @@ export class Game {
   sound = false;
   /** Debug switch: every reopen after a long absence brings a dilemma. */
   alwaysDilemma = false;
+  /** Seconds a timed moment waits for your tap (the Settings button); 0 is Off: he always picks himself. */
+  momentS = MOMENT_S;
+  /** The timed moment waiting for your tap, with its seconds left; he stands still until it is settled. */
+  moment: { m: Moment; left: number; total: number; done: (p: Pick) => void; his: () => string } | null = null;
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
@@ -321,6 +327,12 @@ export class Game {
   step(dt: number): void {
     const w = this.walker;
     if (!w || this.waking) return;
+    // A timed moment holds him where he is until you tap or its time runs out.
+    if (this.moment) {
+      this.moment.left -= dt;
+      if (this.moment.left <= 0) this.settleMoment(null);
+      return;
+    }
     if (!w.isTraveling()) {
       const here = w.position();
       this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
@@ -414,7 +426,19 @@ export class Game {
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
+    this.askAt(place, restMinutes(action) * 60);
     this.changed();
+  }
+
+  /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds; its own dice, so his walk stays the same as in the catch-up (Stats.momentByHimself). */
+  private askAt(place: Place, maxS: number): void {
+    const m = this.stats.momentAt(place);
+    if (!m) return;
+    const dice = new Rng(seedOf(`moment${this.stats.now()}${place.name}`));
+    void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", place.name) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
+      this.stats.settleMoment(m, place.name, p.id, p.you, dice.randf());
+      this.save();
+    });
   }
 
   /** Health at zero: he wakes at the nearest known hospital, poorer. */
@@ -559,6 +583,7 @@ export class Game {
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.creatureKinds = this.deps.data.creatures ?? [];
+    this.stats.placeMoments = this.deps.data.moments ?? {};
     this.stats.spellKinds = this.deps.data.spells ?? [];
     this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
     this.stats.contests = this.deps.data.contests ?? [];
@@ -781,8 +806,42 @@ export class Game {
 
   /** The page is hidden or closed: nothing waits for you, so he settles an open dilemma, then the game saves. */
   leave(): void {
+    this.settleMoment(null);
     this.leaveDilemma();
     this.save();
+  }
+
+  /**
+   * Shows timed moment `m` and resolves with the option you tap, or with his
+   * own pick (`his`, by default defaultPick) once momentS seconds pass, or
+   * `maxS` if that is sooner, or the page is left. Off (momentS 0), or with
+   * another moment already open, he picks at once. He stands still while it
+   * is open.
+   */
+  ask(m: Moment, opts: { maxS?: number; his?: () => string } = {}): Promise<Pick> {
+    const his = opts.his ?? (() => defaultPick(m, this.stats, new Rng(seedOf(`ask${this.now()}${m.id}`))));
+    const wait = Math.min(this.momentS, opts.maxS ?? Infinity);
+    if (wait <= 0 || this.moment) return Promise.resolve({ id: his(), you: false });
+    return new Promise((done) => {
+      this.moment = { m, left: wait, total: wait, done, his };
+      this.changed();
+    });
+  }
+
+  /** Settles the open moment with your pick `id`, or with his own pick when null. */
+  settleMoment(id: string | null): void {
+    const o = this.moment;
+    if (!o || (id !== null && !o.m.options.some((x) => x.id === id))) return;
+    this.moment = null;
+    o.done(id === null ? { id: o.his(), you: false } : { id, you: true });
+    this.changed();
+  }
+
+  /** The Settings button: the next moment timer of MOMENT_TIMERS. */
+  nextMomentTimer(): void {
+    this.momentS = MOMENT_TIMERS[(MOMENT_TIMERS.indexOf(this.momentS as never) + 1) % MOMENT_TIMERS.length]!;
+    this.saveSettings();
+    this.changed();
   }
 
   /** He decides an open dilemma by himself: the card is closing, the page is being left, or a new reopen replaces it. True when he did. */
@@ -846,11 +905,12 @@ export class Game {
     this.sound = s.sound;
     this.postcardName = s.postcardName;
     this.alwaysDilemma = s.alwaysDilemma;
+    this.momentS = s.momentS;
     Object.assign(this.problems, s.problems, { quiet: this.problems.quiet });
   }
 
   saveSettings(): void {
-    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName, alwaysDilemma: this.alwaysDilemma });
+    this.file.writeSettings({ showCityArea: this.showCityArea, showRoute: this.showRoute, cameraFollows: this.cameraFollows, sound: this.sound, problems: this.problems, postcardName: this.postcardName, alwaysDilemma: this.alwaysDilemma, momentS: this.momentS });
   }
 
   setShowCityArea(on: boolean): void {

@@ -6,6 +6,10 @@
 import type { Rng } from "./rng";
 import type { Attr, Stats } from "./stats";
 
+/** Seconds a moment waits for your tap, by default; the Settings button steps through MOMENT_TIMERS (0 is Off: he always picks himself). */
+export const MOMENT_S = 5;
+export const MOMENT_TIMERS = [3, 5, 10, 20, 0] as const;
+
 /** How far his attribute tilts his own pick to the first option: this much a point above 1, up to LEAN_CAP. */
 export const LEAN_PER_POINT = 0.05;
 export const LEAN_CAP = 0.4;
@@ -21,6 +25,8 @@ export const riskOdds = (points: number) => Math.min(RISK_BASE + RISK_PER_POINT 
 export type GameId = "timing" | "cards" | "taps" | "odd";
 
 export type MomentOption = { id: string; label: string };
+/** How a moment was settled: the option, and whether you tapped it (else he picked it himself). */
+export type Pick = { id: string; you: boolean };
 
 export type Moment = {
   id: string;

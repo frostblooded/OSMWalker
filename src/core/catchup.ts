@@ -279,7 +279,11 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf());
-      if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
+      if (action) {
+        stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
+        // Nobody to ask: he takes his own pick of the place's moment, as game.ts does when you don't tap.
+        stats.momentByHimself(place);
+      }
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }

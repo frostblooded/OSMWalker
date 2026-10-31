@@ -16,6 +16,7 @@ import { NO_NEED } from "../../src/core/goals";
 import * as Items from "../../src/core/items";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
+import { MOMENT_S, MOMENT_TIMERS } from "../../src/core/moments";
 import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
@@ -64,7 +65,7 @@ class MemStorage {
   }
 }
 
-function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number } = {}) {
+function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll?: number; moments?: boolean } = {}) {
   const api = new Api(async () => new Response("", { status: 503 }));
   const data = {
     actions: JSON.parse(dataFile("actions.json")),
@@ -73,6 +74,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
     creatures: JSON.parse(dataFile("creatures.json")),
     spells: JSON.parse(dataFile("spells.json")),
+    moments: opts.moments ? JSON.parse(dataFile("moments.json")) : undefined,
   };
   const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -379,6 +381,76 @@ describe("game", () => {
     expect(g.stats.visited.size).toBeGreaterThan(0);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
     expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
+  });
+
+  describe("timed moments", () => {
+    const withMoments = () => game({ places: [CAFE], moments: true });
+    /** Runs until the cafe's moment opens. */
+    const toMoment = (g: Game) => {
+      for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+      expect(g.moment?.m.id).toBe("cafe");
+    };
+
+    it("asks at the place he starts an activity at, holds him still, and your tap picks its outcome", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      toMoment(g);
+      expect(g.moment!.m.ask).toBe("The barista at Cafe Near is swamped. Pour your own latte art?");
+      expect(g.moment!.total).toBe(MOMENT_S);
+      const at = g.walker!.position();
+      g.step(1);
+      expect(g.walker!.position()).toEqual(at);
+      g.settleMoment("nope");
+      expect(g.moment).not.toBeNull();
+      g.settleMoment("heart");
+      await tick();
+      expect(g.moment).toBeNull();
+      expect(g.stats.history.entries.at(-1)!.text).toBe("☕ Poured perfect latte art at Cafe Near; the barista clapped");
+    });
+
+    it("takes his own pick when the timer runs out, or the page is left", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      toMoment(g);
+      run(g, MOMENT_S);
+      await tick();
+      expect(g.moment).toBeNull();
+      expect(g.stats.history.entries.some((e) => e.text.startsWith("☕ Decided by himself:"))).toBe(true);
+
+      const again = withMoments().g;
+      await again.startCity("Sofia, Bulgaria", ...START, null);
+      toMoment(again);
+      again.leave();
+      await tick();
+      expect(again.moment).toBeNull();
+      expect(again.stats.history.entries.some((e) => e.text.startsWith("☕ Decided by himself:"))).toBe(true);
+    });
+
+    it("never opens with the timer Off, and steps through the timers in Settings, kept on the device", async () => {
+      const { g, storage } = withMoments();
+      expect(MOMENT_TIMERS.at(-1)).toBe(0);
+      while (g.momentS !== 0) g.nextMomentTimer();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 400; i++) {
+        g.step(1);
+        expect(g.moment).toBeNull();
+      }
+      await tick();
+      expect(g.stats.history.entries.some((e) => e.text.startsWith("☕ Decided by himself:"))).toBe(true);
+      expect(game({ storage }).g.momentS).toBe(0);
+      g.nextMomentTimer();
+      expect(g.momentS).toBe(MOMENT_TIMERS[0]);
+    });
+
+    it("lets another moment that comes while one is open take his own pick at once", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      const m = { id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" };
+      const first = g.ask(m);
+      expect(await g.ask(m)).toEqual({ id: "b", you: false });
+      g.settleMoment("a");
+      expect(await first).toEqual({ id: "a", you: true });
+    });
   });
 
   it("collects keepsakes where he is: a card and a Placedex entry at a landmark", async () => {
@@ -921,6 +993,12 @@ describe("game", () => {
       const { again } = await reopen(6 * HOUR, { storage, places: [park] });
       const names: string[] = JSON.parse(dataFile("actions.json"))._holiday.map((a: { name: string }) => a.name);
       expect(again.away!.lines.some((l) => names.some((n) => l.text.includes(n)))).toBe(true);
+    });
+
+    it("takes his own pick at each place's moment while away, and says so in his History", async () => {
+      const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
+      expect(again.moment).toBeNull();
+      expect(again.stats.history.entries.some((e) => / Decided by himself: /.test(e.text))).toBe(true);
     });
 
     it("has nothing to catch up after a short break or from an old save", async () => {
