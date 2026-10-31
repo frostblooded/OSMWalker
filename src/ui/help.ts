@@ -82,6 +82,7 @@ import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import * as Words from "../core/words";
 import * as Notes from "../core/sightNotes";
+import { CITIES_SHOWN, STREET_MARK } from "../core/streetBook";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -784,6 +785,8 @@ export function values(data: GameData): Record<string, string> {
     WORD_PCT: pct(Words.LEARN_CHANCE),
     WORD_WIT: num(Words.WORD_WIT),
     WORD_XP: num(Words.WORD_XP),
+    STREET_MARK: num(STREET_MARK),
+    STREET_ROWS: num(CITIES_SHOWN),
     NOTE_RANK: num(Notes.NOTE_RANK),
     NOTE_RADIUS: num(Notes.RADIUS_M),
     NOTE_WIT: num(Notes.NOTE_WIT),
