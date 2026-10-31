@@ -5,10 +5,12 @@
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
 import { HALL, heldBy } from "./hall";
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
+import { DREAMS } from "./bucket";
 import { BUSINESSES } from "./business";
 import { listOf, RECIPES } from "./cooking";
 import { dayOf } from "./gifts";
 import { GIANTS } from "./giants";
+import { HOME_PRICE, HOME_THINGS } from "./home";
 import { STORIES } from "./fairy";
 import type { Rarity } from "./items";
 import * as Items from "./items";
@@ -16,12 +18,14 @@ import * as K from "./keepsakes";
 import { LEAN_AT, LEAN_MAX } from "./bond";
 import { walkerName } from "./life";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { FAIRY_LEVEL } from "./pet";
 import { euro } from "./money";
 import { SKILLS } from "./skills";
 import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
+import { visaFor, VISAS } from "./visas";
 
 export const TABS = [
   { id: "cards", icon: "🎴", name: "Cards" },
@@ -373,6 +377,20 @@ export const SETS: CSet[] = [
     facts: (s) => [["💵 Taken in", euro(s.business.earned)]],
   },
   {
+    id: "dreams",
+    tab: "world",
+    icon: "📝",
+    title: "Bucket list",
+    entries: (s) =>
+      DREAMS.map((d) => {
+        const done = s.bucket.done.find((x) => x.id === d.id);
+        const on = s.bucket.list.includes(d.id);
+        const where = d.city?.split(",")[0];
+        return { id: d.id, icon: d.icon, name: d.text, got: !!done, info: done ? `Ticked off${done.city ? ` in ${done.city.split(",")[0]}` : ""}` : on ? "On his list now" : where ? `In ${where}` : "Some day" };
+      }),
+    facts: (s) => [["📝 Ticked off", `${s.bucket.done.length} / ${DREAMS.length}`]],
+  },
+  {
     id: "repute",
     tab: "world",
     icon: "⚖",
@@ -394,6 +412,30 @@ export const SETS: CSet[] = [
     facts: (s) => [
       ["Karma best · worst", `${Math.round(s.law.bestKarma)} · ${Math.round(s.law.worstKarma)}`],
       ["Chases · got away · caught", `${s.law.chases} · ${s.law.escapes + s.law.bribes} · ${s.law.caught}`],
+    ],
+  },
+  {
+    id: "settled",
+    tab: "world",
+    icon: "🏡",
+    title: "A life of his own",
+    entries: (s) => {
+      const pets = [...(s.pets.pet ? [s.pets.pet] : []), ...s.pets.past];
+      const visas = Object.values(s.visas.days).map((d) => visaFor(d).name);
+      const row = (id: string, icon: string, name: string, got: boolean, hint: string) => ({ id, icon, name, got, info: hint });
+      return [
+        row("pet", "🐕", "A pet", pets.length > 0, "A stray that stays with him"),
+        row("fairy", "🐺", "A fairy pet", pets.some((p) => p.fairy), `A pet of level ${FAIRY_LEVEL} at a real castle or monument`),
+        row("rent", "🏡", "A flat", s.home.has(), "Become a Regular in a city"),
+        row("own", "🔑", "His own home", s.home.bought > 0, `Have ${euro(HOME_PRICE)} to spare while renting`),
+        row("full", "🖼", "A full home", s.home.things.length >= HOME_THINGS, `${HOME_THINGS} things from his travels up at home`),
+        row("long", "🛂", "A long stay visa", visas.some((v) => v !== VISAS[0].name), `${VISAS[1].from} days in one country`),
+        row("citizen", "🎫", "Citizenship", visas.includes(VISAS[3].name), `${VISAS[3].from} days in one country`),
+      ];
+    },
+    facts: (s) => [
+      ["Pets", `${s.pets.past.length + (s.pets.pet ? 1 : 0)}`],
+      ["Things up at home", `${s.home.things.length} / ${HOME_THINGS}`],
     ],
   },
   {
@@ -426,6 +468,7 @@ export const FEATS: Feat[] = [
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
   { id: "shares", tab: "world", icon: "🏠", name: "Regular", what: "{n} shares in his spots", tiers: [1, 3, 10], title: "Shareholder", count: (s) => s.business.shares.length },
+  { id: "dreamer", tab: "world", icon: "📝", name: "Dreamer", what: "{n} dreams ticked off his bucket list", tiers: [1, 10, 30], title: "Dreamer", count: (s) => s.bucket.done.length },
   { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
@@ -435,6 +478,8 @@ export const FEATS: Feat[] = [
   { id: "villain", tab: "world", icon: "😈", name: "Bad name", what: "karma −{n}", tiers: [LEAN_AT, AURA_AT, LEAN_MAX], title: "Villain", count: (s) => Math.max(Math.round(-s.law.worstKarma), 0) },
   { id: "wanted", tab: "world", icon: "🚨", name: "Most wanted", what: "{n} wanted stars", tiers: [1, 3, STARS_MAX], title: "Public Enemy", count: (s) => s.law.topStars },
   { id: "getaways", tab: "world", icon: "🏃", name: "Escape artist", what: "{n} getaways from the police", tiers: [1, 10, 50], title: "Ghost", count: (s) => s.law.escapes + s.law.bribes },
+  { id: "homebody", tab: "world", icon: "🖼", name: "Homebody", what: "{n} things up at home", tiers: [1, 5, HOME_THINGS], title: "Homebody", count: (s) => s.home.things.length },
+  { id: "citizen", tab: "world", icon: "🎫", name: "Citizen", what: "{n} countries where he is a citizen", tiers: [1, 2, 5], title: "Citizen of the World", count: (s) => Object.values(s.visas.days).filter((d) => d >= VISAS[3].from).length },
   { id: "known", tab: "world", icon: "⭐", name: "Known face", what: "{n} cities that know his face", tiers: [1, 5, 20], title: "Celebrity", count: (s) => s.fame.citiesAt(1) },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "heir", tab: "world", icon: "🏛", name: "Pride of the family", what: "{n} family records held over the walkers before him", tiers: [1, 3, HALL.length], title: "Family Legend", count: (s) => heldBy(s).length },

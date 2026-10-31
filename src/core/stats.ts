@@ -8,6 +8,7 @@
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as Bl from "./bills";
+import * as Bk from "./bucket";
 import * as Bz from "./business";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
@@ -21,6 +22,7 @@ import * as Mg from "./magic";
 import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
 import { Diary, type DiaryData } from "./diary";
+import { Mailbox, type MailData } from "./mail";
 import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
@@ -28,9 +30,10 @@ import * as Po from "./portals";
 import * as Gi from "./giants";
 import * as Fa from "./fairy";
 import * as F from "./forecast";
-import { Fame, cityKey, tierOf, FAME_NAMES, FAME_PER_H } from "./fame";
+import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
+import * as Hm from "./home";
 import * as Inc from "./incidents";
 import * as Items from "./items";
 import * as L from "./life";
@@ -236,6 +239,9 @@ export class Stats {
   /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
   diary = new Diary();
   diaryData: DiaryData | null = null;
+  /** Letters and gifts from his friends (saved), and their lines from data/mail.json (not saved, the game sets them). */
+  mail = new Mailbox();
+  mailData: MailData | null = null;
   /** Golden bricks and the monuments they paid for. */
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
@@ -296,10 +302,14 @@ export class Stats {
   business = new Bz.Business();
   /** His lottery ticket and wins. */
   lottery = new Lt.Lottery();
+  /** His bucket list (see bucket.ts). */
+  bucket = new Bk.Bucket();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
   pets = new Pt.Pets();
+  /** His flat, rented then bought (see home.ts). */
+  home = new Hm.Home();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -689,7 +699,7 @@ export class Stats {
       this.say(`${st.icon} Now ${title}${nudge && name ? ` (${name} ${nudge > 0 ? "+" : "−"}${Math.abs(nudge)})` : ""}`);
       this.milestone(`stage${stage}`, `Became ${title}`);
     }
-    if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.life.favourite(this.where.city).split(",")[0]}`);
+    if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.homeCity().split(",")[0]}`);
   }
 
   /**
@@ -701,7 +711,7 @@ export class Stats {
    * his favourite city unless its streets won't load (see game.ts retire). Changes
    * nothing of his, so the game can try again; the heir says hello once he is out.
    */
-  retire(by: L.Ancestor["by"], home = this.life.favourite(this.where.city)): { heir: Stats; ancestor: L.Ancestor } {
+  retire(by: L.Ancestor["by"], home = this.homeCity()): { heir: Stats; ancestor: L.Ancestor } {
     const t = this.now();
     const heirloom = Object.values(this.gear)
       .filter((it): it is Item => !!it && !it.vehicle)
@@ -726,6 +736,7 @@ export class Stats {
     heir.rings = this.rings;
     heir.finds = this.finds;
     heir.portals = this.portals;
+    heir.home = this.home;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
     return { heir, ancestor };
@@ -733,14 +744,21 @@ export class Stats {
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
+    this.dreams(t, true);
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.takings();
+    this.settle(t);
     this.invest(t);
     this.visaDay();
     const f = this.friends;
     this.townies.prune(f.list);
     this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
+    // Big news comes as a letter: it goes in his mailbox too, and is the day's only letter.
+    const news = this.townies.letter;
+    if (news) this.mail.add({ from: news.friend.name, icon: news.friend.icon, city: news.city, text: news.text, t });
+    const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
+    for (const line of this.mail.day(t, this.where.city, f.list, f.partner, spots, this.mailData, new Rng(seedOf(`mail${date}`)), !!news)) this.say(line);
     const mark = this.anniversaries.check(date, t, this.meters.mood, this.where.city, f.list, f.partner, new Rng(seedOf(`party${date}`)));
     if (!mark) return;
     this.applyFx(mark.fx);
@@ -767,6 +785,61 @@ export class Stats {
     this.say(`${icons} His ${Bz.namesOf(b.owned, b.shares)} took in ${signed(c)}`);
   }
 
+  /** Where he settles and retires: his home's city, or else the one he spent most time in. */
+  homeCity(): string {
+    return this.home.city || this.life.favourite(this.where.city);
+  }
+
+  /** True when `action` at a place of map class `kind` is a night in his own bed: a hostel or hotel night in his home city, free, and it cheers him. */
+  nightAtHome(action: Action, kind: string): boolean {
+    return !!action.sleep && kind === "lodging" && this.atHome();
+  }
+
+  /** True in his home's city. */
+  atHome(): boolean {
+    return this.isHome(this.where.city);
+  }
+
+  /** True when `city` (by name, as `where.city` and an item's story keep it) is his home's city: the same name, or a city whose middle is near his flat. */
+  isHome(city: string): boolean {
+    const h = this.home;
+    return h.has() && (city === h.city || h.near(this.life.cityAt[city]));
+  }
+
+  /**
+   * Each morning (see home.ts): with no home yet, he rents a flat where he is
+   * once the city knows him as a Regular; renting, he buys it with its price
+   * to spare past what he saves up for (not while you whisper to save); and
+   * in a home he owns he puts up a thing from his travels.
+   */
+  private settle(t: number): void {
+    const h = this.home;
+    const town = this.where.city.split(",")[0];
+    if (!h.has()) {
+      const spot = this.spots.spot(this.where.city);
+      const at = spot ? ([spot.lat, spot.lon] as T.LatLon) : this.life.cityAt[this.where.city];
+      if (!at || this.fame.tier(this.here()) < Hm.RENT_TIER) return;
+      h.rent(this.where.city, this.where.code, at, t);
+      this.milestone("home_rent", `Rented a flat in ${town}`);
+      this.say(`🏡 Rented a flat in ${town}${spot ? ` near ${spot.name}` : ""}: ${euro(h.rentAt(this.level))} a week with his bills`);
+      return;
+    }
+    if (!h.bought) {
+      if (this.bond.nudge === "save" || this.cents - Math.max(this.savingTarget(), KEEP_CENTS) < Hm.HOME_PRICE) return;
+      this.cents -= Hm.HOME_PRICE;
+      h.bought = t;
+      this.milestone("home_buy", `Bought his flat in ${h.city.split(",")[0]}`);
+      this.say(`🔑 Bought his flat in ${h.city.split(",")[0]} (${signed(-Hm.HOME_PRICE)}): no more rent`);
+      return;
+    }
+    if (!this.atHome() || h.things.length >= Hm.HOME_THINGS) return;
+    const it = Hm.nextThing(this.bag, (from) => this.isHome(from), Items.isTreasured);
+    if (!it) return;
+    this.bag.splice(this.bag.indexOf(it), 1);
+    h.things.push(it);
+    this.say(`🖼 Put up his ${it.name} from ${it.story!.from.split(",")[0]} at home (${h.things.length} of ${Hm.HOME_THINGS})`);
+  }
+
   /** Each morning: a share in his spot here if he has none in this city, then, with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
   private invest(t: number): void {
     if (this.bond.nudge === "save") return;
@@ -774,7 +847,7 @@ export class Stats {
     const spot = this.spots.spot(this.where.city);
     if (spot && !this.business.share(this.where.city) && spare() >= Bz.SHARE_PRICE) {
       this.cents -= Bz.SHARE_PRICE;
-      this.business.buyShare(this.where.city, spot.name, t);
+      this.business.buyShare(this.where.city, spot, t);
       this.milestone("share", `Bought a share in ${spot.name}, his spot`);
       this.say(`🏠 Bought a share in ${spot.name}, his spot (${signed(-Bz.SHARE_PRICE)}): it pays a little each day, more when he drops by`);
     }
@@ -817,8 +890,9 @@ export class Stats {
 
   /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
   private payBills(): void {
-    const due = Bl.billsAt(this.level);
-    const what = Bl.BILLS.map((b) => b.name).join(", ");
+    const rent = this.home.rentAt(this.level);
+    const due = Bl.billsAt(this.level) + rent;
+    const what = [...(rent ? ["rent"] : []), ...Bl.BILLS.map((b) => b.name)].join(", ");
     if (this.cents >= due) {
       this.cents -= due;
       this.say(`Paid the week's bills: ${what} (${signed(-due)})`);
@@ -940,14 +1014,14 @@ export class Stats {
   }
 
   /** True when he has the coins, attributes, skills, language, level, timing, season and weather for `action`, and the ingredients to cook or room to buy them. */
-  canDo(action: Action, hour: number): boolean {
+  canDo(action: Action, hour: number, kind = ""): boolean {
     if (action.pack && !this.cityPool) return false;
     if (action.steal && this.bond.leaning() !== "rascal") return false;
     if (action.bounty && !this.canPayOff()) return false;
     if (action.cook && !this.pantry.best(this.skills.level("cooking"))) return false;
     if (action.lottery && this.lottery.ticket) return false;
     if (action.groceries && !this.pantry.pick(action.groceries, this.skills.level("cooking"))) return false;
-    if (this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
+    if (!this.nightAtHome(action, kind) && this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
     if (action.item && !action.steal && this.cents <= KEEP_CENTS) return false;
     if (action.sell && !this.bag.length) return false;
     for (const [k, need] of Object.entries(action.needs ?? {})) {
@@ -1061,13 +1135,16 @@ export class Stats {
     if (action.lottery) return this.buyTicket(action, where);
     // A regular's discount at his spot.
     const regular = !!where && this.atSpot;
-    let spent = this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
+    const home = this.nightAtHome(action, kind);
+    let spent = home ? 0 : this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
     const fx: Fx = { ...action.fx };
+    if (home) fx.mood = (fx.mood ?? 0) + this.home.mood();
     if (action.skill) skilled(fx, this.skills.mult(action.skill));
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
-    let text = action.name;
+    let text = home ? "🏡 Slept at home in his own bed" : action.name;
     const risk = action.risk;
-    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult()) {
+    // At home the risk's roll still happens, so the walk's dice stay the same, but nothing goes wrong in his own bed.
+    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult() && !home) {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
@@ -1090,7 +1167,7 @@ export class Stats {
     const jokes = jokesFor(this.jokes, kind);
     // No jokes loaded, no roll, so the dice stay the same as without them.
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
-    const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
     if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
@@ -1106,7 +1183,14 @@ export class Stats {
   /** Adds fame where he is; a new tier is said in the feed. */
   addFame(n: number): void {
     const tier = this.fame.add(this.here(), n);
-    if (tier !== null) this.say(`⭐ ${this.where.city} knows his face now: ${FAME_NAMES[tier]}`);
+    if (tier === null) return;
+    this.say(`⭐ ${this.where.city} knows his face now: ${FAME_NAMES[tier]}`);
+    if (tier < FAME_NAMES.length - 1) return;
+    // A Local hero makes the local paper; its own dice.
+    const town = this.where.city.split(",")[0]!;
+    const head = new Rng(seedOf(`paper${this.here()}`)).pick(PAPER).replace("{CITY}", town);
+    this.milestone(`paper${this.here()}`, `In the ${town} paper: "${head}"`);
+    this.say(`📰 The ${town} paper runs a story on him: "${head}"`);
   }
 
   /**
@@ -1263,7 +1347,12 @@ export class Stats {
       this.say(home);
       this.diary.note("spot", place.name);
     }
-    if (!place.made) this.business.visited(this.where.city, place.name);
+    const gift = !place.made && this.spots.isSpot(this.where.city, place) ? this.mail.pickUp(this.where.city) : null;
+    if (gift) {
+      this.applyFx(gift.gift.fx);
+      this.say(`${gift.gift.icon} Found a gift at ${place.name} from ${gift.from}: ${gift.gift.line.toLowerCase()}`);
+    }
+    if (!place.made) this.business.visited(this.where.city, place);
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
@@ -1299,6 +1388,43 @@ export class Stats {
       if (s === code && COUNTRY_MARKS.includes(n)) this.milestone(`countries${n}`, `Had walked in ${n} countries`);
     }
     for (const item of Object.values(this.gear)) if (item?.story && !item.story.countries.includes(code)) item.story.countries.push(code);
+    if (was.city !== city) this.dreams(this.now());
+  }
+
+  /** What his bucket list's game dreams count (see bucket.ts). */
+  facts(): Bk.Facts {
+    return {
+      city: this.where.city,
+      level: this.level,
+      countries: this.keepsakes.seen.filter((c) => !c.includes(":")).length,
+      car: Bk.CAR_OR_BETTER.includes(this.vehicle()) ? 1 : 0,
+      dragon: this.vehicle() === "dragon" ? 1 : 0,
+      dishes: this.pantry.dishes.length,
+      fluent: this.languages.list().filter((l) => this.languages.learned(l.lang) && l.level >= Lang.FLUENT).length,
+      prize: this.lottery.prizes,
+      business: this.business.owned.length,
+      monument: this.bricks.built.length,
+      skill: Math.max(...SKILLS.map((k) => this.skills.level(k))),
+    };
+  }
+
+  /**
+   * Ticks off what he has done on his bucket list (XP, mood, a line in his life
+   * story). Only each morning (`fill`) does it fill up again, on its own dice:
+   * his first dreams go on quietly (the Stats sheet shows them), later ones
+   * with a feed line.
+   */
+  dreams(t: number, fill = false): void {
+    const f = this.facts();
+    for (const d of this.bucket.tick(f, t)) {
+      this.applyFx({ mood: Bk.DREAM_MOOD });
+      this.addXp(Bk.DREAM_XP);
+      this.milestone(`dream_${d.id}`, `Ticked off his bucket list: ${d.text}`);
+      this.say(`📝 ${d.icon} Ticked off his bucket list: ${d.text}! (+${Bk.DREAM_XP} XP)`);
+    }
+    if (!fill) return;
+    const added = this.bucket.fill(f, new Rng(seedOf(`bucket${t}:${this.bucket.done.length}`)));
+    if (this.bucket.done.length && added.length) this.say(`📝 New on his bucket list: ${Kit.list(added.map(Bk.lower))}`);
   }
 
   /** Cents off a fare for his souvenirs: FARE_CUT for every SOUVENIRS_PER_CUT, up to FARE_CUT_MAX. */
@@ -1629,7 +1755,12 @@ export class Stats {
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
     if (met) return (this.incidentLine = met);
     const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
-    return f && (this.incidentLine = this.say(f));
+    if (f) return (this.incidentLine = this.say(f));
+    // Where they know him, someone may greet him; its own dice.
+    if (place.made || !place.name) return "";
+    const g = new Rng(seedOf(`greet${t}${place.name}`));
+    const hi = greeting(this.fame.tier(this.here()), place.name, g.randf(), g.randf());
+    return hi && this.say(hi);
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -1684,10 +1815,11 @@ export class Stats {
       care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
+      home: this.home.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
-      business: this.business.toJSON(), lottery: this.lottery.toJSON(),
+      business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(),
       careers: this.careers.toJSON(),
       life: this.life.toJSON(),
     };
@@ -1737,6 +1869,7 @@ export class Stats {
     s.quests = Quests.fromJSON(d.quests);
     // A save from before pets: none yet.
     s.pets = Pt.Pets.fromJSON(d.pets);
+    s.home = Hm.Home.fromJSON(d.home);
     // A save from before visas: every country starts on Tourist.
     s.visas = V.Visas.fromJSON(d.visas);
     // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.
@@ -1746,6 +1879,8 @@ export class Stats {
     s.spots = Spots.fromJSON(d.spots);
     // A save from before the diary: an empty one, starting with the next day.
     s.diary = Diary.fromJSON(d.diary);
+    // A save from before letters and gifts: an empty mailbox.
+    s.mail = Mailbox.fromJSON(d.mail);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
@@ -1767,6 +1902,7 @@ export class Stats {
     // A save from before side businesses and the lottery: none owned, no ticket.
     s.business = Bz.Business.fromJSON(d.business);
     s.lottery = Lt.Lottery.fromJSON(d.lottery);
+    s.bucket = Bk.Bucket.fromJSON(d.bucket);
     // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
     s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;

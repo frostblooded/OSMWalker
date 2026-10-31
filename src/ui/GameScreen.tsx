@@ -328,7 +328,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "retire" && (
         <RetireSheet
           heir={walkerName(s.life.gen + 1)}
-          home={s.life.favourite(s.where.city).split(",")[0]!}
+          home={s.homeCity().split(",")[0]!}
           onCancel={() => setSheet(null)}
           onConfirm={() => {
             setSheet(null);

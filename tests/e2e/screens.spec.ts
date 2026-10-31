@@ -132,7 +132,8 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   await sheet.getByRole("tab", { name: /Places/ }).click();
   for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /World/ }).click();
-  await sheet.getByRole("button", { name: /^All/ }).last().click();
+  // The Souvenirs card's All, after the Countries card's.
+  await sheet.getByRole("button", { name: /^All/ }).nth(1).click();
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
   await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
@@ -287,6 +288,8 @@ async function dragAway(page: Page) {
 }
 
 test("Back to him shows after a drag only while the camera follows him", async ({ page }) => {
+  // Two drags and a reload: about 28 s on a busy CI runner, so it gets room.
+  test.setTimeout(60_000);
   await startInSofia(page);
   const back = page.getByRole("button", { name: /Back to him/ });
   await dragAway(page);

@@ -258,7 +258,13 @@ He keeps a small reserve: he won't buy gear that would leave him with less than 
 At the start of each week (Monday at midnight by your phone's clock), his bills arrive, also while you're away, and he pays them by himself:
 {BILL_LIST}
 
-At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
+At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. While he rents a flat, the rent comes with them (see His home). If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
+## His home {home}
+Once a city knows him as a {RENT_TIER_NAME} (see Fame), he rents a flat there, near his spot if he has one (see His spot). That is his home, and he only ever has one. The rent is {RENT_L1} a week at level 1, plus {RENT_PER_LEVEL} for each level above 1, paid with his bills (see Bills).
+
+Each morning while he rents, if he could pay {HOME_PRICE} and still keep what he saves up for, and never less than his reserve, he buys it, wherever he is (not while you whisper Save). Then there is no more rent. Each morning in his home city after that, he puts up one thing from his travels: the dearest item in his bag from another city that isn't treasured or stolen, up to {HOME_THINGS}. Things he puts up stay there for good.
+
+A night at a hostel or hotel in his home city is a night in his own bed instead: free, and it adds mood +{HOME_MOOD}, plus {HOME_MOOD_PER_THING} for each thing up. From anywhere else, {HOME_TRIP_PCT} of his trips take him home (see Trips to other cities). A house with a chimney marks his home on the map, and the Home card on the Stats sheet shows it. He retires there, and his heir keeps it (see Retiring).
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At rank 1 of its career a job with no attribute need and no skill pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he works he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_RANK_PCT} more for every rank above 1 in the job's career (see Careers),
@@ -304,7 +310,7 @@ The Side income card on the Stats sheet shows how many he owns, what they brough
 ## Shares in his spot {shares}
 In a city where he has a spot (see His spot), he buys a share in it, one share a city: each morning, if he could pay {SHARE_PRICE} and still keep what he saves up for, and never less than his reserve, as for a business (see Side businesses). Shares come before the next business.
 
-A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day, for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line, also while you're away.
+A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day (another place with the same name, such as a chain's other shop, doesn't count), for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line (once he has more than one share, as "N shares in his spots"), also while you're away.
 ## The lottery {lottery}
 Kiosks, corner shops and newsagents sell lottery tickets for {TICKET}. He buys one now and then, by himself, one ticket a draw. The draw is every day at {DRAW_HOUR} by your phone's clock, also while you're away; a ticket bought after that is for the next day's. The odds are a real lottery's:
 {PRIZE_LIST}
@@ -357,11 +363,11 @@ On top of the usual drift, named moodlets nudge his mood a little every hour whi
 
 The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
 ## Wants and fears {wants}
-He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}), and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
+He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}) for up to {LONG_H} hours, as his city may have none, and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
 
 A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
 
-A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
+A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}. If he hasn't beaten it within {LONG_H} hours, the fear fades on its own.
 ## Quirks {quirks}
 What he does often turns into a quirk. Each counts the things he does at some kinds of places, in all his cities:
 {QUIRK_LIST}
@@ -483,6 +489,11 @@ Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} 
 Every time he levels up, his highest attribute (not counting gear) grows by 1, and he gets {SPEED_PER_LEVEL_PCT} faster. He also gets a free pack of city cards (see City cards). On a tie, strength comes first, then charm, wits and luck.
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
+## Bucket list {bucket}
+He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of things to do in the game and real sights in real cities. Each morning's new dreams include a sight whenever none is on it, while any are left. You never pick them: he ticks them off by himself.
+- Things to do: {GOAL_LIST}.
+- Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
+Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet, which goes on the next morning. His first dreams go on his list as soon as he sets out (for an older walker, on his next morning). Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel, and never less than {DREAM_SHARE_PCT} of all the cities he could go to, so even a small one comes up now and then (see Trips). He drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
 Near the end of the Stats sheet are his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
@@ -511,15 +522,16 @@ How well he was kept during a stage names the next one and nudges the attribute 
 
 Each stage starts the count over. You never have to do anything: he looks after himself, and care packages (see Clovers and care packages) only help.
 ## Retiring {retire}
-At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
+At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in his home's city (see His home), or with no home in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
 
-He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. A Retire you asked for on a ride works the same way once he lands. His heir then sets out from the favourite city, and while its streets load he stands still and says "🌅 Retiring in" that city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later; on a reopen the card then says he stopped to retire. If you retire him while he is on a ride, he says he will and retires once he lands.
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. A Retire you asked for on a ride works the same way once he lands. His heir then sets out from that city, keeps his home, and while its streets load he stands still and says "🌅 Retiring in" that city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later; on a reopen the card then says he stopped to retire. If you retire him while he is on a ride, he says he will and retires once he lands.
 ## His heirs and the family {family}
 Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words, wants and fears, spells and Magic, careers, skills, languages, pantry, quirks, spots, diary, Records, or your bond with him, so his karma, his fame in every city and the police start fresh too (see Karma). What the family keeps:
 - an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
 - the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
 - the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, the creatures, giants, fairy gifts, midnight finds and portals in the Collection, and golden bricks and monuments,
 - his pet, if he has one (see His pet),
+- his home, rented or his own, with the things he put up (see His home),
 - your clovers, care packages and storyteller.
 
 Once there is an heir, every card in the Collection says which walker of the family found it. Near the end of the Stats sheet is the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. Below it, the hall of walkers compares them (see Hall of walkers).
@@ -591,9 +603,9 @@ Every time he picks a new goal he rolls the trip dice, unless a need is urgent (
 
 Apart from the dice, an old monument or castle ruin very rarely opens as a portal and takes him to a new city for free (see Portals).
 
-While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas).
+While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas). Once he has a home, {HOME_TRIP_PCT} of trips from any other city take him home instead of where the dice say (see His home).
 
-The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
+The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most, and a city with a sight on his bucket list weighs {DREAM_PULL} times as much, and at least {DREAM_SHARE_PCT} of all of them (see Bucket list).
 
 While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
 
@@ -722,7 +734,7 @@ He saves them for a monument with his name:
 
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
-History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), renting and buying his home (see His home), each city's paper story when he becomes its Local hero (see Fame), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -800,6 +812,8 @@ At {AURA_AT} or more he wears a small gold halo on the map, and at −{AURA_AT} 
 ## Fame {fame}
 Fame is how well a city knows his face, good or bad. Each city keeps its own: every hour he spends there adds {FAME_PER_H}, and every deed adds one for each point of karma it moves, kind or rascal alike. It never drops. The feed says when a city knows him better:
 {FAME_LIST}
+
+Where they know him, people at his stops greet him now and then: {GREET_PCT} of stops per fame tier, so {GREET_HERO_PCT} where he is a Local hero. When a city makes him its Local hero, its local paper runs a story on him, which goes in his life story (see His life). Once a city knows him as a {RENT_TIER_NAME}, he may rent a flat there (see His home).
 
 His fame's discount is off prices at places and shops, not fares, and counts unless he leans rascal (see Karma). All his fame together makes the police spot him more easily (see The police), and a city that knows him well adds more heat to a crime there.
 ## The police {police}
@@ -920,15 +934,20 @@ Camera follows him (a switch, on at first and remembered) keeps him in view: the
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
+## Letters and gifts {mail}
+His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. Big news that comes as a letter (see Friends' news) goes in his mailbox too, and is the only letter that day. The Mailbox card on the Stats sheet shows the newest, with older ones folded into More; tap one to read it. It keeps the last {KEEP_LETTERS}.
+
+Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there, such as a flower, cake, a lucky coin or a book. It waits, one per city, until he next reaches his spot, and then he gets its boost. His partner is always with him, so never writes to him or leaves a gift.
 ## Diary and dreams {diary}
 📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
 
-When he naps or sleeps at a place (a nap on a bench, in a reading room or under a tree, dozing in the summer sun, a siesta in the shade, falling asleep in a film, a cabin, a hostel bunk or a hotel room for the night; not a fairy ring), {DREAM_PCT} of the time he dreams: an odd mix of the places of his day. The dream shows in History and under that day in his diary.
+When he naps or sleeps at a place (a nap on a bench, in a reading room or under a tree, dozing in the summer sun, a siesta in the shade, falling asleep in a film, a cabin, a hostel bunk or a hotel room for the night; not a fairy ring), {DREAM_PCT} of the time he dreams: an odd mix of the places of his day. The dream shows in History and under that day in his diary, at most {MAX_DREAMS} a day.
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Life: his stage and day of life, how long until the next stage (or until he retires), how his care is going this stage, what the stage does, and the family perk (see Life stages).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
+- Bucket list: the dreams on his list, how near he is to each game goal, and which city each sight is in (see Bucket list).
 - Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Side income: his businesses and shares, what they brought in, the next business and his lottery prizes (see Side businesses, Shares in his spot, The lottery).
@@ -949,7 +968,9 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Pet: his pet's level, the km they walked together towards the next level, its perk, how long it has been with him and whether it ate today; the pets he had fold into Remembered (see His pet).
 - Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
 - Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
+- Home: his home's city, the rent or that it is his, what it takes to buy, the things he put up and what a night there does (see His home).
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
+- Mailbox: the newest letters from his friends, each opening on a tap, and where a gift waits at his spot (see Letters and gifts).
 - Effects: his buffs with the minutes they have left.
 - Records: his bests and totals (see Records).
 - Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
@@ -960,7 +981,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings) and the crawls.
-- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases).
+- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), his bucket list (see Bucket list), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases), and a life of his own: a pet, a fairy pet, a flat, his own home, a full home, a long stay visa and citizenship (see His pet, His home, Visas).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 

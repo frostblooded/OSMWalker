@@ -8,12 +8,16 @@ make.
 
 Every PR gets a review before it is merged:
 
-1. With the PR open and CI green, start a fresh review agent (Agent tool,
+1. With the PR open and `npm run verify` passed on its head (pushes to a
+   branch only need `npm run check`), start a fresh review agent (Agent tool,
    general-purpose). Give it only `git diff origin/master...HEAD`, this
    file and the PR body. Ask for violations of the rules below, each with
    file, line and the rule broken, and nothing else.
 2. Fix each finding, or say in the PR why it stands.
-3. Repeat until a review comes back empty. Then merge it by hand.
+3. Repeat until a review comes back empty. Then merge `master` into the
+   branch if it moved, `npm run verify`, push, and merge it by hand. The
+   branch holds the newest `master`, so the merge deploys the very code
+   that passed.
 
 ## Rules
 

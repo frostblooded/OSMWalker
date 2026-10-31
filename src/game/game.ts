@@ -21,12 +21,13 @@ import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
+import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import * as R from "../core/repute";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { DiaryData } from "../core/diary";
+import type { MailData } from "../core/mail";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
 import { type Ancestor, ELDER, walkerName } from "../core/life";
@@ -78,7 +79,7 @@ export const RIVAL_OFFSET_DEG = 0.0003;
 /** After the heir's streets failed to load, retiring waits this long before trying again. */
 export const RETIRE_RETRY_MS = 60_000;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -320,7 +321,7 @@ export class Game {
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
-    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky), p, this.stats);
+    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour(), p.class), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => placePull(p, this.stats, this.hour());
     w.events = {
       landed: (c, t) => this.onLanded(c, t),
@@ -433,7 +434,7 @@ export class Game {
       this.changed();
       return;
     }
-    const action = choose([...this.activities.forPlace(place, this.country, sky.holiday), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
+    const action = choose([...this.activities.forPlace(place, this.country, sky.holiday), ...this.cityFacts], this.stats, sky.hour, this.rng.randf(), place.class);
     this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -586,7 +587,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the diary's lines, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the diary's and his friends' letters' lines, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -596,6 +597,7 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.diaryData = this.deps.data.diary ?? null;
+    this.stats.mailData = this.deps.data.mail ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.creatureKinds = this.deps.data.creatures ?? [];
     this.stats.spellKinds = this.deps.data.spells ?? [];
@@ -633,7 +635,7 @@ export class Game {
     this.retiring = true;
     try {
       const life = this.stats.life;
-      const home = life.favourite(this.city);
+      const home = this.stats.homeCity();
       const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
       const at = life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
       const here = { city: this.city, origin: this.origin, bounds: w.bounds };
@@ -831,7 +833,7 @@ export class Game {
           // No free ride while he is on a paid one.
           if (w.isTraveling()) return null;
           const here = w.position();
-          return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
+          return this.trips.pick(kind, this.country, here[0], here[1], this.rng, this.stats.bucket.pull());
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
@@ -1301,7 +1303,7 @@ export class Game {
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...this.questIcons()];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...homeIcons(this.stats.home, this.stats.atHome()), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */
