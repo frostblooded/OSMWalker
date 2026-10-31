@@ -2,7 +2,7 @@
 // (three cold loads, median of each number) and fails if any number in
 // budgets.json is exceeded.
 // Usage: node tests/perf/perf.mjs   (after npm run build)
-// PW_CHROMIUM=/path/to/chrome uses a local Chromium; CI uses the runner's Chrome.
+// PW_CHROMIUM=/path/to/chrome uses a local Chromium (npm run verify finds the cloud sessions' one).
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
@@ -17,7 +17,6 @@ const PORT = 4174;
 
 const server = await serve(dist, PORT);
 const browser = await chromium.launch({
-  channel: process.env.CI ? "chrome" : undefined,
   executablePath: process.env.PW_CHROMIUM || undefined,
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
@@ -71,7 +70,7 @@ async function run() {
   };
 }
 
-// A shared CI runner has slow moments, so timings come from the middle of RUNS loads; sizes are the same every run.
+// A shared machine has slow moments, so timings come from the middle of RUNS loads; sizes are the same every run.
 const RUNS = Number(process.env.PERF_RUNS ?? 3);
 const runs = [];
 for (let i = 0; i < RUNS; i++) runs.push(await run());

@@ -504,6 +504,7 @@
   "_spot": [
    {
     "name": "Siesta in the shade",
+    "sleep": true,
     "min": 15,
     "fx": {
      "xp": 3,
@@ -1089,7 +1090,8 @@
      "str": 0.3,
      "energy": -20,
      "mood": 15
-    }
+    },
+    "skill": "sport"
    }
   ]
  },
@@ -1639,7 +1641,8 @@
     "fx": {
      "xp": 15,
      "wit": 0.5
-    }
+    },
+    "skill": "chess"
    }
   ]
  },

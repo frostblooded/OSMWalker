@@ -34,7 +34,8 @@ export const SET_CHARM = 1;
 
 export type CityCard = { key: string; name: string; code: string; country: string; rarity: Rarity };
 export type Pool = { cards: CityCard[]; byRarity: Map<Rarity, CityCard[]>; byKey: Map<string, CityCard>; byCountry: Map<string, CityCard[]> };
-export type Owned = { finish: Finish; t: number };
+/** `gen`: the walker of the family who found it (see life.ts), missing for the first. */
+export type Owned = { finish: Finish; t: number; gen?: number };
 export type Spare = { rarity: Rarity; finish: Finish };
 
 const cardKey = (code: string, name: string) => `${code}:${name}`;
