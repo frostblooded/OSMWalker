@@ -37,6 +37,19 @@ function deps(o: Partial<CatchUpDeps> = {}): CatchUpDeps {
 }
 
 describe("catch-up", () => {
+  it("does holiday things on a public holiday there", () => {
+    const holidayLines = (holiday: boolean) => {
+      const asked: string[] = [];
+      const sky = (ms: number, c: { code: string; center: [number, number] }) => (asked.push(c.code), skyAt(ms, c.center[0], c.center[1], 0, null, holiday));
+      const s = catchUp(new Stats(), HOME, [0, 0], 6 * 3600, START_MS, deps({ skyAt: sky }));
+      return { lines: s.lines.filter((l) => /holiday/.test(l.text)), asked };
+    };
+    const on = holidayLines(true);
+    expect(on.lines.length).toBeGreaterThan(0);
+    expect(on.asked).toContain("AAA");
+    expect(holidayLines(false).lines).toEqual([]);
+  });
+
   it("covers the time away, at most a day", () => {
     const stats = new Stats();
     expect(catchUp(stats, HOME, [0, 0], 2 * 3600, START_MS, deps()).coveredS).toBe(2 * 3600);

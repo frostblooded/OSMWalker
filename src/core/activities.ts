@@ -4,7 +4,7 @@
 // data/flavour.json adds each country's own actions (by its code in
 // data/cities.tsv) under the same keys; they join the usual ones there.
 // Places of a career (see careers.ts) get its rank shifts, and their shifts
-// count for it.
+// count for it. On a public holiday the "_holiday" actions join every place's.
 // Picks an action he can do, leaning towards what he needs.
 import { KIND_DEED_WEIGHT } from "./bond";
 import { CAREER_PULL, careerAt, isShift, rankShift, TOP_RANK } from "./careers";
@@ -127,14 +127,18 @@ export class Activities {
     }
   }
 
-  /** Actions for `place` (null for a random spot) in `country`. */
-  forPlace(place: Partial<Place> | null, country = ""): Action[] {
-    return [...this.usual(place), ...local(place, this.flavour[country] ?? {})];
+  /** Actions for `place` (null for a random spot) in `country`, with the holiday ones on a public holiday. */
+  forPlace(place: Partial<Place> | null, country = "", holiday = false): Action[] {
+    return [...this.usual(place), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
   }
 
   /** Like forPlace, without noting places that have no actions of their own yet. */
-  peek(place: Partial<Place> | null, country = ""): Action[] {
-    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {})];
+  peek(place: Partial<Place> | null, country = "", holiday = false): Action[] {
+    return [...this.usual(place, false), ...local(place, this.flavour[country] ?? {}), ...this.festive(holiday)];
+  }
+
+  private festive(holiday: boolean): Action[] {
+    return holiday ? (this.data._holiday ?? []) : [];
   }
 
   private usual(place: Partial<Place> | null, note = true): Action[] {
