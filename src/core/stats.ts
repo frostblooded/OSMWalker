@@ -47,6 +47,7 @@ import * as Lt from "./lottery";
 import * as M from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
+import { getCrawler, isRuin, Ruins } from "./ruins";
 import * as R from "./repute";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
@@ -273,6 +274,8 @@ export class Stats {
   week = new Week();
   /** His bests and lifetime totals. */
   records = new Records();
+  /** Castles and ruins he crawled lately, and his last crawl logs. */
+  ruins = new Ruins();
   /** Paces the incidents. */
   story = new Storyteller();
   /** His quests, the city's quest board and the world events near him. */
@@ -558,6 +561,14 @@ export class Stats {
     const [item] = this.bag.splice(i, 1);
     this.cents += this.sellPrice(item!);
     return item!;
+  }
+
+  /** Keeps an item he found `where`: worn when it is an upgrade, else in the bag. */
+  found(item: Item, where: string): void {
+    item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
+    if (this.isUpgrade(item)) this.equip(item);
+    else this.bagAdd(item);
+    this.say(`Found a ${item.rarity} ${item.name} ${where}`);
   }
 
   /** Puts an item in the bag; when that overfills it, sells the cheapest he may sell, which can be the new item. */
@@ -1443,7 +1454,8 @@ export class Stats {
   /**
    * Right after reaching a real place (after visit()): a landmark card the
    * first time (a revisit gives nothing) and maybe the country's souvenir,
-   * a new Placedex kind, the perks of crawls he finished, and progress on the rest.
+   * a new Placedex kind, the perks of crawls he finished, and progress on the rest;
+   * at a castle or ruin not crawled this week, a ruin crawl once crawl.ts has loaded.
    * Made-up places (core/poiGen.ts) give none of these; only the first
    * of each odd kind (a well, a wizard's tower) is noted for the Collection.
    */
@@ -1495,6 +1507,8 @@ export class Stats {
       delete k.progress[c.id];
       this.say(`Finished the ${c.name}! From now on ${K.perkText(c.perk)} at each such place`);
     }
+    const crawl = getCrawler();
+    if (crawl && isRuin(place) && this.ruins.due(key, this.now())) this.ruins.done(key, crawl(this, place, rng));
   }
 
   /** Pulls PACK_SIZE city cards: new ones go in his binder (a better finish replaces a worse one), the rest are spares. Returns the feed line. */
@@ -1853,7 +1867,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       home: this.home.toJSON(),
@@ -1906,6 +1920,7 @@ export class Stats {
     s.giants = Gi.Sightings.fromJSON(d.giants);
     s.rings = Fa.Rings.fromJSON(d.rings);
     s.records = Records.fromJSON(d.records);
+    s.ruins = Ruins.fromJSON(d.ruins);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
     // A save from before quests starts with none, and rolls the board of the city he is in.
