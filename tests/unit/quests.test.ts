@@ -251,7 +251,7 @@ describe("world events", () => {
     expect(s.quests.log.at(-1)).toMatchObject({ title: "Test event", event: true });
   });
 
-  it("never start at a closed place, and one that closes waits while he does other things", () => {
+  it("never start at a closed place, and one that closes isn't picked until it opens", () => {
     const { s } = fresh({ names: ["Ana"], quests: [], events: [ev({ at: ["museum"] })] });
     const museum = TOWN.find((p) => p.class === "museum")!;
     s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock: 22 };
@@ -260,6 +260,9 @@ describe("world events", () => {
     expect(Q.startEvent(s, null, museum, TOWN, 12, new Rng(8))).not.toBeNull();
     s.sky = { ...s.sky, clock: 20 };
     expect(Q.questGoal(s, TOWN, HERE, new Rng(8))).toBeNull();
+    expect(s.quests.events).toHaveLength(1);
+    s.sky = { ...s.sky, clock: 8 };
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))?.name).toBe(museum.name);
   });
 
   it("the one you nudged comes first, however far he has walked from it", () => {
