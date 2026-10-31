@@ -364,6 +364,7 @@ export const FEATS: Feat[] = [
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
   { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
+  { id: "notes", tab: "world", icon: "📖", name: "Well read", what: "{n} sights read up on", tiers: [5, 25, 100], title: "Well read", count: (s) => s.sightNotes.read.length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },

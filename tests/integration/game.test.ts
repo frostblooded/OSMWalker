@@ -17,7 +17,7 @@ import * as Items from "../../src/core/items";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
-import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
+import { FULLNESS_PER_H, ON_THE_TRAIL, visitKey, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
 import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
@@ -433,6 +433,48 @@ describe("game", () => {
     await settle(again);
     expect(again.holiday?.name).toBe("Liberation Day");
     expect(asked).toHaveLength(1);
+  });
+
+  it("reads up on a big sight once, English Wikipedia first and then the country's, and tries again after a failed request", async () => {
+    const MUSEUM: Place = { name: "Национален исторически музей", class: "museum", subclass: "museum", rank: 1, lat: 42.6885, lon: 23.3215 };
+    const asked: string[] = [];
+    let down = true;
+    const api = new Api(async (url) => {
+      if (!url.includes("wikipedia.org")) return new Response("", { status: 503 });
+      asked.push(url.split(".wikipedia")[0]!.slice(8));
+      if (down) return new Response("", { status: 503 });
+      const title = url.startsWith("https://en.") ? "National History Museum (Bulgaria)" : "Национален исторически музей";
+      return new Response(JSON.stringify({ query: { pages: { "1": { title, extract: "Най-големият музей (основан 1973) в България.", index: 1 } } } }));
+    });
+    let now = Date.UTC(2026, 9, 31, 10);
+    const { g, storage } = game({ api, places: [MUSEUM], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const read = () => g.stats.history.entries.filter((e) => e.text.startsWith("📖")).map((e) => e.text);
+    const walk = async (min: number) => {
+      for (let i = 0; i < min; i++) {
+        run(g, 60);
+        now += 60_000;
+        await tick();
+      }
+    };
+    // While Wikipedia is down he asks again at later visits.
+    await walk(60);
+    expect(read()).toEqual([]);
+    expect(asked.length).toBeGreaterThan(1);
+    expect(new Set(asked)).toEqual(new Set(["en"]));
+    expect(g.stats.sightNotes.knows(visitKey(MUSEUM))).toBe(false);
+    down = false;
+    // The English article has another name, so the Bulgarian one is read.
+    await walk(60);
+    expect(read()).toEqual(["📖 Read up on Национален исторически музей: Най-големият музей в България."]);
+    expect(asked.slice(-2)).toEqual(["en", "bg"]);
+    const n = asked.length;
+    await walk(60);
+    expect(asked).toHaveLength(n);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    expect(again.stats.sightNotes.read).toEqual([visitKey(MUSEUM)]);
   });
 
   it("keeps the walk across a save", async () => {

@@ -276,6 +276,19 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before sight notes, with none read yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.sightNotes;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.sightNotes.read).toEqual([]);
+    expect(back.sightNotes.none).toEqual([]);
+    expect(back.cents).toBe(4321);
+  });
+
   it("loads saves from before records, with fresh ones", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
