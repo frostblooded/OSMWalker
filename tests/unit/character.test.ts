@@ -198,4 +198,16 @@ describe("saves", () => {
     o.passTime(1, 0);
     expect(o.tastes.likes).toHaveLength(T.LIKES);
   });
+
+  it("an old save's Rattled and Scared moodlets count towards Tense", () => {
+    const s = at();
+    s.mind.moodlets = [
+      { name: "Rattled", icon: "😖", per_h: -1, left: 60 },
+      { name: "Scared of the dog park", icon: "😨", per_h: -2, left: 60 },
+      { name: "Bad meal", icon: "", per_h: -1, left: 60 },
+    ];
+    const back = Stats.fromJSON(JSON.parse(JSON.stringify(s)));
+    expect(back.mind.moodlets.map((m) => m.emo)).toEqual(["tense", "tense", undefined]);
+    expect(back.emotion()).toBe("tense");
+  });
 });

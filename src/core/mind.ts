@@ -154,7 +154,8 @@ export class Mind {
 
   static fromJSON(d?: Partial<ReturnType<Mind["toJSON"]>>): Mind {
     const m = new Mind();
-    m.moodlets = (d?.moodlets ?? []).map((x) => ({ ...x }));
+    // A save from before emotions: its Rattled and Scared moodlets count towards Tense, as new ones do.
+    m.moodlets = (d?.moodlets ?? []).map((x) => (x.emo || !(x.name === "Rattled" || x.name.startsWith("Scared of")) ? { ...x } : { ...x, emo: "tense" as const }));
     m.wants = (d?.wants ?? []).map((x) => ({ ...x }));
     m.fears = [...(d?.fears ?? [])];
     return m;
