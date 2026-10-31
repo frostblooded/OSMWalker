@@ -118,9 +118,9 @@ export function modifierCount(r: number): number {
   return MOD_ROLLS.filter((t) => r >= t).length;
 }
 
-/** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost). */
-export function make(kind: Kind, level: number, rng: Rng, luck = 0): Item {
-  const [base, mat, mods] = roll(kind, level, rng, luck, MOD_ROLLS.length);
+/** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost), and so does `boost`. */
+export function make(kind: Kind, level: number, rng: Rng, luck = 0, boost = 0): Item {
+  const [base, mat, mods] = roll(kind, level, rng, luck, MOD_ROLLS.length, boost);
   return build(base, mat, mods);
 }
 
@@ -134,10 +134,10 @@ export function makeEnchanted(kind: Kind, level: number, rng: Rng, luck = 0): It
 }
 
 /** A base, a material and up to `most` modifiers for a shop of `kind`. */
-function roll(kind: Kind, level: number, rng: Rng, luck: number, most: number): [Base, Material, Modifier[]] {
+function roll(kind: Kind, level: number, rng: Rng, luck: number, most: number, boost = 0): [Base, Material, Modifier[]] {
   const base = rng.pick(KINDS[kind]);
   const mat = rng.pick(MATERIALS.filter((m) => m.level <= level));
-  const n = Math.min(modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999)), most);
+  const n = Math.min(modifierCount(Math.min(rng.randf() + rarityBoost(luck) + boost, 0.999999)), most);
   const mods: Modifier[] = [];
   // At most one suffix; the rest are prefixes, never the same one twice.
   if (n > 0) mods.push(rng.pick(SUFFIXES));

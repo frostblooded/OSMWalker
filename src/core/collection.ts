@@ -82,7 +82,7 @@ export function ownedIds(s: Stats): Set<string> {
 export const TIER_NAMES = ["", "Bronze", "Silver", "Gold"] as const;
 export const MEDALS = ["", "🥉", "🥈", "🥇"] as const;
 
-const SLOT_ICON: Record<Items.Slot, string> = { weapon: "⚔", offhand: "🛡", head: "🎩", body: "👕", feet: "👟", bag: "🎒", trinket: "💍", vehicle: "🚲" };
+export const SLOT_ICON: Record<Items.Slot, string> = { weapon: "⚔", offhand: "🛡", head: "🎩", body: "👕", feet: "👟", bag: "🎒", trinket: "💍", vehicle: "🚲" };
 const VEHICLE_ICON: Record<string, string> = { bike: "🚲", motorcycle: "🛵", car: "🚗", ...MOUNT_ICON };
 const words = (s: string) => s.replace(/_/g, " ");
 /** "biggest", "2nd-biggest"... for a size rank up to CARDS_PER_COUNTRY. */
@@ -471,6 +471,7 @@ export const FEATS: Feat[] = [
   { id: "dreamer", tab: "world", icon: "📝", name: "Dreamer", what: "{n} dreams ticked off his bucket list", tiers: [1, 10, 30], title: "Dreamer", count: (s) => s.bucket.done.length },
   { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
+  { id: "notes", tab: "world", icon: "📖", name: "Well read", what: "{n} sights read up on", tiers: [5, 25, 100], title: "Well read", count: (s) => s.sightNotes.read.length },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },
@@ -484,6 +485,7 @@ export const FEATS: Feat[] = [
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "heir", tab: "world", icon: "🏛", name: "Pride of the family", what: "{n} family records held over the walkers before him", tiers: [1, 3, HALL.length], title: "Family Legend", count: (s) => heldBy(s).length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
+  { id: "ruins", tab: "places", icon: "🏰", name: "Delver", what: "{n} ruins crawled", tiers: [1, 5, 20], title: "Delver", count: (s) => s.ruins.count },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
   { id: "materials", tab: "gear", icon: "⛏", name: "Materials", what: "{n} materials owned", tiers: [4, 8, MATERIAL_NAMES.length], title: "Artisan", count: (s) => [...ownedIds(s)].filter((x) => x.startsWith("m:")).length },

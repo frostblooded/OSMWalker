@@ -1,11 +1,14 @@
 // Chance cards at work (The Sims' career chance cards): now and then a paid
 // shift brings a small dilemma, such as the boss asking him to cover a double.
-// He picks by himself, leaning on one of his attributes, never you; the bold
-// choice can pay off or go wrong, by the same attribute. The feed shows what
-// he chose and how it went. Pure; Stats.do draws one.
+// While you watch it pops up as a timed moment you may answer; if you don't,
+// or while you are away, he picks by himself, leaning on one of his
+// attributes. The bold choice can pay off or go wrong, by the same
+// attribute. The feed shows what was chosen and how it went. Pure; Stats.do
+// draws one.
 import { effect } from "./gifts";
 import { ATTR_NAMES, leanShare } from "./incidents";
 import { signed } from "./money";
+import type { Moment } from "./moments";
 import type { Rng } from "./rng";
 import type { Attr, Fx, Stats } from "./stats";
 
@@ -79,21 +82,48 @@ export const helpList = () =>
     return `- ${c.icon} ${c.text} ${c.bold.label} (works out: ${pay(c.bold.win)}; goes wrong: ${pay(c.bold.lose)}) or ${c.safe.label} (${pay(c.safe.after)}). He leans on ${ATTR_NAMES[c.lean]}.`;
   }).join("\n");
 
-/**
- * Maybe a chance card after a job that paid `wage` cents: CARD_CHANCE of
- * one. He picks, the outcome is applied to `stats`, and the feed line is
- * returned ("" for no card).
- */
-export function draw(stats: Stats, wage: number, rng: Rng): string {
-  if (wage <= 0 || rng.randf() >= CARD_CHANCE) return "";
-  const c = rng.pick(CARDS);
-  const share = leanShare(stats, c.lean);
-  const bold = rng.randf() < 0.5 + share;
+/** A card that came up after a shift that paid `wage` cents, waiting for a pick. */
+export type Drawn = { card: WorkCard; wage: number };
+
+/** Maybe a chance card after a shift that paid `wage` cents: CARD_CHANCE of one, or null. */
+export function drawCard(wage: number, rng: Rng): Drawn | null {
+  if (wage <= 0 || rng.randf() >= CARD_CHANCE) return null;
+  return { card: rng.pick(CARDS), wage };
+}
+
+/** The card as a timed moment (moments.ts): bold or safe. */
+export const momentOf = (c: WorkCard): Moment => ({
+  id: `work-${c.id}`,
+  icon: c.icon,
+  ask: `At work: ${c.text}`,
+  lean: c.lean,
+  options: [
+    { id: "bold", label: c.bold.label },
+    { id: "safe", label: c.safe.label },
+  ],
+  default: "safe",
+});
+
+/** His own pick: bold with even odds, tilted by the card's attribute (leanShare). */
+export const hisPick = (stats: Stats, c: WorkCard, rng: Rng): Pick => (rng.randf() < 0.5 + leanShare(stats, c.lean) ? "bold" : "safe");
+
+export type Pick = "bold" | "safe";
+
+/** Plays `pick` (yours when `you`) on drawn card `d`: the bold choice works out by the card's attribute. Applies it to `stats` and returns the feed line. */
+export function settle(stats: Stats, d: Drawn, pick: Pick, you: boolean, rng: Rng): string {
+  const c = d.card;
+  const bold = pick === "bold";
   const o = bold ? (rng.randf() < winChance(stats.attr(c.lean)) ? c.bold.win : c.bold.lose) : c.safe.after;
-  const pay = Math.max(Math.round(wage * (o.pay ?? 0)), -stats.cents);
+  const pay = Math.max(Math.round(d.wage * (o.pay ?? 0)), -stats.cents);
   stats.cents += pay;
   stats.applyFx(o.fx ?? {});
   if (o.deed) stats.deed(o.deed);
   const what = [pay ? signed(pay) : "", effect(o)].filter(Boolean).join(", ");
-  return `${c.icon} At work: ${c.text} ${bold ? c.bold.label : c.safe.label}: he ${o.say}${what ? ` (${what})` : ""}`;
+  return `${c.icon} At work: ${c.text} ${you ? "" : "Decided by himself: "}${bold ? c.bold.label : c.safe.label}: he ${o.say}${what ? ` (${what})` : ""}`;
+}
+
+/** A card with nobody to ask (the catch-up, or no screen): he draws, picks and plays it himself. Returns the feed line, or "". */
+export function draw(stats: Stats, wage: number, rng: Rng): string {
+  const d = drawCard(wage, rng);
+  return d ? settle(stats, d, hisPick(stats, d.card, rng), false, rng) : "";
 }

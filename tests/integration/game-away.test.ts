@@ -5,6 +5,7 @@ import { FULLNESS_PER_H, type Place } from "../../src/core/stats";
 import { cityBounds, LONG_WALK_MAX_S, SLEEPER_FROM_M } from "../../src/core/trips";
 import { MOMENT_S } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
+import { getCrawler, setCrawler } from "../../src/core/ruins";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { dataFile } from "../support/data";
@@ -62,6 +63,18 @@ describe("game", () => {
       await g.wake();
       expect(g.chase).toBeNull();
       expect(g.policeAt()).toBeNull();
+    });
+
+    it("a reopen loads the ruin crawls before the catch-up", async () => {
+      setCrawler(null);
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(getCrawler()).not.toBeNull();
+      setCrawler(null);
     });
 
     it("catches up after the tab was hidden, and the card can be closed", async () => {

@@ -437,6 +437,19 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before sight notes, with none read yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.sightNotes;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.sightNotes.read).toEqual([]);
+    expect(back.sightNotes.none).toEqual([]);
+    expect(back.cents).toBe(4321);
+  });
+
   it("loads saves from before records, with fresh ones", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -447,6 +460,19 @@ describe("save file", () => {
     const back = (f.read() as Saved).stats;
     expect(back.records.best.stretchM).toBe(0);
     expect(back.records.countries).toEqual([]);
+  });
+
+  it("loads saves from before ruin crawls, with none crawled", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.ruins;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.ruins.logs).toEqual([]);
+    expect(back.ruins.count).toBe(0);
+    expect(back.ruins.due("x", 0)).toBe(true);
   });
 
   it("loads saves from before golden bricks and the life story, with the old firsts skipped", () => {

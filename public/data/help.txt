@@ -198,7 +198,7 @@ Some actions have a risk: a chance that it goes differently, which adds to what 
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## Timed moments {moments}
-When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap. Stories ask too: an incident with a choice (see Incidents) and a contest with Viktor (see Viktor, his rival). When one of those opens at a stop, he picks that place's own moment himself.
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap. After a paid shift a chance card at work may take the place's moment instead (see Chance cards at work); it leans and plays by its own rules. Stories ask too: an incident with a choice (see Incidents) and a contest with Viktor (see Viktor, his rival). When one of those opens at a stop, he picks that place's own moment himself.
 
 A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
 
@@ -309,7 +309,7 @@ He leans to his best career, the one he has worked most shifts in: its jobs weig
 
 His ranks are his for good, in every city and country. The Stats sheet lists each career he has worked in, with his rank and the shifts to the next one.
 ## Chance cards at work {work_cards}
-After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
+After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. While you watch, it pops up as a timed moment (see Timed moments): tap a choice, or let the timer run out and he picks by himself. While you are away he always picks by himself, and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what was chosen ("Decided by himself" when he picked) and how it went:
 {WORK_CARD_LIST}
 ## Saving for a vehicle {saving}
 He always saves up for the cheapest vehicle one step above what he rides:
@@ -516,13 +516,13 @@ He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of thing
 - Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
 Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet, which goes on the next morning. His first dreams go on his list as soon as he sets out (for an older walker, on his next morning). Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel, and never less than {DREAM_SHARE_PCT} of all the cities he could go to, so even a small one comes up now and then (see Trips). He drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
-Near the end of the Stats sheet are his records over his whole life. Each best only goes up:
+🏆 Records in the menu opens his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
 - Most walked, and most places stopped at, in one day
 - Most money he has held at once
 - Longest he has gone without fainting
 
-It also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
+Under Totals it also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
 
 When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH_KM} km without a stop, {REC_DAY_KM} km in a day, {REC_STOPS} places in a day, {REC_CENTS} held, or {REC_NOFAINT} without fainting.
 ## Fainting and hospital {fainting}
@@ -555,9 +555,9 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 - his home, rented or his own, with the things he put up (see His home),
 - your clovers, care packages and storyteller.
 
-Once there is an heir, every card in the Collection says which walker of the family found it. Near the end of the Stats sheet is the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. Below it, the hall of walkers compares them (see Hall of walkers).
+Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. The Records sheet's hall of walkers compares them (see Hall of walkers).
 ## Hall of walkers {hall}
-Once there is an heir, the Stats sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
+Once there is an heir, the Records sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
 {HALL_LIST}
 
 He counts as he is now, so he can take a record from an ancestor while you watch; on a tie the walker who got there first keeps it, and a record no walker has above 0 says nobody yet. For each walker it counts the km he walked in his life, his level and his Records (see Records). A walker who retired before the hall only counts for distance, level and cities. Each record he takes from the walkers before him counts for the 🏛 Pride of the family badge (see Badges and titles). The hall is only for looking: nothing changes how he lives.
@@ -695,6 +695,10 @@ Each time he arrives in a different country than the one he left, by any kind of
 In {WORD_COUNTRIES} countries he picks up everyday words in the local language ({WORD_LANGUAGES} languages, about {WORD_EACH} words each): hello, thank you, coffee, bread, the bill, cheers and the like. At {WORD_PCT} of his stops there he learns one he doesn't know yet, with how to say it in Latin letters where the language uses another script, for example "🗣 Learned a Bulgarian word at Cafe Rila: "кафе (kafe)" means coffee".
 
 A word that fits the place comes first: coffee at a café, bread at a bakery, the bill at a restaurant, beer and cheers at a bar or pub, water at a fountain, a church (or mosque or temple) at a place of worship, station at a station, pharmacy at a pharmacy, ice cream at an ice cream parlour. Words like hello and thank you he learns anywhere. Each word gives wits +{WORD_WIT} and {WORD_XP} XP. Words carry over between countries that share a language, and he learns them while you are away too. The Stats sheet lists them, and the Polyglot badge counts them (see Badges and titles).
+## Reading up on sights {notes}
+At a big sight (a landmark of map rank {NOTE_RANK} or better, such as a famous museum, cathedral or monument) he reads up on it: the first sentence of its Wikipedia article shows in the feed, for example "📖 Read up on Alexander Nevsky Cathedral: The Alexander Nevsky Cathedral is a cathedral in Sofia." He looks in English Wikipedia first, then in the Wikipedia of the country's language, and takes only an article within {NOTE_RADIUS} m whose title names the sight. Each note gives wits +{NOTE_WIT} and {NOTE_XP} XP.
+
+He looks each sight up once (a sight with no article is not asked again), at most {NOTE_PER_HOUR} an hour, and only while you watch, as it needs the network; offline he just walks on and tries another time. The Well read badge counts the sights he read up on (see Badges and titles).
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -756,6 +760,14 @@ He saves them for a monument with his name:
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
 History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, his first promotion and every top rank (see Careers), the first time he gets away from the police and his first time in jail (see Police chases), fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), renting and buying his home (see His home), each city's paper story when he becomes its Local hero (see Fame), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+## Ruin crawls {ruins}
+Castles and ruins on the map hide a few rooms. When he reaches one he hasn't crawled in the last {CRAWL_DAYS} days, he crawls it: {MIN_ROOMS} to {MAX_ROOMS} rooms, each a stuck door, a riddle, a grumpy caretaker or, now and then, something out of a legend, such as a ghost or a sleeping stone dragon. Nothing is ever fought.
+
+Each room is passed with one attribute (Strength, Wits, Charm or Luck). The chance is {ROOM_BASE_PCT}, plus {ROOM_PER_POINT_PCT} per point of that attribute, minus {ROOM_DEPTH_PCT} for every room he has already passed, and always between {ROOM_MIN_PCT} and {ROOM_MAX_PCT}.
+- A passed room: +{ROOM_XP} XP and -{ROOM_ENERGY} energy, then on to the next.
+- A failed room: -{FAIL_ROOM_ENERGY} energy, and he turns back with what he found so far. Nothing worse happens.
+
+If he passed at least one room, he finds a trinket or a weapon at the end. Each room passed lifts its rarity roll by {DEPTH_RARITY_PCT}, on top of his Luck (see Modifiers and rarity). He wears it if it beats his gear, or puts it in the bag. Each room shows in his History, and the Collection's Places tab keeps the logs of his last {RUIN_LOGS} crawls. A crawl takes no extra time, and happens the same way while you are away. The rooms load a moment after the game opens, so a castle he reaches in the first seconds is just a castle that time, and he crawls it on his next visit.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 
@@ -938,7 +950,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -985,15 +997,15 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Mailbox: the newest letters from his friends, each opening on a tap, and where a gift waits at his spot (see Letters and gifts).
 - Effects: his buffs with the minutes they have left.
-- Records: his bests and totals (see Records).
 - Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
-- Hall of walkers, once there is an heir: the family's records and who holds each (see Hall of walkers).
+
+His records and the hall of walkers have their own sheet, 🏆 Records in the menu (see Records, Hall of walkers).
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
-- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings) and the crawls.
+- 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings), the crawls and his last ruin crawls (see Ruin crawls).
 - 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), his bucket list (see Bucket list), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases), and a life of his own: a pet, a fairy pet, a flat, his own home, a full home, a long stay visa and citizenship (see His pet, His home, Visas).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
