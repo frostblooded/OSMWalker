@@ -76,6 +76,12 @@ describe("the real help", () => {
     expect(body).toContain("at most 2 other modifiers");
   });
 
+  it("lists the quirks' places in plain plurals", () => {
+    const body = page("quirks").body;
+    expect(body).toContain("times at bakeries");
+    expect(body).toContain("times at ice cream parlours");
+  });
+
   it("takes the nap threshold from the data", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });

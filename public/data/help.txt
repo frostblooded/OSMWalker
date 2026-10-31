@@ -327,7 +327,7 @@ What he does often turns into a quirk. Each counts the things he does at some ki
 
 A quirk makes its kinds of places pull his goal ×{QUIRK_PULL} (see Picking the next goal), and each time he does something there it cheers him a little ({QUIRK_MOOD}, see Moodlets). He has at most {MAX_QUIRKS}: a new one pushes out the oldest, which never comes back. The Quirks card on the Stats sheet lists them.
 ## His spot {spot}
-The real place he has reached most in a city becomes his spot once he has been there {SPOT_MIN} times. A house marks it on the map, and the His spot card on the Stats sheet shows it. Each city remembers {SPOT_KEEP} places; a new one pushes out the least recently reached of the least visited, so another place can take over.
+The real place he has reached most in a city becomes his spot once he has been there {SPOT_MIN} times. A house marks it on the map, and the His spot card on the Stats sheet shows it. Each city remembers {SPOT_KEEP} places; a new one pushes out the least recently reached of the least visited (never his spot), so another place can take over.
 
 From {SPOT_FROM} to {SPOT_TO} his spot pulls his goal ×{SPOT_PULL}, so he drifts back there in the mornings. As a regular he pays {SPOT_DISCOUNT} less for what he does there (not for shopping or card packs).
 ## Hygiene {hygiene}

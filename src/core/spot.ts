@@ -32,8 +32,10 @@ export class Spots {
     let v = list.find((x) => same(x, place));
     if (!v) {
       if (list.length >= SPOT_KEEP) {
-        const low = Math.min(...list.map((x) => x.n));
-        const old = list.filter((x) => x.n === low).reduce((a, b) => (b.t < a.t ? b : a));
+        // Never his spot, so it only changes with a visit (and its line).
+        const rest = list.filter((x) => x !== was);
+        const low = Math.min(...rest.map((x) => x.n));
+        const old = rest.filter((x) => x.n === low).reduce((a, b) => (b.t < a.t ? b : a));
         list.splice(list.indexOf(old), 1);
       }
       v = { name: place.name, class: place.class ?? "", lat: place.lat, lon: place.lon, n: 0, t };

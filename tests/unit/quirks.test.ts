@@ -103,6 +103,14 @@ describe("his spot", () => {
     }
     expect(line).toContain("X is his spot now");
   });
+
+  it("never drops his spot to make room", () => {
+    const s = new Sp.Spots();
+    for (let i = 0; i < Sp.SPOT_KEEP; i++) for (let j = 0; j < Sp.SPOT_MIN; j++) s.visit(CITY, place(`P${i}`, "cafe", 1 + i / 100));
+    const was = s.spot(CITY)!.name;
+    s.visit(CITY, place("New", "cafe", 9));
+    expect(s.spot(CITY)!.name).toBe(was);
+  });
 });
 
 describe("through Stats", () => {
