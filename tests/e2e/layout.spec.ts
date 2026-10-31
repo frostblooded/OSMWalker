@@ -174,7 +174,7 @@ for (const width of [360, 412]) {
       const hall = family.locator(".card", { hasText: "Hall of walkers" });
       await hall.scrollIntoViewIfNeeded();
       await hall.getByRole("button", { name: /Bests/ }).click();
-      await expect(hall).toContainText("Richest");
+      await expect(hall).toContainText("Most money held");
       await expect(hall).toContainText("€12,345 · Walker II");
       await check(page, "stats-hall");
       await family.getByRole("button", { name: /Close/ }).click();

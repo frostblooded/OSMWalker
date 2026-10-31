@@ -462,7 +462,7 @@ Every time he levels up, his highest attribute (not counting gear) grows by 1, a
 
 A higher level unlocks better materials for the gear he finds (see Materials) and some actions.
 ## Records {records}
-The Stats sheet ends with his records over his whole life. Each best only goes up:
+Near the end of the Stats sheet are his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
 - Most walked, and most places stopped at, in one day
 - Most money he has held at once

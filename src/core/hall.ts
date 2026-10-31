@@ -11,18 +11,20 @@ import type { Stats } from "./stats";
 type Walker = { gen: number; km: number; level: number; cities: number; countries?: number; best?: Partial<Record<Best, number>> };
 
 const km = (v: number) => `${Math.round(v)} km`;
+/** Metres the way the Records card shows them (ui/format.ts dist): "400 m", "9.0 km". */
+const metres = (v: number) => (v < 1000 ? `${Math.round(v)} m` : `${(v / 1000).toFixed(1)} km`);
 const best = (k: Best) => (w: Walker) => w.best?.[k];
 
 /** The records, in the order the hall shows them; `of` is undefined when a walker didn't keep it. */
 export const HALL: { id: string; icon: string; name: string; of: (w: Walker) => number | undefined; show: (v: number) => string }[] = [
-  { id: "km", icon: "🚶", name: "Furthest walked", of: (w) => w.km, show: km },
+  { id: "km", icon: "👣", name: "Furthest walked", of: (w) => w.km, show: km },
   { id: "countries", icon: "🌍", name: "Most countries", of: (w) => w.countries, show: String },
   { id: "cities", icon: "🏙", name: "Most cities", of: (w) => w.cities, show: String },
   { id: "level", icon: "⭐", name: "Highest level", of: (w) => w.level, show: String },
-  { id: "cents", icon: "💰", name: "Richest", of: best("cents"), show: euro },
-  { id: "dayM", icon: "📏", name: "Most walked in a day", of: best("dayM"), show: (v) => km(v / 1000) },
+  { id: "cents", icon: "💰", name: "Most money held", of: best("cents"), show: euro },
+  { id: "dayM", icon: "📏", name: "Most walked in a day", of: best("dayM"), show: metres },
   { id: "dayStops", icon: "📍", name: "Most places in a day", of: best("dayStops"), show: String },
-  { id: "stretchM", icon: "🥾", name: "Longest walk without a stop", of: best("stretchM"), show: (v) => km(v / 1000) },
+  { id: "stretchM", icon: "🚶", name: "Longest walk without a stop", of: best("stretchM"), show: metres },
   { id: "noFaintS", icon: "❤", name: "Longest without fainting", of: best("noFaintS"), show: span },
 ];
 

@@ -21,7 +21,8 @@ describe("hall of walkers", () => {
     expect(rows.level!.gen).toBe(1);
     expect(rows.countries).toMatchObject({ gen: 1, value: 4 });
     expect(rows.cents).toMatchObject({ gen: 2, value: 120_000 });
-    expect(rows.dayM).toMatchObject({ gen: 3, value: 25_000 });
+    expect(rows.dayM).toMatchObject({ gen: 3, value: 25_000, text: "25.0 km" });
+    expect(rows.km!.text).toBe("1500 km");
     expect(heldBy(s)).toEqual(["dayM"]);
     const pride = FEATS.find((f) => f.id === "heir")!;
     expect(tierOf(pride, pride.count(s))).toBe(1);
@@ -51,6 +52,8 @@ describe("hall of walkers", () => {
     s.life.family = [old];
     expect(heldBy(s)).toEqual([]);
     expect(hall(s).find((r) => r.id === "noFaintS")!.gen).toBe(0);
+    s.records.best.stretchM = 400;
+    expect(hall(s).find((r) => r.id === "stretchM")!.text).toBe("400 m");
   });
 
   it("keeps his countries and bests on the family tree when he retires", () => {
