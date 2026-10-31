@@ -8,7 +8,7 @@ import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
 import { skyAt } from "../../src/core/sky";
-import { HITCH_BELOW, HOSTEL_CENTS, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import { HITCH_BELOW, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
@@ -378,7 +378,7 @@ describe("catch-up", () => {
     };
     let seed = 1;
     while (seed < 60 && !away(seed, 6 * 3600).lines.some((l) => l.startsWith("Setting off on foot"))) seed++;
-    const { stats, lines } = away(seed, 6 * 3600);
+    const { lines } = away(seed, 6 * 3600);
     expect(lines.some((l) => l.startsWith("Setting off on foot for Neartown"))).toBe(true);
     expect(lines.some((l) => /^Walked out of town towards Neartown, A-land \(-€20 for hostels\)$/.test(l))).toBe(true);
     expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land, sleeping in 1 hostel on the way$/.test(l))).toBe(true);
