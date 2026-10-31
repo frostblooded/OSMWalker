@@ -1301,14 +1301,15 @@ export class Stats {
     return false;
   }
 
-  /** Ends the chase begun at the place named `place` with his own pick by his karma (moments.ts defaultPick), from his money and energy as they are now, not when it began; see chased. Its own dice. */
-  runChase(place: string): number {
+  /** Ends the chase begun at the place named `place` with your `pick`, or else his own by his karma (moments.ts defaultPick) from his money and energy as they are now, not when it began; see chased. Its own dice. */
+  runChase(place: string, pick?: R.Pick): number {
     const rng = new Rng(seedOf(`chase${this.now()}${place}`));
-    return this.chased(M.defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick, rng.randf());
+    return this.chased(pick ?? (M.defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick), rng.randf(), pick !== undefined);
   }
 
-  /** The chase ends with `pick` and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
-  chased(pick: R.Pick, r: number): number {
+  /** The chase ends with `pick` (yours when `you`) and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
+  chased(pick: R.Pick, r: number, you = true): number {
+    const by = you ? "" : "Decided by himself: ";
     const h = this.him();
     const c = this.law.chase(pick, h, r);
     if (c.away) {
@@ -1316,18 +1317,18 @@ export class Stats {
         const n = R.bribeOf(h.heat);
         this.cents -= n;
         this.karma(-R.BRIBE_KARMA, false);
-        this.say(`🚓 Slipped the officer ${euro(n)}, and the police forgot all about him (${signed(-n)}, karma −${R.BRIBE_KARMA})`);
-      } else this.say(pick === "run" ? "🚓 Ran for it down the side streets and lost the police" : "🚓 Hid until the police car drove past, and got away");
+        this.say(`🚓 ${by}Slipped the officer ${euro(n)}, and the police forgot all about him (${signed(-n)}, karma −${R.BRIBE_KARMA})`);
+      } else this.say(`🚓 ${by}${pick === "run" ? "Ran for it down the side streets and lost the police" : "Hid until the police car drove past, and got away"}`);
       if (this.law.escapes === 1 && pick !== "bribe") this.milestone("escape", "Got away from the police for the first time");
       return 0;
     }
     const how = pick === "surrender" ? "Gave himself up to the police" : pick === "bribe" ? "Tried to bribe the officer, who arrested him" : `Tried to ${pick}, but the police caught him`;
     if (pick === "surrender") this.karma(R.SURRENDER_KARMA);
     const hours = `${c.jailMin / 60} hour${c.jailMin === 60 ? "" : "s"}`;
-    if (c.jailMin) this.say(`🚓 ${how}, and couldn't pay the ${euro(R.fineOf(h.heat))} fine: ${hours} in jail`);
+    if (c.jailMin) this.say(`🚓 ${by}${how}, and couldn't pay the ${euro(R.fineOf(h.heat))} fine: ${hours} in jail`);
     else {
       this.cents -= c.fine;
-      this.say(`🚓 ${how} and paid a ${euro(c.fine)} fine (${signed(-c.fine)})`);
+      this.say(`🚓 ${by}${how} and paid a ${euro(c.fine)} fine (${signed(-c.fine)})`);
     }
     const stolen = this.bag.filter((i) => i.stolen).length + Object.values(this.gear).filter((i) => i?.stolen).length;
     if (stolen) {

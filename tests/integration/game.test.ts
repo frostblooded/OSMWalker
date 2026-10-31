@@ -216,12 +216,41 @@ describe("game", () => {
     }
     now += 2000;
     g.step(1);
+    // Caught up with: the timed choice asks how it ends, and the car waits by him.
+    expect(g.moment?.m.id).toBe("police_chase");
+    expect(g.policeAt()).not.toBeNull();
+    for (let i = 0; i <= g.momentS && g.moment; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    await Promise.resolve();
     expect(g.chase).toBeNull();
     expect(g.policeAt()).toBeNull();
     expect(g.stats.law.chases).toBe(1);
-    // A saint gives himself up and pays.
+    // Left to himself, a saint gives himself up and pays.
     expect(g.stats.law.caught).toBe(1);
     expect(g.stats.law.heat).toBe(0);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("🚓 Decided by himself: Gave himself up"))).toBe(true);
+  });
+
+  it("you pick how a police chase ends when the car catches up", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.stats.bond.lean = 100;
+    g.chase = { place: "Cafe", ends: now + 1000, trail: [g.walker!.position()] };
+    now += 2000;
+    g.step(1);
+    expect(g.moment?.m.options.map((o) => o.id)).toContain("run");
+    // The saint would give himself up; you make him run.
+    g.settleMoment("run");
+    await Promise.resolve();
+    expect(g.chase).toBeNull();
+    expect(g.stats.law.chases).toBe(1);
+    expect(g.stats.law.caught + g.stats.law.escapes).toBe(1);
+    const line = g.stats.history.entries.find((e) => e.text.startsWith("🚓 "))!.text;
+    expect(line).toMatch(/^🚓 (Ran for it|Tried to run)/);
   });
 
   it("the police give up a chase once the heat is gone, and praise counts towards his best karma", async () => {

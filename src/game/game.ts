@@ -137,7 +137,7 @@ export class Game {
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
   /** A police chase under way: the timed moment, where it began, when it ends (ms) and the streets he ran since, once a second. Not saved. */
-  chase: { place: string; ends: number; trail: LatLon[] } | null = null;
+  chase: { place: string; ends: number; trail: LatLon[]; asked?: boolean } | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -824,7 +824,8 @@ export class Game {
   private checkChase(): void {
     const c = this.chase;
     const w = this.walker;
-    if (!c || !w) return;
+    // While you choose how it ends he stands still, caught up with.
+    if (!c || !w || c.asked) return;
     // Nobody to chase once the heat is gone (paid off, or faded), or once he heads for a ride out or boards it (jail mid-trip would leave the trip half set up).
     if (this.stats.law.stars() === 0 || w.isTraveling() || w.isDeparting()) {
       this.chase = null;
@@ -834,14 +835,21 @@ export class Game {
     }
     c.trail.push(w.position());
     if (this.now() < c.ends) return;
-    this.chase = null;
-    // Until the timed choices can ask you, he takes his own pick.
-    const jail = this.stats.runChase(c.place);
-    if (jail) {
-      this.doing = { name: "In jail", min: jail };
-      w.restFor(jail);
-    }
-    this.changed();
+    // Caught up with: you pick how it ends, or he does when the timer runs out.
+    c.asked = true;
+    const s = this.stats;
+    void this.ask(R.chaseMoment(s.him())).then((p) => {
+      if (this.chase === c) this.chase = null;
+      // An heir or a new game owes nothing for it.
+      if (this.stats !== s) return;
+      const jail = s.runChase(c.place, p.you ? (p.id as R.Pick) : undefined);
+      if (jail && this.walker) {
+        this.doing = { name: "In jail", min: jail };
+        this.walker.restFor(jail);
+      }
+      this.changed();
+      this.save();
+    });
   }
 
   /** Where Viktor shows on the map, a few steps east of where they met, for a while after a meeting; null otherwise. */
