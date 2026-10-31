@@ -5,7 +5,7 @@ import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
 import { Walker } from "../../src/core/walker";
-import { BAD_SAVE_KEY, DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
+import { BAD_SAVE_KEY, DEFAULT_ZOOM, HOLIDAYS_KEY, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
 
 class MemStorage {
   m = new Map<string, string>();
@@ -385,5 +385,18 @@ describe("save file", () => {
     expect(f.write(saved())).toBe("");
     expect(f.has()).toBe(false);
     expect(f.read()).toBeNull();
+  });
+
+  it("keeps holiday lists from this year on, and drops a book it can't read", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    expect(f.readHolidays()).toEqual({ lists: {}, said: "" });
+    const day = { date: "2026-03-03", name: "Liberation Day", localName: "" };
+    f.writeHolidays({ lists: { "BG:2025": [day], "BG:2026": [day], "BG:2027": [] }, said: "BGR:2026-03-03" }, 2026);
+    expect(f.readHolidays()).toEqual({ lists: { "BG:2026": [day], "BG:2027": [] }, said: "BGR:2026-03-03" });
+    for (const bad of ["not json", "null", "[]", '{"lists":[1],"said":5}', '{"lists":{"BG:2026":"x"}}']) {
+      kv.setItem(HOLIDAYS_KEY, bad);
+      expect(f.readHolidays(), bad).toEqual({ lists: {}, said: "" });
+    }
   });
 });

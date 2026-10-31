@@ -340,6 +340,8 @@ After sunset the map darkens under a blue shade as the sun sinks, until it is {N
 ## Opening hours {opening}
 Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
 
+On a public holiday (see Public holidays) the day businesses stay shut all day.
+
 He never sets off for a closed place (it weighs 0 when he picks his next goal, and the story waits for it too: a quest step there holds the quest until it opens, a quest giver or event there isn't picked while it's shut (an event can run out meanwhile), and no new event starts at a closed place). If a place closes while he is on his way, he finds it closed, does nothing there (no action and no first-visit XP) and moves on after the usual minute.
 
 ## Magic {magic}
@@ -526,6 +528,12 @@ To make them come up often, each one gets +{FLAVOUR_WEIGHT} weight when he choos
 When he reaches a city, the game looks it up on Wikidata: the most populous place within {TRIVIA_KM} km of the centre, and facts about it such as when it was founded, how many people live there, how high it is, up to {TRIVIA_TWINS} twin towns, who it is named after and what it is the capital of.
 
 Each fact becomes a quick action he can do at any place in that city, for example "Learn that Sofia is named after Saint Sofia". Each gives wits +{TRIVIA_WIT} and {TRIVIA_XP} XP. If Wikidata can't be reached, there is simply no trivia for that city.
+## Public holidays {holidays}
+The game knows the public holidays of the country he is in, from Nager.Date (a free holiday calendar). It asks once per country per year and keeps the list on your phone, so it costs one small download a year. Only holidays for the whole country count, not regional ones, and the day goes by the city's clock.
+
+On a holiday the feed says so once, with the holiday's local name, for example "It's Liberation Day (Ден на Освобождението) here, a public holiday". All day the day businesses stay shut (see Opening hours), and holiday actions join what he can do at every place: watching a parade, a family picnic, a toast with strangers, the bells and speeches, and fireworks at night. They follow the same requirements and weights as every other action, and they happen during time away too, once the list is on your phone (it is from the first moment he is in that country that year).
+
+Countries Nager.Date doesn't cover simply have no holidays. If it can't be reached, the game tries again next time you open it.
 # 🗂 Collection
 ## Landmark cards {cards}
 The first time he reaches a landmark he gets its card. Landmarks are places of these kinds: {LANDMARK_KINDS}. Art shops don't count.

@@ -2,8 +2,10 @@
 // saves are repaired on the way back in, and why one can't be read. The game
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
 // apart under SETTINGS_KEY, so New city keeps them; so does the name you
-// sign postcards with. The last weather forecast is kept under WEATHER_KEY.
+// sign postcards with. The last weather forecast is kept under WEATHER_KEY,
+// and the public holiday lists under HOLIDAYS_KEY.
 import { DebugLog, type Entry } from "../core/debugLog";
+import type { Holiday } from "../core/holidays";
 import { Problems } from "../core/problems";
 import { Stats, type Place } from "../core/stats";
 import type { WeatherForecast } from "../core/weather";
@@ -17,6 +19,11 @@ export const BAD_SAVE_KEY = "osmwalker.save.bad";
 export const SETTINGS_KEY = "osmwalker.settings";
 /** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands (the catch-up uses none). */
 export const WEATHER_KEY = "osmwalker.weather";
+/** Public holidays fetched from Nager.Date, kept a year so each country is asked once a year. */
+export const HOLIDAYS_KEY = "osmwalker.holidays";
+
+/** Holiday lists by "CC:year", and the last "CC:date" whose holiday he has already noticed. */
+export type HolidayBook = { lists: Record<string, Holiday[]>; said: string };
 export const DEFAULT_ZOOM = 17;
 
 export type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -181,6 +188,29 @@ export class SaveFile {
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.
+    }
+  }
+
+  /** The holiday lists, empty when there are none or they can't be read. */
+  readHolidays(): HolidayBook {
+    try {
+      const d = JSON.parse(this.kv?.getItem(HOLIDAYS_KEY) ?? "{}") as Partial<HolidayBook> | null;
+      // A book of another shape (or from a later version) is dropped: the lists are fetched again.
+      const lists = d?.lists && typeof d.lists === "object" && !Array.isArray(d.lists) ? d.lists : {};
+      for (const [k, v] of Object.entries(lists)) if (!Array.isArray(v)) delete lists[k];
+      return { lists, said: typeof d?.said === "string" ? d.said : "" };
+    } catch {
+      return { lists: {}, said: "" };
+    }
+  }
+
+  /** Keeps only this year's and later lists, so the book never grows. */
+  writeHolidays(b: HolidayBook, year: number): void {
+    const lists = Object.fromEntries(Object.entries(b.lists).filter(([k]) => Number(k.split(":")[1]) >= year));
+    try {
+      this.kv?.setItem(HOLIDAYS_KEY, JSON.stringify({ lists, said: b.said }));
+    } catch {
+      // Out of space: they are fetched again next time.
     }
   }
 }
