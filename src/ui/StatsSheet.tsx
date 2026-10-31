@@ -611,7 +611,7 @@ function QuirksCard({ s }: { s: Stats }) {
   );
 }
 
-/** His home, once he has one: rented or his, and what he put up. */
+/** His home, once he has one: rented or his, and what he put up (folded away, one row each). */
 function HomeCard({ s }: { s: Stats }) {
   const h = s.home;
   if (!h.has()) return null;
@@ -620,8 +620,16 @@ function HomeCard({ s }: { s: Stats }) {
       <KV k={h.bought ? "His own" : "Rent"} v={h.bought ? "no rent" : `${euro(h.rentAt(s.level))} a week`} />
       {!h.bought && <KV k="To buy it" v={`${euro(s.cents)} / ${euro(HOME_PRICE + Math.max(s.savingTarget(), KEEP_CENTS))}`} />}
       {h.bought > 0 && <KV k="Things up" v={`${h.things.length} / ${HOME_THINGS}`} />}
-      {h.things.length > 0 && <p class="dim">{h.things.map((i) => i.name).join(", ")}</p>}
       <KV k="A night there" v={`free, mood +${h.mood()}`} tone="ok" />
+      {h.things.length > 0 && (
+        <Collapsible title="What he put up">
+          <div class="zebra">
+            {h.things.map((i, n) => (
+              <KV key={n} k={i.name} v={<span class="dim">from {i.story?.from.split(",")[0] ?? "somewhere"}</span>} />
+            ))}
+          </div>
+        </Collapsible>
+      )}
     </Card>
   );
 }

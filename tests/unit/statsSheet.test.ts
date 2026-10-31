@@ -12,7 +12,7 @@ import { PANTRY_MAX } from "../../src/core/cooking";
 import { stepsTo } from "../../src/core/skills";
 import { BUSINESSES } from "../../src/core/business";
 import { billsAt } from "../../src/core/bills";
-import { HOME_PRICE, RENT_CENTS as HOME_RENT } from "../../src/core/home";
+import { HOME_PRICE, HOME_THINGS, RENT_CENTS as HOME_RENT } from "../../src/core/home";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import { DiarySheet } from "../../src/ui/DiarySheet";
@@ -105,7 +105,8 @@ describe("Stats sheet", () => {
     stats.home.bought = 1;
     stats.home.things = [{ name: "Silk Shawl", slot: "trinket", stats: {}, rarity: "Common", price: 1 }];
     expect(shown(stats)).toContain("His ownno rent");
-    expect(shown(stats)).toContain("Silk Shawl");
+    expect(shown(stats)).toContain(`Things up1 / ${HOME_THINGS}`);
+    expect(shown(stats)).toContain("What he put up");
   });
 
   it("tells a failed quest from an event that went badly", () => {
