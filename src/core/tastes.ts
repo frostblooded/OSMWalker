@@ -5,7 +5,7 @@
 // DISLIKE_PULL, and each visit brings a small moodlet. Unlike quirks they are
 // never earned, only found. Pure; Stats owns one and rolls its own dice.
 import type { Emotion } from "./emotion";
-import { noun } from "./mind";
+import { noun, plural as pluralNoun } from "./mind";
 import type { Rng } from "./rng";
 
 export const LIKES = 3;
@@ -20,10 +20,7 @@ export const DISLIKE_MOOD: [number, number] = [-1, 2];
 export const KINDS = ["cafe", "bakery", "restaurant", "fast_food", "bar", "beer", "cinema", "library", "museum", "art_gallery", "theatre", "zoo", "aquarium", "park", "garden", "castle", "lookout", "stadium", "swimming_pool", "theme_park", "dog_park", "escape_game"];
 
 /** "cafes", "libraries", "galleries". */
-export function plural(kind: string): string {
-  const n = noun(kind);
-  return /[^aeiou]y$/.test(n) ? `${n.slice(0, -1)}ies` : `${n}s`;
-}
+export const plural = (kind: string) => pluralNoun(noun(kind));
 
 export class Tastes {
   likes: string[] = [];

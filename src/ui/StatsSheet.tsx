@@ -18,7 +18,7 @@ import { noun, plural, wantIcon, wantText } from "../core/mind";
 import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
 import { SPOT_DISCOUNT } from "../core/spot";
 import { PERKS } from "../core/perks";
-import { DISLIKES, LIKES } from "../core/tastes";
+import { DISLIKES, LIKES, plural as tastePlural } from "../core/tastes";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -592,7 +592,7 @@ function CharacterCard({ s }: { s: Stats }) {
   const e = EMO[s.emotion()];
   const t = s.tastes;
   const found = (list: string[], of: number) => {
-    const known = list.filter((k) => t.known.includes(k)).map((k) => plural(noun(k)));
+    const known = list.filter((k) => t.known.includes(k)).map(tastePlural);
     const left = of - known.length;
     return [...known, ...(left ? [`${left} to find`] : [])].join(", ");
   };
