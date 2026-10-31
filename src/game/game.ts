@@ -6,6 +6,7 @@
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
+import { hisPick, momentOf, settle as settleCard, type Pick as CardPick } from "../core/workCards";
 import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
@@ -13,6 +14,7 @@ import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
+import { getCrawler, setCrawler } from "../core/ruins";
 import { distanceM, type BBox } from "../core/geo";
 import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
@@ -459,9 +461,13 @@ export class Game {
       return;
     }
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
+    this.stats.askCards = true;
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
+    this.stats.askCards = false;
     this.walker!.restFor(restMinutes(action));
-    if (!met) this.askAt(place, restMinutes(action) * 60);
+    // A chance card at work takes the place of the place's own moment (with a creature still asking, he plays it himself); so does a creature.
+    if (this.stats.workCard) this.askCard(restMinutes(action) * 60);
+    else if (!met) this.askAt(place, restMinutes(action) * 60);
     this.changed();
   }
 
@@ -488,6 +494,16 @@ export class Game {
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
   private askAt(place: Place, maxS: number): void {
     this.askPlaceMoment(this.stats.momentAt(place), place.name, momentDice(this.stats.now(), place.name), maxS);
+  }
+
+  /** The chance card at work that just came up (workCards.ts), open at most `maxS` seconds; if you don't tap, he picks on its own dice, as in the catch-up. */
+  private askCard(maxS: number): void {
+    const { d, dice } = this.stats.workCard!;
+    this.stats.workCard = null;
+    void this.ask(momentOf(d.card), { maxS, his: () => hisPick(this.stats, d.card, dice) }).then((p) => {
+      this.stats.say(settleCard(this.stats, d, p.id as CardPick, p.you, dice));
+      this.save();
+    });
   }
 
   /** As he boards for `plan`: maybe a moment on the way. */
@@ -861,6 +877,8 @@ export class Game {
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
     // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
+    // Ruin crawls during the time away need core/crawl.ts too; without it ruins are just castles this time.
+    const crawl = getCrawler() ? null : import("../core/crawl").then((m) => setCrawler(m.explore), () => undefined);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
       // The catch-up takes no weather, so the reopen doesn't wait for it; it comes in for the watched game.
@@ -870,9 +888,9 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      // The code table comes in the same short wait, so the catch-up knows the holidays kept on the device; it never waits on the network for a list.
+      // The code table and the ruin crawl rooms come in the same short wait, so the catch-up knows the holidays kept on the device and can crawl; it never waits on the network for a list.
       const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
-      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
+      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()]), crawl && Promise.race([crawl, shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));

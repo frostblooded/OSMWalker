@@ -16,6 +16,7 @@ import { HOME_PRICE, HOME_THINGS, RENT_CENTS as HOME_RENT } from "../../src/core
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import { DiarySheet } from "../../src/ui/DiarySheet";
+import { RecordsSheet } from "../../src/ui/RecordsSheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
@@ -268,5 +269,31 @@ describe("Diary sheet", () => {
     return Promise.resolve().then(() => {
       expect(root.textContent).toContain("💤 Dreamt Cafe East was full of pigeons.");
     });
+  });
+});
+
+describe("Records sheet", () => {
+  const records = (stats: Stats) => {
+    const root = document.createElement("div");
+    render(h(RecordsSheet, { stats }), root);
+    return root.textContent ?? "";
+  };
+
+  it("shows his bests and totals, and the hall only once there is an heir; the Stats sheet shows neither", () => {
+    const stats = new Stats();
+    stats.records.best.dayM = 12_500;
+    stats.records.best.cents = 123_400;
+    stats.records.countries = ["BG", "GR"];
+    let text = records(stats);
+    expect(text).toContain("📏 Most walked in a day12.5 km");
+    expect(text).toContain(`💰 Most money held${euro(123_400)}`);
+    expect(text).toContain("Totals ▸2 countries");
+    expect(text).not.toContain("Hall of walkers");
+    stats.life.gen = 2;
+    stats.life.family = [{ gen: 1, born: 0, retired: 1, by: "age", title: "Elder", level: 30, km: 900, cities: 12, home: "Sofia, Bulgaria", heirloom: "", letter: "", chronicle: [], countries: 4, best: { stretchM: 0, dayM: 0, dayStops: 0, cents: 0, noFaintS: 0 } }];
+    text = records(stats);
+    expect(text).toContain("Hall of walkers");
+    expect(shown(stats)).not.toContain("Hall of walkers");
+    expect(shown(stats)).not.toContain("Most walked in a day");
   });
 });
