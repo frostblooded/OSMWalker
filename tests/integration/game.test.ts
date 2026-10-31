@@ -1,5 +1,6 @@
 // The game loop with real Sofia streets, fake servers and fixed dice: walking, needs, stories, keepsakes and saves.
 import { describe, expect, it, vi } from "vitest";
+import { distanceM } from "../../src/core/geo";
 import { cellKey } from "../../src/core/graph";
 import { CREATURE_CHANCE, meetingDice } from "../../src/core/creatures";
 import { decode, encode } from "../../src/core/postcard";
@@ -498,6 +499,26 @@ describe("game", () => {
     const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
     again.load();
     expect(again.stats.sightNotes.read).toEqual([visitKey(MUSEUM)]);
+  });
+
+  it("collects the named streets he walks in his city, each once, and keeps them in the save", async () => {
+    // The streets by the café and the bus station have no names in these tiles, so he heads for a corner of a named one.
+    const probe = game().g;
+    await probe.startCity("Sofia, Bulgaria", ...START, null);
+    const graph = probe.walker!.graph;
+    const corner = [...graph.nodes.keys()].find((id) => graph.neighbors(id).some((n) => graph.edgeName(id, n)) && distanceM(...graph.nodes.get(id)!, ...START) > 300)!;
+    const [lat, lon] = graph.nodes.get(corner)!;
+    const { g, storage } = game({ places: [CAFE, { name: "Corner Shop", class: "shop", subclass: "convenience", rank: 1, lat, lon }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2 * 3600);
+    const walked = g.stats.streets.cities["Sofia, Bulgaria"] ?? [];
+    expect(walked.length).toBeGreaterThan(0);
+    expect(new Set(walked).size).toBe(walked.length);
+    expect(walked.every((n) => n.length > 0)).toBe(true);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    expect(again.stats.streets.cities["Sofia, Bulgaria"]).toEqual(walked);
   });
 
   it("drops a sight note that comes back after a new city was started", async () => {
