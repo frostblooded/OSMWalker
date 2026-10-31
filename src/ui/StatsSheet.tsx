@@ -169,7 +169,7 @@ function LanguagesCard({ stats: s }: { stats: Stats }) {
   const list = s.languages.list();
   const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang}${lang === here ? " · here" : ""}`} v={LANG_LEVELS[level]} />;
   return (
-    <Card icon="💬" title="Languages" right={list.length}>
+    <Card icon="🗣" title="Languages" right={list.length}>
       <div class="zebra">{list.slice(0, LANGS_SHOWN).map(row)}</div>
       {list.length > LANGS_SHOWN && (
         <Collapsible title="More" right={list.length - LANGS_SHOWN}>
