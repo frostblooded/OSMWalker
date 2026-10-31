@@ -4,8 +4,14 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Home from "../core/home";
+import * as Biz from "../core/business";
+import * as Bucket from "../core/bucket";
+import * as Lot from "../core/lottery";
+import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
+import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
@@ -13,7 +19,15 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Diary from "../core/diary";
+import * as Mail from "../core/mail";
+import * as Mind from "../core/mind";
+import * as Quirks from "../core/quirks";
+import * as Spot from "../core/spot";
 import * as Portals from "../core/portals";
+import * as Fame from "../core/fame";
+import * as Moments from "../core/moments";
+import * as Rep from "../core/repute";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
 import * as Collection from "../core/collection";
@@ -28,6 +42,7 @@ import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Jokes from "../core/jokes";
+import * as Life from "../core/life";
 import * as Snap from "./snap";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
@@ -46,6 +61,9 @@ import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
 import * as Anniv from "../core/anniversaries";
 import * as Clubs from "../core/clubs";
+import * as Cook from "../core/cooking";
+import * as Lang from "../core/languages";
+import * as Skills from "../core/skills";
 import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
@@ -171,14 +189,57 @@ const crawlKinds = (c: K.Crawl) => {
   const words = Collection.CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
   return c.id === "sights" ? `${words} (see Landmark cards)` : words;
 };
+/** One Help line per skill: the actions that train it, and those that need a level of it. */
+const skillLines = (actions: Activities.ActionTable) => {
+  const all = Object.values(actions).flat();
+  return Skills.SKILLS.map((k) => {
+    const [icon, name] = Skills.SKILL[k];
+    const of = all.filter((a) => a.skill === k);
+    const names = (l: S.Action[]) => [...new Set(l.map((a) => a.name.toLowerCase()))];
+    const free = names(of.filter((a) => !a.needs?.[k]));
+    const gated = [...new Map(of.filter((a) => a.needs?.[k]).map((a) => [a.name, a] as const)).values()].sort((a, b) => a.needs![k]! - b.needs![k]!);
+    return `- ${icon} ${name}: ${free.join(", ")}${gated.length ? `; at level ${gated.map((a) => `${a.needs![k]} ${a.name.toLowerCase()}`).join(", at ")}` : ""}.`;
+  }).join("\n");
+};
+/** The level of `skill` the action named `name` needs; throws when it is gone, so Help can't quietly say 0. */
+const needOf = (actions: Activities.ActionTable, name: string, skill: Skills.Skill | "lang") => {
+  const n = Object.values(actions).flat().find((a) => a.name === name)?.needs?.[skill];
+  if (n === undefined) throw new Error(`Help: no "${name}" needing ${skill} in actions.json`);
+  return n;
+};
+/** What Help calls the shops that sell ingredients, by actions.json key. */
+const GROCERS: Record<string, string> = { grocery: "supermarkets", "shop/convenience": "corner shops", bakery: "bakeries", butcher: "butchers" };
+/** The language level guiding and translating need; throws if the two differ, as Help names one. */
+const guideLevel = (actions: Activities.ActionTable) => {
+  const [g, t] = [needOf(actions, "Guide a walking tour", "lang"), needOf(actions, "Translate for travellers", "lang")];
+  if (g !== t) throw new Error("Help: guiding and translating need different language levels");
+  return Lang.LANG_LEVELS[g]!;
+};
+/** "- bakeries: bread," per kind of shop that sells ingredients. */
+const groceryLines = (actions: Activities.ActionTable) =>
+  Object.entries(actions)
+    .flatMap(([k, l]) => l.filter((a) => a.groceries).map((a) => `- ${GROCERS[k] ?? k.split("/").at(-1)!.replaceAll("_", " ")}: ${Cook.listOf(a.groceries!)}`))
+    .join(",\n")
+    .concat(".");
+const recipeLines = () =>
+  Cook.RECIPES.map((r) => `- ${r.icon} ${r.name[0]!.toUpperCase()}${r.name.slice(1)} (cooking ${r.level}): ${Cook.listOf(r.uses)}, ${Object.entries(r.fx).map(([k, v]) => `+${num(v)} ${k === "str" ? "strength" : k === "magic" ? "Magic" : k}`).join(", ")}.`).join("\n");
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
-/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. Shoplifting is left out: it costs STEAL_KARMA, not DEED_STEP (see Karma). */
 function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   const names = new Set<string>();
-  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (!a.steal && Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
   return [...names].join(", ");
+}
+
+/** What a life stage changes, in words. */
+function stageText(st: Life.Stage): string {
+  const out = [];
+  if (st.speed !== 1) out.push(`gets about ${pct(Math.abs(st.speed - 1))} ${st.speed < 1 ? "slower" : "faster"}`);
+  if (st.xp !== 1) out.push(`${pct(st.xp - 1)} more XP from what he does`);
+  if (st.wage !== 1) out.push(`${pct(st.wage - 1)} more pay`);
+  return out.join(", ") || "where everyone starts, with no changes";
 }
 
 export function values(data: GameData): Record<string, string> {
@@ -214,9 +275,23 @@ export function values(data: GameData): Record<string, string> {
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    VISA_LIST: Visas.VISAS.map((v) => `- ${v.name}${v.from ? ` (after ${v.from} days)` : " (at first)"}: ${v.stay === Infinity ? "stays as long as he likes" : `stays of up to ${v.stay} days`}, ${v.pay ? `+${pct(v.pay)}` : "no extra"} pay`).join("\n"),
+    VISA_URGE: num(Visas.VISA_URGE),
+    VISA_PAY_MAX: pct(Visas.VISAS.at(-1)!.pay),
+    VISA_PUSH: num(Visas.VISA_PUSH),
     BILLS_L1: euro(Bills.billsAt(1)),
     BILLS_L10: euro(Bills.billsAt(10)),
     BILLS_L30: euro(Bills.billsAt(30)),
+    RENT_TIER_NAME: Fame.FAME_NAMES[Home.RENT_TIER]!,
+    RENT_L1: euro(Home.RENT_CENTS),
+    RENT_PER_LEVEL: euro(Home.RENT_PER_LEVEL),
+    HOME_PRICE: euro(Home.HOME_PRICE),
+    HOME_THINGS: num(Home.HOME_THINGS),
+    HOME_MOOD: num(Home.HOME_MOOD),
+    HOME_MOOD_PER_THING: num(Home.HOME_MOOD_PER_THING),
+    HOME_TRIP_PCT: pct(Home.HOME_TRIP),
+    GREET_PCT: pct(Fame.GREET_PER_TIER),
+    GREET_HERO_PCT: pct(Fame.GREET_PER_TIER * (Fame.FAME_NAMES.length - 1)),
     ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
     PET_FOOD: euro(Pet.PET_FOOD),
     PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
@@ -278,6 +353,23 @@ export function values(data: GameData): Record<string, string> {
     TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
+    STAGE_DAYS: num(Life.STAGE_DAYS),
+    STAGE_COUNT: num(Life.STAGES.length),
+    LIFE_DAYS: num(Life.LIFE_S / Life.DAY_S),
+    STAGE_LIST: Life.STAGES.map((st, i, all) => `- ${st.icon} ${st.name}: ${stageText(st)}${st.attr ? `; his care in the stage before nudges ${Inc.ATTR_NAMES[st.attr]}` : ""}${i === all.length - 1 ? "." : ","}`).join("\n"),
+    GOOD_STARVE_H: num(Life.GOOD_STARVE_H),
+    POOR_FAINTS: num(Life.POOR_FAINTS),
+    POOR_STARVE_H: num(Life.POOR_STARVE_H),
+    GOOD_NUDGE: num(Life.TIERS.good.nudge),
+    POOR_NUDGE_ABS: num(-Life.TIERS.poor.nudge),
+    RETIRE_RETRY_MIN: num(G.RETIRE_RETRY_MS / 60_000),
+    PERK_XP_PCT: pct(Life.PERK_XP),
+    PERK_EURO: euro(Life.PERK_CENTS),
+    PERK_XP_PCT_3: pct(2 * Life.PERK_XP),
+    PERK_START_3: euro(S.START_CENTS + 2 * Life.PERK_CENTS),
+    ELDER_SPEED_PCT: pct(1 - Life.STAGES[Life.ELDER]!.speed),
+    SETTLED_WAGE_PCT: pct(Life.STAGES[1].wage - 1),
+    STAGE_XP: Life.STAGES.filter((st) => st.xp !== 1).map((st) => `×${st.xp} as ${Life.withArticle(st.name).toLowerCase()}`).join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
     TRUST_MAX: num(Bond.TRUST_MAX),
     TRUST_START: num(Bond.TRUST_START),
@@ -305,6 +397,46 @@ export function values(data: GameData): Record<string, string> {
     DODGE_PCT: pct(Bond.DODGE_CHANCE),
     CAUGHT_PCT: pct(Bond.CAUGHT_CHANCE),
     FINE_MULT: num(Bond.FINE_MULT),
+    BOUNTY_WEIGHT: num(Activities.BOUNTY_WEIGHT),
+    PAYOFF_PULL: num(Activities.PAYOFF_PULL),
+    AURA_AT: num(Rep.AURA_AT),
+    STEAL_KARMA: num(Rep.STEAL_KARMA),
+    BRIBE_KARMA: num(Rep.BRIBE_KARMA),
+    SURRENDER_KARMA: num(Rep.SURRENDER_KARMA),
+    KIND_DISCOUNT_PCT: pct(Rep.KIND_DISCOUNT),
+    RASCAL_MARKUP_PCT: pct(Rep.RASCAL_MARKUP),
+    FREE_RIDE_PCT: pct(Rep.FREE_RIDE_CHANCE),
+    GIFT_PCT_KARMA: pct(Rep.GIFT_CHANCE),
+    RASCAL_BASE_PCT: pct(Moments.RASCAL_BASE),
+    RASCAL_PER_KARMA_PCT: pct(Moments.RASCAL_PER_KARMA),
+    RASCAL_MIN_PCT: pct(Moments.RASCAL_MIN),
+    RASCAL_MAX_PCT: pct(Moments.RASCAL_MAX),
+    RASCAL_HALF: num(-(0.5 - Moments.RASCAL_BASE) / Moments.RASCAL_PER_KARMA),
+    FAME_PER_H: num(Fame.FAME_PER_H),
+    FAME_LIST: Fame.FAME_NAMES.map((n, i) => `- ${n}: from ${num(Fame.FAME_TIERS[i]!)} points, ${Fame.FAME_DISCOUNT[i] ? `${pct(Fame.FAME_DISCOUNT[i]!)} off` : "no discount"}.`).join("\n") + `\nA city's fame stops at ${num(Fame.FAME_MAX)}.`,
+    HEAT_MAX: num(Rep.HEAT_MAX),
+    STAR_HEAT: num(Rep.STAR_HEAT),
+    STARS_MAX: num(Rep.STARS_MAX),
+    HEAT_PER_KARMA: num(Rep.HEAT_PER_KARMA),
+    FAME_HEAT: num(Rep.FAME_HEAT),
+    STEAL_HEAT: num(Rep.crimeHeat(Rep.STEAL_KARMA, 0)),
+    HEAT_FADE_PER_H: num(Rep.HEAT_FADE_PER_H),
+    HEAT_GONE_H: num(Rep.HEAT_MAX / Rep.HEAT_FADE_PER_H),
+    PAYOFF_STARS: num(Rep.PAYOFF_STARS),
+    PAYOFF_PCT: pct(Rep.PAYOFF_SHARE),
+    SPOT_PER_STAR_PCT: pct(Rep.SPOT_PER_STAR),
+    FAME_SPOT: num(Rep.FAME_SPOT),
+    CHASE_S: num(Rep.CHASE_S),
+    RUN_BASE_PCT: pct(Rep.RUN_BASE),
+    HIDE_BASE_PCT: pct(Rep.HIDE_BASE),
+    BRIBE_BASE_PCT: pct(Rep.BRIBE_BASE),
+    PER_POINT_PCT: pct(Rep.PER_POINT),
+    ESCAPE_CAP_PCT: pct(Rep.ESCAPE_CAP),
+    ESCAPE_HEAT: num(Rep.ESCAPE_HEAT),
+    BRIBE_PER_HEAT: euro(Rep.BRIBE_PER_HEAT),
+    FINE_PER_HEAT: euro(Rep.FINE_PER_HEAT),
+    FINE_FULL: euro(Rep.fineOf(Rep.HEAT_MAX)),
+    JAIL_MIN_PER_STAR_H: num(Rep.JAIL_MIN_PER_STAR / 60),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
@@ -364,6 +496,44 @@ export function values(data: GameData): Record<string, string> {
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
+    WANT_PULL: num(Mind.WANT_PULL),
+    FEAR_PULL: num(Mind.FEAR_PULL),
+    SHORT_H: num(Mind.SHORT_H),
+    LONG_H: num(Mind.LONG_H),
+    SHAKE_H: num(Mind.SHAKE_H),
+    FEAR_PCT: pct(Mind.FEAR_CHANCE),
+    MAX_FEARS: String(Mind.MAX_FEARS),
+    MAX_MOODLETS: String(Mind.MAX_MOODLETS),
+    WANT_XP_LONG: String(Mind.WANT_XP.long),
+    WANT_XP_SHORT: String(Mind.WANT_XP.short),
+    WANT_XP_SHAKE: String(Mind.WANT_XP.shake),
+    WANT_XP_FACE: String(Mind.WANT_XP.face),
+    WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
+    WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    WISH_MOOD_SHAKE: `+${Mind.WANT_MOOD.shake[0]} an hour for ${Mind.WANT_MOOD.shake[1]} hours`,
+    RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
+    SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
+    FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
+    LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
+    MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
+    DIARY_LINES: String(Diary.DAY_LINES),
+    FRIEND_LETTER_PCT: pct(Mail.LETTER_CHANCE),
+    FRIEND_LETTER_AT: String(Mail.LETTER_AT),
+    SPOT_GIFT_PCT: pct(Mail.GIFT_CHANCE),
+    SPOT_GIFT_AT: String(Mail.GIFT_AT),
+    KEEP_LETTERS: String(Mail.KEEP_LETTERS),
+    DIARY_DAYS: String(Diary.KEEP_DAYS),
+    DREAM_PCT: pct(Diary.DREAM_CHANCE),
+    MAX_DREAMS: String(Diary.MAX_DREAMS),
+    QUIRK_PULL: num(Quirks.QUIRK_PULL),
+    QUIRK_MOOD: `+${Quirks.QUIRK_MOOD[0]} an hour for ${Quirks.QUIRK_MOOD[1]} hour`,
+    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => Mind.plural(Mind.noun(k))).join(" or ")}`}`).join("\n"),
+    SPOT_MIN: String(Spot.SPOT_MIN),
+    SPOT_PULL: num(Spot.SPOT_PULL),
+    SPOT_FROM: `${Spot.SPOT_FROM}:00`,
+    SPOT_TO: `${Spot.SPOT_TO}:00`,
+    SPOT_DISCOUNT: pct(Spot.SPOT_DISCOUNT),
+    SPOT_KEEP: String(Spot.SPOT_KEEP),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
@@ -441,11 +611,21 @@ export function values(data: GameData): Record<string, string> {
     GOAL_SHOP_PULL: num(Activities.GOAL_SHOP_PULL),
     DEALER_OFFERS: String(S.DEALER_OFFERS),
     HOSPITAL_MAX_PCT: pct(S.HOSPITAL_MAX_SHARE),
-    WAGE_LEVEL_PCT: pct(S.WAGE_PER_LEVEL),
+    WAGE_RANK_PCT: pct(Careers.WAGE_PER_RANK),
     WAGE_ATTR_PCT: pct(S.WAGE_PER_ATTR),
     WAGE_ATTR_X10: pct(10 * S.WAGE_PER_ATTR),
-    WAGE_LV11: `${num(1 + 10 * S.WAGE_PER_LEVEL)} times`,
-    WAGE_LV30: `${num(1 + 29 * S.WAGE_PER_LEVEL)} times`,
+    WAGE_RANK3: `${num(1 + 2 * Careers.WAGE_PER_RANK)} times`,
+    WAGE_RANK5: `${num(1 + (Careers.TOP_RANK - 1) * Careers.WAGE_PER_RANK)} times`,
+    CAREER_COUNT: num(Careers.CAREERS.length),
+    TOP_RANK: num(Careers.TOP_RANK),
+    CAREER_LIST: Careers.helpList(),
+    SHIFTS_R2: num(Careers.SHIFTS_TO[1]),
+    SHIFTS_R3: num(Careers.SHIFTS_TO[2]),
+    SHIFTS_R4: num(Careers.SHIFTS_TO[3]),
+    SHIFTS_R5: num(Careers.SHIFTS_TO[4]),
+    RANK_PAY_LIST: Careers.RANK_PAY.map((m) => `${num(m)}x`).join(", "),
+    CAREER_PULL: num(Careers.CAREER_PULL),
+    CAREER_EXAMPLE: `"${Careers.careerOf("cafe")!.shifts[1]}" for a ${Careers.careerOf("cafe")!.ranks[2]}`,
     BRONZE_SWORD: euro(Items.build(Items.KINDS.weapons[0]!, Items.MATERIALS[2]!, []).price),
     XP_LV1: String(S.xpToNext(1)),
     XP_LV2: String(S.xpToNext(2)),
@@ -522,7 +702,8 @@ export function values(data: GameData): Record<string, string> {
     MOD_PRICE_PCT: pct(Items.MOD_PRICE),
     POWER_TO_STAT: num(Items.POWER_TO_STAT),
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
-    ACTION_COUNT: String(sum(data.actions)),
+    // Each career's rank shifts count once, though its places all offer them.
+    ACTION_COUNT: String(sum(data.actions) + [...Careers.RANK_SHIFTS.values()].reduce((n, l) => n + l.length, 0)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     KIT_LIST: Kit.KIT.map((k) => {
@@ -631,21 +812,23 @@ export function values(data: GameData): Record<string, string> {
     BOARD_MID_POP: num(Quests.BOARD_MID_POP),
     STEPS_MORE_MIN: num(Math.min(...bank.quests.map((q) => q.steps.length)) - 1),
     STEPS_MORE_MAX: num(Math.max(...bank.quests.map((q) => q.steps.length)) - 1),
-    QUEST_KINDS: String(bank.quests.length),
-    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy).length),
+    QUEST_KINDS: String(bank.quests.filter((q) => !q.city).length),
+    CITY_QUESTS: String(bank.quests.filter((q) => q.city).length),
+    CITY_CITIES: String(new Set(bank.quests.flatMap((q) => (q.city ? [q.city] : []))).size),
+    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy && !q.city).length),
     FANTASY_PCT: pct(Quests.FANTASY_SHARE),
-    QUEST_VARIANTS: num(Math.floor(bank.quests.reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
+    QUEST_VARIANTS: num(Math.floor(bank.quests.filter((q) => !q.city).reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
     QUEST_EVERY_MIN: num(Quests.QUEST_EVERY_MIN),
     QUEST_EVERY_MAX: num(Quests.QUEST_EVERY_MAX),
     STEP_CHOICES: num(Quests.STEP_CHOICES),
     STEP_MIN: num(Quests.STEP_MIN),
-    WORSE_PCT: pct(Quests.WORSE_SHARE),
     LOG_MAX: num(Quests.LOG_MAX),
     CARD_RECENT: num(Quests.CARD_RECENT),
     EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
     EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
     EVENT_MAX: num(Quests.EVENT_MAX),
     EVENT_KINDS: String(bank.events.length),
+    EVENT_FANTASY: String(bank.events.filter((e) => e.fantasy).length),
     FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
     FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
     LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
@@ -688,6 +871,58 @@ export function values(data: GameData): Record<string, string> {
     CLUB_MAX: num(Clubs.MAX_CLUBS),
     CLUB_NIGHT_H: num(Clubs.NIGHT_H),
     CLUB_LIST: Clubs.helpList(),
+    BUSINESS_LIST: Biz.BUSINESSES.map((b) => `- ${b.icon} a ${b.name}: ${euro(b.cents)}, bringing in about ${euro(b.perH * 24)} a day`).join("\n"),
+    BUSINESS_PAYBACK: (() => {
+      const days = Biz.BUSINESSES.map((b) => Math.round(b.cents / b.perH / 24));
+      const lo = Math.min(...days);
+      const hi = Math.max(...days);
+      return lo === hi ? num(lo) : `${lo} to ${hi}`;
+    })(),
+    SHARE_PRICE: euro(Biz.SHARE_PRICE),
+    SHARE_BASE: euro(Biz.SHARE_BASE),
+    SHARE_PER_VISIT: euro(Biz.SHARE_PER_VISIT),
+    SHARE_VISITS_MAX: num(Biz.SHARE_VISITS_MAX),
+    SHARE_DAY_MAX: euro(Biz.SHARE_BASE + Biz.SHARE_PER_VISIT * Biz.SHARE_VISITS_MAX),
+    TICKET: euro(Lot.TICKET),
+    DRAW_HOUR: `${Lot.DRAW_HOUR}:00`,
+    PRIZE_LIST: [...Lot.PRIZES].reverse().map((p) => `- ${p.match} numbers: ${euro(p.cents)}, one ticket in ${p.odds.toLocaleString("en-US")}`).join("\n"),
+    LUCK_NUDGE_PCT: pct(Lot.LUCK_NUDGE),
+    LUCK_MULT_MAX: num(Lot.LUCK_MULT_MAX),
+    TICKET_BACK: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.oddsMult(1))),
+    TICKET_BACK_MAX: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.LUCK_MULT_MAX)),
+    QUEST_PRACTICE_MIN: num(Skills.QUEST_PRACTICE_MIN),
+    BIG_MATCH: num(Lot.BIG_MATCH),
+    BUCKET_SIZE: num(Bucket.BUCKET_SIZE),
+    GOAL_LIST: Kit.list(Bucket.GOALS.map(Bucket.lower)),
+    SIGHT_COUNT: num(Bucket.SIGHTS.length),
+    DREAM_XP: num(Bucket.DREAM_XP),
+    DREAM_MOOD: num(Bucket.DREAM_MOOD),
+    DREAM_PULL: num(Bucket.DREAM_PULL),
+    DREAM_SHARE_PCT: pct(Bucket.DREAM_SHARE),
+    SKILL_MAX: num(Skills.SKILL_MAX),
+    SKILL_STEP: num(Skills.SKILL_STEP),
+    SKILL_L4: num(Skills.stepsTo(4)),
+    SKILL_L10: num(Skills.stepsTo(Skills.SKILL_MAX)),
+    PRACTICE_MIN: num(Skills.PRACTICE_MIN),
+    PRACTICE_MIN_2X: num(Skills.PRACTICE_MIN * 2),
+    CONCERT_AT: num(needOf(data.actions, "Play a street concert", "music")),
+    LANGS_SHOWN: num(Lang.LANGS_SHOWN),
+    GUIDE_LEVEL: guideLevel(data.actions),
+    GROCERY_LIST: groceryLines(data.actions),
+    SKILLS_SHOWN: num(Skills.SKILLS_SHOWN),
+    SKILL_FX_PCT: pct(Skills.SKILL_FX),
+    SKILL_FX_MAX_PCT: pct(Skills.SKILL_FX * Skills.SKILL_MAX),
+    SKILL_LEAN_MAX: num(1 + Skills.SKILL_LEAN),
+    PHOTO_SHINE_PCT: pct(Skills.PHOTO_SHINE),
+    SKILL_LIST: skillLines(data.actions),
+    PANTRY_MAX: num(Cook.PANTRY_MAX),
+    GROCERIES_WEIGHT: num(Activities.GROCERIES_WEIGHT),
+    RECIPE_LIST: recipeLines(),
+    LANG_LIST: Lang.LANG_LEVELS.slice(1).map((l, i) => `- ${l}: ${num(Lang.LANG_HOURS[i + 1]!)} hour${Lang.LANG_HOURS[i + 1] === 1 ? "" : "s"}`).join(",\n"),
+    LANG_CHAT_H: num(Lang.CHAT_H),
+    LANG_CHARM: num(Lang.LANG_CHARM),
+    LANG_CHARM_MAX: num(Lang.LANG_CHARM * Lang.FLUENT),
+    FLUENT: Lang.LANG_LEVELS[Lang.FLUENT]!,
     NEWS_PCT: pct(Townies.NEWS_CHANCE),
     NEWS_AT: num(Townies.NEWS_AT),
     PARTY_AT: num(Anniv.PARTY_AT),

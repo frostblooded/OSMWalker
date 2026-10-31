@@ -57,6 +57,17 @@ describe("landmark cards", () => {
     expect([...stats.keepsakes.cards.values()]).toMatchObject([{ name: "Castle", finish: "" }]);
     expect(stats.history.entries.filter((e) => e.text.startsWith("New card"))).toHaveLength(1);
   });
+
+  it("notes which walker found a card once an heir carries on", () => {
+    stats.collect(place("Castle", "castle"), rolls(0.9));
+    const { heir } = stats.retire("age");
+    heir.arrive("Sofia", "BGR", "Bulgaria");
+    heir.collect(place("Small Museum", "museum", "museum", 5, 42.2), rolls(0.9));
+    expect([...heir.keepsakes.cards.values()].map((c) => [c.name, c.gen])).toEqual([
+      ["Castle", undefined],
+      ["Small Museum", 2],
+    ]);
+  });
 });
 
 describe("made-up places", () => {

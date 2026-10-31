@@ -8,6 +8,7 @@ import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
 import type { City } from "../../src/core/trips";
 import { Game } from "../../src/game/game";
+import * as R from "../../src/core/repute";
 import { EVENT_ZOOM, MapScene, type MapPort, type Padding } from "../../src/map/scene";
 import { Api } from "../../src/net/api";
 import { plus, PLUS_BBOX } from "../support/osm";
@@ -33,6 +34,10 @@ class FakeMap implements MapPort {
   }
   setGoal() {}
   setRival() {}
+  police: [number, number] | null = null;
+  setPolice(at: [number, number] | null) {
+    this.police = at;
+  }
   setTrip() {}
   showTrail(on: boolean) {
     this.calls.push(`trail:${on}`);
@@ -185,6 +190,17 @@ describe("map scene", () => {
     scene.draw(0.25, 250);
     expect(map.him).toEqual([42.001, 23.0]);
     expect(map.autoFollow).toBe(false);
+  });
+
+  it("puts the police car on his trail during a chase, and takes it off after", () => {
+    game.chase = { place: "Kiosk", ends: game.now() + R.CHASE_S * 1000, trail: [[42, 23], [42.002, 23]] };
+    scene.draw(0.25, 250);
+    // Just begun: the car is at the start of his trail (a millisecond may have passed).
+    expect(map.police![0]).toBeCloseTo(42, 4);
+    expect(map.police![1]).toBeCloseTo(23, 4);
+    game.chase = null;
+    scene.draw(0.25, 250);
+    expect(map.police).toBeNull();
   });
 
   it("shows his face, with his most pressing need over his head", () => {

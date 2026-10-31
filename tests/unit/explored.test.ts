@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { bboxAround, distanceM, moved } from "../../src/core/geo";
 import { CELL_M, cellOf, Explored } from "../../src/core/explored";
+import { Stats } from "../../src/core/stats";
 
 const SOFIA: [number, number] = [42.6977, 23.3219];
 
@@ -108,3 +109,11 @@ describe("explored squares", () => {
   });
 });
 
+
+describe("explored squares in the family", () => {
+  it("his heir keeps the squares he walked", () => {
+    const s = new Stats();
+    s.explored.walk(SOFIA, moved(SOFIA[0], SOFIA[1], [600, 0]));
+    expect(s.retire("age").heir.explored.size).toBe(s.explored.size);
+  });
+});

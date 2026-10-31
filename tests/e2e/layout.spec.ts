@@ -9,6 +9,12 @@ test.beforeEach(async ({ context }) => {
   await mockServices(context);
 });
 
+/** An elder of the third generation, with a long home name and heirloom on the tree; his heir sets out in Sofia, whose streets the mock serves. */
+const FAMILY = `const ago = (d) => Math.floor(Date.now() / 1000) - d * 86400;
+const letter = "Dear heir,\\nI walked 812 km through 14 cities and reached level 23. Sofia felt most like home.\\nTake my Mighty Bronze Sword of the Fox.\\n— Walker I, Hearty Elder";
+const a = (gen, title) => ({ gen, born: ago(200 - gen * 56), retired: ago(144 - gen * 56), by: "age", title, level: 23, km: 812, cities: 14, home: "Villeneuve-lès-Avignon, France", heirloom: "Mighty Bronze Sword of the Fox", letter, chronicle: [] });
+d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
+
 /** Drags a sheet's title bar down by dy px. */
 async function dragTitle(page: Page, sheet: Locator, dy: number) {
   const b = (await sheet.locator("header h2").boundingBox())!;
@@ -141,9 +147,76 @@ for (const width of [360, 412]) {
       }
     });
 
+    // An elder with two walkers before him, retired from the menu: the confirm, his farewell letter, then the family tree.
+    // Its own walk too, so the one below stays inside its time limit on a busy CI runner.
+    test("no retirement or family screen has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(60_000);
+      await page.goto("./");
+      await page.getByLabel("City name").fill("Sofia");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await reopenWith(page, FAMILY, "family-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Retire him now/);
+      await check(page, "retire");
+      await page.getByRole("dialog", { name: /Retire him now/ }).getByRole("button", { name: "Retire" }).click();
+      const farewell = page.getByRole("dialog", { name: /farewell letter/ });
+      await expect(farewell).toBeVisible({ timeout: 20000 });
+      await check(page, "farewell");
+      await farewell.getByRole("button", { name: "Carry on" }).click();
+      await openMenuItem(page, /Stats/);
+      const family = page.getByRole("dialog", { name: /Stats/ });
+      await family.locator(".card", { hasText: "Family perk" }).scrollIntoViewIfNeeded();
+      await check(page, "stats-life");
+      await family.getByRole("button", { name: /Walker II ·/ }).click();
+      await family.locator(".tree").scrollIntoViewIfNeeded();
+      await check(page, "stats-family");
+      await family.getByRole("button", { name: /Close/ }).click();
+
+    });
+
+    // An item's story and the quest and event cards on the map: their own walk too, so the one below stays inside its time limit on a busy CI runner.
+    test("no item story, quest card or event card has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(60_000);
+      await page.goto("./");
+      await page.getByLabel("City name").fill("Sofia");
+      await page.getByRole("button", { name: /Sofia/ }).click();
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await reopenWith(page, KEEPSAKES);
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await openMenuItem(page, /Stats/);
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
+      await check(page, "stats-story");
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      // A quest on the board about 80 px east of him: tap its icon for its card. The map's real scale moves it a little, so taps sweep along his row.
+      await reopenWith(page, QUEST_NEXT_TO_HIM, "quest-save");
+      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      const card = page.getByRole("dialog", { name: /The Lost Dog/ });
+      await expect(async () => {
+        const him = (await page.locator(".marker.him").boundingBox())!;
+        for (let dx = 28; dx <= 160 && !(await card.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 + dx, him.y + him.height / 2);
+        await expect(card).toBeVisible({ timeout: 500 });
+      }).toPass({ timeout: 20000 });
+      await check(page, "quest-card");
+      await card.getByRole("button", { name: /Go help/ }).click();
+      await check(page, "quest-card-nudged");
+      await card.getByRole("button", { name: /Close/ }).click();
+      // The event about 80 px west of him, with a long place name.
+      const event = page.getByRole("dialog", { name: /Oven trouble/ });
+      await expect(async () => {
+        const him = (await page.locator(".marker.him").boundingBox())!;
+        for (let dx = 28; dx <= 160 && !(await event.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 - dx, him.y + him.height / 2);
+        await expect(event).toBeVisible({ timeout: 500 });
+      }).toPass({ timeout: 20000 });
+      await check(page, "event-card");
+      await event.getByRole("button", { name: /Close/ }).click();
+    });
+
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
-      // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
-      test.setTimeout(90_000);
+      // One walk through every screen, which grows with each new screen: about 30 s locally, near a minute on CI
+      // and over 90 s on a slow runner, so it gets plenty of room.
+      test.setTimeout(180_000);
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
       await check(page, "postcard-received");
@@ -178,39 +251,18 @@ for (const width of [360, 412]) {
       await check(page, "help-search");
       await help.getByRole("button", { name: /Close/ }).click();
 
+      await openMenuItem(page, /Diary/);
+      await expect(page.getByRole("dialog", { name: /Diary/ })).toBeVisible();
+      await check(page, "diary");
+      await page.getByRole("dialog", { name: /Diary/ }).getByRole("button", { name: /Close/ }).click();
+
       await openMenuItem(page, /Stats/);
       await check(page, "stats");
+      const mood = page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /🙂 Mood/ });
+      await mood.click();
+      await mood.scrollIntoViewIfNeeded();
+      await check(page, "stats-mind");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
-
-      await reopenWith(page, KEEPSAKES);
-      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      await openMenuItem(page, /Stats/);
-      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Lucky Cap/ }).click();
-      await check(page, "stats-story");
-      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
-
-      // A quest on the board about 80 px east of him: tap its icon for its card. The map's real scale moves it a little, so taps sweep along his row.
-      await reopenWith(page, QUEST_NEXT_TO_HIM, "quest-save");
-      await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      const card = page.getByRole("dialog", { name: /The Lost Dog/ });
-      await expect(async () => {
-        const him = (await page.locator(".marker.him").boundingBox())!;
-        for (let dx = 28; dx <= 160 && !(await card.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 + dx, him.y + him.height / 2);
-        await expect(card).toBeVisible({ timeout: 500 });
-      }).toPass({ timeout: 20000 });
-      await check(page, "quest-card");
-      await card.getByRole("button", { name: /Go help/ }).click();
-      await check(page, "quest-card-nudged");
-      await card.getByRole("button", { name: /Close/ }).click();
-      // The event about 80 px west of him, with a long place name.
-      const event = page.getByRole("dialog", { name: /Oven trouble/ });
-      await expect(async () => {
-        const him = (await page.locator(".marker.him").boundingBox())!;
-        for (let dx = 28; dx <= 160 && !(await event.count()); dx += 10) await page.mouse.click(him.x + him.width / 2 - dx, him.y + him.height / 2);
-        await expect(event).toBeVisible({ timeout: 500 });
-      }).toPass({ timeout: 20000 });
-      await check(page, "event-card");
-      await event.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });

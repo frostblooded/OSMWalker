@@ -9,16 +9,16 @@
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
-import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, minded, placePull, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
 import { skyNeed, type Sky } from "./sky";
-import type { Rng } from "./rng";
+import { Rng, seedOf } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
+import { cityBounds, cityKey, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -54,7 +54,7 @@ export const MADE_UP_KINDS: { class: string; subclass: string; label: string; we
 ];
 
 /** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. `pop` sizes its quest board. */
-export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number };
+export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number; /** The cities.tsv "Name, Country" key, when he's in a listed city: city quests match on it. */ key?: string };
 
 export type CatchUpDeps = {
   activities: Activities;
@@ -112,8 +112,13 @@ export type Summary = {
   endCents: number;
   startLevel: number;
   endLevel: number;
+  /** Cents his businesses paid him, and the lottery. */
+  takings: number;
+  lotteryWon: number;
   /** "Bought ..." lines. */
   bought: string[];
+  /** He was due to retire (his elder stage ran out, or you asked on a ride), so the catch-up stopped there (coveredS is up to then): "soon", or "done" once the game has retired him. */
+  retire?: "soon" | "done";
   /** Everything he did, oldest first. */
   lines: Line[];
   /** Where he is at the end: the city, the spot and the place he stays at (null for a made-up place or none). */
@@ -145,10 +150,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     endCents: stats.cents,
     startLevel: stats.level,
     endLevel: stats.level,
+    takings: 0,
+    lotteryWon: 0,
     bought: [],
     lines: [],
     end: { city, at: here, place: null, skipRoll: !!deps.skipRoll },
   };
+  const earned0 = stats.business.earned;
+  const won0 = stats.lottery.won;
   let elapsed = 0;
   let heading: Vec = [0, 0];
   let skipRoll = !!deps.skipRoll;
@@ -211,13 +220,15 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His elder stage ran out, or you asked: the game retires him, and his heir starts on the real clock.
+      if (stats.life.leaving) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
-      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng, city.key ?? city.name, stats.bond.leaning());
       skyNow();
       const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
@@ -237,14 +248,16 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      stats.stop(place);
       if (city.places) {
+        // Visit first, as the watched game does, so his spot counts this visit.
         const bonus = stats.visit(place);
+        stats.stop(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
         stats.care.open(stats);
         stats.collect(place, deps.cardRng ?? rng);
       } else {
+        stats.stop({ ...place, made: true });
         stats.say(`Reached ${place.name}`);
         stats.care.open(stats);
       }
@@ -270,8 +283,17 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
+      // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
+      if (stats.reputeAt(place)) {
+        // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
+        const jail = stats.runChase(place.name);
+        s.stops++;
+        pass(Math.min(jail || restMinutes({ name: "", min: 1 }), leftMin()), 0);
+        yield;
+        continue;
+      }
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, sky.hour, cardRng);
+      stats.happen(city.places ? place : { ...place, made: true }, sky.hour, cardRng);
       s.stops++;
       const story = city.places ? questStop(stats, place, city.places, sky.hour, cardRng) : null;
       if (story !== null) {
@@ -279,18 +301,23 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf());
+      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf(), place.class);
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (leftMin() > 0) pass(leftMin(), 0);
+    if (stats.life.leaving) {
+      s.retire = "soon";
+      s.coveredS = Math.min(elapsed, coveredS);
+    } else if (leftMin() > 0) pass(leftMin(), 0);
   } finally {
     stats.now = clock;
     stats.onSay = heard;
   }
   s.endCents = stats.cents;
   s.endLevel = stats.level;
+  s.takings = stats.business.earned - earned0;
+  s.lotteryWon = stats.lottery.won - won0;
   s.end.city = city;
   s.end.at = here;
   s.end.skipRoll = skipRoll;
@@ -304,9 +331,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     }
     if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
-    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
+    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
-    const found = trips.pick(kind, city.code, here[0], here[1], rng);
+    const home = stats.home.has() ? trips.homeward(stats.home, stats.atHome(), new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
+    const found = home ?? trips.pick(kind, city.code, here[0], here[1], rng, stats.bucket.pull());
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
     const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
@@ -338,9 +366,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
 
   /** Lands in `dest` at `at` after `distM` by `mode` from longitude `fromLon`, as the watched game does on landing. */
   function landIn(dest: City, mode: Mode, fromLon: number, at: LatLon, distM: number): void {
-    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
+    city = { name: cityKey(dest), code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.life.mark(city.name, city.center);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
     moveTo(null, at);
@@ -356,7 +385,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
     const sky = skyNow();
-    const need = flat.kinds.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const need = flat.kinds.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour, p.class), p, sky), p, stats));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
@@ -367,12 +396,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
+      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * placePull(real[i]!, stats, sky.hour);
     });
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);
     const made = madeUp();
-    const madeNeed = made.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const madeNeed = made.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour, p.class), p, sky), p, stats));
     const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
     return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }
@@ -383,7 +412,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     for (let i = 0; i < MADE_UP_TRIES; i++) {
       const k = MADE_UP_KINDS[pickIndex(MADE_UP_KINDS.map((x) => x.weight), rng.randf())]!;
       const [lat, lon] = randomSpot(rng, city.bounds, here, heading);
-      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon });
+      // Marked made-up, so he never collects, greets or adopts there, even in a city whose (empty) places list is loaded.
+      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon, made: true });
     }
     return out;
   }

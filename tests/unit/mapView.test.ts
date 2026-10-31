@@ -6,12 +6,12 @@ import { POSE_EVERY_S, type Look } from "../../src/core/look";
 import { MapView } from "../../src/map/mapView";
 
 /** A MapView with only his marker, no MapLibre. */
-function view(): { v: MapView; bubble: HTMLElement; pet: HTMLElement } {
+function view(): { v: MapView; bubble: HTMLElement; pet: HTMLElement; aura: HTMLElement } {
   const el = document.createElement("div");
-  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span><span class="pet"></span>';
+  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span><span class="pet"></span><span class="aura"></span>';
   const v = new MapView();
   Object.assign(v, { him: { getElement: () => el } });
-  return { v, bubble: el.querySelector(".bubble")!, pet: el.querySelector(".pet")! };
+  return { v, bubble: el.querySelector(".bubble")!, pet: el.querySelector(".pet")!, aura: el.querySelector(".aura")! };
 }
 
 const napping: Look = { face: "🙂", bubble: "", pose: { icon: "💤", motion: "rise" }, mount: "", pet: "" };
@@ -26,6 +26,17 @@ describe("MapView.setLook", () => {
     expect(pet.hidden).toBe(false);
     v.setLook(napping);
     expect(pet.hidden).toBe(true);
+  });
+
+  it("shows a halo or horns at either end of his karma, and nothing in between", () => {
+    const { v, aura } = view();
+    v.setLook({ ...napping, aura: "halo" });
+    expect(aura.className).toBe("aura halo");
+    expect(aura.hidden).toBe(false);
+    v.setLook({ ...napping, aura: "horns" });
+    expect(aura.className).toBe("aura horns");
+    v.setLook(napping);
+    expect(aura.hidden).toBe(true);
   });
 
   it("replays the pose each POSE_EVERY_S while he stays", () => {

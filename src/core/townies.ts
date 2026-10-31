@@ -25,12 +25,15 @@ export class Townies {
   day = "";
   /** Per friend id, the news ids that already happened to them. */
   done: Record<string, string[]> = {};
+  /** The letter the last roll brought, for his mailbox (mail.ts); not saved. */
+  letter: { friend: Friend; city: string; text: string } | null = null;
 
   /**
    * A new local day `date`: maybe news from one friend. `cities` are where a
    * friend may move ("Porto, Portugal"). Returns the feed line, or "".
    */
   roll(date: string, friends: Friend[], partner: string, news: readonly News[], cities: readonly string[], rng: Rng): string {
+    this.letter = null;
     if (date === this.day) return "";
     const first = !this.day;
     this.day = date;
@@ -44,10 +47,14 @@ export class Townies {
     const f = rng.pick(who);
     const n = rng.pick(open(f));
     (this.done[f.id] ??= []).push(n.id);
-    const from = f.city.split(",")[0]!;
+    const home = f.city;
+    const from = home.split(",")[0]!;
     if (n.move) f.city = rng.pick(room(f));
     const fill = (s: string) => s.replaceAll("{NAME}", f.name).replaceAll("{CITY}", f.city.split(",")[0]!);
-    if (n.letter) return `${LETTER_MARK} A letter from ${f.name} in ${from}: "${fill(n.letter)}"`;
+    if (n.letter) {
+      this.letter = { friend: f, city: home, text: fill(n.letter) };
+      return `${LETTER_MARK} A letter from ${f.name} in ${from}: "${this.letter.text}"`;
+    }
     return `${n.icon} News from ${from}: ${fill(n.line)}`;
   }
 
