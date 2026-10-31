@@ -506,7 +506,8 @@ export function values(data: GameData): Record<string, string> {
     MOD_PRICE_PCT: pct(Items.MOD_PRICE),
     POWER_TO_STAT: num(Items.POWER_TO_STAT),
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
-    ACTION_COUNT: String(sum(data.actions)),
+    // Each career's rank shifts count once, though its places all offer them.
+    ACTION_COUNT: String(sum(data.actions) + Careers.CAREERS.length * (Careers.TOP_RANK - 1)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     KIT_LIST: Kit.KIT.map((k) => {

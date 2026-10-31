@@ -260,7 +260,7 @@ He is promoted to rank 2 after {SHIFTS_R2} shift in a career, rank 3 after {SHIF
 
 Every rank pays more:
 - the career's jobs pay {WAGE_RANK_PCT} more for every rank above 1 (see Wages),
-- from rank 2, its places offer a shift of his rank, such as {CAREER_EXAMPLE}. It lists {RANK_PAY_LIST} the career's base wage at ranks 2 to 5, and gets the rank pay above on top, like the career's other jobs. A new rank's shift takes the place of the last one.
+- from rank 2, its places offer a shift of his rank, such as {CAREER_EXAMPLE}. It lists {RANK_PAY_LIST} the career's base wage at ranks 2 to {TOP_RANK}, and gets the rank pay above on top, like the career's other jobs. A new rank's shift takes the place of the last one.
 
 He leans to his best career, the one he has worked most shifts in: its jobs weigh {CAREER_PULL} times as much when he picks what to do at a place (see How he chooses). It doesn't change where he walks.
 
