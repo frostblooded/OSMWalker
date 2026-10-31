@@ -1,0 +1,66 @@
+{
+  "open": [
+    "{CITY}, day {DAY}.",
+    "Day {DAY} in {CITY}.",
+    "{CITY}. Day {DAY}, I think.",
+    "Dear diary, {CITY}, day {DAY}."
+  ],
+  "notes": {
+    "faint": [
+      "Woke up at {PLACE} with no idea how I got there. Must eat more.",
+      "Fainted today. The nurses at {PLACE} were kind about it."
+    ],
+    "arrive": [
+      "Got to {PLACE}. Everything smells different here.",
+      "First day in {PLACE}. I already like the light.",
+      "Arrived in {PLACE} with tired feet and a full head."
+    ],
+    "brave": [
+      "Went back to {PLACE} and nothing bad happened. Silly me.",
+      "Faced {PLACE} again today. I feel taller."
+    ],
+    "fear": [
+      "Not going near {PLACE} for a while.",
+      "{PLACE} gave me a fright. My hands still shake a bit."
+    ],
+    "quirk": [
+      "I think I'm becoming a {PLACE}. Can't help it.",
+      "Someone called me a {PLACE} today. Fair."
+    ],
+    "spot": [
+      "{PLACE} feels like mine now. They know my order.",
+      "Found my place: {PLACE}. I'll be back tomorrow."
+    ],
+    "wish": [
+      "Finally made it to {PLACE}. Worth it.",
+      "Got my wish at {PLACE}. Small things."
+    ],
+    "first": [
+      "Found {PLACE} today. Didn't know it was there.",
+      "Stumbled on {PLACE}. Must remember it.",
+      "Got lost near {PLACE}. Good kind of lost."
+    ],
+    "mishap": [
+      "Things went wrong at {PLACE}. Moving on.",
+      "{PLACE} was a bit of a disaster. I'll laugh about it later."
+    ],
+    "work": [
+      "Worked a shift at {PLACE}. Sore back, full wallet.",
+      "Earned my keep at {PLACE} today."
+    ]
+  },
+  "quiet": [
+    "A quiet day. Walked, ate, looked at things. Good.",
+    "Nothing much happened in {CITY}. I liked it.",
+    "Just walked about {CITY} all day. My feet have opinions."
+  ],
+  "dreams": [
+    "Dreamt {A} was full of {B}.",
+    "Dreamt I had to carry {B} all the way to {A}.",
+    "In my dream {A} was underwater, and {B} were swimming by.",
+    "Dreamt {A} could talk. It wanted {B}.",
+    "Dreamt I ran {A}, but only sold {B}.",
+    "Dreamt {A} floated off into the clouds, trailing {B}."
+  ],
+  "things": ["croissants", "pigeons", "umbrellas", "tiny trams", "singing cats", "maps that wouldn't fold", "lost keys", "golden coins", "teacups", "old postcards"]
+}

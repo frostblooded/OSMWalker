@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 // The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, and his skills, languages and pantry.
+// Also the Diary sheet: its days, newest first, with their dreams.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -11,6 +12,7 @@ import { PANTRY_MAX } from "../../src/core/cooking";
 import { stepsTo } from "../../src/core/skills";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
+import { DiarySheet } from "../../src/ui/DiarySheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
@@ -165,5 +167,25 @@ describe("Stats sheet", () => {
     expect(text).toContain("France's language · herebasic");
     expect(text).toContain("Englishfluent");
     expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
+  });
+});
+
+describe("Diary sheet", () => {
+  it("lists days newest first, each opening to its lines and dreams", () => {
+    const stats = new Stats();
+    const root = document.createElement("div");
+    render(h(DiarySheet, { diary: stats.diary }), root);
+    expect(root.textContent).toContain("Nothing yet.");
+    stats.diary.entries = [
+      { date: "2026-10-29", city: "Sofia, Bulgaria", day: 1, lines: ["Sofia, day 1.", "Found Cafe East today."], dreams: [] },
+      { date: "2026-10-30", city: "Sofia, Bulgaria", day: 2, lines: ["Sofia, day 2.", "A quiet day."], dreams: ["Dreamt Cafe East was full of pigeons."] },
+    ];
+    render(h(DiarySheet, { diary: stats.diary }), root);
+    const rows = [...root.querySelectorAll("button.row")];
+    expect(rows.map((r) => r.textContent)).toEqual(["📔 Sofia, day 2. ▸", "📔 Sofia, day 1. ▸"]);
+    (rows[0] as HTMLButtonElement).click();
+    return Promise.resolve().then(() => {
+      expect(root.textContent).toContain("💤 Dreamt Cafe East was full of pigeons.");
+    });
   });
 });

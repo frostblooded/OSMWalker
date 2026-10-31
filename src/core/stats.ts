@@ -15,8 +15,9 @@ import * as Cook from "./cooking";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
-import { Mind, WANT_XP } from "./mind";
+import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
+import { Diary, type DiaryData } from "./diary";
 import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
@@ -155,6 +156,8 @@ export type Action = {
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
   resale?: boolean;
   flavour?: boolean;
+  /** A nap or a night's sleep: he may dream (see diary.ts). */
+  sleep?: boolean;
   /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
   deed?: number;
   /** The skill it trains, and whose level makes its gains and pay bigger (see skills.ts). */
@@ -210,6 +213,9 @@ export class Stats {
   bond = new B.Bond();
   /** His letters to you from data/letters.json; not saved, the game sets it. */
   letters: B.Letters | null = null;
+  /** His diary, and its templates from data/diary.json (not saved, the game sets them). */
+  diary = new Diary();
+  diaryData: DiaryData | null = null;
   /** Golden bricks and the monuments they paid for. */
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
@@ -637,6 +643,7 @@ export class Stats {
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
+    if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.visaDay();
     const f = this.friends;
@@ -827,11 +834,21 @@ export class Stats {
   do(action: Action, where: string, rng: Rng, kind = ""): string {
     this.mishap = false;
     const line = this.act(action, where, rng, kind);
+    // A nap or a night's sleep may bring a dream, on its own dice.
+    if (action.sleep) {
+      const dream = this.diary.dream(this.diaryData, new Rng(seedOf(`dream${this.now()}${where}`)));
+      if (dream) this.say(`💤 ${dream}`);
+    }
     if (!kind) return line;
     // Its own dice, so the walk's stay the same.
-    const { met, lines } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
-    for (const w of met) this.addXp(WANT_XP[w.kind]);
+    const { met, lines, feared } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
+    for (const w of met) {
+      this.addXp(WANT_XP[w.kind]);
+      this.diary.note(w.kind === "face" ? "brave" : "wish", where || noun(kind));
+    }
     for (const l of lines) this.say(l);
+    if (feared) this.diary.note("fear", where || noun(kind));
+    else if (this.mishap && where) this.diary.note("mishap", where);
     this.habit(kind);
     return line;
   }
@@ -840,7 +857,10 @@ export class Stats {
   private habit(kind: string): void {
     const { here, gained, lost } = this.quirks.count(kind);
     for (const q of here) this.mind.feel(q.treat, q.icon, ...Qk.QUIRK_MOOD);
-    if (gained) this.say(`${gained.icon} He has become a ${gained.name}`);
+    if (gained) {
+      this.say(`${gained.icon} He has become a ${gained.name}`);
+      this.diary.note("quirk", gained.name);
+    }
     if (lost) this.say(`${lost.icon} He is no longer a ${lost.name}`);
   }
 
@@ -899,6 +919,7 @@ export class Stats {
     if (action.deed) this.bond.deed(action.deed);
     if (earned) this.milestone("job", `First wage: ${action.name}${where ? ` at ${where}` : ""}`);
     const learned = [action.skill ? this.skills.train(action.skill, action.min) : "", action.lang ? this.languages.add(this.lang(), Lang.CHAT_H) : ""];
+    if (earned && where) this.diary.note("work", where);
     const net = earned - spent;
     const money = net ? ` (${signed(net)})` : "";
     const jokes = jokesFor(this.jokes, kind);
@@ -938,10 +959,15 @@ export class Stats {
   /** First visit to a named place gives bonus XP; returns the XP given. */
   visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string; made?: unknown }): number {
     // Only a real place can be his spot.
-    if (!place.made) this.sayIf(this.spots.visit(this.where.city, place));
+    const home = place.made ? "" : this.spots.visit(this.where.city, place);
+    if (home) {
+      this.say(home);
+      this.diary.note("spot", place.name);
+    }
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
+    this.diary.note("first", place.name);
     this.week.newPlace();
     const xp = Math.round(FIRST_VISIT_XP * F.mult(this.forecast(), "visit"));
     this.addXp(xp);
@@ -956,6 +982,7 @@ export class Stats {
     this.visas.enter(code);
     if (city) this.milestone("start", `Set out from ${city}`);
     if (was.city && was.city !== city) this.milestone("trip", `First trip away: to ${city}`);
+    if (was.city !== city && city) this.diary.note("arrive", city.split(",")[0]!);
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
     if (!code) return;
     const seen = this.keepsakes.seen;
@@ -1324,6 +1351,7 @@ export class Stats {
     this.meters.thirst = Math.max(this.meters.thirst, 30);
     this.milestone("faint", `Fainted for the first time and woke up at ${hospital || "the hospital"}`);
     const line = this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
+    this.diary.note("faint", hospital || "the hospital");
     this.habit(Qk.FAINT);
     return line;
   }
@@ -1348,7 +1376,7 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
     };
   }
@@ -1400,6 +1428,8 @@ export class Stats {
     // A save from before quirks and spots: no habits counted yet.
     s.quirks = Qk.Quirks.fromJSON(d.quirks);
     s.spots = Spots.fromJSON(d.spots);
+    // A save from before the diary: an empty one, starting with the next day.
+    s.diary = Diary.fromJSON(d.diary);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
