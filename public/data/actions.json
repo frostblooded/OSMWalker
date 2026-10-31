@@ -2554,6 +2554,34 @@
    }
   }
  ],
+ "bridge": [
+  {
+   "name": "Watch the river from the railing",
+   "min": 10,
+   "fx": {
+    "mood": 6,
+    "energy": 3,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Count the boats going under",
+   "min": 15,
+   "fx": {
+    "mood": 4,
+    "wit": 0.05,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Snap a photo of the view",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "xp": 2
+   }
+  }
+ ],
  "information": [
   {
    "name": "Pick up a free map",
@@ -2916,6 +2944,17 @@
   }
  ],
  "shop/antiques": [
+  {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
   {
    "name": "Browse the weapons and armour",
    "min": 15,
@@ -3306,6 +3345,17 @@
   }
  ],
  "shop/second_hand": [
+  {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
   {
    "name": "Browse the trinkets",
    "min": 15,

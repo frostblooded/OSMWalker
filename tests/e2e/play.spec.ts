@@ -64,8 +64,8 @@ test("the storyteller switches from the menu, is remembered, and brings incident
   await expect(teller).toContainText("Classic");
   await teller.click();
   await expect(teller).toContainText("Chaotic");
-  // Chaotic and at full tension, six hours away bring incidents for sure.
-  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100;");
+  // Chaotic and at full tension, six hours away bring incidents for sure; an empty quest board leaves every stop to them.
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100; d.stats.quests = { city: d.city, rolled: true, board: [] };");
   const away = page.getByRole("dialog", { name: /While you were away/ });
   await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
   const icons = (JSON.parse(readFileSync("public/data/incidents.json", "utf8")) as { icon: string }[]).map((c) => c.icon);
@@ -92,6 +92,22 @@ test("Viktor shows beside him after a meeting, and his card on the Stats sheet k
   await expect(sheet).toContainText("Nemesis");
   await expect(sheet).toContainText("2 won · 1 lost");
   await expect(sheet).toContainText("Plovdiv");
+});
+
+test("his friends and partner show on the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("No one yet");
+  await reopenWith(
+    page,
+    `d.stats.friends = { list: [{ id: "a", name: "Mira", icon: "👩", city: "Plovdiv, Bulgaria", kind: "cafe", place: { name: "Cafe", lat: 42.1, lon: 24.7 }, hearts: 10, met: 1, seen: 2 }, { id: "b", name: "Hugo", icon: "🧔", city: d.stats.where.city, kind: "park", place: { name: "Park", lat: 42.7, lon: 23.3 }, hearts: 3, met: 1, seen: 2 }], partner: "a", companion: null };`,
+  );
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  await expect(sheet).toContainText("Mira (partner)");
+  await expect(sheet).toContainText("💗💗💗 · Sofia");
 });
 
 test("sums up what he did while the game was closed", async ({ page }) => {
@@ -240,4 +256,20 @@ test("after a week turns over, the away sheet opens with his week", async ({ pag
   const away = page.getByRole("dialog", { name: /While you were away/ });
   await expect(away).toContainText("His week", { timeout: 20000 });
   await expect(away).toContainText("cafe ×5");
+});
+
+test("the city rolls a quest board, the Stats sheet shows it, and he goes on quests while he is away", async ({ page }) => {
+  await startInSofia(page);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").stats?.quests?.board?.length ?? 0), { timeout: 30000 }).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const stats = page.getByRole("dialog", { name: /Stats/ });
+  await expect(stats).toContainText("On the board");
+  await stats.getByRole("button", { name: /Close/ }).click();
+  // Six hours away, ready for his next quest: he takes one on and walks it (no trip dice before that first stop, or a trip may take him off first).
+  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.quests.since = 9; d.skip_roll = true;");
+  const away = page.getByRole("dialog", { name: /While you were away/ });
+  await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
+  const lines = await away.locator(".away-log li").allTextContents();
+  expect(lines.some((l) => l.includes("❗ New quest:"))).toBe(true);
 });

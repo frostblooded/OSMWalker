@@ -272,7 +272,7 @@ export class Api {
     return data?.results?.bindings ?? [];
   }
 
-  /** Hourly weather around `lat`, `lon` from a day ago to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
+  /** Hourly weather around `lat`, `lon` from today to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
   async weather(city: string, lat: number, lon: number, nowMs: number): Promise<WeatherForecast | null> {
     const url = weatherUrl(lat, lon);
     const data = await this.getJson(url, 20);

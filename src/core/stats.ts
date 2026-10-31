@@ -1,12 +1,21 @@
 // His body, wallet and progress: six meters (0-100), four attributes, coins,
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
-// his keepsakes (landmark cards, Placedex, souvenirs, crawls), and the
-// storyteller that paces the incidents that happen to him.
+// his keepsakes (landmark cards, Placedex, souvenirs, crawls), the
+// storyteller that paces the incidents that happen to him, his quests, and
+// the people in his life: friends, their clubs and news, and his anniversaries.
 // Time passes in game minutes, which are real minutes while the app is open.
+import { Anniversaries } from "./anniversaries";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
+import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
+import * as Cr from "./creatures";
+import * as Mg from "./magic";
+import * as Mn from "./midnight";
+import * as Po from "./portals";
+import * as Gi from "./giants";
+import * as Fa from "./fairy";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
@@ -15,16 +24,23 @@ import * as Items from "./items";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
+import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import { Rng, seedOf } from "./rng";
 import { euro, signed, toCents } from "./money";
 import { meets, speedShare, weatherPerH, type Season, type Sky, type WeatherNeed } from "./sky";
 import * as Speeds from "./speeds";
+import { Quests } from "./quests";
 import { Rival, type Contest } from "./rival";
+import { Friends, type FriendData } from "./friends";
 import { Storyteller } from "./storyteller";
+import { Townies, type News } from "./townies";
+import * as Kit from "./travelKit";
+import * as T from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
+import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
 export const ATTRS = ["str", "cha", "wit", "luck"] as const;
@@ -35,7 +51,7 @@ export const FX_KEYS = [...METERS, ...ATTRS, "xp"] as const;
 /** Requirement keys an action's needs may use. */
 export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below", "season", "weather"] as const;
 /** Sun hours (sunrise 6, sunset 18, see sky.ts) that count as each time of day (night wraps past midnight). */
-export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5] } as const;
+export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5], midnight: [0, 3] } as const;
 export type TimeOfDay = keyof typeof TIMES;
 
 export const FULLNESS_PER_H = 5;
@@ -63,6 +79,8 @@ export const FIND_MAX = 200;
 export const moodXpMult = (mood: number) => MOOD_XP_MIN + ((MOOD_XP_MAX - MOOD_XP_MIN) * mood) / 100;
 export const riskMult = (luck: number) => 1 - Math.min(LUCK_RISK_CUT * luck, LUCK_RISK_CAP);
 export const findChance = (luck: number) => Math.min(FIND_PER_LUCK * luck, FIND_CAP);
+/** The buff that keeps him fed and clean on a long walk (hostels on the way). */
+export const ON_THE_TRAIL = "On the trail";
 export const ENERGY_PER_KM = 2;
 /** Share of the walking effort each way of getting about takes, per km. */
 export const EFFORT: Record<Vehicle, number> = { "": 1, bike: 0.3, motorcycle: 0.05, car: 0.05, tortoise: 0, broom: 0.2, carpet: 0.05, dragon: 0.05 };
@@ -102,7 +120,8 @@ export const TREASURED_KEEP = 3;
 /** At a resale shop with a full bag he sells his cheapest things until this many are left (a selling run). */
 export const SELL_RUN_LEFT = BAG_SIZE / 2;
 
-export type Fx = Partial<Record<Meter | Attr | "xp", number>>;
+/** Meter, attribute, XP and Magic changes; Magic stays within 0 to Mg.MAGIC_MAX. */
+export type Fx = Partial<Record<Meter | Attr | "xp" | "magic", number>>;
 /** A timed effect; `attrs` adds to his attributes while it lasts. */
 export type Buff = { name: string; left: number; per_h: Fx; xp_mult: number; attrs?: Partial<Record<Attr, number>> };
 export type Action = {
@@ -116,6 +135,8 @@ export type Action = {
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
   sell?: boolean;
+  /** Knocks at the shop after midnight (see midnight.ts). */
+  midnight?: boolean;
   /** Buys a pack of city cards (see cityCards.ts). */
   pack?: boolean;
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
@@ -168,16 +189,45 @@ export class Stats {
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
   chronicle = new Chronicle();
+  /** The place creatures he has met. */
+  creatures = new Cr.Creatures();
+  /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
+  creatureKinds: readonly Cr.Creature[] = [];
+  /** His Magic meter, 0 to Mg.MAGIC_MAX: ley lines fill it, spells spend it (magic.ts). */
+  magic = 0;
+  /** The spells he knows and the ley places he drew from today. */
+  lore = new Mg.Lore();
+  /** What the spells are, from data/spells.json; not saved, the game sets it. */
+  spellKinds: readonly Mg.Spell[] = [];
+  /** The enchantments and trinkets he found at the shop after midnight. */
+  finds = new Mn.Finds();
+  portals = new Po.Portals();
+  giants = new Gi.Sightings();
+  rings = new Fa.Rings();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
   records = new Records();
   /** Paces the incidents. */
   story = new Storyteller();
+  /** His quests, the city's quest board and the world events near him. */
+  quests = new Quests();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
   contests: readonly Contest[] = [];
+  /** The locals he knows, his partner, and a fellow traveller on a trip. */
+  friends = new Friends();
+  /** Names, faces and fellow travellers from data/friends.json; not saved, the game sets it. */
+  friendData: FriendData = { names: [], icons: [], companions: [] };
+  /** The clubs his friends brought him into. */
+  clubs = new Clubs();
+  /** What his friends got up to, and the day it was last rolled. */
+  townies = new Townies();
+  /** The news his friends may have, from data/friends.json; not saved, the game sets it. */
+  townNews: readonly News[] = [];
+  /** His birthday (the day he set out) and month marks. */
+  anniversaries = new Anniversaries();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -358,7 +408,9 @@ export class Stats {
    * Bulgaria") and returns its History line, the same while he plays and in
    * the catch-up. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if
    * caught (CAUGHT_CHANCE), is fined FINE_MULT times the fare, as much as he
-   * has. Rolls its own dice from the station and time, so the walk's stay the same.
+   * has. His partner comes along, or maybe a fellow traveller who pays back
+   * part of what he paid (never of a fine). Rolls its own dice from the
+   * station and time, so the walk's stay the same.
    */
   ride(fare: number, mode: string, station: string, to: string): string {
     let paid = fare;
@@ -371,8 +423,18 @@ export class Stats {
         how = caught ? " without a ticket, got caught and was fined" : " without a ticket";
       }
     }
+    // His partner comes along, or maybe a fellow traveller who splits the fare he paid (not a fine); own dice, so the dodge's stay the same.
+    const { back, with: company } = this.friends.board(how ? 0 : paid, this.friendData, new Rng(seedOf(`${to}${station}${this.now()}`)));
+    paid -= back;
     this.cents -= paid;
-    return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${paid ? ` (${signed(-paid)})` : ""}`;
+    if (mode === "bike") return `Cycled off to ${to}${company}`;
+    if (mode === "walk") {
+      // Hostel meals and showers on the way keep him fed and clean.
+      this.addBuff({ name: ON_THE_TRAIL, min: T.LONG_WALK_MAX_S / 60, per_h: { fullness: FULLNESS_PER_H, thirst: THIRST_PER_H, hygiene: HYGIENE_PER_H } });
+      return `Walked out of town towards ${to}${company}${paid ? ` (${signed(-paid)} for hostels)` : ""}`;
+    }
+    if (mode === "hitch") return `Hitchhiked to ${to}${company}`;
+    return `${mode === "car" ? "Filled up and drove" : `Took the ${mode}`} to ${to} from ${station}${how}${company}${paid ? ` (${signed(-paid)})` : ""}`;
   }
 
   /** His TREASURED_KEEP most travelled treasured items in the bag: the ones he won't sell. */
@@ -404,6 +466,76 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
+  /** Boards a ride (see ride) to `to`, in country `code`, and packs for it (see packForTrip): the feed lines, the same watched and in the catch-up. */
+  board(fare: number, mode: T.Mode, station: string, to: string, code: string): string[] {
+    return [this.ride(fare, mode, station, to), this.packForTrip(code)].filter(Boolean);
+  }
+
+  /** Lands in `to` after `distM` of road by `mode` from longitude `fromLon` to `toLon` (see landFlight, landRide): the feed lines, the same watched and in the catch-up. */
+  land(mode: T.Mode, fromLon: number, toLon: number, distM: number, to: string): string[] {
+    return [mode === "plane" ? this.landFlight(fromLon, toLon) : "", this.landRide(mode, distM, to)].filter(Boolean);
+  }
+
+  /** As he boards for a city in country `code`: buys the travel kit he needs and starts its buffs; the feed line, or "" when he packs nothing. */
+  packForTrip(code: string): string {
+    const abroad = this.where.code !== "" && code !== this.where.code;
+    const kit = Kit.choose(this.meters, this.cents, abroad, KEEP_CENTS);
+    if (!kit.length) return "";
+    let cost = 0;
+    for (const k of kit) {
+      cost += k.cents;
+      this.addBuff(k.buff);
+    }
+    this.cents -= cost;
+    return `Packed ${Kit.list(kit.map((k) => k.name))} for the trip (${signed(-cost)})`;
+  }
+
+  /** Landed after flying from longitude `fromLon` to `toLon`: jet lag for the time zones crossed; the feed line, or "". */
+  landFlight(fromLon: number, toLon: number): string {
+    const zones = T.timeZones(fromLon, toLon);
+    const lag = T.jetLag(zones);
+    if (!lag) return "";
+    this.addBuff(lag);
+    return `Jet-lagged after flying across ${zones} time zone${zones === 1 ? "" : "s"}`;
+  }
+
+  /**
+   * Landed in `to` after `distM` by `mode`: a night train leaves him rested,
+   * cycling tires him, a long walk ends his hostel buff with XP and mood, a portal puzzles him, and a hitched lift may go badly or be a great story
+   * (its own dice from the town and time, so the walk's stay the same). The
+   * feed line, or "".
+   */
+  landRide(mode: T.Mode, distM: number, to: string): string {
+    if (mode === "train" && distM >= T.SLEEPER_FROM_M) {
+      this.meters.energy = 100;
+      return "Slept in a berth on the night train and woke up rested";
+    }
+    if (mode === "bike") {
+      const km = distM / 1000;
+      this.applyFx({ energy: -ENERGY_PER_KM * EFFORT.bike * km });
+      return `Tired legs after cycling ${Math.round(km)} km`;
+    }
+    if (mode === "walk") {
+      const km = Math.round(distM / 1000);
+      this.buffs = this.buffs.filter((b) => b.name !== ON_THE_TRAIL);
+      this.applyFx({ xp: T.LONG_WALK_XP_PER_KM * km, mood: T.LONG_WALK_MOOD });
+      const n = T.hostelNights(distM);
+      return `Walked ${km} km to ${to}${n ? `, sleeping in ${n} hostel${n === 1 ? "" : "s"} on the way` : ""}`;
+    }
+    if (mode === "portal") return `🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`;
+    if (mode !== "hitch") return "";
+    const r = new Rng(seedOf(`hitch${to}${this.now()}`)).randf();
+    if (r < T.HITCH_BAD) {
+      this.applyFx(T.HITCH_BAD_FX);
+      return "The driver let him off miles short, and he walked the last stretch";
+    }
+    if (r < T.HITCH_BAD + T.HITCH_GOOD) {
+      this.applyFx(T.HITCH_GOOD_FX);
+      return "The driver told stories the whole way: a ride to remember";
+    }
+    return "A quiet lift with a friendly driver";
+  }
+
   /** Starts a timed effect, replacing one of the same name. */
   addBuff(buff: NonNullable<Action["buff"]>): void {
     this.buffs = this.buffs.filter((b) => b.name !== buff.name);
@@ -418,6 +550,8 @@ export class Stats {
   passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
     this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
+    const date = dayOf(t * 1000);
+    if (date !== this.anniversaries.day) this.newDay(date, t);
     this.week.walked(walkedM);
     const h = minutes / 60;
     const sky = weatherPerH(this.sky);
@@ -437,9 +571,24 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
+    // Enchanted gear gathers Magic as he walks.
+    fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
+    this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
+  }
+
+  /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
+  private newDay(date: string, t: number): void {
+    const f = this.friends;
+    this.townies.prune(f.list);
+    this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
+    const mark = this.anniversaries.check(date, t, this.meters.mood, this.where.city, f.list, f.partner, new Rng(seedOf(`party${date}`)));
+    if (!mark) return;
+    this.applyFx(mark.fx);
+    if (mark.buff) this.addBuff(mark.buff);
+    this.say(mark.line);
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -456,10 +605,11 @@ export class Stats {
     return line;
   }
 
-  /** Adds meter and attribute changes; meters stay within 0-100. */
+  /** Adds meter, attribute, XP and Magic changes; meters stay within 0-100. */
   applyFx(fx: Fx): void {
     for (const [k, v] of Object.entries(fx) as [keyof Fx, number][]) {
       if (k === "xp") this.addXp(Math.trunc(v));
+      else if (k === "magic") this.magic = Math.min(Math.max(this.magic + v, 0), Mg.MAGIC_MAX);
       else if (k in this.meters) this.meters[k as Meter] = Math.min(Math.max(this.meters[k as Meter] + v, 0), 100);
       else if (k in this.attrs) this.attrs[k as Attr] = Math.max(this.attrs[k as Attr] + v, 0);
     }
@@ -534,6 +684,10 @@ export class Stats {
       }
       return this.buy(this.offer(action.item, rng), where);
     }
+    if (action.midnight) {
+      this.applyFx(action.fx ?? {});
+      return this.midnightShop(where, rng);
+    }
     if (action.sell) {
       this.applyFx(action.fx ?? {});
       return action.resale && this.bagFull() ? this.sellRun(where) : this.sellLoot(where);
@@ -568,7 +722,10 @@ export class Stats {
     const jokes = jokesFor(this.jokes, kind);
     // No jokes loaded, no roll, so the dice stay the same as without them.
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
-    return this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    // Maybe a chance card at work; its own dice, so the walk's stay the same.
+    if (earned && action.min >= Work.SHIFT_MIN && !action.risk) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    return line;
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
@@ -741,6 +898,145 @@ export class Stats {
     this.milestone(`built${b.built.length}`, `Built a ${k.name} with his name in ${place.name}, ${m.city}`);
   }
 
+  /** Right after reaching `place`: now and then, at most once a day, the creature that lives at such places shows up (creatures.ts), or null. Its own dice, so his walk stays the same. */
+  creatureAt(place: Pick<Place, "class" | "name">): Cr.Creature | null {
+    const t = this.now();
+    return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
+  }
+
+  /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */
+  meet(c: Cr.Creature, where: string, pick: string): string {
+    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(this.now(), `${where}${pick}`).randf());
+    const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
+    this.cents -= paid;
+    if (o.fx) this.applyFx(o.fx);
+    if (o.buff) this.addBuff(o.buff);
+    return this.say(`${c.icon} ${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
+  }
+
+  /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
+  meetAt(place: Pick<Place, "class" | "name">): void {
+    const c = this.creatureAt(place);
+    if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+  }
+
+  /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
+  leyWalk(m: number): void {
+    this.magic = Math.min(this.magic + (Mg.LEY_PER_KM * m) / 1000, Mg.MAGIC_MAX);
+    this.addBuff(Mg.LEY_CHARM);
+  }
+
+  /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
+  magicAt(place: Pick<Place, "class" | "name" | "lat" | "lon">): void {
+    const t = this.now();
+    if (Mg.isLeyPlace(place) && this.lore.tap(visitKey(place), dayOf(t * 1000))) {
+      const got = Math.min(Mg.LEY_BURST, Mg.MAGIC_MAX - this.magic);
+      this.magic += got;
+      this.say(`✨ Felt the ley lines meet at ${place.name}${got ? ` (Magic +${Math.round(got)})` : ""}`);
+    }
+    if (!Mg.BOOK_CLASSES.includes(place.class)) return;
+    const s = this.lore.learn(this.spellKinds, new Rng(seedOf(`spell${t}${place.name}`)).randf());
+    if (!s) return;
+    this.say(`📖 Learned a spell from an old book at ${place.name}: ${s.icon} ${s.name}`);
+    if (this.lore.known.length === 1) this.milestone("spell", `Learned his first spell, ${s.name}, at ${place.name}`);
+  }
+
+  /** Right after reaching `place`: now and then (once a day at most) a giant shows far off and he stops to watch (see giants.ts). Its own dice, so his walk stays the same. */
+  giantAt(place: Place): void {
+    const t = this.now();
+    const g = this.giants.roll(place, dayOf(t * 1000), new Rng(seedOf(`giant${t}${place.name}`)).randf());
+    if (!g) return;
+    this.applyFx(Gi.GIANT_FX);
+    this.say(`${g.icon} ${g.say.replace("{PLACE}", place.name)}. He stopped to watch and took a photo`);
+    if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
+  }
+
+  /** Right after reaching `place` at local `hour`: at dawn a fairy ring in a real park or garden may take him for a nap (see fairy.ts). Returns the nap's minutes, or 0. He wakes rested with a fairy gift (worn if an upgrade, else bagged) or Magic and a strange story. Its own dice, so his walk stays the same. */
+  fairyAt(place: Place, hour: number): number {
+    const t = this.now();
+    if (!Fa.isRingPlace(place) || !Fa.isDawn(hour)) return 0;
+    const rng = new Rng(seedOf(`fairy${t}${place.name}`));
+    if (!this.rings.takes(t, rng.randf())) return 0;
+    const min = rng.randiRange(Fa.NAP_MIN_MIN, Fa.NAP_MAX_MIN);
+    const h = Math.round(min / 60);
+    this.applyFx(Fa.NAP_FX);
+    this.say(`🍄 Lay down in a ring of mushrooms in ${place.name} at dawn, and woke ${h} hours later, rested`);
+    if (rng.randf() < Fa.GIFT_CHANCE) {
+      const { item: gift, base } = Fa.fairyGift(this.level, rng);
+      gift.story = { from: this.where.city, t, countries: this.where.code ? [this.where.code] : [], km: 0 };
+      this.rings.note(t, { gift: base });
+      if (this.isUpgrade(gift)) this.equip(gift);
+      else this.bagAdd(gift);
+      this.say(`🎁 In his hand: a ${gift.rarity} ${gift.name}, a fairy gift`);
+    } else {
+      const story = rng.pick(Fa.STORIES);
+      this.rings.note(t, { story: story.id });
+      this.applyFx({ magic: Fa.STORY_MAGIC });
+      this.say(`✨ ${story.say} (Magic +${Fa.STORY_MAGIC})`);
+    }
+    this.milestone("fairy", `Napped in a fairy ring in ${place.name} and woke ${h} hours later`);
+    return min;
+  }
+
+  /** Right after reaching `place`: a portal place may open (see portals.ts) unless he is on a quest. Returns the city it takes him to, never one he has been to, or null. Its own dice, so his walk stays the same. */
+  portalAt(place: Place, trips: T.Trips): T.City | null {
+    const t = this.now();
+    if (!Po.isPortalPlace(place) || this.quests.active) return null;
+    const rng = new Rng(seedOf(`portal${t}${place.name}`));
+    if (!this.portals.opens(t, rng.randf())) return null;
+    const seen = this.keepsakes.seen;
+    const city = trips.pickNew(place.lat, place.lon, (c) => seen.includes(`${c.code}:${c.name}, ${c.country}`), rng);
+    if (!city) return null;
+    const to = `${city.name}, ${city.country}`;
+    this.portals.note(t, to);
+    this.say(`🌀 The old stones of ${place.name} shimmered like a door, and he stepped through`);
+    this.milestone("portal", `Stepped through a portal at ${place.name} and came out in ${to}`);
+    return { ...city, bounds: T.cityBounds(city) };
+  }
+
+  /** Magic his enchanted gear gathers for each km he walks. */
+  gearMagic(): number {
+    let v = 0;
+    for (const item of Object.values(this.gear)) v += item?.stats.magic ?? 0;
+    return v;
+  }
+
+  /** At the shop after midnight at `where`: an enchanted item (bought like any gear, if it is an upgrade) or a trinket used at once, for euros plus Magic. Returns the feed line. */
+  private midnightShop(where: string, rng: Rng): string {
+    const at = `${where ? ` at ${where}` : ""} after midnight`;
+    if (rng.randf() < Mn.ENCHANTED_CHANCE) {
+      const item = Items.makeEnchanted(rng.pick(Mn.ENCHANTED_KINDS), this.level, rng, this.attr("luck"));
+      item.price = Math.round(item.price * Mn.ENCHANTED_PRICE);
+      if (this.magic < Mn.ENCHANTED_MAGIC) return this.say(`🌙 Saw a ${item.rarity} ${item.name}${at}, but hadn't the Magic for it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS) return this.say(`🌙 Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      this.cents -= item.price;
+      this.magic -= Mn.ENCHANTED_MAGIC;
+      item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
+      this.equip(item);
+      for (const e of Items.ENCHANTMENTS) if (item.name.includes(e.name)) this.finds.note(e.name);
+      return this.say(`🌙 Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)}, Magic −${Mn.ENCHANTED_MAGIC})`);
+    }
+    const t = rng.pick(Mn.TRINKETS);
+    if (this.magic < t.magic || this.cents - t.cents < KEEP_CENTS) return this.say(`🌙 Saw a ${t.name}${at}, but couldn't pay for it (${euro(t.cents)}${t.magic ? ` and ${t.magic} Magic` : ""})`);
+    this.cents -= t.cents;
+    this.magic -= t.magic;
+    if (t.fx) this.applyFx(t.fx);
+    if (t.buff) this.addBuff(t.buff);
+    this.finds.note(t.id);
+    return this.say(`${t.icon} Bought a ${t.name}${at} and ${t.say} (${signed(-t.cents)}${t.magic ? `, Magic −${t.magic}` : ""})`);
+  }
+
+  /** Casts the spell that helps now, if he has the Magic (magic.ts toCast). */
+  private castIfNeeded(): void {
+    const s = Mg.toCast(this.spellKinds, this.lore.known, this.magic, this.meters, this.buffNames());
+    if (!s) return;
+    this.magic -= s.cost;
+    this.lore.casts[s.id] = (this.lore.casts[s.id] ?? 0) + 1;
+    if (s.fx) this.applyFx(s.fx);
+    if (s.buff) this.addBuff(s.buff);
+    this.say(`${s.icon} ${s.say} (Magic −${s.cost})`);
+  }
+
   /** Writes milestone `key` in his chronicle, once. */
   milestone(key: string, text: string): void {
     this.chronicle.note(key, text, this.now());
@@ -748,7 +1044,9 @@ export class Stats {
 
   /**
    * Maybe an incident at a stop at `place` at `hour`, when the storyteller
-   * says so (Luck makes bad ones rarer), or else a meeting with his rival.
+   * says so (Luck makes bad ones rarer), or else his club night if one is on
+   * (or an invitation to one), or else a meeting with his rival, or else one
+   * with a friend or his fellow traveller.
    * Returns its feed line, or "". Without a deck the stories are off and
    * nothing rolls, so the dice stay the same as without one.
    */
@@ -760,8 +1058,19 @@ export class Stats {
       this.story.after(card.id, tone);
       return (this.incidentLine = Inc.play(card, this, place.name, rng));
     }
+    // Clubs roll their own dice, so the walk's stay the same.
+    const t = this.now();
+    const fx: Fx = {};
+    const when = { city: this.where.city, day: new Date(t * 1000).getDay(), hour, date: dayOf(t * 1000), t };
+    const club = this.clubs.stop(when, this.friends, fx, new Rng(seedOf(`club${t}${place.name}`)));
+    if (club) {
+      this.applyFx(fx);
+      return (this.incidentLine = this.say(club));
+    }
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
-    return met && (this.incidentLine = met);
+    if (met) return (this.incidentLine = met);
+    const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
+    return f && (this.incidentLine = this.say(f));
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -808,7 +1117,8 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
   }
 
@@ -836,11 +1146,28 @@ export class Stats {
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });
     s.week = Week.fromJSON(d.week);
+    s.creatures = Cr.Creatures.fromJSON(d.creatures);
+    // A save from before magic: no Magic and no spells yet.
+    s.magic = d.magic ?? 0;
+    s.lore = Mg.Lore.fromJSON(d.lore);
+    // A save from before the shop after midnight: nothing found there yet.
+    s.finds = Mn.Finds.fromJSON(d.finds);
+    s.portals = Po.Portals.fromJSON(d.portals);
+    s.giants = Gi.Sightings.fromJSON(d.giants);
+    s.rings = Fa.Rings.fromJSON(d.rings);
     s.records = Records.fromJSON(d.records);
     // A save from before the storyteller starts calm, on Classic.
     s.story = Storyteller.fromJSON(d.story);
+    // A save from before quests starts with none, and rolls the board of the city he is in.
+    s.quests = Quests.fromJSON(d.quests);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
+    // A save from before friends: he hasn't met anyone yet.
+    s.friends = Friends.fromJSON(d.friends);
+    // A save from before clubs, townies and anniversaries: no clubs yet, news from the next day on, and his birthday is the day he set out, if his life story knows it.
+    s.clubs = Clubs.fromJSON(d.clubs);
+    s.townies = Townies.fromJSON(d.townies);
+    s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     return s;
   }
 }

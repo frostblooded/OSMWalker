@@ -140,9 +140,9 @@ describe("what the sky does", () => {
 describe("Open-Meteo weather", () => {
   const answer = { utc_offset_seconds: 7200, hourly: { time: [1000 * 3600, 1001 * 3600, 1002 * 3600], temperature_2m: [10, 11, null], weather_code: [0, 61, 71] } };
 
-  it("asks for a day back and two ahead with the city's time zone", () => {
+  it("asks for today and tomorrow with the city's time zone", () => {
     expect(weatherUrl(42.69771, 23.32187)).toContain("latitude=42.70&longitude=23.32");
-    expect(weatherUrl(0, 0)).toContain("past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime");
+    expect(weatherUrl(0, 0)).toContain("?latitude=0.00&longitude=0.00&hourly=temperature_2m,weather_code&forecast_days=2&timezone=auto&timeformat=unixtime");
   });
 
   it("reads the answer, skipping hours with gaps", () => {

@@ -2,21 +2,23 @@
 // go, without walking the map or loading any streets. He hops from place to
 // place by the usual goal odds (a straight line x ROAD_FACTOR of walking, or
 // a flight on a flying mount, see legM), does an action at each, rolls the
-// trip dice as usual and pays and rides like he would, and the storyteller
-// may bring an incident at a stop (see storyteller.ts). In a city whose
+// trip dice as usual and pays and rides like he would (or steps through a
+// portal, see portals.ts), and the storyteller
+// may bring an incident at a stop (see storyteller.ts); he takes on quests
+// and joins world events as he would while watched (see quests.ts). In a city whose
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
-// in Lyon"). The sky (sun, season, weather, closed places) follows the hour
+// in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
 import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
-import { euro } from "./money";
 import { isOpen } from "./opening";
 import { skyNeed, type Sky } from "./sky";
 import type { Rng } from "./rng";
 import { FLYERS } from "./speeds";
+import { questGoal, questStop } from "./quests";
 import type { Action, Place, Stats } from "./stats";
-import { cityBounds, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type LatLon, type Trips } from "./trips";
+import { cityBounds, heading as headingLine, isPlan, NO_PLACES_BOOST, rideS, roll, ROAD_FACTOR, type City, type LatLon, type Mode, type Trips } from "./trips";
 import { ARRIVE_M, FLY_MIN_M, LAND_KINDS, LAND_MAX_M, LAND_SHARE } from "./walker";
 
 /** Most time away that counts; the rest is lost. */
@@ -51,8 +53,8 @@ export const MADE_UP_KINDS: { class: string; subclass: string; label: string; we
   { class: "laundry", subclass: "dry_cleaning", label: "laundry", weight: 0.9 },
 ];
 
-/** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. */
-export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null };
+/** A city he is in while away; `places` null means none are loaded, so he visits made-up ones. `pop` sizes its quest board. */
+export type AwayCity = { name: string; code: string; center: LatLon; bounds: BBox; places: Place[] | null; pop?: number };
 
 export type CatchUpDeps = {
   activities: Activities;
@@ -60,7 +62,7 @@ export type CatchUpDeps = {
   rng: Rng;
   /** Rolls for keepsakes (cards and their finish), apart from `rng` so a card roll never uses up his other dice. */
   cardRng?: Rng;
-  /** The sky over `city` at unix ms: the time of day, season and weather. */
+  /** The sky over `city` at unix ms: the time of day and season (the catch-up drops the weather). */
   skyAt: (ms: number, city: AwayCity) => Sky;
   /** The trip roll in [0, 1); tests swap in fixed rolls. */
   roll?: () => number;
@@ -161,12 +163,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (text.startsWith("Bought")) s.bought.push(text);
   };
   const leftMin = () => (coveredS - elapsed) / 60;
-  /** True during a ride, when the weather can't reach him. */
-  let riding = false;
-  const skyNow = () => {
-    const sky = deps.skyAt(startMs + elapsed * 1000, city);
-    return (stats.sky = riding ? { ...sky, weather: null } : sky);
-  };
+  /** The sky of the hour he is in: the sun, the season and opening hours count while away, the weather doesn't. */
+  const skyNow = () => (stats.sky = { ...deps.skyAt(startMs + elapsed * 1000, city), weather: null });
 
   /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
   const pass = (minutes: number, walkedM: number, afoot = false) => {
@@ -217,7 +215,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.feedDragon(rng);
       if (tryTrip()) continue;
       if (elapsed >= coveredS) break;
-      const place = pickPlace();
+      // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
+      const cardRng = deps.cardRng ?? rng;
+      if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
+      const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
       if (!place) {
         // Everything near is closed: like the walker, he heads for a random spot and walks on.
         const spot = randomSpot(rng, city.bounds, here, heading);
@@ -248,9 +249,34 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       // A made-up place here ("a park in Lyon") is no real park to build at.
       stats.bricksAt(city.places ? place : { ...place, made: true });
+      stats.meetAt(place);
+      // Ley lines and old books are in real churches and libraries only.
+      if (city.places) stats.magicAt(place);
+      // Giants show from real waterfronts and viewpoints only.
+      if (city.places) stats.giantAt(place);
+      const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;
+      if (nap) {
+        s.stops++;
+        pass(Math.min(nap, leftMin()), 0);
+        yield;
+        continue;
+      }
+      const door = city.places ? stats.portalAt(place, trips) : null;
+      if (door) {
+        s.stops++;
+        landIn(door, "portal", place.lon, [door.lat, door.lon], 0);
+        yield;
+        continue;
+      }
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, sky.hour, deps.cardRng ?? rng);
+      stats.happen(place, sky.hour, cardRng);
       s.stops++;
+      const story = city.places ? questStop(stats, place, city.places, sky.hour, cardRng) : null;
+      if (story !== null) {
+        pass(Math.min(story, leftMin()), 0);
+        yield;
+        continue;
+      }
       const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
@@ -274,14 +300,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       skipRoll = false;
       return false;
     }
-    if (anyUrgent(stats)) return false;
+    if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
     if (kind === "stay") return false;
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult());
+    const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
     if (!isPlan(plan)) {
       if (plan.short_of !== undefined) {
         stats.savingFor = plan.short_of;
@@ -289,12 +315,12 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       return false;
     }
-    // A trip that can't finish in the time left waits until the game is open.
+    // A trip that can't finish in the time left doesn't start; the dice roll again at his next stop.
     const toStation = legM(stats, here, [plan.station.lat, plan.station.lon], city.places);
     const rideMin = rideS(plan.mode, plan.distance_m) / 60;
     if (legMin(toStation) + rideMin > leftMin()) return false;
     stats.savingFor = 0;
-    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
+    stats.say(headingLine(plan, dest.name));
     walk(toStation);
     moveTo(plan.station, [plan.station.lat, plan.station.lon]);
     if (stats.cents < plan.fare) {
@@ -302,20 +328,24 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return true;
     }
-    stats.say(stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
-    riding = true;
+    for (const line of stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code)) stats.say(line);
     pass(rideMin, 0);
-    riding = false;
-    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds, places: null };
+    landIn(dest, plan.mode, plan.station.lon, plan.arrive, plan.distance_m);
+    return true;
+  }
+
+  /** Lands in `dest` at `at` after `distM` by `mode` from longitude `fromLon`, as the watched game does on landing. */
+  function landIn(dest: City, mode: Mode, fromLon: number, at: LatLon, distM: number): void {
+    city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
-    moveTo(null, plan.arrive);
+    moveTo(null, at);
     heading = [0, 0];
     stats.say(`Arrived in ${city.name}`);
+    for (const line of stats.land(mode, fromLon, at[1], distM, city.name)) stats.say(line);
     skipRoll = true;
-    return true;
   }
 
   /** The next place: a real one by the usual goal odds (see goals.ts), or a made-up one where none are loaded; null when every one is closed. */

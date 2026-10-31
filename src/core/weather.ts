@@ -1,7 +1,7 @@
 // Real weather for his city from Open-Meteo (free, no key): one small
-// request gives the city's clock offset and hourly weather from a day ago to
-// the end of tomorrow, so the catch-up knows what the sky did while the game was
-// closed. Pure: the game fetches and caches it.
+// request gives the city's clock offset and hourly weather from today to the
+// end of tomorrow, for the watched game (the catch-up takes no weather). Pure:
+// the game fetches and caches it.
 
 export const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 /** A forecast is fetched again once it is this old. */
@@ -17,7 +17,7 @@ export type Weather = { kind: WeatherKind; tempC: number };
 export type WeatherForecast = { city: string; offsetS: number; fetchedMs: number; t: number[]; code: number[]; temp: number[] };
 
 export function weatherUrl(lat: number, lon: number): string {
-  return `${OPEN_METEO_URL}?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}&hourly=temperature_2m,weather_code&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime`;
+  return `${OPEN_METEO_URL}?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}&hourly=temperature_2m,weather_code&forecast_days=2&timezone=auto&timeformat=unixtime`;
 }
 
 /** A WMO weather code in plain kinds. */

@@ -1,0 +1,9 @@
+[
+  { "id": "soup", "icon": "🍲", "name": "Warm soup", "cost": 20, "say": "Conjured a bowl of warm soup", "meter": "fullness", "fx": { "fullness": 30 } },
+  { "id": "spring", "icon": "💧", "name": "Little spring", "cost": 15, "say": "Tapped a little spring from the pavement", "meter": "thirst", "fx": { "thirst": 30 } },
+  { "id": "socks", "icon": "🧦", "name": "Dry socks", "cost": 15, "say": "Charmed his socks dry and his shirt clean", "meter": "hygiene", "fx": { "hygiene": 25 } },
+  { "id": "wind", "icon": "🌬", "name": "Second wind", "cost": 25, "say": "Whistled up a second wind", "meter": "energy", "fx": { "energy": 25 } },
+  { "id": "star", "icon": "⭐", "name": "Lucky star", "cost": 20, "say": "Wished on a lucky star", "buff": { "name": "Lucky star", "min": 60, "attrs": { "luck": 2 } } },
+  { "id": "dog", "icon": "🐕", "name": "Calm dog", "cost": 20, "say": "Calmed a barking dog with a word, and felt good about it", "buff": { "name": "Calm dog", "min": 60, "per_h": { "mood": 6 } } },
+  { "id": "mind", "icon": "💡", "name": "Bright mind", "cost": 25, "say": "Lit a bright idea over his head", "buff": { "name": "Bright mind", "min": 60, "xp_mult": 1.2 } }
+]

@@ -20,14 +20,18 @@ import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
+import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
+import type { Creature } from "../core/creatures";
+import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { Incident } from "../core/incidents";
+import * as Q from "../core/quests";
 import type { Contest } from "../core/rival";
 import type { Borders } from "../core/border";
+import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
 import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
@@ -35,7 +39,7 @@ import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
 import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
-import { cityBounds, SPEED_MPS, Walker, type PickInfo } from "../core/walker";
+import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -63,7 +67,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -114,6 +118,13 @@ export class Game {
   /** The name you sign postcards with; "" signs them "a friend". */
   postcardName = "";
   cityOutline: LatLon[][] = [];
+  /** The ley lines between the loaded places (core/magic.ts), worked out again as streets load. */
+  leys: Ley[] = [];
+  /** Counts up each time the ley lines are worked out, so the map knows to draw them again. */
+  leysVersion = 0;
+  private leysOf = "";
+  /** Meters walked since the last check for a ley line under him. */
+  private leyM = 0;
   severeNow: Severe[] = [];
   citySummary: CityCheck.Summary | null = null;
   /** Made-up places by city (core/poiGen.ts), saved so a city keeps its own. */
@@ -279,10 +290,11 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
+    w.questGoal = () => this.questGoal();
     w.need = (p) => skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky);
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
-      landed: (c) => this.onLanded(c),
+      landed: (c, t) => this.onLanded(c, t),
       arrived: (p) => this.onArrived(p),
       picked: (i) => this.onPicked(i),
       boarding: (p) => this.onBoarding(p),
@@ -308,6 +320,7 @@ export class Game {
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before, w.afoot);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
+    if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
@@ -316,6 +329,8 @@ export class Game {
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
       this.checkCity();
+      this.checkLey();
+      this.rollBoard();
     }
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
@@ -346,8 +361,35 @@ export class Game {
     this.stats.care.open(this.stats);
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
+    // Until the timed choices can ask you, he takes his own pick.
+    this.stats.meetAt(place);
+    this.stats.magicAt(place);
+    this.stats.giantAt(place);
+    const nap = this.stats.fairyAt(place, this.hour());
+    if (nap) {
+      this.doing = { name: "Asleep in a fairy ring", min: nap };
+      this.walker!.restFor(nap);
+      this.changed();
+      return;
+    }
+    const door = this.stats.portalAt(place, this.trips);
+    if (door) {
+      this.doing = null;
+      this.stats.care.guess = null;
+      this.stats.history.breakTrail();
+      this.walker!.rideNow(door, "portal");
+      return;
+    }
     // Incidents roll on the card dice, so they leave his walk the same.
     this.stats.happen(place, sky.hour, this.cardRng);
+    // Quests roll on the card dice too; a quest step or event takes the place of an action.
+    const story = Q.questStop(this.stats, place, this.storyPlaces(), sky.hour, this.cardRng);
+    if (story !== null) {
+      this.doing = { name: this.stats.quests.active ? "On a quest" : "Helping out", min: story };
+      this.walker!.restFor(story);
+      this.changed();
+      return;
+    }
     const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
@@ -418,6 +460,8 @@ export class Game {
 
   /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
   private planTrip(): Plan | null {
+    // He finishes the quest he is on before he leaves the city.
+    if (this.stats.quests.active) return null;
     const plan = this.journey.consider(this.where(), this.stats);
     this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
     return plan;
@@ -453,7 +497,7 @@ export class Game {
     this.changed();
   }
 
-  private onLanded(dest: City): void {
+  private onLanded(dest: City, t: Travel): void {
     this.city = `${dest.name}, ${dest.country}`;
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
@@ -461,6 +505,7 @@ export class Game {
     this.track();
     this.stats.week.city(this.city);
     this.stats.say(`Arrived in ${this.city}`);
+    for (const line of this.stats.land(t.mode, t.from[1], t.arrive[1], t.road_m, this.city)) this.stats.say(line);
     void this.learnCity(dest.lat, dest.lon);
     this.loader.setGraph(this.walker!.graph);
     this.save();
@@ -489,7 +534,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -498,7 +543,12 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
+    this.stats.creatureKinds = this.deps.data.creatures ?? [];
+    this.stats.spellKinds = this.deps.data.spells ?? [];
+    this.stats.quests.bank = this.deps.data.quests ?? this.stats.quests.bank;
     this.stats.contests = this.deps.data.contests ?? [];
+    this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
+    this.stats.townNews = this.deps.data.friends?.news ?? [];
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
   }
 
@@ -594,16 +644,14 @@ export class Game {
     const dilemmas = this.dilemmas ? Promise.resolve(this.dilemmas) : import("../core/dilemmas").then((m) => (this.dilemmas = m), () => null);
     try {
       const until = performance.now() + CATCHUP_WAIT_MS;
-      const weather = this.refreshWeather();
+      // The catch-up takes no weather, so the reopen doesn't wait for it; it comes in for the watched game.
+      void this.refreshWeather();
       while (!w.isTraveling() && !this.areaLoaded() && performance.now() < until) {
         const here = w.position();
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      const [D] = await Promise.all([
-        Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]),
-        Promise.race([weather, new Promise((r) => setTimeout(r, Math.max(until - performance.now(), 0)))]),
-      ]);
+      const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
@@ -641,17 +689,20 @@ export class Game {
       const clock = this.stats.now;
       this.stats.now = () => Math.floor(fromMs / 1000 + rideS);
       this.stats.onSay = (text, t) => ride.push({ text, t });
+      // Time passes on the ride before he lands, as in the catch-up, so a ride's buff covers it.
+      this.stats.passTime(rideS / 60, 0);
       // Exactly what is left, so rounding can't leave him a hair short of landing.
       w.advance(leftM);
-      this.stats.passTime(rideS / 60, 0);
       this.stats.now = clock;
       this.stats.onSay = null;
       if (this.stats.fainted()) this.faint();
     }
     w.departing = null;
+    // A ride longer than the time away (a long walk, say) goes on when you are back.
+    const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null };
-    const steps = catchUpSteps(this.stats, city, w.position(), coverS - rideS, fromMs + rideS * 1000, {
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0 };
+    const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
       rng: this.rng,
@@ -683,10 +734,12 @@ export class Game {
       this.placeStats();
       void this.learnCity(...this.origin);
     }
-    w.relocate(s.end.at, s.end.city.bounds, moved);
-    this.loader.setGraph(w.graph);
-    this.skipRoll = s.end.skipRoll;
-    this.track();
+    if (!onRide) {
+      w.relocate(s.end.at, s.end.city.bounds, moved);
+      this.loader.setGraph(w.graph);
+      this.skipRoll = s.end.skipRoll;
+      this.track();
+    }
     this.away = s;
   }
 
@@ -848,6 +901,20 @@ export class Game {
     }
   }
 
+  /** Once a second: the ley lines again if more places loaded, and Magic for what he walked along one. */
+  private checkLey(): void {
+    const w = this.walker;
+    if (!w) return;
+    const key = `${this.city}:${w.graph.cells.size}:${w.graph.made.length}`;
+    if (key !== this.leysOf) {
+      this.leysOf = key;
+      this.leysVersion++;
+      this.leys = leyLines(w.bounds ? w.graph.placesIn(w.bounds) : []);
+    }
+    if (this.leyM > 0 && onLey(this.leys, w.position())) this.stats.leyWalk(this.leyM);
+    this.leyM = 0;
+  }
+
   /**
    * Once a second: warns (once per city) when enough streets are loaded but
    * no places of note, and once the streets all around him are loaded checks
@@ -944,13 +1011,80 @@ export class Game {
     this.changed();
   }
 
+  /** The places of his city that quests and events can use: loaded real ones and the made-up ones. */
+  private storyPlaces(): Place[] {
+    const w = this.walker;
+    return w?.bounds && !w.isTraveling() ? w.graph.placesIn(w.bounds) : [];
+  }
+
+  /** Rolls the city's quest board (core/quests.ts) once enough of its places are loaded, so its icons show before his first quest. */
+  private rollBoard(): void {
+    const q = this.stats.quests;
+    if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
+    const rev = q.rev;
+    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng);
+    if (q.rev !== rev) this.changed();
+  }
+
+  /** A quest step or world event to walk to (core/quests.ts). */
+  private questGoal(): Place | null {
+    const w = this.walker!;
+    if (w.isTraveling()) return null;
+    this.rollBoard();
+    return Q.questGoal(this.stats, this.storyPlaces(), w.position(), this.cardRng);
+  }
+
+  /** The quest and event icons: the board's quest givers, the step he is on, and the events near him. */
+  questIcons(): MapIcon[] {
+    const q = this.stats.quests;
+    if (q.city !== this.city) return [];
+    const out: MapIcon[] = q.board.slice(0, ICON_CAP.quest).map((o) => ({ id: `quest:${o.key}`, at: [o.at.lat, o.at.lon], icon: "quest", label: q.kind(o.kind)?.title ?? "Quest", kind: "quest" }));
+    const t = q.active?.target;
+    if (t) out.push({ id: `quest:${q.active!.key}`, at: [t.lat, t.lon], icon: "quest-step", label: q.kind(q.active!.kind)?.title ?? "Quest", kind: "quest", pulse: true });
+    for (const e of q.events.filter((x) => x.ends > this.stats.now()).slice(0, ICON_CAP.event)) out.push({ id: `event:${e.id}`, at: [e.at.lat, e.at.lon], icon: "event", label: q.eventKind(e.kind)?.title ?? "Event", kind: "event", ends_at: Math.floor(e.ends / 60) });
+    return out;
+  }
+
+  /** What a tapped quest or event icon tells you, or null for another icon. */
+  storyCard(id: string): { icon: string; title: string; text: string; rows: [string, string][]; state: "open" | "nudged" | "on" } | null {
+    const q = this.stats.quests;
+    const town = this.city.split(",")[0]!;
+    if (id.startsWith("event:")) {
+      const e = q.events.find((x) => `event:${x.id}` === id);
+      const k = e && q.eventKind(e.kind);
+      if (!e || !k) return null;
+      const left = Math.max(Math.round((e.ends - this.stats.now()) / 60), 0);
+      return { icon: k.icon, title: k.title, text: Q.fill(k.text[e.line] ?? k.text[0]!, { place: e.at.name, town }), rows: [["📍 Where", e.at.name], ["⏳ Time left", `${left} min`]], state: q.nudge === e.id ? "nudged" : "open" };
+    }
+    if (!id.startsWith("quest:")) return null;
+    const key = id.slice("quest:".length);
+    if (q.active?.key === key) {
+      const card = q.describe(q.active, town);
+      const k = q.kind(q.active.kind)!;
+      const rows: [string, string][] = [["👣 Step", `${q.active.step + 1} / ${k.steps.length}`]];
+      if (q.active.target) rows.push(["🎯 Goal", q.active.target.name]);
+      return card && { ...card, rows, state: "on" };
+    }
+    const o = q.board.find((x) => x.key === key);
+    const card = o && q.describe(o, town);
+    return card ? { ...card, rows: [["📍 Giver", o.at.name]], state: q.nudge === key ? "nudged" : "open" } : null;
+  }
+
+  /** Go help: he takes the tapped quest next, or joins the tapped event, once he is free. Optional; he does fine without it. */
+  nudge(id: string): void {
+    const q = this.stats.quests;
+    q.nudge = id.replace(/^(quest|event):/, "");
+    q.rev++;
+    this.changed();
+  }
+
   /** The game icons around him (core/mapIcons.ts): made-up places, travel hubs and his monuments, none on a ride. */
   placeIcons(): MapIcon[] {
     const w = this.walker;
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city)];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

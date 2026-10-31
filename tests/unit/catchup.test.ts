@@ -8,7 +8,7 @@ import { Rng } from "../../src/core/rng";
 import { FARE_CUT_MAX, SOUVENIRS_PER_CUT } from "../../src/core/keepsakes";
 import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../../src/core/stats";
 import { skyAt } from "../../src/core/sky";
-import { parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
+import { HITCH_BELOW, HOSTEL_CENTS, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
 import { dataFile } from "../support/data";
 
@@ -179,6 +179,25 @@ describe("catch-up", () => {
     expect(stats.cents).toBeLessThan(500_000);
   });
 
+  it("lands jet-lagged after a flight, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0) }));
+    expect(s.lines.some((l) => l.text.startsWith("Took the plane to Farcity"))).toBe(true);
+    expect(s.lines.some((l) => l.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
+  });
+
+  it("packs a travel kit as he boards, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 500_000;
+    stats.meters.fullness = 10;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    const bus = s.lines.findIndex((l) => l.text.startsWith("Took the bus to Nexttown"));
+    expect(s.lines[bus + 1]?.text).toMatch(/^Packed snacks/);
+  });
+
   it("collects landmark cards and Placedex kinds at real places, none at made-up ones", () => {
     const stats = new Stats();
     stats.arrive("Bigtown", "AAA", "A-land");
@@ -256,6 +275,34 @@ describe("catch-up", () => {
     expect(stats.bricks.count).toBeLessThanOrEqual(2 * BRICKS_PER_DAY);
   });
 
+  it("meets place creatures while away, at most one a day, taking his own pick", () => {
+    const stats = Object.assign(new Stats(), { creatureKinds: JSON.parse(dataFile("creatures.json")) });
+    const parks = [place("Town Park", "park", "park", 0.003, 0), place("Rose Garden", "garden", "garden", 0, 0.004), place("Old Fountain", "fountain", "fountain", -0.003, 0)];
+    catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
+    const met = Object.values(stats.creatures.met).reduce((a, b) => a + b, 0);
+    expect(met).toBeGreaterThan(0);
+    expect(met).toBeLessThanOrEqual(2);
+    expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
+  });
+
+  it("draws Magic from the places on ley lines and learns spells from library books while away", () => {
+    const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    const sights = [place("St Mary", "place_of_worship", "christian", 0.003, 0), place("City Library", "library", "library", 0, 0.004), place("Old Monument", "monument", "monument", -0.003, 0)];
+    catchUp(stats, { ...HOME, places: [...PLACES, ...sights] }, [0, 0], 24 * 3600, START_MS, deps());
+    // His feed keeps only the last lines, so the places he drew from today tell.
+    expect(stats.lore.tapped).toEqual(expect.arrayContaining([visitKey(sights[0]!), visitKey(sights[2]!)]));
+    expect(stats.magic).toBeGreaterThan(0);
+    expect(stats.lore.known.length).toBeGreaterThan(0);
+  });
+
+  it("draws no Magic and learns no spells at made-up churches and libraries", () => {
+    const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text))).toBe(true);
+    expect(stats.magic).toBe(0);
+    expect(stats.lore.known).toEqual([]);
+  });
+
   it("builds no monument at made-up places, which are no real parks", () => {
     const stats = new Stats();
     stats.bricks.count = 10_000;
@@ -265,10 +312,50 @@ describe("catch-up", () => {
 
   it("saves up when he can't afford a trip", () => {
     const stats = new Stats();
-    stats.cents = 0;
-    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0.1 }));
+    stats.cents = HITCH_BELOW;
+    const s = catchUp(stats, HOME, [0, 0], 600, START_MS, deps({ roll: () => 0 }));
     expect(s.cities).toEqual([]);
-    expect(stats.savingFor).toBeGreaterThan(0);
+    expect(stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+  });
+
+  it("cycles to a near town on his bike, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.equip(Items.build(Items.KINDS.bicycles[0]!, Items.MATERIALS[0]!, []));
+    let rolls = 0;
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ trips: near, roll: () => (rolls++ ? 0.99 : 0.1) }));
+    const lines = s.lines.map((l) => l.text);
+    expect(lines).toContain("Setting off on his bike for Neartown");
+    expect(lines).toContain("Cycled off to Neartown, A-land");
+    expect(lines.some((l) => /^Tired legs after cycling \d+ km$/.test(l))).toBe(true);
+  });
+
+  it("goes on a long walk to a near town now and then, as in a watched trip", () => {
+    const near = new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNeartown\tAAA\tA-land\t0.2\t0.0\t500000\n"), parseAirports(AIRPORTS));
+    const away = (seed: number, s: number) => {
+      const stats = new Stats();
+      stats.cents = 100_000;
+      let rolls = 0;
+      return { stats, lines: catchUp(stats, HOME, [0, 0], s, START_MS, deps({ trips: near, rng: new Rng(seed), roll: () => (rolls++ ? 0.99 : 0.1) })).lines.map((l) => l.text) };
+    };
+    let seed = 1;
+    while (seed < 60 && !away(seed, 6 * 3600).lines.some((l) => l.startsWith("Setting off on foot"))) seed++;
+    const { stats, lines } = away(seed, 6 * 3600);
+    expect(lines.some((l) => l.startsWith("Setting off on foot for Neartown"))).toBe(true);
+    expect(lines.some((l) => /^Walked out of town towards Neartown, A-land \(-€20 for hostels\)$/.test(l))).toBe(true);
+    expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land, sleeping in 1 hostel on the way$/.test(l))).toBe(true);
+    expect(stats.cents).toBeLessThanOrEqual(100_000 - HOSTEL_CENTS);
+    // The same dice with too little time left: he doesn't set off.
+    expect(away(seed, LONG_WALK_MAX_S - 60).lines.some((l) => l.startsWith("Walked out of town"))).toBe(false);
+  });
+
+  it("hitchhikes when broke, as in a watched trip", () => {
+    const stats = new Stats();
+    stats.cents = 0;
+    let rolls = 0;
+    const s = catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.1) }));
+    expect(s.cities).toEqual(["Nexttown, A-land"]);
+    expect(s.lines.some((l) => l.text === "Hitchhiked to Nexttown, A-land")).toBe(true);
   });
 
   it("faints when he starves, and pays the hospital", () => {
@@ -293,7 +380,7 @@ describe("catch-up", () => {
     expect(s.lines.filter((l) => l.text.includes(`(+${FIRST_VISIT_XP} XP)`)).length).toBe(s.firstVisits);
   });
 
-  it("lives by the sky: closed shops at night, and the weather of each hour", () => {
+  it("lives by the sky: closed shops at night, hour by hour", () => {
     const shops: AwayCity = { ...HOME, places: [place("Shoe Shop", "shop", "shoes", 0.003, 0), place("Shoe Shop Two", "shop", "shoes", 0, 0.004)] };
     const night = Date.UTC(2026, 9, 29, 22);
     const seen: number[] = [];
@@ -325,24 +412,18 @@ describe("catch-up", () => {
     expect(s.lines.some((l) => l.text.startsWith("Reached Night Bakery"))).toBe(false);
   });
 
-  it("keeps the weather off him on a trip's ride", () => {
-    const seen: { riding: boolean; weather: boolean }[] = [];
-    let riding = false;
+  it("leaves the weather out while away, on foot and on rides alike", () => {
+    const seen: boolean[] = [];
     class Watched extends Stats {
-      override say(line: string): string {
-        if (line.startsWith("Took the")) riding = true;
-        if (line.startsWith("Arrived in")) riding = false;
-        return super.say(line);
-      }
-      override passTime(minutes: number, walkedM: number): void {
-        seen.push({ riding, weather: !!this.sky?.weather });
-        super.passTime(minutes, walkedM);
+      override passTime(minutes: number, walkedM: number, afoot?: boolean): void {
+        seen.push(!!this.sky?.weather);
+        super.passTime(minutes, walkedM, afoot);
       }
     }
     const hot = { kind: "clear" as const, tempC: 35 };
-    catchUp(new Watched(), HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1, skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, hot) }));
-    expect(seen.some((x) => x.riding)).toBe(true);
-    expect(seen.filter((x) => x.riding && x.weather)).toEqual([]);
-    expect(seen.some((x) => !x.riding && x.weather)).toBe(true);
+    const s = catchUp(new Watched(), HOME, [0, 0], 24 * 3600, START_MS, deps({ roll: () => 0.1, skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, hot) }));
+    expect(s.lines.some((l) => l.text.startsWith("Took the"))).toBe(true);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.filter(Boolean)).toEqual([]);
   });
 });

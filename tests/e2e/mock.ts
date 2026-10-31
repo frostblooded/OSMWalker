@@ -19,7 +19,7 @@ export const STYLE = {
   ],
 };
 
-/** Light rain at 9°C in Sofia from a day ago to two days ahead. */
+/** Light rain at 9°C in Sofia, a day either side of now. */
 const hours = Array.from({ length: 72 }, (_, i) => Math.floor(Date.now() / 3600_000) * 3600 - 24 * 3600 + i * 3600);
 const RAIN = { utc_offset_seconds: 7200, hourly: { time: hours, temperature_2m: hours.map(() => 9), weather_code: hours.map(() => 61) } };
 
@@ -62,16 +62,19 @@ export const KEEPSAKES = `d.stats.keepsakes = {
 d.stats.gear.head = { name: "Lucky Cap", slot: "head", stats: { luck: 1 }, rarity: "Uncommon", price: 2000,
   story: { from: "Sofia", t: 1, countries: ["BGR", "FRA", "ITA"], km: 42 } };`;
 
-/** Reloads with `change` made to the stored save first (once), the way an older or longer game would have it. */
-export async function reopenWith(page: Page, change: string) {
+/** Reloads with `change` made to the stored save first (once per `flag`, so a second change needs its own), the way an older or longer game would have it. */
+export async function reopenWith(page: Page, change: string, flag = "changed-save") {
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
-  await page.addInitScript((body) => {
-    if (sessionStorage.getItem("changed-save")) return;
-    sessionStorage.setItem("changed-save", "1");
-    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
-    new Function("d", body)(d);
-    localStorage.setItem("osmwalker.save", JSON.stringify(d));
-  }, change);
+  await page.addInitScript(
+    ([body, key]) => {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
+      new Function("d", body)(d);
+      localStorage.setItem("osmwalker.save", JSON.stringify(d));
+    },
+    [change, flag],
+  );
   await page.reload();
 }
 

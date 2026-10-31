@@ -8,7 +8,7 @@ import type { Entry } from "../core/debugLog";
 import { euro } from "../core/money";
 import type { Rng } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
-import { cityBounds, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
+import { cityBounds, heading, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
 
 /** Where he is when a trip comes up. */
 export type Where = { here: LatLon; city: string; country: string; places: Place[]; noPlaces: boolean };
@@ -52,7 +52,7 @@ export class Journey {
     const found = this.destination(kind, at);
     if (!found) return null;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult());
+    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
     if (!isPlan(plan)) {
       this.log.no_trip = plan.error;
       if (plan.short_of !== undefined) {
@@ -63,9 +63,9 @@ export class Journey {
     }
     stats.savingFor = 0;
     // Where to stays a surprise until he boards, so it can be guessed (core/guess.ts).
-    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${kind === "country" ? "somewhere abroad" : `somewhere in ${dest.country}`} (${euro(plan.fare)})`);
+    stats.say(heading(plan, kind === "country" ? "somewhere abroad" : `somewhere in ${dest.country}`));
     this.pending = plan;
-    if (plan.mode !== "plane") void this.fetchRoad(plan);
+    if (plan.mode !== "plane" && plan.mode !== "ferry") void this.fetchRoad(plan);
     return plan;
   }
 
@@ -78,7 +78,9 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    setOff(stats, stats.ride(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`));
+    const [rode, ...kit] = stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code);
+    setOff(stats, rode!);
+    for (const line of kit) stats.say(line);
     return "";
   }
 

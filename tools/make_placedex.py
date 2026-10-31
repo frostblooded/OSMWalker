@@ -16,6 +16,8 @@ from pathlib import Path
 SKIPPED = {"bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"}
 # Copied by DEX_BANDS in src/core/keepsakes.ts, which Help shows.
 BANDS = [(1000, "C"), (100, "U"), (10, "R")]
+# Kinds the game makes from the street layer, which the POI sweep doesn't count (src/core/ofm.ts bridges).
+FROM_STREETS = {"bridge/bridge": "C"}
 
 
 def main(report: str) -> None:
@@ -26,6 +28,7 @@ def main(report: str) -> None:
             continue
         count = int(m.group(2))
         out[m.group(1)] = next((r for lo, r in BANDS if count >= lo), "L")
+    out.update(FROM_STREETS)
     dest = Path(__file__).resolve().parent.parent / "public" / "data" / "placedex.json"
     dest.write_text(json.dumps(dict(sorted(out.items())), ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf8")
     print(f"{len(out)} kinds -> {dest}")

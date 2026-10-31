@@ -20,6 +20,8 @@ const TRIP_COLOR = "#c01c28";
 const AREA_COLOR = "#e8730c";
 const OUTLINE_COLOR = "#7b3fbf";
 const ROUTE_COLOR = "#ff7a3d";
+/** Indigo `--magic` (app.css), as the magic icons (map/icons.ts); MapLibre can't read CSS tokens. */
+const LEY_COLOR = "#3d2a8a";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
@@ -60,6 +62,7 @@ export class MapView implements MapPort {
   private ready!: Promise<void>;
   private trailKey = "";
   private tripKey = "";
+  private leyKey = "";
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
@@ -151,6 +154,7 @@ export class MapView implements MapPort {
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
     this.map.setLayoutProperty("trail", "visibility", "none");
     this.addLine("trip", TRIP_COLOR, 4, 0.85, [2, 1]);
+    this.addLine("leys", LEY_COLOR, 3, 0.6, [1, 2]);
     this.map.addSource("events", { type: "geojson", data: none });
     this.map.addLayer({ id: "events", type: "circle", source: "events", paint: { "circle-radius": 11, "circle-color": TRAIL_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     this.map.addLayer({
@@ -259,6 +263,13 @@ export class MapView implements MapPort {
     if (!this.trailOn || key === this.trailKey) return;
     this.trailKey = key;
     (this.map.getSource("trail") as GeoJSONSource | undefined)?.setData(line(segments()));
+  }
+
+  /** The ley lines, or none when `key` is ""; only sent to MapLibre when `key` changes. */
+  setLeys(key: string, lines: () => LatLon[][]): void {
+    if (key === this.leyKey) return;
+    this.leyKey = key;
+    (this.map.getSource("leys") as GeoJSONSource | undefined)?.setData(line(key ? lines() : []));
   }
 
   /** The line he rides along on a trip, or none. */
