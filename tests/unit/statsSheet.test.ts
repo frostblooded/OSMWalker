@@ -17,6 +17,7 @@ import { DiarySheet } from "../../src/ui/DiarySheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
+const RILA = { name: "Cafe Rila", lat: 42.69, lon: 23.32 };
 const shown = (stats: Stats, afoot = false) => {
   const root = document.createElement("div");
   render(h(StatsSheet, { stats, afoot }), root);
@@ -205,7 +206,7 @@ describe("Stats sheet", () => {
     expect(text).toContain("⏭ Next☕ Coffee cart · €300");
     expect(text).toContain("🎟 Lottery0 draws, no prize yet");
     stats.business.buy(BUSINESSES[0]!, "Sofia", 0);
-    stats.business.buyShare("Sofia", "Cafe Rila", 0);
+    stats.business.buyShare("Sofia", RILA, 0);
     stats.business.earned = 1234;
     stats.lottery.ticket = 1;
     text = shown(stats);

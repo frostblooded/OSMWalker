@@ -2,9 +2,12 @@
 // game (reach a level, ride a dragon, cook a stew...) and real sights in real
 // cities (see the Eiffel Tower in Paris). He ticks one off by himself when he
 // gets there: a goal once it is met, a sight once he arrives in its city. A
-// sight on his list pulls his trips gently toward its city (DREAM_PULL), and
-// a dream ticked off makes room for a new one. Pure; Stats owns one.
+// sight on his list pulls his trips gently toward its city (DREAM_PULL, and
+// at least DREAM_SHARE of a trip's odds, so a small city comes up too), and
+// a dream ticked off makes room for a new one each morning. Pure; Stats owns one.
 import type { Rng } from "./rng";
+import type { Vehicle } from "./speeds";
+import type { Pull } from "./trips";
 
 /** What a game dream counts (Stats.facts builds them). */
 export type Fact = "level" | "countries" | "dragon" | "car" | "dishes" | "fluent" | "prize" | "business" | "monument" | "skill";
@@ -17,15 +20,18 @@ export const BUCKET_SIZE = 3;
 /** What ticking one off gives him. */
 export const DREAM_XP = 150;
 export const DREAM_MOOD = 15;
-/** A city with a sight on his list weighs this many times its size when he picks where to travel. */
+/** A city with a sight on his list weighs this many times its size when he picks where to travel, and at least DREAM_SHARE of all the cities he could go to. */
 export const DREAM_PULL = 3;
+export const DREAM_SHARE = 0.05;
+/** What counts for "a car or something faster": a carpet is as fast, and a dragon faster, so he never buys a car after them. */
+export const CAR_OR_BETTER: readonly Vehicle[] = ["car", "carpet", "dragon"];
 
 export const GOALS: Dream[] = [
   { id: "level10", icon: "⭐", text: "Reach level 10", fact: "level", n: 10 },
   { id: "level25", icon: "🌟", text: "Reach level 25", fact: "level", n: 25 },
   { id: "countries5", icon: "🌍", text: "Walk in 5 countries", fact: "countries", n: 5 },
   { id: "countries15", icon: "🗺", text: "Walk in 15 countries", fact: "countries", n: 15 },
-  { id: "car", icon: "🚗", text: "Drive his own car", fact: "car", n: 1 },
+  { id: "car", icon: "🚗", text: "Own a car or something faster", fact: "car", n: 1 },
   { id: "dragon", icon: "🐉", text: "Ride a dragon", fact: "dragon", n: 1 },
   { id: "dishes", icon: "🍲", text: "Cook 5 different dishes", fact: "dishes", n: 5 },
   { id: "fluent", icon: "🗣", text: "Speak a new language fluently", fact: "fluent", n: 1 },
@@ -117,9 +123,9 @@ export class Bucket {
     return added;
   }
 
-  /** How much a trip to `city` ("Name, Country") weighs, over its size: DREAM_PULL with a sight there on his list, else 1. */
-  pull(city: string): number {
-    return this.dreams().some((d) => d.city === city) ? DREAM_PULL : 1;
+  /** The pull his list puts on his trips (see trips.ts): the cities of its sights. */
+  pull(): Pull {
+    return { cities: new Set(this.dreams().flatMap((d) => (d.city ? [d.city] : []))), mult: DREAM_PULL, share: DREAM_SHARE };
   }
 
   toJSON() {
@@ -138,5 +144,5 @@ export class Bucket {
   }
 }
 
-/** "a, b and c". */
-export const listOf = (xs: readonly string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
+/** A dream's text to go mid-sentence: "see the Eiffel Tower". */
+export const lower = (d: Dream): string => d.text[0]!.toLowerCase() + d.text.slice(1);

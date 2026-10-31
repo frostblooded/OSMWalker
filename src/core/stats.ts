@@ -740,7 +740,7 @@ export class Stats {
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
-    this.dreams(t);
+    this.dreams(t, true);
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.takings();
@@ -787,7 +787,7 @@ export class Stats {
     const spot = this.spots.spot(this.where.city);
     if (spot && !this.business.share(this.where.city) && spare() >= Bz.SHARE_PRICE) {
       this.cents -= Bz.SHARE_PRICE;
-      this.business.buyShare(this.where.city, spot.name, t);
+      this.business.buyShare(this.where.city, spot, t);
       this.milestone("share", `Bought a share in ${spot.name}, his spot`);
       this.say(`🏠 Bought a share in ${spot.name}, his spot (${signed(-Bz.SHARE_PRICE)}): it pays a little each day, more when he drops by`);
     }
@@ -1281,7 +1281,7 @@ export class Stats {
       this.applyFx(gift.gift.fx);
       this.say(`${gift.gift.icon} Found a gift at ${place.name} from ${gift.from}: ${gift.gift.line.toLowerCase()}`);
     }
-    if (!place.made) this.business.visited(this.where.city, place.name);
+    if (!place.made) this.business.visited(this.where.city, place);
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
@@ -1326,7 +1326,7 @@ export class Stats {
       city: this.where.city,
       level: this.level,
       countries: this.keepsakes.seen.filter((c) => !c.includes(":")).length,
-      car: this.vehicle() === "car" ? 1 : 0,
+      car: Bk.CAR_OR_BETTER.includes(this.vehicle()) ? 1 : 0,
       dragon: this.vehicle() === "dragon" ? 1 : 0,
       dishes: this.pantry.dishes.length,
       fluent: this.languages.list().filter((l) => this.languages.learned(l.lang) && l.level >= Lang.FLUENT).length,
@@ -1337,19 +1337,23 @@ export class Stats {
     };
   }
 
-  /** Ticks off what he has done on his bucket list (XP, mood, a line in his life story), then fills it up again, saying what is new once one was ticked off. Own dice. */
-  dreams(t: number): void {
+  /**
+   * Ticks off what he has done on his bucket list (XP, mood, a line in his life
+   * story). Only each morning (`fill`) does it fill up again, on its own dice:
+   * his first dreams go on quietly (the Stats sheet shows them), later ones
+   * with a feed line.
+   */
+  dreams(t: number, fill = false): void {
     const f = this.facts();
-    const ticked = this.bucket.tick(f, t);
-    for (const d of ticked) {
+    for (const d of this.bucket.tick(f, t)) {
       this.applyFx({ mood: Bk.DREAM_MOOD });
       this.addXp(Bk.DREAM_XP);
       this.milestone(`dream_${d.id}`, `Ticked off his bucket list: ${d.text}`);
       this.say(`📝 ${d.icon} Ticked off his bucket list: ${d.text}! (+${Bk.DREAM_XP} XP)`);
     }
+    if (!fill) return;
     const added = this.bucket.fill(f, new Rng(seedOf(`bucket${t}:${this.bucket.done.length}`)));
-    // His first dreams go on the list quietly: the Stats sheet shows them.
-    if (ticked.length && added.length) this.say(`📝 New on his bucket list: ${Bk.listOf(added.map((d) => d.text[0]!.toLowerCase() + d.text.slice(1)))}`);
+    if (this.bucket.done.length && added.length) this.say(`📝 New on his bucket list: ${Kit.list(added.map(Bk.lower))}`);
   }
 
   /** Cents off a fare for his souvenirs: FARE_CUT for every SOUVENIRS_PER_CUT, up to FARE_CUT_MAX. */

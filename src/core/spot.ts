@@ -18,7 +18,8 @@ export const SPOT_KEEP = 12;
 /** `t` counts up with each visit in the city, so the least recently reached place can go. */
 export type Visits = { name: string; class: string; lat: number; lon: number; n: number; t: number };
 
-const same = (a: Pick<Place, "name" | "lat" | "lon">, b: Pick<Place, "name" | "lat" | "lon">) => a.name === b.name && a.lat.toFixed(4) === b.lat.toFixed(4) && a.lon.toFixed(4) === b.lon.toFixed(4);
+/** The same place: its name, and where it is to about 10 m. */
+export const same = (a: Pick<Place, "name" | "lat" | "lon">, b: Pick<Place, "name" | "lat" | "lon">) => a.name === b.name && a.lat.toFixed(4) === b.lat.toFixed(4) && a.lon.toFixed(4) === b.lon.toFixed(4);
 
 export class Spots {
   /** City -> its most visited places, most visits first. */
