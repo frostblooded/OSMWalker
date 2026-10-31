@@ -108,7 +108,14 @@ describe("the real help", () => {
     expect(page("fares").body).toContain("300 km by bus costs about €31.20");
     expect(page("coins").body).toContain("He starts with €200.");
     expect(page("fainting").body).toContain("Waking up costs €60, but never more than 50% of his money.");
-    expect(page("wages").body).toContain("3% more for every level above 1");
+    expect(page("wages").body).toContain("10% more for every rank above 1 in the job's career");
+    expect(page("wages").body).toContain("pays 1.2 times its listed wage at rank 3, and 1.4 times at the top rank");
+    expect(page("careers").body).toContain("There are 9 careers, each with 5 ranks:");
+    expect(page("careers").body).toMatch(/^- ☕ Café \(cafe, bakery\): Dishwasher, Barista, Head barista, Café manager, Café owner$/m);
+    expect(page("careers").body).toContain("rank 2 after 1 shift in a career, rank 3 after 12 shifts, rank 4 after 70 and the top rank after 180");
+    expect(page("careers").body).toContain('such as "Run the morning rush" for a Head barista. It pays 1.25x, 1.5x, 1.8x, 2.2x the career\'s base wage');
+    expect(page("careers").body).toContain("its jobs weigh 1.5 times as much");
+    expect(page("choosing").body).toContain("- A job in his best career: x1.5 (see Careers).");
     expect(page("wages").body).toContain("with charm 10 it pays 20% more");
     expect(page("saving").body).toContain("on foot, a Bike for €150");
     expect(page("cards").body).toContain("0.5% of cards are Gold and 5% are Foil");

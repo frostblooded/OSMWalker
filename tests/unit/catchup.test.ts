@@ -176,7 +176,8 @@ describe("catch-up", () => {
     expect(s.end.city.places).toBeNull();
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
-    expect(stats.cents).toBeLessThan(500_000);
+    // He pays the fare (he may still end the day richer from his shifts).
+    expect(s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text).toMatch(/\(-€[\d.,]+\)$/);
   });
 
   it("lands jet-lagged after a flight, as in a watched trip", () => {
@@ -297,7 +298,8 @@ describe("catch-up", () => {
 
   it("draws no Magic and learns no spells at made-up churches and libraries", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
-    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    // Dice that take him to a made-up church or library.
+    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps({ rng: new Rng(1) }));
     expect(stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text))).toBe(true);
     expect(stats.magic).toBe(0);
     expect(stats.lore.known).toEqual([]);

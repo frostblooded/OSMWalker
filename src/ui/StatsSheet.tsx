@@ -14,6 +14,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { TOP_RANK, type Careers } from "../core/careers";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -172,6 +173,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
       <QuestCard q={s.quests} now={s.now()} />
+      <CareersCard c={s.careers} />
       {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
           {goal && <Goal name={`${goal.kind === "dragons" ? "🐉" : "🚲"} ${goal.name}`} has={s.cents} needs={s.vehicleSaving()} />}
@@ -284,6 +286,30 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
             <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
           ))}
         </div>
+      )}
+    </Card>
+  );
+}
+
+/** His careers, most shifts first: his title and rank, and the way to the next rank. Past SHOWN the rest fold away. */
+function CareersCard({ c }: { c: Careers }) {
+  const list = c.worked();
+  const row = (k: (typeof list)[number]) => {
+    const st = c.standing(k);
+    return (
+      <div key={k.id} class="meter">
+        <KV k={`${k.icon} ${k.name} · ${st.title}`} v={st.left ? `${st.left} shift${st.left > 1 ? "s" : ""} to go` : "Top rank"} />
+        <Bar share={st.share} />
+      </div>
+    );
+  };
+  return (
+    <Card icon="💼" title="Careers" right={list.length ? `Rank ${c.standing(list[0]!).rank} / ${TOP_RANK}` : undefined}>
+      {list.length ? <div class="meters">{list.slice(0, SHOWN).map(row)}</div> : <p class="dim small">No shifts yet. He finds work as he goes.</p>}
+      {list.length > SHOWN && (
+        <Collapsible title="More" right={list.length - SHOWN}>
+          <div class="meters">{list.slice(SHOWN).map(row)}</div>
+        </Collapsible>
       )}
     </Card>
   );

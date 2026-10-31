@@ -19,6 +19,16 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("lists his careers with his title and the shifts to the next rank", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No shifts yet.");
+    stats.careers.shifts = { cafe: 41, bar: 180 };
+    const text = shown(stats);
+    expect(text).toContain("🍸 Bar · Bar managerTop rank");
+    expect(text).toContain("☕ Café · Head barista29 shifts to go");
+    expect(text).toContain("Rank 5 / 5");
+  });
+
   it("after a flyer lands, shows his walking speed", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));

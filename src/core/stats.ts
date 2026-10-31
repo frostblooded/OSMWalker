@@ -8,6 +8,7 @@ import { Anniversaries } from "./anniversaries";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
+import * as Ca from "./careers";
 import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
@@ -49,7 +50,7 @@ export type Attr = (typeof ATTRS)[number];
 /** Effect keys an action's fx may use. */
 export const FX_KEYS = [...METERS, ...ATTRS, "xp"] as const;
 /** Requirement keys an action's needs may use. */
-export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "time", "below", "season", "weather"] as const;
+export const NEED_KEYS = ["str", "cha", "wit", "luck", "level", "rank", "time", "below", "season", "weather"] as const;
 /** Sun hours (sunrise 6, sunset 18, see sky.ts) that count as each time of day (night wraps past midnight). */
 export const TIMES = { morning: [6, 11], day: [10, 18], evening: [17, 23], night: [21, 5], midnight: [0, 3] } as const;
 export type TimeOfDay = keyof typeof TIMES;
@@ -100,8 +101,7 @@ export const FIRST_VISIT_XP = 50;
 /** Cents the hospital charges after he faints, but never more than HOSPITAL_MAX_SHARE of his money. */
 export const HOSPITAL_FEE = 6000;
 export const HOSPITAL_MAX_SHARE = 0.5;
-/** Job pay rises this share per level above 1, and per point of the attribute the job needs. */
-export const WAGE_PER_LEVEL = 0.03;
+/** Job pay rises this share per point of the attribute the job needs (and per career rank, see careers.ts). */
 export const WAGE_PER_ATTR = 0.02;
 /** Cents he starts with. */
 export const START_CENTS = 20000;
@@ -130,7 +130,7 @@ export type Action = {
   cost?: number;
   earn?: number | [number, number];
   fx?: Fx;
-  needs?: Partial<Record<Attr | "level", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>>; season?: Season; weather?: WeatherNeed };
+  needs?: Partial<Record<Attr | "level" | "rank", number>> & { time?: TimeOfDay; below?: Partial<Record<Meter, number>>; season?: Season; weather?: WeatherNeed };
   risk?: { p: number; text?: string; fx?: Fx; cost?: number };
   buff?: { name: string; min: number; per_h?: Fx; xp_mult?: number; attrs?: Partial<Record<Attr, number>> };
   item?: Items.Kind;
@@ -142,6 +142,8 @@ export type Action = {
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
   resale?: boolean;
   flavour?: boolean;
+  /** The career (see careers.ts) this job counts for; a `rank` need is a rank in it. */
+  career?: string;
   /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
   deed?: number;
 };
@@ -179,6 +181,8 @@ export class Stats {
   borders: Borders | null = null;
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
+  /** His shifts and ranks in each career. */
+  careers = new Ca.Careers();
   /** Clovers and the care package on its way to him. */
   care = new Care();
   /** His trust in you, his lean and your whispers. */
@@ -336,9 +340,9 @@ export class Stats {
     return this.meters[m];
   }
 
-  /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_LEVEL a level and WAGE_PER_ATTR per point of the attributes it needs. */
+  /** What a job pays, as a multiple of its listed wage: 1, plus WAGE_PER_RANK a rank above 1 in its career and WAGE_PER_ATTR per point of the attributes it needs. */
   wageMult(action: Action): number {
-    let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
+    let m = 1 + (action.career ? Ca.WAGE_PER_RANK * (this.careers.rank(action.career) - 1) : 0);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
     return m * F.mult(this.forecast(), "wage");
   }
@@ -649,6 +653,8 @@ export class Stats {
     for (const [k, need] of Object.entries(action.needs ?? {})) {
       if (k === "level") {
         if (this.level < (need as number)) return false;
+      } else if (k === "rank") {
+        if (this.careers.rank(action.career ?? "") !== need) return false;
       } else if (k === "time") {
         if (!inTime(need as TimeOfDay, hour)) return false;
       } else if (k === "season") {
@@ -724,8 +730,20 @@ export class Stats {
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
-    if (earned && action.min >= Work.SHIFT_MIN && !action.risk) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (action.career && Ca.isShift(action)) this.promote(action.career, where);
     return line;
+  }
+
+  /** Counts a shift in career `id`, and says so when it promotes him. */
+  private promote(id: string, where: string): void {
+    const rank = this.careers.shift(id);
+    const c = Ca.careerOf(id);
+    if (!rank || !c) return;
+    const title = c.ranks[rank - 1]!;
+    this.say(`Promoted to ${title} in his ${c.name} career!`);
+    this.milestone("promoted", `First promotion: ${title}${where ? ` at ${where}` : ""}`);
+    if (rank === Ca.TOP_RANK) this.milestone(`career_${id}`, `Became ${title}, the top of his ${c.name} career`);
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
@@ -1119,6 +1137,7 @@ export class Stats {
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
+      careers: this.careers.toJSON(),
     };
   }
 
@@ -1168,6 +1187,8 @@ export class Stats {
     s.clubs = Clubs.fromJSON(d.clubs);
     s.townies = Townies.fromJSON(d.townies);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
+    // A save from before careers: no shifts yet, so every career starts at rank 1.
+    s.careers = Ca.Careers.fromJSON(d.careers);
     return s;
   }
 }
