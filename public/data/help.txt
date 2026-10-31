@@ -64,7 +64,7 @@ His speed depends on how he gets about:
 
 He rides whatever he wears in his vehicle slot. Bike shops sell bikes, motorcycle dealers scooters and motorbikes, and car dealers cars. A car always beats a motorbike, and a motorbike a bike, whatever their material. A vehicle's material adds {SPEED_PER_POWER}% speed per point of power, and its modifiers don't add speed.
 
-Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy. In snow he goes at {SNOW_SPEED_PCT} of his speed on foot or by bike (see Weather).
+Every level above 1 adds {SPEED_PER_LEVEL_PCT} speed. As an elder he gets about {ELDER_SPEED_PCT} slower (see Life stages). When his energy is under {TIRED_ENERGY} he slows down, to half speed at 0 energy. In snow he goes at {SNOW_SPEED_PCT} of his speed on foot or by bike (see Weather).
 
 Riding is less tiring than walking: a bike takes {BIKE_EFFORT_PCT} of the energy per km, and a motorbike or car {MOTOR_EFFORT_PCT}. The goal line's time ("12 min") uses his speed right now.
 ## Fantasy mounts {mounts}
@@ -247,7 +247,8 @@ He keeps a small reserve: he won't buy gear that would leave him with less than 
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
-- {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
+- {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more,
+- {SETTLED_WAGE_PCT} more on top of that once he is settled (see Life stages).
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
@@ -374,7 +375,7 @@ Luck does four things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
-He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
+He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired, by his life stage ({STAGE_XP}, see Life stages) and by the family perk (see His heirs and the family).
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 
@@ -411,7 +412,7 @@ Each stage starts the count over. You never have to do anything: he looks after 
 ## Retiring {retire}
 At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
 
-He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how far he got. His heir then sets out from the favourite city. If the streets there can't load, he tries again {RETIRE_RETRY_MIN} minute later.
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how far he got. His heir then sets out from the favourite city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later. If you retire him while he is on a ride, he says he will and retires once he lands.
 ## His heirs and the family {family}
 Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival or quests. What the family keeps:
 - an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
@@ -742,7 +743,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -754,6 +755,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Life: his stage and day of life, how long until the next stage (or until he retires), how his care is going this stage, what the stage does, and the family perk (see Life stages).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
@@ -765,6 +767,8 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
 - Effects: his buffs with the minutes they have left.
+- Records: his bests and totals (see Records).
+- Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
 
@@ -798,6 +802,7 @@ Its buttons change the game right away:
 - New goal ends any stop or trip and picks a new goal now, rolling the trip dice again.
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.
+- ⏩ A stage older (in the 🎂 Life stage card) makes him a stage older at once; as an elder it makes him due to retire (see Life stages).
 
 The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice (see One choice on reopen), for testing. The switch is remembered.
 ## New city {new_city}

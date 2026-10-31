@@ -960,6 +960,20 @@ describe("game", () => {
       expect(g.retired?.by).toBe("you");
       expect(g.stats.life.gen).toBe(2);
     });
+
+    it("asked to retire on a ride, he says he will and retires once he lands", async () => {
+      const { g } = await elder(3600);
+      const riding = vi.spyOn(g.walker!, "isTraveling").mockReturnValue(true);
+      await g.retire("you");
+      expect(g.retired).toBeNull();
+      expect(g.stats.life.asked).toBe(true);
+      expect(g.stats.history.latest()).toContain("Will retire");
+      riding.mockRestore();
+      g.step(1);
+      await settled(g);
+      expect(g.retired?.by).toBe("you");
+      expect(g.stats.life.gen).toBe(2);
+    });
   });
 
   describe("catch-up", () => {

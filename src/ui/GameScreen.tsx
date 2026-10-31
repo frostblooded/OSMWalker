@@ -234,7 +234,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => game.nextStoryteller()}>
               {STYLE[s.story.style].icon} Storyteller <span class="pill">{STYLE[s.story.style].name}</span>
             </button>
-            {s.life.stage === ELDER && (
+            {s.life.stage === ELDER && !s.life.asked && (
               <button class="btn" onClick={() => setSheet("retire")}>
                 🌅 Retire him now
               </button>

@@ -98,6 +98,8 @@ export class Life {
   family: Ancestor[] = [];
   /** True once the elder stage has run out: the game retires him as soon as he isn't on a ride. */
   retireDue = false;
+  /** True once you asked him to retire from the menu and he couldn't yet (on a ride): he does at the next chance. */
+  asked = false;
 
   /** Lets `minutes` pass at unix seconds `t` in `city`, walking `walkedM`; true when he is starving. Returns the stages he entered, oldest first. */
   pass(minutes: number, t: number, city: string, walkedM: number, starving: boolean): number[] {

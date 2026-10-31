@@ -1,3 +1,5 @@
+// Life stages, care tiers, retiring and heirs (src/core/life.ts and Stats).
+// Named apart from life.test.ts, which tests activities.
 import { describe, expect, it } from "vitest";
 import * as L from "../../src/core/life";
 import { Life, tierOf } from "../../src/core/life";
@@ -211,6 +213,8 @@ describe("retiring", () => {
     expect(ancestor.letter).toContain("Sword 3");
     expect(ancestor.letter).toContain("Plovdiv");
     expect(ancestor.chronicle.at(-1)!.text).toContain("Retired in Plovdiv");
+    // His own life story stays as it was, in case the heir can't start yet.
+    expect(s.chronicle.lines.some((l) => l.text.startsWith("Retired"))).toBe(false);
     expect(heir.life.gen).toBe(2);
     expect(heir.life.family).toEqual([ancestor]);
     expect(heir.level).toBe(1);

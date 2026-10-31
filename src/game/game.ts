@@ -347,7 +347,8 @@ export class Game {
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
-    if (this.stats.life.retireDue) void this.retire("age");
+    if (this.stats.life.asked) void this.retire("you");
+    else if (this.stats.life.retireDue) void this.retire("age");
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
@@ -588,11 +589,21 @@ export class Game {
    * He retires (see Stats.retire): by age once his elder stage ran out, or
    * by you from the menu while he is an elder. His heir sets out from his
    * favourite city, or where he is when its streets won't load. On a ride he
-   * waits until he lands; if neither loads, he tries again after RETIRE_RETRY_MS.
+   * waits until he lands (your ask is kept); if neither loads, he tries again
+   * after RETIRE_RETRY_MS.
    */
   async retire(by: Ancestor["by"]): Promise<void> {
     const w = this.walker;
-    if (!w || this.retiring || w.isTraveling() || this.stats.life.stage < ELDER || this.now() < this.retryRetireAt) return;
+    if (!w || this.retiring || this.stats.life.stage < ELDER) return;
+    if (w.isTraveling() || this.now() < this.retryRetireAt) {
+      // He can't yet: your ask is kept, and he retires at the next chance.
+      if (by === "you" && !this.stats.life.asked) {
+        this.stats.life.asked = true;
+        this.stats.say(`🌅 Will retire as soon as he can`);
+        this.changed();
+      }
+      return;
+    }
     this.retiring = true;
     try {
       const { heir, ancestor } = this.stats.retire(by);
