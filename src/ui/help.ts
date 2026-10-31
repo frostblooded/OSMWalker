@@ -15,6 +15,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Diary from "../core/diary";
 import * as Mind from "../core/mind";
 import * as Quirks from "../core/quirks";
 import * as Spot from "../core/spot";
@@ -477,6 +478,9 @@ export function values(data: GameData): Record<string, string> {
     FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
     LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
+    DIARY_LINES: String(Diary.DAY_LINES),
+    DIARY_DAYS: String(Diary.KEEP_DAYS),
+    DREAM_PCT: pct(Diary.DREAM_CHANCE),
     QUIRK_PULL: num(Quirks.QUIRK_PULL),
     QUIRK_MOOD: `+${Quirks.QUIRK_MOOD[0]} an hour for ${Quirks.QUIRK_MOOD[1]} hour`,
     QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => plural(Mind.noun(k))).join(" or ")}`}`).join("\n"),
