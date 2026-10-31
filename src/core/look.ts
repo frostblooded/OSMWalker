@@ -11,6 +11,8 @@ export const SICK_AT = 30;
 /** Mood at or above this makes him beam; below LOW_MOOD he looks down. */
 export const HAPPY_MOOD = 75;
 export const LOW_MOOD = 30;
+/** While he stays, his pose moves again this often, and holds still in between. */
+export const POSE_EVERY_S = 60;
 
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };

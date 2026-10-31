@@ -177,7 +177,7 @@ His face shows how he feels. The first of these that fits wins:
 
 While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
 
-While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
+While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there and again every {POSE_EVERY_S} seconds, and holds still in between to save battery.
 ## City sound {sound}
 The 🔊 City sound switch in the menu (off at first) plays a soft loop for where he is: cafe chatter with the odd clinking cup while he stays at a place to eat or drink, birds and leaves in parks and gardens, and a low street hum anywhere else. On a trip it is quiet. The sound is made on your phone, so it downloads nothing; it stops while the game is in the background.
 # 🎯 Actions
