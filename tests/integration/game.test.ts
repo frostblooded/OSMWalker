@@ -1284,5 +1284,16 @@ describe("game", () => {
       expect(DebugLog.isWarning(g.debugLog.entries.at(-1)!)).toBe(false);
       expect(DebugLog.title(g.debugLog.entries.at(-1)!)).toBe("🌙 Random spot: everything near is closed (button)");
     });
+
+    it("lets a quest step at a closed shop wait for morning instead of heading there", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      const at = { name: SHOP.name, class: SHOP.class, subclass: SHOP.subclass, lat: SHOP.lat, lon: SHOP.lon };
+      g.stats.quests.active = { key: "q:Ana:0", kind: "q", giver: "Ana", item: 0, twist: -1, at, step: 0, target: at };
+      g.debugNewGoal();
+      expect(g.walker!.place?.name).not.toBe("Shoe Shop");
+      expect(g.stats.quests.active?.key).toBe("q:Ana:0");
+    });
   });
 });

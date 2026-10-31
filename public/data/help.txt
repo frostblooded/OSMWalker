@@ -340,7 +340,7 @@ After sunset the map darkens under a blue shade as the sun sinks, until it is {N
 ## Opening hours {opening}
 Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
 
-He never sets off for a closed place (it weighs 0 when he picks his next goal, and a quest step there waits until it opens). If a place closes while he is on his way, he finds it closed, does nothing there (no action and no first-visit XP) and moves on after the usual minute.
+He never sets off for a closed place (it weighs 0 when he picks his next goal, and quests and world events wait for it: a step there holds the quest until it opens, no quest giver or event there is picked, and no new event starts at a closed place). If a place closes while he is on his way, he finds it closed, does nothing there (no action and no first-visit XP) and moves on after the usual minute.
 
 ## Magic {magic}
 Magic (the indigo bar) goes from 0 to {MAGIC_MAX} and starts at 0. It never drops by itself. Walking along ley lines and reaching the places they join fill it (see Ley lines), enchanted gear as he walks (see The shop after midnight), a strange story from a nap in a fairy ring (see Fairy rings), and a few fantasy quests and events, such as The Ley Hunter, humming stones and a circle of mushrooms; his spells and the shop after midnight spend it (see Spells). Nothing happens when it is empty, except that he can't cast.

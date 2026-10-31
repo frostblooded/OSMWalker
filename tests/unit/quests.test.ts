@@ -8,6 +8,7 @@ import { Rng } from "../../src/core/rng";
 import { ATTRS, Stats, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
+import { skyAt } from "../../src/core/sky";
 import { hourSky } from "../support/sky";
 
 const BANK = JSON.parse(dataFile("quests.json")) as Q.Bank;
@@ -156,6 +157,24 @@ describe("going on a quest", () => {
     expect(Q.questGoal(s, TOWN, HERE, new Rng(5))).not.toBeNull();
   });
 
+  it("waits for closed places: no giver or step there at night, and the quest holds until morning", () => {
+    const { s } = setup();
+    const at = (clock: number) => (s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock });
+    s.quests.since = 9;
+    at(23);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))).toBeNull();
+    expect(s.quests.active).toBeNull();
+    at(10);
+    const giver = Q.questGoal(s, TOWN, HERE, new Rng(4))!;
+    expect(giver.class).toBe("post");
+    Q.questStop(s, giver, TOWN, 12, new Rng(4));
+    at(21);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))).toBeNull();
+    expect(s.quests.active?.step).toBe(1);
+    at(9);
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(4))?.class).toBe("cafe");
+  });
+
   it("takes the quest you nudged first, without waiting", () => {
     const f = fresh({ names: ["Ana"], quests: [one({ id: "a" }), one({ id: "b" }), one({ id: "c" })], events: [] });
     f.s.quests.roll("Testville", 300_000, TOWN, new Rng(6));
@@ -230,6 +249,17 @@ describe("world events", () => {
     Q.questStop(s, park, TOWN, 12, new Rng(8));
     expect(s.quests.events).toEqual([]);
     expect(s.quests.log.at(-1)).toMatchObject({ title: "Test event", event: true });
+  });
+
+  it("never start at a closed place, and one that closes waits while he does other things", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [], events: [ev({ at: ["museum"] })] });
+    const museum = TOWN.find((p) => p.class === "museum")!;
+    s.sky = { ...skyAt(0, HERE[0], HERE[1], 0, null), clock: 22 };
+    expect(Q.startEvent(s, null, museum, TOWN, 12, new Rng(8))).toBeNull();
+    s.sky = { ...s.sky, clock: 19 };
+    expect(Q.startEvent(s, null, museum, TOWN, 12, new Rng(8))).not.toBeNull();
+    s.sky = { ...s.sky, clock: 20 };
+    expect(Q.questGoal(s, TOWN, HERE, new Rng(8))).toBeNull();
   });
 
   it("the one you nudged comes first, however far he has walked from it", () => {

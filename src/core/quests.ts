@@ -15,6 +15,7 @@ import * as Items from "./items";
 import { leanShare } from "./incidents";
 import { signed, toCents } from "./money";
 import { BRIDGE } from "./ofm";
+import { isOpen } from "./opening";
 import type { Rng } from "./rng";
 import { inTime, type Attr, type Fx, type Place, type Stats, type TimeOfDay } from "./stats";
 import type { LatLon } from "./trips";
@@ -113,6 +114,8 @@ export const spotOf = (p: Place | Spot): Spot => ({ name: p.name, class: p.class
 export const isAt = (p: Pick<Place, "name" | "lat" | "lon">, s: Spot) => p.name === s.name && distanceM(p.lat, p.lon, s.lat, s.lon) < 50;
 /** The real place `s` names, with its rank and flags; a stale one (from an older load) counts as made up, so it gives no first-visit XP or cards. */
 const placeOf = (s: Spot, places: readonly Place[]): Place => places.find((p) => isAt(p, s)) ?? { ...s, rank: 1, made: true };
+/** False while `s` is shut by the sky he lives under (opening.ts); true with no sky. */
+const openNow = (stats: Stats, s: Pick<Place, "class" | "subclass">) => !stats.sky || isOpen(s, stats.sky.clock, stats.sky.holiday);
 
 /** How many quests a city of `pop` people has on its board. */
 export function boardSize(pop: number): number {
@@ -235,6 +238,7 @@ export class Quests {
  * while a need is urgent. A world event near him (or the one you nudged,
  * however far) comes first (it won't wait), then the step of the quest he is on, then, once enough stops have
  * passed, a new quest from the board (the one you nudged, else a near one).
+ * Closed places wait: an event or giver there is skipped and a step there holds the quest until it opens.
  */
 export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, rng: Rng): Place | null {
   const q = stats.quests;
@@ -242,15 +246,16 @@ export function questGoal(stats: Stats, places: readonly Place[], here: LatLon, 
   if (anyUrgent(stats)) return null;
   const now = stats.now();
   const near = q.events
-    .filter((e) => e.ends > now && (e.id === q.nudge || distanceM(here[0], here[1], e.at.lat, e.at.lon) < EVENT_NEAR_M))
+    .filter((e) => e.ends > now && openNow(stats, e.at) && (e.id === q.nudge || distanceM(here[0], here[1], e.at.lat, e.at.lon) < EVENT_NEAR_M))
     .sort((a, b) => (a.id === q.nudge ? -1 : b.id === q.nudge ? 1 : a.ends - b.ends));
   if (near.length) return placeOf(near[0]!.at, places);
   if (q.active) {
     q.active.target ??= stepTarget(stats, q.active, places, here, rng);
-    return placeOf(q.active.target, places);
+    return openNow(stats, q.active.target) ? placeOf(q.active.target, places) : null;
   }
-  if (!q.board.length || (q.since < q.wait && !q.board.some((o) => o.key === q.nudge))) return null;
-  const offer = q.board.find((o) => o.key === q.nudge) ?? nearest(q.board, here, rng);
+  const open = q.board.filter((o) => openNow(stats, o.at));
+  if (!open.length || (q.since < q.wait && !open.some((o) => o.key === q.nudge))) return null;
+  const offer = open.find((o) => o.key === q.nudge) ?? nearest(open, here, rng);
   q.board = q.board.filter((o) => o !== offer);
   q.active = { ...offer, step: 0, target: offer.at };
   q.nudge = "";
@@ -289,7 +294,7 @@ export function startEvent(stats: Stats, kind: EventKind | null, here: Pick<Plac
   const q = stats.quests;
   const kinds = kind ? [kind] : q.bank.events.filter((e) => !e.follow && (!e.time || inTime(e.time, hour)) && !q.events.some((l) => l.kind === e.id));
   const busy = new Set(q.events.map((e) => e.at.name));
-  const near = places.filter((p) => !busy.has(p.name) && distanceM(here.lat, here.lon, p.lat, p.lon) < EVENT_NEAR_M);
+  const near = places.filter((p) => !busy.has(p.name) && openNow(stats, p) && distanceM(here.lat, here.lon, p.lat, p.lon) < EVENT_NEAR_M);
   const options = kinds.flatMap((k) => {
     const at = near.filter((p) => isKind(p, k.at));
     return at.length ? [[k, at] as const] : [];
@@ -361,13 +366,14 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
   q.wait = rng.randiRange(QUEST_EVERY_MIN, QUEST_EVERY_MAX);
 }
 
-/** A place for the active quest's next step: one of the nearest that fit, not the one he stands at; the quest giver's place when none fits. */
+/** A place for the active quest's next step: one of the nearest that fit (open ones first), not the one he stands at; the quest giver's place when none fits. */
 function stepTarget(stats: Stats, a: Active, places: readonly Place[], here: LatLon, rng: Rng): Spot {
   const k = stats.quests.kind(a.kind);
   const step = k?.steps[a.step];
   if (!step) return a.at;
-  const fit = places
-    .filter((p) => isKind(p, step.at) && distanceM(here[0], here[1], p.lat, p.lon) > 30)
+  const kind = places.filter((p) => isKind(p, step.at) && distanceM(here[0], here[1], p.lat, p.lon) > 30);
+  const open = kind.filter((p) => openNow(stats, p));
+  const fit = (open.length ? open : kind)
     .map((p) => [p, distanceM(here[0], here[1], p.lat, p.lon)] as const)
     .sort((x, y) => x[1] - y[1])
     .slice(0, STEP_CHOICES);
