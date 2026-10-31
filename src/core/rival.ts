@@ -107,7 +107,8 @@ export class Rival {
     }
     const c = rng.pick(here);
     const his = rng.randf() < this.winChance(stats, c.attr);
-    const opening = `${RIVAL_ICON} ${RIVAL_NAME} ${c.text.replaceAll("{PLACE}", place)}.`;
+    const what = `${RIVAL_NAME} ${c.text.replaceAll("{PLACE}", place)}.`;
+    const opening = `${RIVAL_ICON} ${what}`;
     const settle = (won: boolean, you: boolean) => {
       if (won) this.wins++;
       else {
@@ -120,7 +121,7 @@ export class Rival {
       return `${you ? "" : "Played by himself: "}${won ? c.won : c.lost}${recall}`;
     };
     if (!ask) return stats.say(`${opening} ${settle(his, true)}`);
-    const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: opening, game: CONTEST_GAME[c.attr] ?? "timing", options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
+    const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: what, game: CONTEST_GAME[c.attr] ?? "timing", options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
     const line = stats.say(opening);
     ask(m, () => (his ? "won" : "lost"), (p) => stats.say(`${RIVAL_ICON} ${settle(p.id === "won", p.you)}`));
     return line;

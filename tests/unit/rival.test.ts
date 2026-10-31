@@ -30,7 +30,7 @@ describe("Viktor", () => {
     const opening = r.meet(s, CONTESTS, "Cafe Roma", "cafe", AT, fixed(0, 0, 0.99, 0), (m, his, settle) => (asked = { m, his, settle }));
     const c = CONTESTS.find((k) => k.at.includes("cafe"))!;
     expect(line.startsWith(opening)).toBe(true);
-    expect(asked!.m).toMatchObject({ icon: R.RIVAL_ICON, ask: opening, game: R.CONTEST_GAME[c.attr], options: [{ id: "lost" }, { id: "won" }] });
+    expect(asked!.m).toMatchObject({ icon: R.RIVAL_ICON, ask: opening.replace(`${R.RIVAL_ICON} `, ""), game: R.CONTEST_GAME[c.attr], options: [{ id: "lost" }, { id: "won" }] });
     expect(r.wins).toBe(0);
     expect(asked!.his()).toBe("won");
     expect(asked!.settle({ id: "lost", you: true })).toBe(`${R.RIVAL_ICON} ${c.lost}`);
