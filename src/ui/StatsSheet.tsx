@@ -1,5 +1,5 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// six meters and Magic as bars, the sky over him, the spells he knows,
+// his weekly bills, six meters and Magic as bars, the sky over him, the spells he knows,
 // four attributes with what his gear adds, every gear slot, the bag and his
 // buffs, his rival, friends and pet. Items with a story open to show it.
 // His records close it.
@@ -14,6 +14,7 @@ import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEE
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
+import { billsAt } from "../core/bills";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
@@ -173,6 +174,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
+        <KV k="Weekly bills" v={euro(billsAt(s.level))} />
       </Card>
       <QuestCard q={s.quests} now={s.now()} />
       {(goal || feed > 0 || s.savingFor > 0) && (

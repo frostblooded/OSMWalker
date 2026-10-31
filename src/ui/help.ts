@@ -3,6 +3,7 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bills from "../core/bills";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Chron from "../core/chronicle";
@@ -210,6 +211,10 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    BILLS_L1: euro(Bills.billsAt(1)),
+    BILLS_L10: euro(Bills.billsAt(10)),
+    BILLS_L30: euro(Bills.billsAt(30)),
     ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
     PET_FOOD: euro(Pet.PET_FOOD),
     PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
