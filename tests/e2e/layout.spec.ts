@@ -176,8 +176,8 @@ for (const width of [360, 412]) {
     });
 
     test("no screen has overlapping text or sideways scroll", async ({ page }) => {
-      // One walk through every screen: about 20 s locally, twice that on a busy CI runner.
-      test.setTimeout(90_000);
+      // One walk through every screen: about 40 s locally, and over 90 s on a busy CI runner now that there are more screens.
+      test.setTimeout(150_000);
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
       await check(page, "postcard-received");
