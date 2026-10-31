@@ -34,6 +34,7 @@ import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
 import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
+import * as Pet from "../core/pet";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
@@ -209,6 +210,23 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
+    PET_FOOD: euro(Pet.PET_FOOD),
+    PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
+    PET_MOOD_PER_LEVEL: num(Pet.PET_MOOD_PER_LEVEL),
+    PET_KM_2: num(Pet.kmFor(2)),
+    PET_KM_3: num(Pet.kmFor(3)),
+    PET_MAX_LEVEL: num(Pet.PET_MAX_LEVEL),
+    PET_KM_MAX: num(Pet.kmFor(Pet.PET_MAX_LEVEL)),
+    DOG_FIND_PCT: pct(Pet.DOG_FIND_PER_LEVEL),
+    CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
+    PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
+    PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
+    PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
+    PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
+    MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),

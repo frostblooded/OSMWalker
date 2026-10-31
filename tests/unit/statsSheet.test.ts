@@ -19,6 +19,16 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("shows his pet, its level and km together, and the pets he had", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No pet yet");
+    const p = stats.pets.adopt("cat", stats.now(), "", new Rng(1));
+    expect(shown(stats)).toContain(`${p.name} the cat`);
+    expect(shown(stats)).toContain("No, grumpy");
+    stats.pets.pass(stats.now() + 86400 * 300);
+    expect(shown(stats)).toContain("Remembered");
+  });
+
   it("after a flyer lands, shows his walking speed", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
