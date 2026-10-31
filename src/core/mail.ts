@@ -38,16 +38,16 @@ export class Mailbox {
    * friend elsewhere, and maybe a gift at one of `spots` (cities where he has
    * one) from a friend there, never `partner` (an id, "" for none). Returns the feed lines.
    */
-  day(t: number, here: string, friends: Friend[], partner: string, spots: string[], data: MailData | null, rng: Rng): string[] {
+  day(t: number, here: string, friends: Friend[], partner: string, spots: string[], data: MailData | null, rng: Rng, wrote = false): string[] {
     if (!data) return [];
     const out: string[] = [];
     // His partner is always with him, so never writes or leaves a gift.
     const far = friends.filter((f) => f.id !== partner && f.hearts >= LETTER_AT && f.city !== here);
-    if (far.length && data.letters.length && rng.randf() < LETTER_CHANCE) {
+    // `wrote`: a friend's news already came as a letter today (townies.ts), so no second one.
+    if (far.length && data.letters.length && rng.randf() < LETTER_CHANCE && !wrote) {
       const f = rng.pick(far);
       const town = f.city.split(",")[0]!;
-      this.letters.push({ from: f.name, icon: f.icon, city: f.city, text: fill(rng.pick(data.letters), { NAME: f.name, PLACE: f.place.name, CITY: town }), t });
-      if (this.letters.length > KEEP_LETTERS) this.letters.shift();
+      this.add({ from: f.name, icon: f.icon, city: f.city, text: fill(rng.pick(data.letters), { NAME: f.name, PLACE: f.place.name, CITY: town }), t });
       // A letter, not one of his deeds (see bond.ts isNote).
       out.push(`${FRIEND_LETTER_MARK} A letter from ${f.name} in ${town}`);
     }
@@ -57,6 +57,12 @@ export class Mailbox {
       this.waiting.push({ from: f.name, city: f.city, gift: rng.pick(data.gifts) });
     }
     return out;
+  }
+
+  /** Puts `letter` in his mailbox, keeping the newest KEEP_LETTERS. */
+  add(letter: Letter): void {
+    this.letters.push(letter);
+    if (this.letters.length > KEEP_LETTERS) this.letters.shift();
   }
 
   /** He reached his spot in `city`: the gift waiting there, if any, now his. */

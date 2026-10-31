@@ -711,13 +711,16 @@ export class Stats {
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
-    const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
-    for (const line of this.mail.day(t, this.where.city, this.friends.list, this.friends.partner, spots, this.mailData, new Rng(seedOf(`mail${date}`)))) this.say(line);
     this.petDay(date, t);
     this.visaDay();
     const f = this.friends;
     this.townies.prune(f.list);
     this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
+    // Big news comes as a letter: it goes in his mailbox too, and is the day's only letter.
+    const news = this.townies.letter;
+    if (news) this.mail.add({ from: news.friend.name, icon: news.friend.icon, city: news.city, text: news.text, t });
+    const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
+    for (const line of this.mail.day(t, this.where.city, f.list, f.partner, spots, this.mailData, new Rng(seedOf(`mail${date}`)), !!news)) this.say(line);
     const mark = this.anniversaries.check(date, t, this.meters.mood, this.where.city, f.list, f.partner, new Rng(seedOf(`party${date}`)));
     if (!mark) return;
     this.applyFx(mark.fx);

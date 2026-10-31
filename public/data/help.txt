@@ -856,7 +856,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## Letters and gifts {mail}
-His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. The Mailbox card on the Stats sheet shows the newest, with older ones folded into More; tap one to read it. It keeps the last {KEEP_LETTERS}.
+His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. Big news that comes as a letter (see Friends' news) goes in his mailbox too, and is the only letter that day. The Mailbox card on the Stats sheet shows the newest, with older ones folded into More; tap one to read it. It keeps the last {KEEP_LETTERS}.
 
 Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there, such as a flower, cake, a lucky coin or a book. It waits, one per city, until he next reaches his spot, and then he gets its boost. His partner is always with him, so never writes to him or leaves a gift.
 ## Diary and dreams {diary}

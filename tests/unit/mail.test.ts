@@ -35,6 +35,13 @@ describe("mailbox", () => {
     expect(isNote("💌 A letter from Ana in Porto")).toBe(true);
   });
 
+  it("no second letter on a day a friend's news came as one", () => {
+    const m = new M.Mailbox();
+    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, 5)], "", [], DATA, fixed(0), true)).toEqual([]);
+    m.add({ from: "Bo", icon: "🧑", city: PORTO, text: "Big news!", t: T0 });
+    expect(m.letters.map((l) => l.text)).toEqual(["Big news!"]);
+  });
+
   it("never from his partner, who is with him", () => {
     const m = new M.Mailbox();
     const her = friend("Ana", PORTO, 10);
