@@ -1912,19 +1912,37 @@ export class Stats {
    * says so (Luck makes bad ones rarer), or else his club night if one is on
    * (or an invitation to one), or else a meeting with his rival, or else one
    * with a friend or his fellow traveller.
-   * Returns its feed line, or "". Without a deck the stories are off and
-   * nothing rolls, so the dice stay the same as without one.
+   * Returns its feed line, or "". With `ask` (the game, while you watch) a
+   * choice or a contest opens as a timed moment: then it returns "" or the
+   * contest's opening, and its result line comes when it settles. Without a
+   * deck the stories are off and nothing rolls, so the dice stay the same as
+   * without one.
    */
-  happen(place: Pick<Place, "name" | "class" | "lat" | "lon"> & { made?: unknown }, hour: number, rng: Rng): string {
+  happen(place: Pick<Place, "name" | "class" | "lat" | "lon"> & { made?: unknown }, hour: number, rng: Rng, ask?: M.Ask): string {
     this.petAt(place);
     if (!this.incidents.length) return "";
     const tone = this.story.roll(rng, riskMult(this.attr("luck")) * this.pets.riskMult());
     const card = tone && Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
     if (tone && card) {
       this.story.after(card.id, tone);
-      this.incidentLine = Inc.play(card, this, place.name, rng);
-      if (card.stray) this.stray(card.stray, place.name);
-      return this.incidentLine;
+      if (!card.options) {
+        this.incidentLine = Inc.play(card, this, place.name, rng);
+        if (card.stray) this.stray(card.stray, place.name);
+        return this.incidentLine;
+      }
+      // A choice plays on its own dice, so your tap (or none) leaves the card dice as in the catch-up.
+      const dice = new Rng(seedOf(`incident${this.now()}${card.id}`));
+      const his = Inc.hisPick(card, this, dice);
+      const settle = (picked: number, you?: boolean) => {
+        this.incidentLine = Inc.play(card, this, place.name, dice, picked, you);
+        if (card.stray) this.stray(card.stray, place.name);
+      };
+      if (!ask) {
+        settle(his);
+        return this.incidentLine;
+      }
+      ask(Inc.moment(card, place.name), () => String(his), (p) => settle(Number(p.id), p.you));
+      return "";
     }
     // Clubs roll their own dice, so the walk's stay the same.
     const t = this.now();
@@ -1935,8 +1953,9 @@ export class Stats {
       this.applyFx(fx);
       return (this.incidentLine = this.say(club));
     }
-    const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
-    if (met) return (this.incidentLine = met);
+    const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng, ask && ((m, his, settle) => ask(m, his, (p) => void (this.incidentLine = settle(p)))));
+    // The contest's result when it settled at once, else its opening.
+    if (met) return (this.incidentLine = this.history.latest() || met);
     const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
     if (f) return (this.incidentLine = this.say(f));
     // Where they know him, someone may greet him; its own dice.

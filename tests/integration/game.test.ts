@@ -15,6 +15,7 @@ import { BEAUTY_EVERY_S, PRETTY } from "../../src/core/comforts";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
+import { TENSION_MAX } from "../../src/core/storyteller";
 import { Api } from "../../src/net/api";
 import { dataFile } from "../support/data";
 import { WEST, START, CAFE, BUS, game, run, tick } from "../support/game";
@@ -162,7 +163,65 @@ describe("game", () => {
     const meet = vi.spyOn(g.stats.rival, "meet");
     run(g, 400);
     // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
-    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything(), expect.any(Function));
+  });
+
+  it("asks a story choice as a timed moment, and your tap picks how it goes", async () => {
+    const { g } = game({ places: [CAFE] });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // Full tension at every stop until the card comes (it fires on half of them at most).
+    for (let i = 0; i < 3 * 3600 && !g.moment; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment?.m).toMatchObject({ id: "incident:busker", ask: "A busker at Cafe Near." });
+    g.settleMoment("1");
+    await Promise.resolve();
+    expect(g.stats.history.latest()).toBe("🎻 A busker at Cafe Near. Listens: he claps.");
+    expect(g.stats.incidentLatest()).toBe(true);
+  });
+
+  it("saves nothing while a story choice is open, though the place's own moment settles at once", async () => {
+    const { g, storage } = game({ places: [CAFE], moments: true });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (let i = 0; i < 3 * 3600 && g.moment?.m.id !== "incident:busker"; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment?.m.id).toBe("incident:busker");
+    await Promise.resolve();
+    // The cafe's own moment came while it was open, so he picked it himself.
+    expect(g.stats.history.latest()).toMatch(/Decided by himself/);
+    const before = storage.getItem(SAVE_KEY);
+    g.save();
+    expect(storage.getItem(SAVE_KEY)).toBe(before);
+    g.settleMoment("0");
+    await Promise.resolve();
+    expect(storage.getItem(SAVE_KEY)).not.toBe(before);
+    expect(storage.getItem(SAVE_KEY)).toContain("A busker at Cafe Near. Sings: coins fly.");
+  });
+
+  it("with the Choice timer Off, a story choice settles at once, before the action he then chooses", async () => {
+    const { g } = game({ places: [CAFE] });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    while (g.momentS !== 0) g.nextMomentTimer();
+    const at = () => g.stats.history.entries.findIndex((e) => e.text.startsWith("🎻 A busker"));
+    for (let i = 0; i < 3 * 3600 && at() < 0; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment).toBeNull();
+    const line = g.stats.history.entries[at()]!.text;
+    expect(line).toMatch(/^🎻 A busker at Cafe Near\. Decided by himself: (Sings|Listens):/);
+    // It came after he reached the cafe, and what he then did there came after it, in the same step.
+    expect(g.stats.history.entries.slice(0, at()).some((e) => e.text.startsWith("Reached Cafe Near"))).toBe(true);
+    expect(at()).toBeLessThan(g.stats.history.entries.length - 1);
   });
 
   it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {

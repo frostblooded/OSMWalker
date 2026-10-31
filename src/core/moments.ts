@@ -50,6 +50,13 @@ export type Moment = {
   rascal?: string;
 };
 
+/**
+ * How the game asks a moment that comes up inside a pure rule (a story
+ * choice, a contest): show `m`, and call `settle` with your tap or with
+ * `his()` once time runs out. The catch-up has none: nobody to ask.
+ */
+export type Ask = (m: Moment, his: () => string, settle: (p: Pick) => void) => void;
+
 export function optionFor(m: Moment, id: string): MomentOption {
   const o = m.options.find((x) => x.id === id);
   if (!o) throw new Error(`moment ${m.id} has no option ${id}`);
