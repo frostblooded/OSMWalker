@@ -307,6 +307,11 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
+      // The choice timer at 20 s (remembered), so the away dilemma doesn't decide itself mid-shot on a busy machine.
+      await openMenuItem(page, /Choice timer/);
+      await page.getByRole("button", { name: /Choice timer/ }).click();
+      await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
+      await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
       await reopenAfter(page, 5);
       const away = page.getByRole("dialog", { name: /While you were away/ });
       await expect(away).toContainText("One choice", { timeout: 20000 });
