@@ -3,6 +3,15 @@ import * as F from "../../src/ui/format";
 import { WALK, BIKE } from "../../src/core/speeds";
 
 describe("texts", () => {
+  it("shares explored: whole percent, a decimal under 10, never 0 once he walked one", () => {
+    expect(F.share(0, 2500)).toBe("0%");
+    expect(F.share(1, 25_000)).toBe("0.1%");
+    expect(F.share(37, 2500)).toBe("1.5%");
+    expect(F.share(355, 2500)).toBe("14%");
+    expect(F.share(2500, 2500)).toBe("100%");
+    expect(F.share(3, 0)).toBe("0%");
+  });
+
   it("say how long he was away", () => {
     expect(F.duration(45)).toBe("<1 min");
     expect(F.duration(25 * 60)).toBe("25 min");

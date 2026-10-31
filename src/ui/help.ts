@@ -36,6 +36,7 @@ import * as SkyEv from "../core/skyEvents";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
+import * as Explored from "../core/explored";
 import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
 import * as Inc from "../core/incidents";
@@ -80,6 +81,7 @@ import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import * as Words from "../core/words";
 import * as Notes from "../core/sightNotes";
+import { CITIES_SHOWN, STREET_MARK } from "../core/streetBook";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -727,6 +729,7 @@ export function values(data: GameData): Record<string, string> {
     CITY_COUNT: String(data.cities.length),
     COUNTRY_COUNT: String(new Set(data.cities.map((c) => c.code)).size),
     HISTORY_SIZE: String(History.SIZE),
+    CELL_M: String(Explored.CELL_M),
     TRAIL_KM: String(Math.round((History.MAX_TRAIL * History.TRAIL_STEP_M) / 1000)),
     DEBUG_SIZE: String(DebugLog.SIZE),
     MAX_WARNINGS: String(Problems.MAX_WARNINGS),
@@ -760,6 +763,8 @@ export function values(data: GameData): Record<string, string> {
     WORD_PCT: pct(Words.LEARN_CHANCE),
     WORD_WIT: num(Words.WORD_WIT),
     WORD_XP: num(Words.WORD_XP),
+    STREET_MARK: num(STREET_MARK),
+    STREET_ROWS: num(CITIES_SHOWN),
     NOTE_RANK: num(Notes.NOTE_RANK),
     NOTE_RADIUS: num(Notes.RADIUS_M),
     NOTE_WIT: num(Notes.NOTE_WIT),

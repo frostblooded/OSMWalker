@@ -83,7 +83,7 @@ A dragon eats {DRAGON_UPKEEP} of gold a day. He pays it first thing each day, be
 A little folklore lives in the city. When he reaches a place where a creature lives (a real one or one the game made up, such as an old well), it shows up {CREATURE_PCT} of the time, but he meets at most one creature a day (also while you're away). Each one offers him a choice:
 {CREATURE_LIST}
 
-The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for each point of Wits above 1, up to {RIDDLE_CAP_PCT}. The cleverer he is, the more often he tries it on his own. He only pays what he has. For now he always makes his own pick; soon you'll be able to tap one before a timer runs out. Each creature he meets gets a tile in the Collection (Places tab).
+The troll's riddle works {RIDDLE_PCT} of the time, plus {RIDDLE_PER_WIT_PCT} for each point of Wits above 1, up to {RIDDLE_CAP_PCT}. The cleverer he is, the more often he tries it on his own. He only pays what he has. The choice comes as a timed moment (see Timed moments): tap one before the bar runs out, or he picks himself. While you are away he always picks himself. A stop where a creature shows up asks nothing else. Each creature he meets gets a tile in the Collection (Places tab).
 ## Ley lines {ley_lines}
 Old lines of power run between the real churches and other places of worship, monuments, memorials and castles of his city: each one is joined to the nearest other one the game has loaded. Open the Stats sheet to see them on the map as dotted indigo lines.
 
@@ -198,7 +198,7 @@ Some actions have a risk: a chance that it goes differently, which adds to what 
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## Timed moments {moments}
-When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap. After a paid shift a chance card at work may take the place's moment instead (see Chance cards at work); it leans and plays by its own rules.
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap. After a paid shift a chance card at work may take the place's moment instead (see Chance cards at work); it leans and plays by its own rules. A creature he meets (see Place creatures) comes the same way, in place of the place's own moment that visit. And when a police car catches up with him, you choose how the chase ends (see Police chases).
 
 A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
 
@@ -554,7 +554,7 @@ At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by 
 
 He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. A Retire you asked for on a ride works the same way once he lands. His heir then sets out from that city, keeps his home, and while its streets load he stands still and says "🌅 Retiring in" that city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later; on a reopen the card then says he stopped to retire. If you retire him while he is on a ride, he says he will and retires once he lands.
 ## His heirs and the family {family}
-Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words, wants and fears, spells and Magic, careers, skills, languages, pantry, quirks, spots, diary, Records, or your bond with him, so his karma, his fame in every city and the police start fresh too (see Karma). What the family keeps:
+Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words, street collection, sights read up on, wants and fears, spells and Magic, careers, skills, languages, pantry, quirks, spots, diary, Records, or your bond with him, so his karma, his fame in every city and the police start fresh too (see Karma). What the family keeps:
 - an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
 - the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
 - the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, the creatures, giants, fairy gifts, midnight finds and portals in the Collection, and golden bricks and monuments,
@@ -706,6 +706,10 @@ A word that fits the place comes first: coffee at a café, bread at a bakery, th
 At a big sight (a landmark of map rank {NOTE_RANK} or better, such as a famous museum, cathedral or monument) he reads up on it: the first sentence of its Wikipedia article shows in the feed, for example "📖 Read up on Alexander Nevsky Cathedral: The Alexander Nevsky Cathedral is a cathedral in Sofia." He looks in English Wikipedia first, then in the Wikipedia of the country's language, and takes only an article within {NOTE_RADIUS} m whose title names the sight. Each note gives wits +{NOTE_WIT} and {NOTE_XP} XP.
 
 He looks each sight up once (a sight with no article is not asked again), at most {NOTE_PER_HOUR} an hour, and only while you watch, as it needs the network; offline he just walks on and tries another time. The Well read badge counts the sights he read up on (see Badges and titles).
+## Streets he walked {streets}
+Every named street he walks along, even for a few steps, goes into his street collection for that city. Every {STREET_MARK} new streets in a city the feed counts them, for example "🛣 Walked 100 streets in Sofia". The Streets card on the Stats sheet shows how many streets he walked in each city, his own city first, and the names of the ones in his city. The Street collector badge counts them all (see Badges and titles).
+
+Only streets he walks while you watch count: the time he spends away doesn't walk the map, and streets under a flight or a ride don't count.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -855,16 +859,16 @@ With {PAYOFF_STARS} stars or more he can pay it off at a police station: {PAYOFF
 
 While he has a star, the police may spot him at each stop: {SPOT_PER_STAR_PCT} a star, times 1 + {FAME_SPOT} for each tier all his fame together reaches. Then a chase starts (see Police chases).
 ## Police chases {police_chase}
-When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. If his heat drops under a star by then (he paid it off, or it faded) or he heads for a ride out, the police give up. Otherwise it ends, by how he chooses:
+When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. If his heat drops under a star by then (he paid it off, or it faded) or he heads for a ride out, the police give up. Otherwise, once the car catches up, a timed choice asks how it ends (see Timed moments): tap one, or he picks himself when the bar runs out. Bribe only shows when he can pay it.
 - 🙌 Give up: he is caught, and gets +{SURRENDER_KARMA} karma for owning up.
 - 🏃 Run: gets away {RUN_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Strength above 1, and more with energy above half, less below.
 - 🫣 Hide: gets away {HIDE_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Wits above 1 and half that for Luck.
 - 💶 Bribe, only if he has {BRIBE_PER_HEAT} for each point of heat: the officer takes it {BRIBE_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Charm above 1. Taken, the heat is gone, for −{BRIBE_KARMA} karma.
 None of them gets away more than {ESCAPE_CAP_PCT} of the time. Getting away by running or hiding adds {ESCAPE_HEAT} heat.
 
-He picks by himself, by his karma (see Karma): he takes the way out with his best odds as often as he would take a rascal's option, so past {RASCAL_HALF} karma more often than not, and otherwise he gives himself up.
+Left to himself, he picks by his karma (see Karma), and his History says "Decided by himself": he takes the way out with his best odds as often as he would take a rascal's option, so past {RASCAL_HALF} karma more often than not, and otherwise he gives himself up.
 
-Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped.
+Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped; once the car has caught up, closing the game leaves the choice to him.
 # 📖 Stories
 ## The storyteller {storyteller}
 A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.
@@ -955,7 +959,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Explored, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -986,6 +990,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
+- Streets: how many streets he walked in each city, his own first and past {STREET_ROWS} cities the rest folded away, and the names in his city (see Streets he walked).
 - Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
 - Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
 - Languages: the languages he speaks with their level, his best first, the one spoken where he is marked "here"; past {LANGS_SHOWN} the rest fold into More (see Languages).
@@ -1023,6 +1028,10 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
+## Explored {explored}
+👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Getting about in his city counts: on foot, with his own vehicle, or flying his own mount straight over the streets (see Speed and vehicles). Trips to other cities, portals, long walks between cities and the time the game was closed don't.
+
+The sheet shows the share of the squares in his city box (the box his goals are picked in, see Choosing a city) he has walked, such as "Sofia 14% explored", and the number of squares and km² he has walked in the whole world. While it is open the map shows his squares in green, zoomed to the ones in this city. They are kept for good, in every city he has been to, and pass to his heir when he retires, until New city.
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 

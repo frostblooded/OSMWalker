@@ -437,6 +437,18 @@ describe("save file", () => {
     expect(back.cents).toBe(4321);
   });
 
+  it("loads saves from before the street collector, with no streets yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.streets;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.streets.count()).toBe(0);
+    expect(back.cents).toBe(4321);
+  });
+
   it("loads saves from before sight notes, with none read yet", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -523,6 +535,16 @@ describe("save file", () => {
     delete d.stats.finds;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect((f.read() as Saved).stats.finds.got).toEqual([]);
+  });
+
+  it("loads saves from before the explored squares: none walked yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.explored;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.explored.size).toBe(0);
   });
 
   it("loads ancestors from before the hall of walkers, who count only for km, level and cities", () => {

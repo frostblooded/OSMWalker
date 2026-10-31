@@ -264,7 +264,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       }
       // A made-up place here ("a park in Lyon") is no real park to build at.
       stats.bricksAt(city.places ? place : { ...place, made: true });
-      stats.meetAt(place);
+      const met = stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
       stats.wordAt(place);
@@ -305,8 +305,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf(), place.class);
       if (action) {
         stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
-        // Nobody to ask: he takes his own pick of the place's moment, as game.ts does when you don't tap.
-        stats.byHimself(stats.momentAt(place), place.name, momentDice(stats.now(), place.name));
+        // Nobody to ask: he takes his own pick of the place's moment, as game.ts does when you don't tap; a creature took this stop's moment.
+        if (!met) stats.byHimself(stats.momentAt(place), place.name, momentDice(stats.now(), place.name));
       }
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;

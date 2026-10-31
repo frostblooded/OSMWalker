@@ -3,8 +3,8 @@
 // and the city area on the map, sending a layer to MapLibre only when it
 // changed. The camera follows him; a tap on the goal chip shows him and his
 // goal until he picks a new one; a trip zooms out to the whole ride until he
-// lands; History fits his trail above its sheet; the Stats sheet shows the
-// ley lines. The map itself sits behind MapPort, so tests use a fake.
+// lands; History fits his trail above its sheet, and Explored his squares
+// above its own; the Stats sheet shows the ley lines. The map itself sits behind MapPort, so tests use a fake.
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
@@ -38,6 +38,8 @@ export interface MapPort {
   setEvents(markers: EventMarker[]): void;
   /** The ley lines while the Stats sheet is open, sent on only when `key` changes; "" hides them. */
   setLeys(key: string, lines: () => [LatLon, LatLon][]): void;
+  /** The squares he walked while the Explored sheet is open, sent on only when `key` changes; "" hides them. */
+  setExplored(key: string, boxes: () => BBox[]): void;
   /** The game's icons, sent on only when `key` changes. */
   setMapIcons(key: string, icons: () => MapIcon[]): void;
   follow(zoom?: number): void;
@@ -66,6 +68,7 @@ export class MapScene {
   private tripView = "";
   private history = false;
   private leys = false;
+  private explored = false;
   private eventsKey = "";
 
   /** `panels`: the room the top card and bottom bar take over the map. */
@@ -101,6 +104,7 @@ export class MapScene {
     // Icons change with the city's places, his monuments, his spot and home, his quests and events, and as he moves about 500 m (the nearest ones show).
     v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${g.stats.spots.spot(g.stats.where.city)?.name ?? ""}:${g.stats.home.city}:${g.stats.home.bought}:${g.stats.quests.rev}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
     v.setLeys(this.leys && !w.travel ? String(g.leysVersion) : "", () => g.leys);
+    v.setExplored(this.explored ? String(g.stats.explored.version) : "", () => g.stats.explored.boxes());
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);
@@ -125,6 +129,24 @@ export class MapScene {
     v.setPadding({ ...this.panels(), bottom: sheetH + 12 });
     this.drawEvents();
     const box = this.game.stats.history.bounds();
+    if (box) v.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
+    this.onFollowing(false);
+  }
+
+  /** Explored opens or closes: his squares show, fitted above its sheet (`sheetH` px tall) around those in this city, or the whole city box when he has none there; closing follows him again. */
+  showExplored(on: boolean, sheetH = 0): void {
+    const v = this.map;
+    // Every sheet change tells it, so a closed Explored leaves the History view alone.
+    if (!on && !this.explored) return;
+    this.explored = on;
+    if (!on) {
+      v.setPadding(this.panels());
+      if (!this.goalView) this.backToHim();
+      return;
+    }
+    v.setPadding({ ...this.panels(), bottom: sheetH + 12 });
+    const city = this.game.walker?.bounds;
+    const box = city ? (this.game.stats.explored.bounds(city) ?? city) : null;
     if (box) v.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
     this.onFollowing(false);
   }
@@ -165,7 +187,7 @@ export class MapScene {
 
   /** A goal view ends by itself when he picks a new goal; a trip shows the whole ride, and landing follows him again. */
   private keepView(): void {
-    if (this.history) return;
+    if (this.history || this.explored) return;
     if (this.goalView && this.goalView !== this.goalKey()) this.backToHim();
     const t = this.game.walker?.travel;
     const key = t ? `${t.to.name}:${t.path.length}` : "";

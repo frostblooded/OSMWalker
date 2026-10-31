@@ -34,6 +34,7 @@ import * as Sk from "./skyEvents";
 import * as F from "./forecast";
 import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
+import { Explored } from "./explored";
 import { History } from "./history";
 import * as Hm from "./home";
 import * as Inc from "./incidents";
@@ -66,6 +67,7 @@ import * as V from "./visas";
 import { Week } from "./week";
 import { WORD_WIT, WORD_XP, Words, type WordBook } from "./words";
 import { NOTE_WIT, NOTE_XP, SightNotes } from "./sightNotes";
+import { STREET_MARK, StreetBook } from "./streetBook";
 import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
@@ -208,6 +210,8 @@ export class Stats {
   level = 1;
   buffs: Buff[] = [];
   history = new History();
+  /** The 200 m squares he walked through, in every city. */
+  explored = new Explored();
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
@@ -228,6 +232,8 @@ export class Stats {
   words = new Words();
   /** The sights he read up on (sightNotes.ts). */
   sightNotes = new SightNotes();
+  /** The streets he walked, per city (streetBook.ts). */
+  streets = new StreetBook();
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** His shifts and ranks in each career. */
@@ -762,6 +768,8 @@ export class Stats {
     heir.stars = this.stars;
     heir.finds = this.finds;
     heir.portals = this.portals;
+    // The squares walked are the family's map of the world.
+    heir.explored = this.explored;
     heir.home = this.home;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
@@ -1298,14 +1306,15 @@ export class Stats {
     return false;
   }
 
-  /** Ends the chase begun at the place named `place` with his own pick by his karma (moments.ts defaultPick), from his money and energy as they are now, not when it began; see chased. Its own dice. */
-  runChase(place: string): number {
+  /** Ends the chase begun at the place named `place` with your `pick`, or else his own by his karma (moments.ts defaultPick) from his money and energy as they are now, not when it began; see chased. Its own dice. */
+  runChase(place: string, pick?: R.Pick): number {
     const rng = new Rng(seedOf(`chase${this.now()}${place}`));
-    return this.chased(M.defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick, rng.randf());
+    return this.chased(pick ?? (M.defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick), rng.randf(), pick !== undefined);
   }
 
-  /** The chase ends with `pick` and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
-  chased(pick: R.Pick, r: number): number {
+  /** The chase ends with `pick` (yours when `you`) and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
+  chased(pick: R.Pick, r: number, you = true): number {
+    const by = you ? "" : "Decided by himself: ";
     const h = this.him();
     const c = this.law.chase(pick, h, r);
     if (c.away) {
@@ -1313,18 +1322,18 @@ export class Stats {
         const n = R.bribeOf(h.heat);
         this.cents -= n;
         this.karma(-R.BRIBE_KARMA, false);
-        this.say(`🚓 Slipped the officer ${euro(n)}, and the police forgot all about him (${signed(-n)}, karma −${R.BRIBE_KARMA})`);
-      } else this.say(pick === "run" ? "🚓 Ran for it down the side streets and lost the police" : "🚓 Hid until the police car drove past, and got away");
+        this.say(`🚓 ${by}Slipped the officer ${euro(n)}, and the police forgot all about him (${signed(-n)}, karma −${R.BRIBE_KARMA})`);
+      } else this.say(`🚓 ${by}${pick === "run" ? "Ran for it down the side streets and lost the police" : "Hid until the police car drove past, and got away"}`);
       if (this.law.escapes === 1 && pick !== "bribe") this.milestone("escape", "Got away from the police for the first time");
       return 0;
     }
     const how = pick === "surrender" ? "Gave himself up to the police" : pick === "bribe" ? "Tried to bribe the officer, who arrested him" : `Tried to ${pick}, but the police caught him`;
     if (pick === "surrender") this.karma(R.SURRENDER_KARMA);
     const hours = `${c.jailMin / 60} hour${c.jailMin === 60 ? "" : "s"}`;
-    if (c.jailMin) this.say(`🚓 ${how}, and couldn't pay the ${euro(R.fineOf(h.heat))} fine: ${hours} in jail`);
+    if (c.jailMin) this.say(`🚓 ${by}${how}, and couldn't pay the ${euro(R.fineOf(h.heat))} fine: ${hours} in jail`);
     else {
       this.cents -= c.fine;
-      this.say(`🚓 ${how} and paid a ${euro(c.fine)} fine (${signed(-c.fine)})`);
+      this.say(`🚓 ${by}${how} and paid a ${euro(c.fine)} fine (${signed(-c.fine)})`);
     }
     const stolen = this.bag.filter((i) => i.stolen).length + Object.values(this.gear).filter((i) => i?.stolen).length;
     if (stolen) {
@@ -1603,20 +1612,31 @@ export class Stats {
     return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
   }
 
-  /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */
-  meet(c: Cr.Creature, where: string, pick: string): string {
-    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(this.now(), `${where}${pick}`).randf());
+  /**
+   * The meeting with `c` at the place named `where`, with option `pick` chosen
+   * by you or (`you` false) by himself, on the dice of time `t` when it asked
+   * and his attributes then (`attr`). Returns the feed line.
+   */
+  meet(c: Cr.Creature, where: string, pick: string, asked: { you: boolean; t: number; attr: (a: Attr) => number } = { you: true, t: this.now(), attr: (a) => this.attr(a) }): string {
+    const { you, t } = asked;
+    const o = this.creatures.outcome(c, pick, asked.attr, Cr.meetingDice(t, `${where}${pick}`).randf(), dayOf(t * 1000));
     const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
     this.cents -= paid;
     if (o.fx) this.applyFx(o.fx);
     if (o.buff) this.addBuff(o.buff);
-    return this.say(`${c.icon} ${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
+    return this.say(`${c.icon} ${you ? "" : "Decided by himself: "}${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
   }
 
-  /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
-  meetAt(place: Pick<Place, "class" | "name">): void {
+  /** His own pick at a meeting with `c` at `where`, asked at time `t` (moments.ts defaultPick, on the meeting's own dice). */
+  creaturePick(c: Cr.Creature, where: string, t = this.now()): string {
+    return M.defaultPick(c.moment, this, Cr.meetingDice(t, `${where}pick`));
+  }
+
+  /** Right after reaching `place` with nobody to ask (the catch-up): meets its creature if one shows up, taking his own pick. True when one did. */
+  meetAt(place: Pick<Place, "class" | "name">): boolean {
     const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, M.defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+    if (c) this.meet(c, place.name, this.creaturePick(c, place.name), { you: false, t: this.now(), attr: (a) => this.attr(a) });
+    return !!c;
   }
 
   /** The moment at `place` when he starts an activity there, or null with none loaded. */
@@ -1656,6 +1676,14 @@ export class Stats {
   leyWalk(m: number): void {
     this.magic = Math.min(this.magic + (Mg.LEY_PER_KM * m) / 1000, Mg.MAGIC_MAX);
     this.addBuff(Mg.LEY_CHARM);
+  }
+
+  /** He walks the street `name` in his city: noted once, and every STREET_MARK new streets there the feed counts them. */
+  streetAt(name: string): void {
+    const city = this.where.city;
+    if (!this.streets.walk(city, name)) return;
+    const n = this.streets.count(city);
+    if (n % STREET_MARK === 0) this.say(`🛣 Walked ${n} streets in ${city.split(",")[0]}`);
   }
 
   /** He read up on the sight `name` (visit key `key`): the first sentence of its article in the feed, and a little wiser. */
@@ -1899,9 +1927,9 @@ export class Stats {
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
-      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), stars: this.stars.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
-      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(), streets: this.streets.toJSON(),
       pets: this.pets.toJSON(),
       home: this.home.toJSON(),
       visas: this.visas.toJSON(),
@@ -1926,6 +1954,8 @@ export class Stats {
     s.buffs = d.buffs ?? [];
     s.walkMin = d.walkMin ?? 0;
     s.history = History.fromJSON(d.history);
+    // A save from before the explored squares: none walked yet.
+    s.explored = Explored.fromJSON(d.explored);
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
@@ -1982,6 +2012,8 @@ export class Stats {
     s.words = Words.fromJSON(d.words);
     // A save from before sight notes: none read yet.
     s.sightNotes = SightNotes.fromJSON(d.sightNotes);
+    // A save from before the street collector: no streets walked yet.
+    s.streets = StreetBook.fromJSON(d.streets);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     // A save from before the diary is already on today, so its day starts now.
     if (!s.diary.today.date) Object.assign(s.diary.today, { date: s.anniversaries.day, city: s.where.city });

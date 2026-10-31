@@ -175,6 +175,19 @@ describe("Stats sheet", () => {
     expect(text).not.toContain("none yet");
   });
 
+  it("shows the streets he walked, his city first, and their names", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("🛣StreetsWalkednone so far");
+    stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    for (const [c, n] of [["Paris, France", 3], ["Sofia, Bulgaria", 2], ["Rome, Italy", 1], ["Oslo, Norway", 1], ["Bern, Switzerland", 1]] as const)
+      for (let i = 0; i < n; i++) stats.streets.walk(c, `${c[0]}${i}`);
+    stats.streets.walk("Sofia, Bulgaria", "Alabin");
+    const text = shown(stats);
+    expect(text).toContain("🛣Streets9Sofia3 streetsParis3 streetsRome1 street");
+    expect(text).toContain("More cities ▸1");
+    expect(text).toContain("Streets in Sofia ▸3");
+  });
+
   it("shows the local words he knows by language, with the last one", () => {
     const stats = new Stats();
     expect(shown(stats)).toContain("🗣Local wordsLearnednone so far");

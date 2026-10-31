@@ -130,12 +130,14 @@ export class Game {
   /** When he last looked sights up (unix ms, the past hour), and whether a lookup is under way (see readUp). */
   private noteAsks: number[] = [];
   private noteBusy = false;
+  /** The street he walked last (see walkStreet); not saved. */
+  private street = "";
   /** Two-letter country codes (see loadIso2). */
   private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
   /** A police chase under way: the timed moment, where it began, when it ends (ms) and the streets he ran since, once a second. Not saved. */
-  chase: { place: string; ends: number; trail: LatLon[] } | null = null;
+  chase: { place: string; ends: number; trail: LatLon[]; asked?: boolean } | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -361,10 +363,9 @@ export class Game {
       if (this.moment.left <= 0) this.settleMoment(null);
       return;
     }
-    if (!w.isTraveling()) {
-      const here = w.position();
-      this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
-    }
+    const from = w.isTraveling() ? null : w.position();
+    const graph = w.graph;
+    if (from) this.loader.request(cellsByPriority(from[0], from[1], STREET_RING, this.goalHeading()));
     // He walks what is loaded and waits at the edge until more streets arrive.
     const s = Math.min(dt, MAX_STEP_S);
     const before = w.totalM;
@@ -375,8 +376,11 @@ export class Game {
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before, w.afoot);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
+    if (w.totalM > before) this.walkStreet(w.streetName());
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
+    // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
+    if (from && !w.isTraveling() && w.graph === graph && w.totalM > before) this.stats.explored.walk(from, w.position());
     if (this.stats.fainted()) this.faint();
     const leaving = this.stats.life.leaving;
     if (leaving) void this.retire(leaving);
@@ -393,6 +397,13 @@ export class Game {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  /** Notes the street he walks for his street collection, once each time he turns into another one. */
+  private walkStreet(name: string): void {
+    if (name === this.street) return;
+    this.street = name;
+    this.stats.streetAt(name);
   }
 
   /** His spot goes in the history and extends the trail. */
@@ -418,8 +429,8 @@ export class Game {
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
     void this.readUp(place);
-    // Until the timed choices can ask you, he takes his own pick.
-    this.stats.meetAt(place);
+    // A creature that shows up takes this stop's one timed moment.
+    const met = this.askCreature(place);
     this.stats.magicAt(place);
     this.stats.wordAt(place);
     this.stats.giantAt(place);
@@ -439,6 +450,8 @@ export class Game {
     }
     // The police roll their own dice; a chase takes the place of an action, and he runs on.
     if (!this.chase && this.stats.reputeAt(place)) {
+      // He runs on, so a creature still asking gets his own pick.
+      if (met && this.moment?.m.id === met.moment.id) this.settleMoment(null);
       const at = this.walker!.position();
       this.chase = { place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
       this.doing = null;
@@ -468,10 +481,30 @@ export class Game {
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.stats.askCards = false;
     this.walker!.restFor(restMinutes(action));
-    // A chance card at work takes the place of the place's own moment.
+    // A chance card at work takes the place of the place's own moment (with a creature still asking, he plays it himself); so does a creature.
     if (this.stats.workCard) this.askCard(restMinutes(action) * 60);
-    else this.askAt(place, restMinutes(action) * 60);
+    else if (!met) this.askAt(place, restMinutes(action) * 60);
     this.changed();
+  }
+
+  /**
+   * The creature at `place`, if one shows up, asked as a timed moment. His own
+   * pick, the dice and the attribute a risky pick leans on are those of the
+   * moment it asks, as when Stats.meetAt settles it at once in the catch-up;
+   * like the place moments, its effect lands once it is answered, after the
+   * stop's activity started. Returns the creature, or null.
+   */
+  private askCreature(place: Place): Creature | null {
+    const c = this.stats.creatureAt(place);
+    if (!c) return null;
+    const t = this.stats.now();
+    const his = this.stats.creaturePick(c, place.name, t);
+    const lean = c.risky ? this.stats.attr(c.risky.attr) : 0;
+    void this.ask({ ...c.moment, ask: c.moment.ask.replaceAll("{PLACE}", place.name) }, { his: () => his }).then((p) => {
+      this.stats.meet(c, place.name, p.id, { you: p.you, t, attr: () => lean });
+      this.save();
+    });
+    return c;
   }
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
@@ -791,7 +824,8 @@ export class Game {
   private checkChase(): void {
     const c = this.chase;
     const w = this.walker;
-    if (!c || !w) return;
+    // While you choose how it ends he stands still, caught up with.
+    if (!c || !w || c.asked) return;
     // Nobody to chase once the heat is gone (paid off, or faded), or once he heads for a ride out or boards it (jail mid-trip would leave the trip half set up).
     if (this.stats.law.stars() === 0 || w.isTraveling() || w.isDeparting()) {
       this.chase = null;
@@ -801,14 +835,21 @@ export class Game {
     }
     c.trail.push(w.position());
     if (this.now() < c.ends) return;
-    this.chase = null;
-    // Until the timed choices can ask you, he takes his own pick.
-    const jail = this.stats.runChase(c.place);
-    if (jail) {
-      this.doing = { name: "In jail", min: jail };
-      w.restFor(jail);
-    }
-    this.changed();
+    // Caught up with: you pick how it ends, or he does when the timer runs out.
+    c.asked = true;
+    const s = this.stats;
+    void this.ask(R.chaseMoment(s.him())).then((p) => {
+      if (this.chase === c) this.chase = null;
+      // An heir or a new game owes nothing for it.
+      if (this.stats !== s) return;
+      const jail = s.runChase(c.place, p.you ? (p.id as R.Pick) : undefined);
+      if (jail && this.walker) {
+        this.doing = { name: "In jail", min: jail };
+        this.walker.restFor(jail);
+      }
+      this.changed();
+      this.save();
+    });
   }
 
   /** Where Viktor shows on the map, a few steps east of where they met, for a while after a meeting; null otherwise. */
