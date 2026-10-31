@@ -46,6 +46,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       void import("./ui/CollectionSheet").catch(() => undefined);
       void import("./ui/AwaySheet").catch(() => undefined);
       void import("./ui/StatsSheet").catch(() => undefined);
+      void import("./ui/RecordsSheet").catch(() => undefined);
       void import("./ui/DiarySheet").catch(() => undefined);
       void import("./ui/Family").catch(() => undefined);
       void import("./ui/CareSheet").catch(() => undefined);
