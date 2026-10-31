@@ -223,7 +223,7 @@ export class Stats {
   /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
   diary = new Diary();
   diaryData: DiaryData | null = null;
-  /** Letters and gifts from his friends, and their lines from data/mail.json (not saved, the game sets them). */
+  /** Letters and gifts from his friends (saved), and their lines from data/mail.json (not saved, the game sets them). */
   mail = new Mailbox();
   mailData: MailData | null = null;
   /** Golden bricks and the monuments they paid for. */
