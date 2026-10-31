@@ -14,6 +14,7 @@ import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as PM from "./placeMoments";
 import * as Mg from "./magic";
+import { Mind, WANT_XP } from "./mind";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
 import * as Po from "./portals";
@@ -42,6 +43,7 @@ import { Townies, type News } from "./townies";
 import * as Kit from "./travelKit";
 import * as T from "./trips";
 import type { Vehicle } from "./speeds";
+import * as V from "./visas";
 import { Week } from "./week";
 import { WORD_WIT, WORD_XP, Words, type WordBook } from "./words";
 import * as Work from "./workCards";
@@ -224,6 +226,8 @@ export class Stats {
   story = new Storyteller();
   /** His quests, the city's quest board and the world events near him. */
   quests = new Quests();
+  /** His moodlets, wants and fears. */
+  mind = new Mind();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
@@ -240,6 +244,8 @@ export class Stats {
   townNews: readonly News[] = [];
   /** His birthday (the day he set out) and month marks. */
   anniversaries = new Anniversaries();
+  /** Days in each country, and his visas there. */
+  visas = new V.Visas();
   /** His pet, and the pets he had. */
   pets = new Pt.Pets();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
@@ -354,7 +360,7 @@ export class Stats {
   wageMult(action: Action): number {
     let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
-    return m * F.mult(this.forecast(), "wage");
+    return m * F.mult(this.forecast(), "wage") * this.visas.payMult(this.where.code);
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -585,6 +591,8 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
+    fx.mood = (fx.mood ?? 0) + this.mind.pass(minutes);
+    this.mind.refill(t, () => new Rng(seedOf(`want${t}`)));
     // Enchanted gear gathers Magic as he walks.
     fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
@@ -599,6 +607,7 @@ export class Stats {
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
     this.petDay(date, t);
+    this.visaDay();
     const f = this.friends;
     this.townies.prune(f.list);
     this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
@@ -607,6 +616,15 @@ export class Stats {
     this.applyFx(mark.fx);
     if (mark.buff) this.addBuff(mark.buff);
     this.say(mark.line);
+  }
+
+  /** A new day in the country he is in: it counts for his visa there (see visas.ts), and he says when it gets better or his stay is nearly up. */
+  private visaDay(): void {
+    const { code, country } = this.where;
+    const up = this.visas.day(code);
+    const where = country || code;
+    if (up) this.say(`His visa in ${where} is now ${up.name}: ${up.stay === Infinity ? "no limit on his stay" : `stays of up to ${up.stay} days`}, ${Math.round(up.pay * 100)}% more pay at work there`);
+    else if (code && this.visas.left() === 0) this.say(`Last day on his visa in ${where}: he'll be moving on soon`);
   }
 
   /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
@@ -671,6 +689,16 @@ export class Stats {
     const line = `At ${place.name}, ${f.where}: ${p.name} was a ${f.name} all along`;
     this.milestone(`pet_fairy${p.since}`, line);
     this.say(line);
+  }
+
+  /** What moves his mood an hour now, by cause: the usual drift, dirt, the weather and each moodlet (with its minutes left). */
+  moodPieces(): { name: string; icon: string; per_h: number; left?: number }[] {
+    const out: { name: string; icon: string; per_h: number; left?: number }[] = [{ name: "Day to day", icon: "📉", per_h: -MOOD_PER_H }];
+    if (this.meters.hygiene < DIRTY_AT) out.push({ name: "Feeling grubby", icon: "🧼", per_h: -DIRTY_MOOD_PER_H });
+    const sky = weatherPerH(this.sky).mood;
+    if (sky) out.push({ name: sky > 0 ? "Sunshine" : "Wet weather", icon: sky > 0 ? "☀" : "🌧", per_h: sky });
+    for (const m of this.mind.moodlets) out.push({ name: m.name, icon: m.icon, per_h: m.per_h, left: m.left });
+    return out;
   }
 
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
@@ -756,8 +784,22 @@ export class Stats {
     return best ?? first;
   }
 
-  /** Does `action` at `where`, a place of class `kind`, and returns the feed line it adds. */
+  /** Does `action` at `where`, a place of class `kind`, and returns the feed line it adds. Then wants of that kind may come true, and a mishap rattles him (see mind.ts). */
   do(action: Action, where: string, rng: Rng, kind = ""): string {
+    this.mishap = false;
+    const line = this.act(action, where, rng, kind);
+    if (!kind) return line;
+    // Its own dice, so the walk's stay the same.
+    const { met, lines } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
+    for (const w of met) this.addXp(WANT_XP[w.kind]);
+    for (const l of lines) this.say(l);
+    return line;
+  }
+
+  /** Set by act() when the action's risk went wrong. */
+  private mishap = false;
+
+  private act(action: Action, where: string, rng: Rng, kind: string): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
       if (Items.RARE_STOCK.has(action.item) && rng.randf() >= Items.MOUNT_STOCK) {
@@ -789,6 +831,7 @@ export class Stats {
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
       this.records.mishap();
+      this.mishap = true;
     }
     const earn = action.earn ?? 0;
     const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
@@ -826,6 +869,7 @@ export class Stats {
     const was = this.where;
     this.where = { city, code, country };
     this.records.arrived(city, code);
+    this.visas.enter(code);
     if (city) this.milestone("start", `Set out from ${city}`);
     if (was.city && was.city !== city) this.milestone("trip", `First trip away: to ${city}`);
     if (was.code && code && was.code !== code) this.milestone("abroad", `First time abroad: ${country}`);
@@ -1247,6 +1291,8 @@ export class Stats {
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
+      visas: this.visas.toJSON(),
+      mind: this.mind.toJSON(),
     };
   }
 
@@ -1290,6 +1336,10 @@ export class Stats {
     s.quests = Quests.fromJSON(d.quests);
     // A save from before pets: none yet.
     s.pets = Pt.Pets.fromJSON(d.pets);
+    // A save from before visas: every country starts on Tourist.
+    s.visas = V.Visas.fromJSON(d.visas);
+    // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.
+    s.mind = Mind.fromJSON(d.mind);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

@@ -1,21 +1,23 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// his weekly bills, six meters and Magic as bars, the sky over him, the spells he knows,
+// his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
-// buffs, his rival, friends and pet. Items with a story open to show it.
-// His records close it.
+// buffs, his rival, friends and pet, and his mind: wants, fears and what
+// moves his mood. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
+import { noun, wantIcon, wantText } from "../core/mind";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
@@ -232,6 +234,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
       </Card>
       {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
+      {s.where.code && <VisaCard s={s} />}
       <Spells stats={s} />
       <LocalWords stats={s} />
       <Card icon="💪" title="Attributes">
@@ -277,6 +280,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">Empty. Gear he takes off goes here.</p>
         )}
       </Card>
+      <MindCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -316,7 +320,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
       {recent.length > 0 && (
         <div class="zebra">
           {recent.map((e, i) => (
-            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
+            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : e.event ? "dim" : "tone-error"}>{e.good ? "✔ Went well" : e.event ? "Went badly" : "✖ Failed"}</span>} />
           ))}
         </div>
       )}
@@ -346,6 +350,22 @@ function FriendsCard({ s }: { s: Stats }) {
         const k = clubKind(c);
         return <KV key={c.city} k={`${k.icon} ${k.name[0]!.toUpperCase()}${k.name.slice(1)}`} v={`${c.city.split(",")[0]} · ${DAYS[c.day]!.slice(0, 3)} ${String(c.hour).padStart(2, "0")}:00`} />;
       })}
+    </Card>
+  );
+}
+
+/** His visa in the country he is in: its level, this stay against its limit, and the extra pay at work. */
+function VisaCard({ s }: { s: Stats }) {
+  const v = s.visas;
+  const visa = v.visa(s.where.code);
+  const left = v.left();
+  const next = VISAS[VISAS.indexOf(visa) + 1];
+  return (
+    <Card icon="🛂" title="Visa" right={visa.name}>
+      <KV k="Country" v={s.where.country || s.where.code} />
+      <KV k="This stay" v={visa.stay === Infinity ? `${v.stay} days, no limit` : `${v.stay} of ${visa.stay} days`} tone={left <= 0 ? "warning" : undefined} />
+      <KV k="Pay at work" v={`+${Math.round(visa.pay * 100)}%`} />
+      {next && <KV k={`Next: ${next.name}`} v={`${v.days[s.where.code] ?? 0} / ${next.from} days`} />}
     </Card>
   );
 }
@@ -382,6 +402,48 @@ function PetCard({ s }: { s: Stats }) {
 }
 
 const STANDING = { nemesis: "Nemesis", rival: "Rival", friend: "Friendly rival" } as const;
+
+const perH = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${n1(Math.abs(n))}/h`;
+const hoursLeft = (min: number) => (min >= 60 ? `${Math.ceil(min / 60)} h` : `${Math.ceil(min)} min`);
+
+/** His wants and fears, and what moves his mood each hour. */
+function MindCard({ s }: { s: Stats }) {
+  const m = s.mind;
+  const now = s.now();
+  const pieces = s.moodPieces();
+  const total = pieces.reduce((t, p) => t + p.per_h, 0);
+  return (
+    <Card icon="💭" title="Mind">
+      <div class="zebra">
+        {/* A fear shows as its want to face it, so the card stays at 5 rows at most. */}
+        {m.wants.map((w) => (
+          <KV
+            key={`${w.kind}${w.place}`}
+            k={w.kind === "face" ? `😨 Wary of ${noun(w.place)}s: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
+            v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""}
+            tone={w.kind === "face" ? "warning" : undefined}
+          />
+        ))}
+      </div>
+      <Collapsible title="🙂 Mood" right={perH(total)}>
+        <div class="zebra">
+          {pieces.map((p) => (
+            <KV
+              key={p.name}
+              k={`${p.icon} ${p.name}`}
+              v={
+                <span class={p.per_h > 0 ? "tone-ok" : p.per_h < 0 ? "tone-error" : undefined}>
+                  {perH(p.per_h)}
+                  {p.left !== undefined && <span class="dim small"> · {hoursLeft(p.left)}</span>}
+                </span>
+              }
+            />
+          ))}
+        </div>
+      </Collapsible>
+    </Card>
+  );
+}
 
 /** Viktor: his level, their record, and what they are to each other. */
 function RivalCard({ s }: { s: Stats }) {

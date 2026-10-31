@@ -19,7 +19,7 @@ const data = {
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
   forecasts: JSON.parse(dataFile("forecasts.json")),
   incidents: JSON.parse(dataFile("incidents.json")),
-  quests: JSON.parse(dataFile("quests.json")),
+  quests: (() => { const b = JSON.parse(dataFile("quests.json")); b.quests.push(...JSON.parse(dataFile("city-quests.json"))); return b; })(),
   creatures: JSON.parse(dataFile("creatures.json")),
   spells: JSON.parse(dataFile("spells.json")),
   moments: JSON.parse(dataFile("moments.json")),

@@ -53,6 +53,16 @@ describe("journey", () => {
     expect(j.takeLog()).toMatchObject({ boost: 2, outcome: "city" });
   });
 
+  it("leans abroad on the last day of his visa", () => {
+    const { j, stats } = journey(0.05);
+    j.consider(where(), stats);
+    expect(j.takeLog()).toMatchObject({ outcome: "city" });
+    stats.visas.enter("AAA");
+    stats.visas.stay = 3;
+    j.consider(where(), stats);
+    expect(j.takeLog()).toMatchObject({ abroad: 4, outcome: "country" });
+  });
+
   it("plans a bus to another city of the country and says so", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;

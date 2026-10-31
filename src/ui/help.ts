@@ -4,6 +4,7 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Chron from "../core/chronicle";
@@ -13,6 +14,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Mind from "../core/mind";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -224,6 +226,10 @@ export function values(data: GameData): Record<string, string> {
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    VISA_LIST: Visas.VISAS.map((v) => `- ${v.name}${v.from ? ` (after ${v.from} days)` : " (at first)"}: ${v.stay === Infinity ? "stays as long as he likes" : `stays of up to ${v.stay} days`}, ${v.pay ? `+${pct(v.pay)}` : "no extra"} pay`).join("\n"),
+    VISA_URGE: num(Visas.VISA_URGE),
+    VISA_PAY_MAX: pct(Visas.VISAS.at(-1)!.pay),
+    VISA_PUSH: num(Visas.VISA_PUSH),
     BILLS_L1: euro(Bills.billsAt(1)),
     BILLS_L10: euro(Bills.billsAt(10)),
     BILLS_L30: euro(Bills.billsAt(30)),
@@ -374,6 +380,24 @@ export function values(data: GameData): Record<string, string> {
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
+    WANT_PULL: num(Mind.WANT_PULL),
+    FEAR_PULL: num(Mind.FEAR_PULL),
+    SHORT_H: num(Mind.SHORT_H),
+    SHAKE_H: num(Mind.SHAKE_H),
+    FEAR_PCT: pct(Mind.FEAR_CHANCE),
+    MAX_FEARS: String(Mind.MAX_FEARS),
+    MAX_MOODLETS: String(Mind.MAX_MOODLETS),
+    WANT_XP_LONG: String(Mind.WANT_XP.long),
+    WANT_XP_SHORT: String(Mind.WANT_XP.short),
+    WANT_XP_SHAKE: String(Mind.WANT_XP.shake),
+    WANT_XP_FACE: String(Mind.WANT_XP.face),
+    WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
+    WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    WISH_MOOD_SHAKE: `+${Mind.WANT_MOOD.shake[0]} an hour for ${Mind.WANT_MOOD.shake[1]} hours`,
+    RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
+    SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
+    FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
+    LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
@@ -640,21 +664,23 @@ export function values(data: GameData): Record<string, string> {
     BOARD_MID_POP: num(Quests.BOARD_MID_POP),
     STEPS_MORE_MIN: num(Math.min(...bank.quests.map((q) => q.steps.length)) - 1),
     STEPS_MORE_MAX: num(Math.max(...bank.quests.map((q) => q.steps.length)) - 1),
-    QUEST_KINDS: String(bank.quests.length),
-    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy).length),
+    QUEST_KINDS: String(bank.quests.filter((q) => !q.city).length),
+    CITY_QUESTS: String(bank.quests.filter((q) => q.city).length),
+    CITY_CITIES: String(new Set(bank.quests.flatMap((q) => (q.city ? [q.city] : []))).size),
+    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy && !q.city).length),
     FANTASY_PCT: pct(Quests.FANTASY_SHARE),
-    QUEST_VARIANTS: num(Math.floor(bank.quests.reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
+    QUEST_VARIANTS: num(Math.floor(bank.quests.filter((q) => !q.city).reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
     QUEST_EVERY_MIN: num(Quests.QUEST_EVERY_MIN),
     QUEST_EVERY_MAX: num(Quests.QUEST_EVERY_MAX),
     STEP_CHOICES: num(Quests.STEP_CHOICES),
     STEP_MIN: num(Quests.STEP_MIN),
-    WORSE_PCT: pct(Quests.WORSE_SHARE),
     LOG_MAX: num(Quests.LOG_MAX),
     CARD_RECENT: num(Quests.CARD_RECENT),
     EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
     EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
     EVENT_MAX: num(Quests.EVENT_MAX),
     EVENT_KINDS: String(bank.events.length),
+    EVENT_FANTASY: String(bank.events.filter((e) => e.fantasy).length),
     FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
     FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
     LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),

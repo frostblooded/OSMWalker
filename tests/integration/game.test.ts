@@ -163,7 +163,7 @@ describe("game", () => {
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.incidents).toHaveLength(2);
     plain.stats.story.tension = g.stats.story.tension = 100;
-    // One clock for both, so the dice seeded from the time (a local word, a spell, …) roll the same.
+    // One clock for both, so the dice seeded from the time (a local word, a spell, his wants, …) roll the same.
     plain.stats.now = g.stats.now = () => 1_800_000_000;
     run(plain, 3 * 3600);
     run(g, 3 * 3600);
@@ -185,6 +185,18 @@ describe("game", () => {
     expect(texts.some((t) => t === "🧪 He takes a box to Central Bus.")).toBe(true);
     expect(g.stats.quests.log.at(-1)?.title).toBe("Test quest");
     expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.quests.done).toContain("q:Ana:0");
+  });
+
+  it("deals the listed city's own quests first, however the search spelled the start city", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g } = game({ places: [...cafes, BUS] });
+    const q = (id: string, city?: string) => ({ id, city, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["At {PLACE}."] }] });
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [q("a"), q("sofia", "Sofia, Bulgaria"), q("paris", "Paris, France")], events: [] } });
+    await g.startCity("Sofia, Sofia City, Bulgaria", ...START, null);
+    run(g, 60);
+    g.walker!.forceNewGoal();
+    expect(g.stats.quests.board[0]?.key).toBe("sofia");
+    expect(g.stats.quests.board.some((o) => o.key === "paris")).toBe(false);
   });
 
   it("a tapped quest icon tells its story, and Go help sends him to it next", async () => {
@@ -1020,9 +1032,9 @@ describe("game", () => {
       const { again } = await reopen(8 * HOUR, { places: [CAFE] });
       const learned = again.away!.lines.filter((l) => l.text.startsWith("🗣 Learned a Bulgarian word"));
       expect(learned.length).toBeGreaterThan(0);
-      // The first stops are cafés, so the first word is coffee.
-      expect(learned[0]!.text).toMatch(/ at .*[Cc]afe.*: "кафе \(kafe\)" means coffee$/);
-      expect(again.stats.words.known.bg?.[0]).toBe("coffee");
+      // A word learned at a café is coffee (his wants may take him elsewhere first).
+      expect(learned.find((l) => / at .*[Cc]afe/.test(l.text))?.text).toMatch(/: "кафе \(kafe\)" means coffee$/);
+      expect(again.stats.words.known.bg).toContain("coffee");
     });
 
     it("has nothing to catch up after a short break or from an old save", async () => {
