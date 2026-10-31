@@ -120,7 +120,9 @@ a.btn { color: inherit; text-decoration: none; }
 .hud { padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
 .hud-head { display: flex; align-items: center; gap: var(--s3); }
 .hud-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; border: var(--edge); background: var(--accent); display: grid; place-items: center; font-size: 22px; }
-.hud .city { font-size: var(--small); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.hud .city { display: flex; font-size: var(--small); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.hud .city .where { flex-shrink: 0; max-width: 100%; }
+.hud .city .feel { flex-shrink: 1000; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud .forecast { line-height: 1.3; }
 .hud .street { font-family: var(--display); font-weight: 600; font-size: var(--heading); line-height: 1.2; }
 .pills { display: flex; flex-direction: column; gap: var(--s1); align-items: flex-end; }

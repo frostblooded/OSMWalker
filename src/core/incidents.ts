@@ -3,14 +3,15 @@
 // live in data/incidents.json; the storyteller (storyteller.ts) says when one
 // happens and whether it is good, bad or odd, and this file picks a card that
 // fits where he is (night legends at castles and graveyards first) and plays
-// it out. Some cards hold a choice of two; he
-// picks by himself, leaning on one of his attributes, so nothing waits for
-// you. A bad card never takes more than LOSS_CAP_SHARE of his money, and only
+// it out. Some cards hold a choice of two, asked as a timed moment while you
+// watch (moment()); untapped, or while you are away, he picks by himself,
+// leaning on one of his attributes. A bad card never takes more than LOSS_CAP_SHARE of his money, and only
 // takes an item from his bag, never his gear or a treasured item.
 import type { Item } from "./items";
 import { isTreasured } from "./items";
 import { signed, toCents } from "./money";
 import type { PetKind } from "./pet";
+import type { Moment } from "./moments";
 import type { Rng } from "./rng";
 import type { Vehicle } from "./speeds";
 import type { Action, Attr, Fx, Stats, TimeOfDay } from "./stats";
@@ -86,8 +87,13 @@ export function hisPick(card: Incident, stats: Stats, rng: Rng): number {
   return rng.randf() < 0.5 + (card.lean ? leanShare(stats, card.lean) : 0) ? 0 : 1;
 }
 
-/** Plays `card` out at `place` (option `picked`, or his own pick) and returns its feed line. */
-export function play(card: Incident, stats: Stats, place: string, rng: Rng, picked?: number): string {
+/** A choice card as a timed moment at `place`: option ids "0" (the bold one) and "1". */
+export function moment(card: Incident, place: string): Moment {
+  return { id: `incident:${card.id}`, icon: card.icon, ask: card.text.replaceAll("{PLACE}", place), lean: card.lean, options: card.options!.map((o, i) => ({ id: String(i), label: o.label })), default: "1" };
+}
+
+/** Plays `card` out at `place` (option `picked`, or his own pick) and returns its feed line; `you` false marks a choice he made himself. */
+export function play(card: Incident, stats: Stats, place: string, rng: Rng, picked?: number, you?: boolean): string {
   const o = card.options ? card.options[picked ?? hisPick(card, stats, rng)]! : card;
   const guarded = card.guard && stats.attr(card.guard.attr) >= card.guard.at;
   const opening = `${card.icon} ${card.text.replaceAll("{PLACE}", place)}`;
@@ -108,7 +114,7 @@ export function play(card: Incident, stats: Stats, place: string, rng: Rng, pick
       parts.push(`lost ${item.name}`);
     }
   }
-  const choice = card.options ? `${(o as Option).label}: ` : "";
+  const choice = card.options ? `${you === false ? "Decided by himself: " : ""}${(o as Option).label}: ` : "";
   return stats.say(`${opening} ${choice}${o.say}${parts.length ? ` (${parts.join(", ")})` : ""}`);
 }
 

@@ -24,7 +24,7 @@ import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
-import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
+import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Ask, type Moment, type Pick } from "../core/moments";
 import * as R from "../core/repute";
 import { Rng, seedOf } from "../core/rng";
 import * as Notes from "../core/sightNotes";
@@ -460,8 +460,8 @@ export class Game {
       this.changed();
       return;
     }
-    // Incidents roll on the card dice, so they leave his walk the same.
-    this.stats.happen(place, sky.hour, this.cardRng);
+    // Incidents roll on the card dice, so they leave his walk the same; a story choice or a contest with Viktor is asked as a timed moment.
+    this.stats.happen(place, sky.hour, this.cardRng, this.storyAsk);
     // Quests roll on the card dice too; a quest step or event takes the place of an action.
     const story = Q.questStop(this.stats, place, this.storyPlaces(), sky.hour, this.cardRng);
     if (story !== null) {
@@ -486,6 +486,25 @@ export class Game {
     else if (!met) this.askAt(place, restMinutes(action) * 60);
     this.changed();
   }
+
+  /** True while a story moment (storyAsk) is open; saves wait for it. */
+  private storyOpen = false;
+  /**
+   * Asks a moment from inside a story rule (Stats.happen) and saves once it
+   * settles. When none can open (timer Off, one already open, or the away
+   * card up) he picks at once, so it lands before the action he then
+   * chooses, as in the catch-up.
+   */
+  private storyAsk: Ask = (m, his, settle) => {
+    if (this.momentS <= 0 || this.moment || this.away) return settle({ id: his(), you: false });
+    this.storyOpen = true;
+    void this.ask(m, { his }).then((p) => {
+      settle(p);
+      this.storyOpen = false;
+      this.save();
+      this.changed();
+    });
+  };
 
   /**
    * The creature at `place`, if one shows up, asked as a timed moment. His own
@@ -878,6 +897,8 @@ export class Game {
 
   save(): void {
     this.saveSettings();
+    // Not while a story moment is open: the save would hold the story's start without its end.
+    if (this.storyOpen) return;
     const w = this.walker;
     if (!w) return;
     if (this.waking) return;
@@ -1091,14 +1112,14 @@ export class Game {
   /**
    * Shows timed moment `m` and resolves with the option you tap, or with his
    * own pick (`his`, by default defaultPick) once momentS seconds pass, or
-   * `maxS` if that is sooner, or the page is left. Off (momentS 0), or with
-   * another moment already open, he picks at once. He stands still while it
-   * is open.
+   * `maxS` if that is sooner, or the page is left. Off (momentS 0), with
+   * another moment already open, or while the away card is up, he picks at
+   * once. He stands still while it is open.
    */
   ask(m: Moment, opts: { maxS?: number; his?: () => string } = {}): Promise<Pick> {
     const his = opts.his ?? (() => defaultPick(m, this.stats, new Rng(seedOf(`ask${this.now()}${m.id}`))));
     const wait = Math.min(this.momentS, opts.maxS ?? Infinity);
-    if (wait <= 0 || this.moment) return Promise.resolve({ id: his(), you: false });
+    if (wait <= 0 || this.moment || this.away) return Promise.resolve({ id: his(), you: false });
     return new Promise((done) => {
       this.moment = { m, left: wait, total: wait, done, his };
       this.changed();

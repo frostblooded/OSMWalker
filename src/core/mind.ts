@@ -7,6 +7,7 @@
 // leave a fear of that kind of place, which pulls FEAR_PULL as hard, until a
 // want to face it again brings him back and a visit with no mishap beats it.
 // All of it happens by itself. Pure; Stats owns one and rolls its own dice.
+import type { Emotion } from "./emotion";
 import type { Rng } from "./rng";
 
 export const WANT_PULL = 4;
@@ -47,7 +48,8 @@ const a = (n: string) => `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
 export type WantKind = "long" | "short" | "shake" | "face";
 /** A want for a kind of place (map class); `until` is unix seconds (0 only in saves from before LONG_H, mended in refill). */
 export type Want = { kind: WantKind; place: string; until: number };
-export type Moodlet = { name: string; icon: string; per_h: number; left: number };
+/** `emo`: the emotion it counts towards (see emotion.ts); untagged, Happy or Sad by its sign. */
+export type Moodlet = { name: string; icon: string; per_h: number; left: number; emo?: Emotion };
 
 const WANT_ICON: Record<WantKind, string> = { long: "🌠", short: "✨", shake: "🌧", face: "💪" };
 export const wantIcon = (w: Want) => WANT_ICON[w.kind];
@@ -67,9 +69,9 @@ export class Mind {
   fears: string[] = [];
 
   /** Adds `name` (or renews it, if he has it). */
-  feel(name: string, icon: string, per_h: number, hours: number): void {
+  feel(name: string, icon: string, per_h: number, hours: number, emo?: Emotion): void {
     this.moodlets = this.moodlets.filter((m) => m.name !== name);
-    this.moodlets.push({ name, icon, per_h, left: hours * 60 });
+    this.moodlets.push(emo ? { name, icon, per_h, left: hours * 60, emo } : { name, icon, per_h, left: hours * 60 });
     if (this.moodlets.length > MAX_MOODLETS) {
       this.moodlets.sort((a, b) => b.left - a.left);
       this.moodlets.length = MAX_MOODLETS;
@@ -149,14 +151,14 @@ export class Mind {
     }
     this.wants = this.wants.filter((w) => !met.includes(w));
     if (mishap) {
-      this.feel("Rattled", "😖", ...RATTLED);
+      this.feel("Rattled", "😖", ...RATTLED, "tense");
       this.wants = this.wants.filter((w) => w.kind !== "shake");
       this.wants.push({ kind: "shake", place: this.fresh(SHAKE_KINDS.filter((k) => k !== kind), rng), until: now + SHAKE_H * 3600 });
       if (!this.fears.includes(kind) && this.fears.length < MAX_FEARS && !met.length && rng.randf() < FEAR_CHANCE) {
         this.fears.push(kind);
         this.wants = this.wants.filter((w) => w.place !== kind);
         this.wants.push({ kind: "face", place: kind, until: now + LONG_H * 3600 });
-        this.feel(`Scared of the ${noun(kind)}`, "😨", ...SHAKEN);
+        this.feel(`Scared of the ${noun(kind)}`, "😨", ...SHAKEN, "tense");
         feared = true;
         lines.push(`😨 Now he is wary of ${plural(noun(kind))}`);
       }
@@ -170,7 +172,8 @@ export class Mind {
 
   static fromJSON(d?: Partial<ReturnType<Mind["toJSON"]>>): Mind {
     const m = new Mind();
-    m.moodlets = (d?.moodlets ?? []).map((x) => ({ ...x }));
+    // A save from before emotions: its Rattled and Scared moodlets count towards Tense, as new ones do.
+    m.moodlets = (d?.moodlets ?? []).map((x) => (x.emo || !(x.name === "Rattled" || x.name.startsWith("Scared of")) ? { ...x } : { ...x, emo: "tense" as const }));
     m.wants = (d?.wants ?? []).map((x) => ({ ...x }));
     m.fears = [...(d?.fears ?? [])];
     return m;
