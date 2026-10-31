@@ -37,7 +37,7 @@ If he was on any ride to another city when you left, the ride goes on first. If 
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
-The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it. If his elder stage ran out while you were away, he lives only up to then (see Retiring).
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, how many things he bought, and what his businesses, shares and lottery tickets brought in, if anything (see Side businesses). If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it. If his elder stage ran out while you were away, he lives only up to then (see Retiring).
 ## His week {recap}
 The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
 
@@ -272,7 +272,7 @@ His money is in euros, counted to the cent and shown like {EXAMPLE_PRICE}. He st
 
 Prices are real-world euro prices, the same in every country: a coffee is a few euros, a hostel bed about €28, a bike from {CHEAP_BIKE} and a car from {CHEAP_CAR}. Wages start from real ones too, but grow as he rises in his careers (see Wages and Careers).
 
-He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
+He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items, from lucky finds, and later from his businesses and shares (see Side businesses) and the odd lottery prize (see The lottery). While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
 He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. Each week he pays his bills (see Bills).
 ## Bills {bills}
@@ -315,6 +315,22 @@ He always saves up for the cheapest vehicle one step above what he rides:
 A fantasy mount counts as the vehicle it sits beside: on a tortoise he saves for a scooter, on a broomstick for a car, on a carpet for a dragon. With a dragon there is nothing more to save for. He saves up to the price plus his reserve of {KEEP_CENTS}, and for the dragon its first day of gold ({DRAGON_UPKEEP}) too. With a dragon, on a day it hasn't eaten yet he saves up to its gold plus his reserve, so it doesn't sulk for long. Until he has it, money is a need of at least {SAVING_URGE} urge and spending weighs {SAVING_SPEND_PCT} as much (see His needs), so paid work and places that pay pull him.
 
 Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for, and with a dragon, its gold on a day it hasn't eaten yet.
+## Side businesses {business}
+Once he has money to spare, he buys a little business, all by himself. Each morning (his first minute of a new day by your phone's clock) he looks at his money: if he could pay the next one's price and still keep what he saves up for (see Saving for a vehicle), and never less than his reserve of {KEEP_CENTS}, he buys it in the city he is in. He buys them cheapest first, one of each:
+{BUSINESS_LIST}
+
+A local partner runs it, so it brings in money every hour wherever he is, also while you're away. Each morning it pays him what it took in the day before, in one line in his History, and the away card shows what it brought in. Each pays for itself in about {BUSINESS_PAYBACK} days. He buys nothing while you whisper "save" to him (see Whispers).
+
+The Side income card on the Stats sheet shows how many he owns, what they brought in, the next one and its price, and under Owned each one with its city. They are in the Collection too (World tab).
+## Shares in his spot {shares}
+In a city where he has a spot (see His spot), he buys a share in it, one share a city: each morning, if he could pay {SHARE_PRICE} and still keep what he saves up for, and never less than his reserve, as for a business (see Side businesses). Shares come before the next business.
+
+A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day, for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line, also while you're away.
+## The lottery {lottery}
+Kiosks, corner shops and newsagents sell lottery tickets for {TICKET}. He buys one now and then, by himself, one ticket a draw. The draw is every day at {DRAW_HOUR} by your phone's clock, also while you're away; a ticket bought after that is for the next day's. The odds are a real lottery's:
+{PRIZE_LIST}
+
+Each point of Luck makes every prize {LUCK_NUDGE_PCT} likelier, up to {LUCK_MULT_MAX} times as likely (see Luck). Even so, like a real lottery a ticket pays back well under its price on average: about {TICKET_BACK} at Luck 1, and {TICKET_BACK_MAX} at the most, so it is a small treat, not a living. A win of {BIG_MATCH} numbers or more goes in his life story (see His life). The Side income card on the Stats sheet shows his prizes, or that he holds a ticket for the next draw, and the away card shows what he won.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, while the game is open and through the time away it catches up (see While you were away).
 
@@ -375,7 +391,7 @@ A quirk makes its kinds of places pull his goal ×{QUIRK_PULL} (see Picking the 
 ## His spot {spot}
 The real place he has reached most in a city becomes his spot once he has been there {SPOT_MIN} times. A house marks it on the map, and the His spot card on the Stats sheet shows it. Each city remembers {SPOT_KEEP} places; a new one pushes out the least recently reached of the least visited (never his spot), so another place can take over.
 
-From {SPOT_FROM} to {SPOT_TO} his spot pulls his goal ×{SPOT_PULL}, so he drifts back there in the mornings. As a regular he pays {SPOT_DISCOUNT} less for what he does there (not for shopping or card packs).
+From {SPOT_FROM} to {SPOT_TO} his spot pulls his goal ×{SPOT_PULL}, so he drifts back there in the mornings. As a regular he pays {SPOT_DISCOUNT} less for what he does there (not for shopping or card packs). With money to spare he buys a share in it, which pays more the more he drops by (see Shares in his spot).
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -437,15 +453,16 @@ Wits unlock clever actions: fixing bikes needs 2, sketching an exhibit or fixing
 ## Luck {luck}
 Luck starts at 1. It grows a tiny bit from lucky finds, from levelling up, and from gear such as rings, amulets, lucky charms, hoodies and sandals.
 
-Luck does four things:
+Luck does five things:
 - Fewer mishaps: each point makes an action's risk {LUCK_RISK_PCT} less likely, up to {LUCK_RISK_CAP_PCT} less. At luck 5 a 20% risk becomes {LUCK5_RISK}.
 - Fewer bad incidents: the same cut makes an incident less likely to be a bad one (see The storyteller).
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
 - Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, more on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
+- Lottery prizes: each point makes every prize {LUCK_NUDGE_PCT} likelier (see The lottery).
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # 🎓 Skills and languages
 ## Skills {skills}
-Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one. Some quests and world events train one too, as much as a {QUEST_PRACTICE_MIN}-minute action (see Quests).
 
 Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
 
@@ -470,7 +487,7 @@ At a hotel or hostel, a park, a garden, a campsite or a picnic site he cooks: he
 
 A high cooking level also opens kitchen jobs (see Skills).
 ## Languages {languages}
-He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more. The levels, by hours:
+He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more. Some quests add a few hours too (see Quests). The levels, by hours:
 {LANG_LIST}.
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
@@ -837,7 +854,7 @@ Quests are the heart of his life. Every city has a board of them, rolled the fir
 
 After every {QUEST_EVERY_MIN} to {QUEST_EVERY_MAX} stops he takes one on, likelier one near him, and does its steps back to back (a step at a place closed for the night waits for morning, see Opening hours): first the quest giver, then {STEPS_MORE_MIN} to {STEPS_MORE_MAX} more places of the right kinds (a pharmacy, then the neighbour's café), each picked among the {STEP_CHOICES} nearest that fit. Each step takes {STEP_MIN} minutes instead of an action. An urgent need (see His needs) comes first: he eats or sleeps, then carries on. He doesn't set off on a trip while he is on a quest; if a free ride takes him away anyway, the quest stays behind, along with the city's board and events.
 
-At its middle step, where a twist may come, it goes on at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}). Otherwise it fails there and ends early with no reward, and it doesn't come back either; the Quests card counts only those he finished. One that goes on pays its money, XP and effects at the end, now and then with a thank-you item for his bag. Nothing waits for you.
+At its middle step, where a twist may come, it goes on at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}). Otherwise it fails there and ends early with no reward, and it doesn't come back either; the Quests card counts only those he finished. One that goes on pays its money, XP and effects at the end, now and then with a thank-you item for his bag. Some also teach: a supper club trains his cooking, a chess game his chess (see Skills), and a translation errand adds hours to the local language (see Languages). Events can teach too, such as a cook-off. Nothing waits for you.
 
 On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between (once its place is open, see Opening hours). It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last {CARD_RECENT}. The {LOG_MAX} newest quests and events are kept.
 
@@ -909,6 +926,10 @@ Camera follows him (a switch, on at first and remembered) keeps him in view: the
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
+## Letters and gifts {mail}
+His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. Big news that comes as a letter (see Friends' news) goes in his mailbox too, and is the only letter that day. The Mailbox card on the Stats sheet shows the newest, with older ones folded into More; tap one to read it. It keeps the last {KEEP_LETTERS}.
+
+Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there, such as a flower, cake, a lucky coin or a book. It waits, one per city, until he next reaches his spot, and then he gets its boost. His partner is always with him, so never writes to him or leaves a gift.
 ## Diary and dreams {diary}
 📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
 
@@ -920,6 +941,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Careers: each career he has worked in, most shifts first, with his title, the shifts to the next rank and a bar; past {FRIENDS_SHOWN} the rest fold away (see Careers).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
+- Side income: his businesses and shares, what they brought in, the next business and his lottery prizes (see Side businesses, Shares in his spot, The lottery).
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Visa: his visa in the country he is in, this stay against its limit, the extra pay at work and the days to the next visa (see Visas).
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
@@ -938,6 +960,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
 - Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
+- Mailbox: the newest letters from his friends, each opening on a tap, and where a gift waits at his spot (see Letters and gifts).
 - Effects: his buffs with the minutes they have left.
 - Records: his bests and totals (see Records).
 - Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
@@ -947,7 +970,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 At the top, Completion counts every tile he has found and every badge tier he holds, out of all of them. Under it are his badges and his title (see Badges and titles). Then come five tabs:
 - 🎴 Cards: landmark cards (see Landmark cards), newest first (the newest {CARDS_SHOWN}), and city cards with a row per country he has cards from.
 - 📇 Places: the Placedex by rarity, the odd places the game makes up (see Made-up places), the creatures he has met (see Place creatures), the giants he has seen (see Giants seen from afar), his fairy gifts and stories (see Fairy rings) and the crawls.
-- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases).
+- 🌍 World: every country, how many cities he has been to, the souvenirs, his monuments with his golden bricks (see Golden bricks), the recipes he has cooked (see Cooking), his businesses (see Side businesses), and his good name and bad name: a halo, horns, a local hero, a getaway, a bribe, a fine, jail and a clean slate (see Karma and Police chases).
 - ⚔ Gear: every item base (such as a Sword or a Coat), every material and every vehicle he has owned, the spells he knows (see Spells), and his midnight finds (see The shop after midnight).
 - 🏅 Feats: his badges, a card for each tab they belong to, then his life story (see His life).
 

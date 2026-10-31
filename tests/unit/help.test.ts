@@ -248,3 +248,17 @@ describe("plural", () => {
     expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(Help.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
   });
 });
+
+describe("side income pages", () => {
+  it("list every business, the share's pay and the lottery's prizes from code", () => {
+    const biz = page("business").body;
+    expect(biz).toContain("- ☕ a coffee cart: €300, bringing in about €10.80 a day");
+    expect(biz).toContain("- 🧪 a potion stall");
+    expect(biz).toContain("pays for itself in about 28 days");
+    expect(page("shares").body).toContain("at most €5.50 a day");
+    const lot = page("lottery").body;
+    expect(lot).toContain("- 6 numbers: €100,000, one ticket in 14,000,000");
+    expect(lot).toContain("every day at 20:00");
+    expect(lot).toMatch(/about €0\.\d+ at Luck 1, and €0\.\d+ at the most/);
+  });
+});

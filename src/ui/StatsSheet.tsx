@@ -3,7 +3,7 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks and his spot. Items with a story open to show it. His life stage comes
+// moves his mood), his quirks, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his records and family tree close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
@@ -23,6 +23,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { BUSINESSES, kindOf } from "../core/business";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { TOP_RANK, type Careers } from "../core/careers";
@@ -33,7 +34,7 @@ import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
 import { FamilyTree, LifeCard } from "./Family";
-import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
+import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
   health: ["❤", "Health", "#c01c28"],
@@ -55,6 +56,8 @@ const SLOT: Record<Slot, [string, string]> = {
   vehicle: ["🚲", "Vehicle"],
 };
 
+/** Letters the Mailbox card shows. */
+const MAIL_SHOWN = 4;
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString();
 /** Hours as a 24-hour clock time. */
 const hhmm = (h: number) => {
@@ -188,6 +191,35 @@ function LanguagesCard({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** His side income: the businesses and shares he owns (listed under Owned), what they have brought in, the next business he would buy, and his lottery ticket and wins. */
+function SideIncomeCard({ stats: s }: { stats: Stats }) {
+  const b = s.business;
+  const next = b.next();
+  const l = s.lottery;
+  const won = l.prizes ? `${l.prizes} ${l.prizes === 1 ? "prize" : "prizes"}, ${euro(l.won)}` : `${l.tickets} ${l.tickets === 1 ? "draw" : "draws"}, no prize yet`;
+  return (
+    <Card icon="💹" title="Side income" right={b.owned.length ? `${euro(b.perH() * 24)} a day` : undefined}>
+      <KV k="💹 Businesses" v={`${b.owned.length} / ${BUSINESSES.length}${b.shares.length ? ` · 🏠 ${b.shares.length} ${b.shares.length === 1 ? "share" : "shares"}` : ""}`} />
+      {b.earned > 0 && <KV k="💵 Taken in" v={euro(b.earned)} tone="ok" />}
+      {next && <KV k="⏭ Next" v={`${next.icon} ${cap(next.name)} · ${euro(next.cents)}`} />}
+      <KV k="🎟 Lottery" v={l.ticket ? "a ticket for the next draw" : won} />
+      {b.owned.length + b.shares.length > 0 && (
+        <Collapsible title="Owned" right={b.owned.length + b.shares.length}>
+          <div class="zebra">
+            {b.owned.map((o) => {
+              const k = kindOf(o.id)!;
+              return <KV key={o.id} k={`${k.icon} ${cap(k.name)}`} v={`${euro(k.perH * 24)} a day · ${o.city}`} />;
+            })}
+            {b.shares.map((x) => (
+              <KV key={x.city} k={`🏠 Share in ${x.place}`} v={`${x.city} · ${x.visits} ${x.visits === 1 ? "visit" : "visits"} today`} />
+            ))}
+          </div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
 /** Languages shown on the Local words card before the rest fold away. */
 const WORD_ROWS = 4;
 
@@ -295,6 +327,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           {s.savingFor > 0 && <Goal name="✈ Trip fare" has={s.cents} needs={s.savingFor} />}
         </Card>
       )}
+      <SideIncomeCard stats={s} />
       <Card icon="❤" title="Vitals">
         <div class="meters">
           {METERS.map((m) => {
@@ -368,6 +401,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       <MindCard s={s} />
       <QuirksCard s={s} />
       <SpotCard s={s} />
+      <MailCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -583,6 +617,30 @@ function SpotCard({ s }: { s: Stats }) {
     <Card icon="🏠" title="His spot" right={spot.name}>
       <KV k="Visits" v={spot.n} />
       <KV k="Regular's discount" v={<span class="tone-ok">−{Math.round(SPOT_DISCOUNT * 100)}%</span>} />
+    </Card>
+  );
+}
+
+/** Letters his friends wrote him, newest first, and a gift waiting at one of his spots. */
+function MailCard({ s }: { s: Stats }) {
+  const m = s.mail;
+  const newest = [...m.letters].reverse();
+  const letter = (l: (typeof newest)[number]) => <Entry key={`${l.t}${l.from}`} title={`${l.icon} ${l.from}, ${l.city.split(",")[0]}`} lines={[l.text]} />;
+  return (
+    <Card icon="📬" title="Mailbox" right={m.letters.length || undefined}>
+      {newest.length ? (
+        <>
+          <div class="zebra">{newest.slice(0, MAIL_SHOWN).map(letter)}</div>
+          {newest.length > MAIL_SHOWN && (
+            <Collapsible title="More" right={newest.length - MAIL_SHOWN}>
+              <div class="zebra">{newest.slice(MAIL_SHOWN).map(letter)}</div>
+            </Collapsible>
+          )}
+        </>
+      ) : (
+        <p class="dim small">No letters yet. Friends he made write from their cities.</p>
+      )}
+      {m.waiting.length > 0 && <KV k="🎁 Gifts wait at his spot in" v={m.waiting.map((w) => w.city.split(",")[0]).join(", ")} tone="ok" />}
     </Card>
   );
 }

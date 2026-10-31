@@ -4,6 +4,8 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Biz from "../core/business";
+import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
@@ -16,6 +18,7 @@ import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
 import * as Diary from "../core/diary";
+import * as Mail from "../core/mail";
 import * as Mind from "../core/mind";
 import * as Quirks from "../core/quirks";
 import * as Spot from "../core/spot";
@@ -516,6 +519,11 @@ export function values(data: GameData): Record<string, string> {
     LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
     DIARY_LINES: String(Diary.DAY_LINES),
+    FRIEND_LETTER_PCT: pct(Mail.LETTER_CHANCE),
+    FRIEND_LETTER_AT: String(Mail.LETTER_AT),
+    SPOT_GIFT_PCT: pct(Mail.GIFT_CHANCE),
+    SPOT_GIFT_AT: String(Mail.GIFT_AT),
+    KEEP_LETTERS: String(Mail.KEEP_LETTERS),
     DIARY_DAYS: String(Diary.KEEP_DAYS),
     DREAM_PCT: pct(Diary.DREAM_CHANCE),
     QUIRK_PULL: num(Quirks.QUIRK_PULL),
@@ -863,6 +871,27 @@ export function values(data: GameData): Record<string, string> {
     CLUB_MAX: num(Clubs.MAX_CLUBS),
     CLUB_NIGHT_H: num(Clubs.NIGHT_H),
     CLUB_LIST: Clubs.helpList(),
+    BUSINESS_LIST: Biz.BUSINESSES.map((b) => `- ${b.icon} a ${b.name}: ${euro(b.cents)}, bringing in about ${euro(b.perH * 24)} a day`).join("\n"),
+    BUSINESS_PAYBACK: (() => {
+      const days = Biz.BUSINESSES.map((b) => Math.round(b.cents / b.perH / 24));
+      const lo = Math.min(...days);
+      const hi = Math.max(...days);
+      return lo === hi ? num(lo) : `${lo} to ${hi}`;
+    })(),
+    SHARE_PRICE: euro(Biz.SHARE_PRICE),
+    SHARE_BASE: euro(Biz.SHARE_BASE),
+    SHARE_PER_VISIT: euro(Biz.SHARE_PER_VISIT),
+    SHARE_VISITS_MAX: num(Biz.SHARE_VISITS_MAX),
+    SHARE_DAY_MAX: euro(Biz.SHARE_BASE + Biz.SHARE_PER_VISIT * Biz.SHARE_VISITS_MAX),
+    TICKET: euro(Lot.TICKET),
+    DRAW_HOUR: `${Lot.DRAW_HOUR}:00`,
+    PRIZE_LIST: [...Lot.PRIZES].reverse().map((p) => `- ${p.match} numbers: ${euro(p.cents)}, one ticket in ${p.odds.toLocaleString("en-US")}`).join("\n"),
+    LUCK_NUDGE_PCT: pct(Lot.LUCK_NUDGE),
+    LUCK_MULT_MAX: num(Lot.LUCK_MULT_MAX),
+    TICKET_BACK: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.oddsMult(1))),
+    TICKET_BACK_MAX: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.LUCK_MULT_MAX)),
+    QUEST_PRACTICE_MIN: num(Skills.QUEST_PRACTICE_MIN),
+    BIG_MATCH: num(Lot.BIG_MATCH),
     SKILL_MAX: num(Skills.SKILL_MAX),
     SKILL_STEP: num(Skills.SKILL_STEP),
     SKILL_L4: num(Skills.stepsTo(4)),

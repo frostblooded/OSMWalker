@@ -272,6 +272,16 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
   });
 
+  it("loads saves from before letters and gifts: an empty mailbox", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.mail;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.mail.toJSON()).toEqual({ letters: [], waiting: [] });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -312,6 +322,21 @@ describe("save file", () => {
     expect(Object.values(back.skills.steps)).toEqual([0, 0, 0, 0, 0, 0]);
     expect(back.pantry).toMatchObject({ items: [], cooked: 0 });
     expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
+  });
+
+  it("loads saves from before side income: no businesses, shares, dishes or lottery ticket", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.business;
+    delete d.stats.lottery;
+    delete d.stats.pantry.dishes;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.business).toMatchObject({ owned: [], shares: [], pending: 0, earned: 0 });
+    expect(back.lottery.toJSON()).toEqual({ ticket: 0, tickets: 0, prizes: 0, won: 0, best: 0 });
+    expect(back.pantry.dishes).toEqual([]);
   });
 
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {

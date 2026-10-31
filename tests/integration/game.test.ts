@@ -1,4 +1,5 @@
 // The game loop with real Sofia streets, fake servers and fixed dice.
+import { kindOf } from "../../src/core/business";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -798,7 +799,9 @@ describe("game", () => {
     const fare = w.departing!.fare;
     for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
     expect(w.isTraveling()).toBe(true);
-    expect(g.stats.cents).toBe(50_000 - fare);
+    // With money to spare, his first morning may buy a business (see business.ts).
+    const invested = g.stats.business.owned.reduce((sum, o) => sum + kindOf(o.id)!.cents, 0);
+    expect(g.stats.cents).toBe(50_000 - fare - invested);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
   });
 

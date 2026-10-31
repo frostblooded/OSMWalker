@@ -8,6 +8,7 @@
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as Bl from "./bills";
+import * as Bz from "./business";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
@@ -21,6 +22,7 @@ import * as Mg from "./magic";
 import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
 import { Diary, type DiaryData } from "./diary";
+import { Mailbox, type MailData } from "./mail";
 import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
@@ -38,6 +40,7 @@ import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import * as Lang from "./languages";
+import * as Lt from "./lottery";
 import * as M from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
@@ -179,6 +182,8 @@ export type Action = {
   cook?: boolean;
   /** A chat with the locals, which counts towards the local language (see languages.ts). */
   lang?: boolean;
+  /** A ticket for the next lottery draw, one a draw (see lottery.ts). */
+  lottery?: boolean;
 };
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -233,6 +238,9 @@ export class Stats {
   /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
   diary = new Diary();
   diaryData: DiaryData | null = null;
+  /** Letters and gifts from his friends (saved), and their lines from data/mail.json (not saved, the game sets them). */
+  mail = new Mailbox();
+  mailData: MailData | null = null;
   /** Golden bricks and the monuments they paid for. */
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
@@ -291,6 +299,10 @@ export class Stats {
   pantry = new Cook.Pantry();
   /** The languages he speaks, and how well. */
   languages = new Lang.Languages();
+  /** The businesses he owns, and what they bring in. */
+  business = new Bz.Business();
+  /** His lottery ticket and wins. */
+  lottery = new Lt.Lottery();
   /** Days in each country, and his visas there. */
   visas = new V.Visas();
   /** His pet, and the pets he had. */
@@ -631,6 +643,7 @@ export class Stats {
     if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
     if (date !== this.anniversaries.day) this.newDay(date, t);
+    if (this.lottery.ticket && t >= this.lottery.ticket) this.lotteryDraw(Lt.roll(new Rng(seedOf(`lottery${this.lottery.ticket}:${this.lottery.tickets}:${this.cents}`)).randf(), this.attr("luck")));
     this.week.walked(walkedM);
     const h = minutes / 60;
     const sky = weatherPerH(this.sky);
@@ -662,6 +675,7 @@ export class Stats {
     // Enchanted gear gathers Magic as he walks.
     fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
+    this.business.pass(h);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     // His pet walks at his side on foot or by bike, and rides along otherwise.
@@ -728,10 +742,17 @@ export class Stats {
   private newDay(date: string, t: number): void {
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
+    this.takings();
+    this.invest(t);
     this.visaDay();
     const f = this.friends;
     this.townies.prune(f.list);
     this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
+    // Big news comes as a letter: it goes in his mailbox too, and is the day's only letter.
+    const news = this.townies.letter;
+    if (news) this.mail.add({ from: news.friend.name, icon: news.friend.icon, city: news.city, text: news.text, t });
+    const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
+    for (const line of this.mail.day(t, this.where.city, f.list, f.partner, spots, this.mailData, new Rng(seedOf(`mail${date}`)), !!news)) this.say(line);
     const mark = this.anniversaries.check(date, t, this.meters.mood, this.where.city, f.list, f.partner, new Rng(seedOf(`party${date}`)));
     if (!mark) return;
     this.applyFx(mark.fx);
@@ -746,6 +767,64 @@ export class Stats {
     const where = country || code;
     if (up) this.say(`His visa in ${where} is now ${up.name}: ${up.stay === Infinity ? "no limit on his stay" : `stays of up to ${up.stay} days`}, ${Math.round(up.pay * 100)}% more pay at work there`);
     else if (code && this.visas.left() === 0) this.say(`Last day on his visa in ${where}: he'll be moving on soon`);
+  }
+
+  /** His businesses pay out what they took in since the last day. */
+  private takings(): void {
+    const c = this.business.payout();
+    if (!c) return;
+    this.cents += c;
+    const b = this.business;
+    const icons = b.owned.map((o) => Bz.kindOf(o.id)!.icon).join("") + (b.shares.length ? "🏠" : "");
+    this.say(`${icons} His ${Bz.namesOf(b.owned, b.shares)} took in ${signed(c)}`);
+  }
+
+  /** Each morning: a share in his spot here if he has none in this city, then, with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
+  private invest(t: number): void {
+    if (this.bond.nudge === "save") return;
+    const spare = () => this.cents - Math.max(this.savingTarget(), KEEP_CENTS);
+    const spot = this.spots.spot(this.where.city);
+    if (spot && !this.business.share(this.where.city) && spare() >= Bz.SHARE_PRICE) {
+      this.cents -= Bz.SHARE_PRICE;
+      this.business.buyShare(this.where.city, spot.name, t);
+      this.milestone("share", `Bought a share in ${spot.name}, his spot`);
+      this.say(`🏠 Bought a share in ${spot.name}, his spot (${signed(-Bz.SHARE_PRICE)}): it pays a little each day, more when he drops by`);
+    }
+    const k = this.business.next();
+    if (!k || spare() < k.cents) return;
+    const city = this.where.city.split(",")[0] || "town";
+    this.cents -= k.cents;
+    this.business.buy(k, city, t);
+    const line = `${k.icon} Bought a ${k.name} in ${city} (${signed(-k.cents)}): a local runs it, and it should bring in about ${euro(k.perH * 24)} a day`;
+    this.milestone(`business_${k.id}`, `Bought a ${k.name} in ${city}`);
+    this.say(line);
+  }
+
+  /** Tonight's lottery draw for the ticket he holds: `prize` (see lottery.ts roll) paid, or no luck. Returns the feed line. */
+  lotteryDraw(prize: Lt.Prize | null): string {
+    const l = this.lottery;
+    l.ticket = 0;
+    l.tickets++;
+    if (!prize) return this.say("🎟 Tonight's lottery draw: no luck this time");
+    this.cents += prize.cents;
+    l.prizes++;
+    l.won += prize.cents;
+    l.best = Math.max(l.best, prize.cents);
+    this.applyFx({ mood: prize.mood });
+    const say = prize.say[new Rng(seedOf(`lotterysay${this.now()}`)).randiRange(0, prize.say.length - 1)]!;
+    const line = `🎟 ${say.replace("{WON}", euro(prize.cents))}`;
+    if (prize.match >= Lt.BIG_MATCH) this.milestone(`lottery${prize.match}`, `Won ${euro(prize.cents)} on the lottery with ${prize.match} numbers`);
+    return this.say(line);
+  }
+
+  /** Buys a ticket for the next draw; returns the feed line. */
+  private buyTicket(action: Action, where: string): string {
+    const cost = toCents(action.cost ?? 0);
+    this.cents = Math.max(this.cents - cost, 0);
+    this.lottery.ticket = Lt.nextDraw(this.now());
+    this.applyFx(action.fx ?? {});
+    const today = dayOf(this.lottery.ticket * 1000) === dayOf(this.now() * 1000);
+    return this.say(`🎟 Bought a lottery ticket${where ? ` at ${where}` : ""} for ${today ? "tonight's" : "tomorrow's"} draw${cost ? ` (${signed(-cost)})` : ""}`);
   }
 
   /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
@@ -878,6 +957,7 @@ export class Stats {
     if (action.steal && this.bond.leaning() !== "rascal") return false;
     if (action.bounty && !this.canPayOff()) return false;
     if (action.cook && !this.pantry.best(this.skills.level("cooking"))) return false;
+    if (action.lottery && this.lottery.ticket) return false;
     if (action.groceries && !this.pantry.pick(action.groceries, this.skills.level("cooking"))) return false;
     if (this.priced(toCents(action.cost ?? 0)) > this.cents) return false;
     if (action.item && !action.steal && this.cents <= KEEP_CENTS) return false;
@@ -990,6 +1070,7 @@ export class Stats {
     }
     if (action.groceries) return this.buyGroceries(action, where);
     if (action.cook) return this.cook(action, where);
+    if (action.lottery) return this.buyTicket(action, where);
     // A regular's discount at his spot.
     const regular = !!where && this.atSpot;
     let spent = this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
@@ -1181,7 +1262,6 @@ export class Stats {
     skilled(fx, this.skills.mult("cooking"));
     if (fx.xp) fx.xp = Math.round(fx.xp * this.xpMult() * moodXpMult(this.meters.mood));
     this.applyFx(fx);
-    this.pantry.cooked++;
     const line = this.say(`${r.icon} Cooked ${/^[aeiou]/.test(r.name) ? "an" : "a"} ${r.name} with ${Cook.listOf(r.uses)}${where ? ` at ${where}` : ""}`);
     this.sayIf(this.skills.train("cooking", action.min));
     return line;
@@ -1195,6 +1275,12 @@ export class Stats {
       this.say(home);
       this.diary.note("spot", place.name);
     }
+    const gift = !place.made && this.spots.isSpot(this.where.city, place) ? this.mail.pickUp(this.where.city) : null;
+    if (gift) {
+      this.applyFx(gift.gift.fx);
+      this.say(`${gift.gift.icon} Found a gift at ${place.name} from ${gift.from}: ${gift.gift.line.toLowerCase()}`);
+    }
+    if (!place.made) this.business.visited(this.where.city, place.name);
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
@@ -1637,7 +1723,7 @@ export class Stats {
   }
 
   /** Says `line` unless it is empty. */
-  private sayIf(line: string): void {
+  sayIf(line: string): void {
     if (line) this.say(line);
   }
 
@@ -1649,8 +1735,9 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
+      business: this.business.toJSON(), lottery: this.lottery.toJSON(),
       careers: this.careers.toJSON(),
       life: this.life.toJSON(),
     };
@@ -1709,6 +1796,8 @@ export class Stats {
     s.spots = Spots.fromJSON(d.spots);
     // A save from before the diary: an empty one, starting with the next day.
     s.diary = Diary.fromJSON(d.diary);
+    // A save from before letters and gifts: an empty mailbox.
+    s.mail = Mailbox.fromJSON(d.mail);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
@@ -1727,6 +1816,9 @@ export class Stats {
     s.skills = Skills.fromJSON(d.skills);
     s.pantry = Cook.Pantry.fromJSON(d.pantry);
     s.languages = Lang.Languages.fromJSON(d.languages);
+    // A save from before side businesses and the lottery: none owned, no ticket.
+    s.business = Bz.Business.fromJSON(d.business);
+    s.lottery = Lt.Lottery.fromJSON(d.lottery);
     // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
     s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;
