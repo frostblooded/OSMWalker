@@ -350,7 +350,7 @@ describe("catch-up", () => {
         const stats = new Stats();
         stats.where = { city: HOME.name, code: "AAA", country: "A-land" };
         const two = PLACES[1]!;
-        if (spot) stats.spots.cities[HOME.name] = [{ name: two.name, class: two.class, lat: two.lat, lon: two.lon, n: SPOT_MIN, t: 1 }];
+        if (spot) stats.spots.cities[HOME.name] = [{ name: two.name, lat: two.lat, lon: two.lon, n: SPOT_MIN, t: 1 }];
         const s = catchUp(stats, HOME, [0, 0], 1800, START_MS, deps({ rng: new Rng(i) }));
         if (s.lines.find((l) => l.text.startsWith("Reached"))?.text.startsWith("Reached Cafe Two")) n++;
       }
@@ -364,7 +364,7 @@ describe("catch-up", () => {
     const city: AwayCity = { ...HOME, places: [museum] };
     const stats = new Stats();
     stats.where = { city: city.name, code: "AAA", country: "A-land" };
-    stats.spots.cities[city.name] = [{ name: museum.name, class: "museum", lat: museum.lat, lon: museum.lon, n: SPOT_MIN - 1, t: 1 }];
+    stats.spots.cities[city.name] = [{ name: museum.name, lat: museum.lat, lon: museum.lon, n: SPOT_MIN - 1, t: 1 }];
     const s = catchUp(stats, city, [0, 0], 3600, START_MS, deps({ activities: new Activities({ museum: [{ name: "Look", min: 1, cost: 10 }] }) }));
     const texts = s.lines.map((l) => l.text);
     expect(texts[0]).toContain("Grand Museum is his spot now");

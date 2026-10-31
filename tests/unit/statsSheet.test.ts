@@ -19,6 +19,7 @@ import { DiarySheet } from "../../src/ui/DiarySheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
+const RILA = { name: "Cafe Rila", lat: 42.69, lon: 23.32 };
 const shown = (stats: Stats, afoot = false) => {
   const root = document.createElement("div");
   render(h(StatsSheet, { stats, afoot }), root);
@@ -223,7 +224,7 @@ describe("Stats sheet", () => {
     expect(text).toContain("⏭ Next☕ Coffee cart · €300");
     expect(text).toContain("🎟 Lottery0 draws, no prize yet");
     stats.business.buy(BUSINESSES[0]!, "Sofia", 0);
-    stats.business.buyShare("Sofia", "Cafe Rila", 0);
+    stats.business.buyShare("Sofia", RILA, 0);
     stats.business.earned = 1234;
     stats.lottery.ticket = 1;
     text = shown(stats);
@@ -233,6 +234,20 @@ describe("Stats sheet", () => {
     expect(text).toContain("⏭ Next📰 Newspaper kiosk · €1,000");
     expect(text).toContain("🎟 Lotterya ticket for the next draw");
     expect(text).toContain("Owned ▸2");
+  });
+
+  it("shows his bucket list, with how near each game goal is and each sight's city", () => {
+    const stats = new Stats();
+    expect(shown(stats)).not.toContain("Bucket list");
+    stats.bucket.list = ["level10", "eiffel"];
+    stats.level = 4;
+    let text = shown(stats);
+    expect(text).toContain("📝Bucket list");
+    expect(text).toContain("⭐ Reach level 104 / 10");
+    expect(text).toContain("🗼 See the Eiffel Towerin Paris");
+    stats.bucket.done.push({ id: "dragon", t: 0, city: "" });
+    text = shown(stats);
+    expect(text).toContain("1 ticked off");
   });
 });
 

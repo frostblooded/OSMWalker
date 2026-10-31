@@ -17,6 +17,8 @@ const ACTIONS = JSON.parse(dataFile("actions.json")) as Record<string, Action[]>
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
 /** Local noon on 2026-06-10 by the test machine's clock. */
 const NOON = new Date(2026, 5, 10, 12, 0, 0).getTime() / 1000;
+/** Cafe Rila, his spot in the shares tests. */
+const RILA = { name: "Cafe Rila", lat: 42.69, lon: 23.32 };
 const at = (h: number, day = 10) => new Date(2026, 5, day, h, 0, 0).getTime() / 1000;
 /** A Stats in Sofia at `t`, with a dragon's worth of nothing to save for unless told. */
 const inSofia = (t = NOON) => {
@@ -246,12 +248,12 @@ describe("shares in his spot", () => {
 
   it("pay a little a day, more for each visit since, up to a few", () => {
     const b = new Bz.Business();
-    b.buyShare("Sofia", "Cafe Rila", NOON);
+    b.buyShare("Sofia", RILA, NOON);
     expect(b.payout()).toBe(Bz.SHARE_BASE);
-    b.visited("Sofia", "Cafe Rila");
-    b.visited("Sofia", "Somewhere else");
+    b.visited("Sofia", RILA);
+    b.visited("Sofia", { ...RILA, name: "Somewhere else" });
     expect(b.payout()).toBe(Bz.SHARE_BASE + Bz.SHARE_PER_VISIT);
-    for (let i = 0; i < 10; i++) b.visited("Sofia", "Cafe Rila");
+    for (let i = 0; i < 10; i++) b.visited("Sofia", RILA);
     expect(b.payout()).toBe(Bz.SHARE_BASE + Bz.SHARE_PER_VISIT * Bz.SHARE_VISITS_MAX);
     expect(b.payout()).toBe(Bz.SHARE_BASE);
   });
@@ -281,8 +283,11 @@ describe("shares in his spot", () => {
     const s = regular(at(1));
     // The day's first minute, so the next payout is at midnight.
     s.passTime(1, 0);
-    s.business.buyShare("Sofia", "Cafe Rila", at(1));
+    s.business.buyShare("Sofia", RILA, at(1));
     s.visit(cafe);
+    // Another Cafe Rila across town is not his spot, so it doesn't count.
+    s.visit({ ...cafe, lat: cafe.lat + 0.07 });
+    expect(s.business.share("Sofia")!.visits).toBe(1);
     const lines: string[] = [];
     s.onSay = (l) => lines.push(l);
     const before = s.cents;
@@ -291,11 +296,24 @@ describe("shares in his spot", () => {
     expect(lines.some((l) => l.includes("share in Cafe Rila") && l.includes("took in"))).toBe(true);
   });
 
+  it("take one place in the takings line once he holds more than one", () => {
+    const sh = (city: string) => ({ city, place: `Cafe ${city}`, since: 0, visits: 0 });
+    expect(Bz.namesOf([{ id: "cart", city: "Sofia", since: 0 }], [sh("Sofia")])).toBe("coffee cart and share in Cafe Sofia");
+    expect(Bz.namesOf([{ id: "cart", city: "Sofia", since: 0 }], [sh("Sofia"), sh("Lyon"), sh("Rome")])).toBe("coffee cart and 3 shares in his spots");
+  });
+
   it("are saved", () => {
     const s = regular();
-    s.business.buyShare("Sofia", "Cafe Rila", NOON);
-    s.business.visited("Sofia", "Cafe Rila");
+    s.business.buyShare("Sofia", RILA, NOON);
+    s.business.visited("Sofia", RILA);
     expect(roundTrip(s).business.shares).toEqual(s.business.shares);
+    // A share saved before shares kept where the place is matches by its name.
+    const d = JSON.parse(JSON.stringify(s));
+    delete d.business.shares[0].lat;
+    delete d.business.shares[0].lon;
+    const old = Stats.fromJSON(d);
+    old.business.visited("Sofia", { ...RILA, lat: 0 });
+    expect(old.business.shares[0]).toEqual({ city: "Sofia", place: "Cafe Rila", since: NOON, visits: 2 });
   });
 });
 
@@ -321,7 +339,7 @@ describe("in the Collection", () => {
   it("businesses, shares and lottery prizes each count", () => {
     const s = inSofia();
     s.business.buy(Bz.BUSINESSES[0]!, "Sofia", NOON);
-    s.business.buyShare("Sofia", "Cafe Rila", NOON);
+    s.business.buyShare("Sofia", RILA, NOON);
     s.lotteryDraw(Lt.PRIZES[0]!);
     const got = set("businesses").entries(s).filter((e) => e.got);
     expect(got.map((e) => e.id)).toEqual([Bz.BUSINESSES[0]!.id]);

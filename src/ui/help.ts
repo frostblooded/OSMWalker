@@ -6,6 +6,7 @@ import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
 import * as Home from "../core/home";
 import * as Biz from "../core/business";
+import * as Bucket from "../core/bucket";
 import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
@@ -176,12 +177,6 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
-/** "bakery" -> "bakeries", "church" -> "churches", "place of worship" -> "places of worship". */
-export const plural = (noun: string): string => {
-  const [head, ...rest] = noun.split(" of ");
-  const p = /[^aeiou]y$/.test(head!) ? `${head!.slice(0, -1)}ies` : /(s|x|ch|sh)$/.test(head!) ? `${head}es` : `${head}s`;
-  return [p, ...rest].join(" of ");
-};
 /** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
 const band = (r: Items.Rarity) => (K.DEX_BANDS.find(([, b]) => b === r)?.[0] ?? 0).toLocaleString("en-GB");
 const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
@@ -503,6 +498,7 @@ export function values(data: GameData): Record<string, string> {
     WANT_PULL: num(Mind.WANT_PULL),
     FEAR_PULL: num(Mind.FEAR_PULL),
     SHORT_H: num(Mind.SHORT_H),
+    LONG_H: num(Mind.LONG_H),
     SHAKE_H: num(Mind.SHAKE_H),
     FEAR_PCT: pct(Mind.FEAR_CHANCE),
     MAX_FEARS: String(Mind.MAX_FEARS),
@@ -527,9 +523,10 @@ export function values(data: GameData): Record<string, string> {
     KEEP_LETTERS: String(Mail.KEEP_LETTERS),
     DIARY_DAYS: String(Diary.KEEP_DAYS),
     DREAM_PCT: pct(Diary.DREAM_CHANCE),
+    MAX_DREAMS: String(Diary.MAX_DREAMS),
     QUIRK_PULL: num(Quirks.QUIRK_PULL),
     QUIRK_MOOD: `+${Quirks.QUIRK_MOOD[0]} an hour for ${Quirks.QUIRK_MOOD[1]} hour`,
-    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => plural(Mind.noun(k))).join(" or ")}`}`).join("\n"),
+    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => Mind.plural(Mind.noun(k))).join(" or ")}`}`).join("\n"),
     SPOT_MIN: String(Spot.SPOT_MIN),
     SPOT_PULL: num(Spot.SPOT_PULL),
     SPOT_FROM: `${Spot.SPOT_FROM}:00`,
@@ -893,6 +890,13 @@ export function values(data: GameData): Record<string, string> {
     TICKET_BACK_MAX: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0) * Lot.LUCK_MULT_MAX)),
     QUEST_PRACTICE_MIN: num(Skills.QUEST_PRACTICE_MIN),
     BIG_MATCH: num(Lot.BIG_MATCH),
+    BUCKET_SIZE: num(Bucket.BUCKET_SIZE),
+    GOAL_LIST: Kit.list(Bucket.GOALS.map(Bucket.lower)),
+    SIGHT_COUNT: num(Bucket.SIGHTS.length),
+    DREAM_XP: num(Bucket.DREAM_XP),
+    DREAM_MOOD: num(Bucket.DREAM_MOOD),
+    DREAM_PULL: num(Bucket.DREAM_PULL),
+    DREAM_SHARE_PCT: pct(Bucket.DREAM_SHARE),
     SKILL_MAX: num(Skills.SKILL_MAX),
     SKILL_STEP: num(Skills.SKILL_STEP),
     SKILL_L4: num(Skills.stepsTo(4)),

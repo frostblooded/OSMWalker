@@ -314,9 +314,9 @@ export class Trips {
     return this.byKey(home.city) ?? nearest(this.cities, home.at[0], home.at[1], SAME_CITY_M) ?? { name: parts[0]!, code: home.code, country: parts.at(-1)!, lat: home.at[0], lon: home.at[1], pop: 0 };
   }
 
-  /** A city for a trip of `kind`, weighted by population, or null when there is nowhere to go. */
-  pick(kind: Kind, country: string, lat: number, lon: number, rng: Rng): City | null {
-    return byPop(this.options(kind, country, lat, lon), rng);
+  /** A city for a trip of `kind`, weighted by population and his bucket list's `pull` (see tripWeights), or null when there is nowhere to go. */
+  pick(kind: Kind, country: string, lat: number, lon: number, rng: Rng, pull?: Pull): City | null {
+    return byPop(this.options(kind, country, lat, lon), rng, pull);
   }
 
   /** A city anywhere he has never been (`been` says which he has), weighted by population, or null when he has been everywhere. */
@@ -328,12 +328,23 @@ export class Trips {
   }
 }
 
-/** One of `opts`, weighted by population, or null when there are none. */
-function byPop(opts: City[], rng: Rng): City | null {
+/** Cities ("Name, Country") his bucket list pulls him toward: each weighs `mult` times its size, and at least `share` of all the options' sizes together. */
+export type Pull = { cities: ReadonlySet<string>; mult: number; share: number };
+
+/** Each of `opts`' weight as a destination: its population, pulled by `pull`. */
+export function tripWeights(opts: readonly City[], pull?: Pull): number[] {
+  if (!pull?.cities.size) return opts.map((c) => c.pop);
+  const floor = pull.share * opts.reduce((acc, c) => acc + c.pop, 0);
+  return opts.map((c) => (pull.cities.has(cityKey(c)) ? Math.max(c.pop * pull.mult, floor) : c.pop));
+}
+
+/** One of `opts`, weighted by tripWeights, or null when there are none. */
+function byPop(opts: City[], rng: Rng, pull?: Pull): City | null {
   if (opts.length === 0) return null;
-  let r = rng.randf() * opts.reduce((acc, c) => acc + c.pop, 0);
-  for (const c of opts) {
-    r -= c.pop;
+  const w = tripWeights(opts, pull);
+  let r = rng.randf() * w.reduce((acc, x) => acc + x, 0);
+  for (const [i, c] of opts.entries()) {
+    r -= w[i]!;
     if (r < 0) return c;
   }
   return opts[opts.length - 1]!;

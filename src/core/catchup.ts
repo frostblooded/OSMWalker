@@ -334,7 +334,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
     const home = stats.home.has() ? trips.homeward(stats.home, stats.atHome(), new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
-    const found = home ?? trips.pick(kind, city.code, here[0], here[1], rng);
+    const found = home ?? trips.pick(kind, city.code, here[0], here[1], rng, stats.bucket.pull());
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
     const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");

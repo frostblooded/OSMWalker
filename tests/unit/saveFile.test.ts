@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
+import { LONG_H } from "../../src/core/mind";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
@@ -262,6 +263,24 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
   });
 
+  it("loads saves from before wants ran out: an endless long or face want starts counting, and an unfaced fear then fades", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.mind = { moodlets: [], fears: ["park"], wants: [{ kind: "long", place: "zoo", until: 0 }, { kind: "face", place: "park", until: 0 }] };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    let t = 1_800_000_000;
+    stats.now = () => t;
+    stats.passTime(1, 0);
+    expect(stats.mind.wants.filter((w) => w.kind !== "short").map((w) => w.until)).toEqual([t + LONG_H * 3600, t + LONG_H * 3600]);
+    t += LONG_H * 3600;
+    stats.passTime(1, 0);
+    expect(stats.mind.fears).toEqual([]);
+    expect(stats.mind.wants.some((w) => w.kind === "face")).toBe(false);
+  });
+
   it("loads saves from before letters and gifts: an empty mailbox", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -327,6 +346,17 @@ describe("save file", () => {
     expect(back.business).toMatchObject({ owned: [], shares: [], pending: 0, earned: 0 });
     expect(back.lottery.toJSON()).toEqual({ ticket: 0, tickets: 0, prizes: 0, won: 0, best: 0 });
     expect(back.pantry.dishes).toEqual([]);
+  });
+
+  it("loads saves from before the bucket list: an empty list that fills on the next new day or city", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.bucket;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.bucket.toJSON()).toEqual({ list: [], done: [] });
   });
 
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
