@@ -262,6 +262,16 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
   });
 
+  it("loads saves from before letters and gifts: an empty mailbox", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.mail;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.mail.toJSON()).toEqual({ letters: [], waiting: [] });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

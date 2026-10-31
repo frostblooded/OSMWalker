@@ -27,6 +27,7 @@ import * as R from "../core/repute";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { DiaryData } from "../core/diary";
+import type { MailData } from "../core/mail";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
 import { type Ancestor, ELDER, walkerName } from "../core/life";
@@ -78,7 +79,7 @@ export const RIVAL_OFFSET_DEG = 0.0003;
 /** After the heir's streets failed to load, retiring waits this long before trying again. */
 export const RETIRE_RETRY_MS = 60_000;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -586,7 +587,7 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the diary's lines, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the diary's and his friends' letters' lines, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
@@ -596,6 +597,7 @@ export class Game {
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.diaryData = this.deps.data.diary ?? null;
+    this.stats.mailData = this.deps.data.mail ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
     this.stats.creatureKinds = this.deps.data.creatures ?? [];
     this.stats.spellKinds = this.deps.data.spells ?? [];
