@@ -22,6 +22,8 @@ const OUTLINE_COLOR = "#7b3fbf";
 const ROUTE_COLOR = "#ff7a3d";
 /** Indigo `--magic` (app.css), as the magic icons (map/icons.ts); MapLibre can't read CSS tokens. */
 const LEY_COLOR = "#3d2a8a";
+/** Green `--ok` (app.css): the squares he explored are a gain. */
+const EXPLORED_COLOR = "#2f8a3e";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
@@ -64,6 +66,7 @@ export class MapView implements MapPort {
   private trailKey = "";
   private tripKey = "";
   private leyKey = "";
+  private exploredKey = "";
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
@@ -144,6 +147,8 @@ export class MapView implements MapPort {
       source: "area",
       paint: { "line-color": ["match", ["get", "kind"], "box", AREA_COLOR, OUTLINE_COLOR], "line-width": 3, "line-opacity": 0.8 },
     });
+    this.map.addSource("explored", { type: "geojson", data: none });
+    this.map.addLayer({ id: "explored", type: "fill", source: "explored", paint: { "fill-color": EXPLORED_COLOR, "fill-opacity": 0.3, "fill-outline-color": EXPLORED_COLOR } });
     // His planned route: solid along the streets, dashed in a straight line where they are not loaded yet.
     this.map.addSource("route", { type: "geojson", data: none });
     for (const [id, kind, dash] of [["route", "streets", undefined], ["route-rest", "rest", [1, 1.5]]] as const) {
@@ -302,6 +307,14 @@ export class MapView implements MapPort {
     if (key === this.leyKey) return;
     this.leyKey = key;
     (this.map.getSource("leys") as GeoJSONSource | undefined)?.setData(line(key ? lines() : []));
+  }
+
+  /** The squares he walked (runs of them in a row as one box), or none when `key` is ""; only sent to MapLibre when `key` changes. */
+  setExplored(key: string, boxes: () => BBox[]): void {
+    if (key === this.exploredKey) return;
+    this.exploredKey = key;
+    const features: GeoJSON.Feature[] = (key ? boxes() : []).map(([s, w, n, e]) => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } }));
+    (this.map.getSource("explored") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
   }
 
   /** The line he rides along on a trip, or none. */

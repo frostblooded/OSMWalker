@@ -33,6 +33,7 @@ import * as Fa from "./fairy";
 import * as F from "./forecast";
 import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
+import { Explored } from "./explored";
 import { History } from "./history";
 import * as Hm from "./home";
 import * as Inc from "./incidents";
@@ -208,6 +209,8 @@ export class Stats {
   level = 1;
   buffs: Buff[] = [];
   history = new History();
+  /** The 200 m squares he walked through, in every city. */
+  explored = new Explored();
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
@@ -760,6 +763,8 @@ export class Stats {
     heir.rings = this.rings;
     heir.finds = this.finds;
     heir.portals = this.portals;
+    // The squares walked are the family's map of the world.
+    heir.explored = this.explored;
     heir.home = this.home;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
@@ -1903,7 +1908,7 @@ export class Stats {
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
-      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(), streets: this.streets.toJSON(),
       pets: this.pets.toJSON(),
@@ -1930,6 +1935,8 @@ export class Stats {
     s.buffs = d.buffs ?? [];
     s.walkMin = d.walkMin ?? 0;
     s.history = History.fromJSON(d.history);
+    // A save from before the explored squares: none walked yet.
+    s.explored = Explored.fromJSON(d.explored);
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];
