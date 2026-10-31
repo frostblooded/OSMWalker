@@ -146,8 +146,11 @@ describe("game", () => {
     Object.assign(g.data, { jokes: { cafe: ["Cafe joke."], _generic: ["Other joke."] }, forecasts });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.forecast().id).toBe("cafe");
-    run(g, 3 * 3600);
-    const texts = g.stats.history.entries.map((e) => e.text);
+    // Every line he says, not only the feed's last ones: a joke comes on one in eight.
+    const texts: string[] = [];
+    g.stats.onSay = (l) => texts.push(l);
+    // An hour at a time until a joke comes, at most half a day.
+    for (let h = 0; h < 12 && !texts.some((t) => t.endsWith(" joke.")); h++) run(g, 3600);
     expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
@@ -182,6 +185,18 @@ describe("game", () => {
     expect(texts.some((t) => t === "🧪 He takes a box to Central Bus.")).toBe(true);
     expect(g.stats.quests.log.at(-1)?.title).toBe("Test quest");
     expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.quests.done).toContain("q:Ana:0");
+  });
+
+  it("deals the listed city's own quests first, however the search spelled the start city", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g } = game({ places: [...cafes, BUS] });
+    const q = (id: string, city?: string) => ({ id, city, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["At {PLACE}."] }] });
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [q("a"), q("sofia", "Sofia, Bulgaria"), q("paris", "Paris, France")], events: [] } });
+    await g.startCity("Sofia, Sofia City, Bulgaria", ...START, null);
+    run(g, 60);
+    g.walker!.forceNewGoal();
+    expect(g.stats.quests.board[0]?.key).toBe("sofia");
+    expect(g.stats.quests.board.some((o) => o.key === "paris")).toBe(false);
   });
 
   it("a tapped quest icon tells its story, and Go help sends him to it next", async () => {

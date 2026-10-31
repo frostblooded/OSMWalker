@@ -190,7 +190,17 @@ describe("catch-up", () => {
     expect(s.end.city.places).toBeNull();
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
-    expect(stats.cents).toBeLessThan(500_000);
+    // He paid the fare (his wages that day may come to more).
+    expect(s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text).toMatch(/\(-€[\d.]+\)$/);
+  });
+
+  it("learns the local language while away, as he would watched", () => {
+    const stats = new Stats();
+    stats.languages.setNative("Bulgarian");
+    stats.arrive("Bigtown", "AAA", "A-land");
+    const s = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps());
+    expect(stats.languages.level("A-land's language")).toBeGreaterThanOrEqual(2);
+    expect(s.lines.some((l) => l.text === "🗣 A-land's language: now basic")).toBe(true);
   });
 
   it("lands jet-lagged after a flight, as in a watched trip", () => {
@@ -352,10 +362,10 @@ describe("catch-up", () => {
 
   it("draws no Magic and learns no spells at made-up churches and libraries", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
-    // He wants a library all day, so his last lines surely hold one.
+    // He wants a library all day, so his day surely holds one; every line counts, not only the feed's last ones.
     stats.mind.wants = [{ kind: "long", place: "library", until: 0 }, { kind: "short", place: "library", until: START_MS / 1000 + 48 * 3600 }];
-    catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
-    expect(stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text))).toBe(true);
+    const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(s.lines.some((l) => /^Reached a (church|library) in /.test(l.text))).toBe(true);
     expect(stats.magic).toBe(0);
     expect(stats.lore.known).toEqual([]);
   });
@@ -457,6 +467,16 @@ describe("catch-up", () => {
     expect(s.lines.some((l) => l.text.startsWith("Reached Shoe Shop"))).toBe(false);
     // Stops count only the places he reached.
     expect(s.stops).toBe(s.lines.filter((l) => /^Reached (?!level )/.test(l.text)).length);
+  });
+
+  it("rolls the listed city's own quests on its key, not on the searched name", () => {
+    const stats = new Stats();
+    const q = (id: string, city?: string) => ({ id, city, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit" as const, twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["At {PLACE}."] }, { at: ["shop"], say: ["At {PLACE}."] }] });
+    stats.quests.bank = { names: ["Ana"], quests: [q("a"), q("big", "Bigtown, A-land")], events: [] };
+    const cafes = Array.from({ length: 20 }, (_, i) => place(`Cafe ${i}`, "cafe", "cafe", 0.0005 * (i % 5), 0.0005 * Math.floor(i / 5)));
+    const town: AwayCity = { ...HOME, name: "Bigtown, Some Province, A-land", key: "Bigtown, A-land", places: [...PLACES, ...cafes] };
+    catchUp(stats, town, [0, 0], 600, START_MS, deps());
+    expect([...stats.quests.board.map((o) => o.key), stats.quests.active?.key, ...stats.quests.done]).toContain("big");
   });
 
   it("lets a quest step at a closed place wait for it to open, instead of going back all night", () => {
