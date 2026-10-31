@@ -1,11 +1,13 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
 // (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
 // for road routes between cities, Wikidata for city trivia and Nominatim for
-// city outlines, Open-Meteo for his city's weather and Nager.Date for public
-// holidays. Fetch is injected, so it is easy to test.
+// city outlines, Open-Meteo for his city's weather, Nager.Date for public
+// holidays and Wikipedia for notes on sights. Fetch is injected, so it is
+// easy to test.
 import * as CityFacts from "../core/cityFacts";
 import type { BBox, Tile } from "../core/geo";
 import * as Holidays from "../core/holidays";
+import * as SightNotes from "../core/sightNotes";
 import type { OverpassData } from "../core/graph";
 import { TILE_ZOOM } from "../core/ofm";
 import { parseWeather, weatherUrl, type WeatherForecast } from "../core/weather";
@@ -280,6 +282,11 @@ export class Api {
     const f = data === null ? null : parseWeather(data, city, nowMs);
     if (data !== null && !f) this.fail(url, "answer was not a forecast");
     return f;
+  }
+
+  /** Wikipedia `wiki`'s articles near a sight, with their first sentence (sightNotes.ts), or null when the request fails. */
+  sightNote(wiki: string, lat: number, lon: number): Promise<unknown> {
+    return this.getJson(SightNotes.url(wiki, lat, lon), 20);
   }
 
   /** A country's public holidays in `year`: [] when Nager.Date has none for it (204 or 404), null when the request fails. */
