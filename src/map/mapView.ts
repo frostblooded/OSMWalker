@@ -6,7 +6,7 @@
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
-import type { Look } from "../core/look";
+import { POSE_EVERY_S, type Look } from "../core/look";
 import type { MapIcon } from "../core/mapIcons";
 import { RIVAL_ICON } from "../core/rival";
 import type { LatLon } from "../core/trips";
@@ -67,6 +67,9 @@ export class MapView implements MapPort {
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
+  /** His pose ("icon motion", "" for none) and performance.now() when it last moved. */
+  private poseKey = "";
+  private poseAt = 0;
   private iconKey = "";
   /** The icon pictures and layer, added the first time there is an icon to show. */
   private iconLayer: Promise<boolean> | null = null;
@@ -206,17 +209,33 @@ export class MapView implements MapPort {
   /**
    * His face, bubble and pose, written to the page only when one changes. A
    * new pose plays its CSS animation a few times and then holds still, so the
-   * GPU is idle again after a few seconds.
+   * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
-    if (key === this.lookKey) return;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}`;
+    if (key === this.lookKey) {
+      if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
+      // Dropping the pose's class and a reflow restart its CSS animation.
+      this.poseAt = performance.now();
+      const bubble = this.him.getElement().querySelector<HTMLElement>(".bubble")!;
+      const cls = bubble.className;
+      bubble.className = "bubble";
+      void bubble.offsetWidth;
+      bubble.className = cls;
+      return;
+    }
     this.lookKey = key;
+    // Only a new pose plays from the start; a new face keeps the pose's minute running.
+    const pose = l.pose ? `${l.pose.icon} ${l.pose.motion}` : "";
+    if (pose !== this.poseKey) [this.poseKey, this.poseAt] = [pose, performance.now()];
     const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
+    const pet = el.querySelector<HTMLElement>(".pet")!;
+    pet.textContent = l.pet;
+    pet.hidden = !l.pet;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
@@ -414,7 +433,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head and his fantasy mount, if any, at his side. */
+/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side and his pet, if any, at the other. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -426,7 +445,10 @@ function himMarker(): HTMLElement {
   const mount = document.createElement("span");
   mount.className = "mount";
   mount.hidden = true;
-  el.append(face, bubble, mount);
+  const pet = document.createElement("span");
+  pet.className = "pet";
+  pet.hidden = true;
+  el.append(face, bubble, mount, pet);
   return el;
 }
 

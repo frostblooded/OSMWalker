@@ -172,6 +172,16 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.rival).toMatchObject({ level: 2, wins: 0, losses: 0, memory: [], inTown: false });
   });
 
+  it("loads saves from before pets: he has none", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.pets;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.pets).toMatchObject({ pet: null, past: [] });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
@@ -251,6 +261,18 @@ describe("save file", () => {
     expect(back.keepsakes.cards.size).toBe(0);
     expect(back.keepsakes.souvenirs.size).toBe(0);
     expect(back.where).toEqual({ city: "", code: "", country: "" });
+    expect(back.cents).toBe(4321);
+  });
+
+  it("loads saves from before local words, with none learned yet", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.words;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.words.count()).toBe(0);
     expect(back.cents).toBe(4321);
   });
 

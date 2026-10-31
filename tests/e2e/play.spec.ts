@@ -50,6 +50,13 @@ test("on a dragon he can feed, it shows at his side", async ({ page }) => {
   await expect(page.locator(".marker.him .mount")).toHaveText("🐉", { timeout: 20000 });
 });
 
+test("his pet trots at his side on the map", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".marker.him .pet")).toBeHidden();
+  await reopenWith(page, `d.stats.pets = { pet: { kind: "cat", name: "Mitzi", km: 0, since: 0, lives: 999999, fed: "", fairy: false }, past: [] };`);
+  await expect(page.locator(".marker.him .pet")).toHaveText("🐈", { timeout: 20000 });
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();

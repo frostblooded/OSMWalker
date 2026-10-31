@@ -254,6 +254,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
+      stats.wordAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
       const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;

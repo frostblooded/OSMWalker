@@ -24,6 +24,7 @@ const data = {
   spells: JSON.parse(dataFile("spells.json")),
   moments: JSON.parse(dataFile("moments.json")),
   borders: JSON.parse(dataFile("borders.json")),
+  words: JSON.parse(dataFile("words.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);
@@ -212,5 +213,10 @@ describe("search", () => {
 
   it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
+  });
+
+  it("counts the local words from the word list", () => {
+    const text = page("words").body;
+    expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
   });
 });

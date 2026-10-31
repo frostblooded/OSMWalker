@@ -177,7 +177,7 @@ His face shows how he feels. The first of these that fits wins:
 
 While he walks, a bubble over his head shows what he needs most: the icon of his lowest meter under {NEED_AT} (🍔 food, 🥤 a drink, 🛏 rest, 🚿 a wash, 💊 health, 🎈 fun). When he needs nothing it shows the kind of place he is going to (☕ a cafe, 🏛 a museum). On the way to a random spot it shows only a need, and on a trip there is no bubble.
 
-While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there, then holds still to save battery.
+While he stays at a place, a pose for what he is doing floats over him instead: 💤 a nap, ☕ a coffee, 🎵 something fun, 💡 learning, 💶 work, 🛍 shopping, and so on, after what the action gives most. It moves for a few seconds when he gets there and again every {POSE_EVERY_S} seconds, and holds still in between to save battery. His pet, if he has one, sits at his side (see His pet).
 ## City sound {sound}
 The 🔊 City sound switch in the menu (off at first) plays a soft loop for where he is: cafe chatter with the odd clinking cup while he stays at a place to eat or drink, birds and leaves in parks and gardens, and a low street hum anywhere else. On a trip it is quiet. The sound is made on your phone, so it downloads nothing; it stops while the game is in the background.
 # 🎯 Actions
@@ -264,7 +264,12 @@ Prices are real-world euro prices, the same in every country: a coffee is a few 
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. Each week he pays his bills (see Bills).
+## Bills {bills}
+At the start of each week (Monday at midnight by your phone's clock), his bills arrive, also while you're away, and he pays them by himself:
+{BILL_LIST}
+
+At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
@@ -541,6 +546,10 @@ Each time he arrives in a different country than the one he left, by any kind of
 - a dry remark about the border guard.
 
 {BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
+## Local words {words}
+In {WORD_COUNTRIES} countries he picks up everyday words in the local language ({WORD_LANGUAGES} languages, about {WORD_EACH} words each): hello, thank you, coffee, bread, the bill, cheers and the like. At {WORD_PCT} of his stops there he learns one he doesn't know yet, with how to say it in Latin letters where the language uses another script, for example "🗣 Learned a Bulgarian word at Cafe Rila: "кафе (kafe)" means coffee".
+
+A word that fits the place comes first: coffee at a café, bread at a bakery, the bill at a restaurant, beer and cheers at a bar or pub, water at a fountain, a church (or mosque or temple) at a place of worship, station at a station, pharmacy at a pharmacy, ice cream at an ice cream parlour. Words like hello and thank you he learns anywhere. Each word gives wits +{WORD_WIT} and {WORD_XP} XP. Words carry over between countries that share a language, and he learns them while you are away too. The Stats sheet lists them, and the Polyglot badge counts them (see Badges and titles).
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -720,6 +729,18 @@ A friend may move to another city he has been to. From then on that is their cit
 The day he set out is his birthday (in a game begun before his life story was kept, the first day after anniversaries came to the game). Each year on it he has a party in the city he is in, with his partner and the friends there with {PARTY_AT} hearts or more ({PARTY_MAX} at most), for {PARTY_MOOD} mood. With his mood out of 100 as the chance (at least {GREAT_MIN_PCT}), it is a great one, and he glows for {GLOW_H} hours: {GLOW_PER_H} mood an hour. With no friends there it is a quiet one alone, {ALONE_MOOD} mood.
 
 On the same day of each of the other months (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
+## His pet {pet}
+When a stray dog or cat follows him (see Incidents) and he has no pet, {ADOPT_PCT} of the time it stays with him for good. He names it himself. On the map it trots at his side, opposite any fantasy mount.
+
+Each day, at the first minute of the day (also while you are away), he buys it {PET_FOOD} of food. Fed, it lifts his mood by {PET_MOOD_PER_H} an hour, plus {PET_MOOD_PER_LEVEL} for each level above 1. If he can't pay, it is grumpy that day and gives no lift. It never runs off.
+
+It grows a level with the km it walks at his side, on foot or by bike; on other rides it just comes along. Level 2 takes {PET_KM_2} km, level 3 {PET_KM_3} km, and so on, up to level {PET_MAX_LEVEL} at {PET_KM_MAX} km. Each level makes its perk bigger:
+- 🐕 a dog sniffs out money on the street: {DOG_FIND_PCT} likelier a level (see Luck),
+- 🐈 a cat keeps mishaps away: mishaps and bad incidents {CAT_RISK_PCT} rarer a level.
+
+From level {PET_FAIRY_LEVEL}, at a real castle or old monument, {PET_FAIRY_PCT} of the time it shows what it really is: a dog was a 🐺 cù sìth, a fairy hound, and a cat a 🐈‍⬛ cat sìth. From then on its perk counts {PET_FAIRY_MULT} times as much.
+
+A pet lives with him for {PET_LIFE_MIN} to {PET_LIFE_MAX} days. Then it passes away in its sleep (a fairy one goes back to the hills), he misses it ({MISSING_MOOD_PER_H} mood an hour for {PET_MISSING_H} hours), and a new stray may stay. The Stats sheet shows his pet, and the ones he had under Remembered.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
@@ -739,17 +760,19 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
+- Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
+- Pet: his pet's level, the km they walked together towards the next level, its perk, how long it has been with him and whether it ate today; the pets he had fold into Remembered (see His pet).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.

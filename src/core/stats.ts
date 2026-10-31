@@ -5,6 +5,7 @@
 // the people in his life: friends, their clubs and news, and his anniversaries.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
+import * as Bl from "./bills";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
@@ -14,6 +15,7 @@ import * as Cr from "./creatures";
 import * as PM from "./placeMoments";
 import * as Mg from "./magic";
 import * as Mn from "./midnight";
+import * as Pt from "./pet";
 import * as Po from "./portals";
 import * as Gi from "./giants";
 import * as Fa from "./fairy";
@@ -41,6 +43,7 @@ import * as Kit from "./travelKit";
 import * as T from "./trips";
 import type { Vehicle } from "./speeds";
 import { Week } from "./week";
+import { WORD_WIT, WORD_XP, Words, type WordBook } from "./words";
 import * as Work from "./workCards";
 
 export const METERS = ["health", "energy", "fullness", "mood", "hygiene", "thirst"] as const;
@@ -91,6 +94,8 @@ export const DRAGON_UPKEEP = 10000;
 export const DRAGON_TREASURE_CHANCE = 0.1;
 export const DRAGON_TREASURE_MIN = 5000;
 export const DRAGON_TREASURE_MAX = 50000;
+/** Ways of getting about on which his pet walks at his side, so the km count for its level. */
+export const PET_PACE: ReadonlySet<Vehicle> = new Set<Vehicle>(["", "bike"]);
 /** Speed added per level above 1, as a share. */
 export const SPEED_PER_LEVEL = 0.01;
 /** Below this much energy he slows down, to half speed at zero. */
@@ -178,6 +183,10 @@ export class Stats {
   jokes: Jokes = {};
   /** Border words and quips from data/borders.json; not saved, the game sets it. */
   borders: Borders | null = null;
+  /** Everyday words by language from data/words.json; not saved, the game sets it once loaded. */
+  wordBook: WordBook | null = null;
+  /** The local words he has learned. */
+  words = new Words();
   /** The daily forecasts from data/forecasts.json; not saved, the game sets it. */
   forecasts: readonly F.Forecast[] = [];
   /** Clovers and the care package on its way to him. */
@@ -231,6 +240,8 @@ export class Stats {
   townNews: readonly News[] = [];
   /** His birthday (the day he set out) and month marks. */
   anniversaries = new Anniversaries();
+  /** His pet, and the pets he had. */
+  pets = new Pt.Pets();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -552,7 +563,7 @@ export class Stats {
   /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
   passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
-    this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
+    if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
     if (date !== this.anniversaries.day) this.newDay(date, t);
     this.week.walked(walkedM);
@@ -562,7 +573,7 @@ export class Stats {
       fullness: -FULLNESS_PER_H * h,
       thirst: -THIRST_PER_H * sky.thirstMult * h,
       hygiene: -HYGIENE_PER_H * h,
-      mood: (sky.mood - MOOD_PER_H - (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0)) * h,
+      mood: (sky.mood - MOOD_PER_H - (this.meters.hygiene < DIRTY_AT ? DIRTY_MOOD_PER_H : 0) + this.pets.moodPerH(date)) * h,
       energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000 + sky.energy * h,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
@@ -579,11 +590,15 @@ export class Stats {
     this.applyFx(fx);
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
+    // His pet walks at his side on foot or by bike, and rides along otherwise.
+    const pet = walkedM && PET_PACE.has(afoot ? "" : this.getsAbout()) ? this.pets.walked(walkedM) : 0;
+    if (pet) this.say(`${this.pets.title()} reached level ${pet} (${Math.round(this.pets.pet!.km)} km walked together)`);
     this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
   }
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
+    this.petDay(date, t);
     const f = this.friends;
     this.townies.prune(f.list);
     this.sayIf(this.townies.roll(date, f.list, f.partner, this.townNews, this.records.cities, new Rng(seedOf(`townies${date}`))));
@@ -594,13 +609,77 @@ export class Stats {
     this.say(mark.line);
   }
 
+  /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
+  private payBills(): void {
+    const due = Bl.billsAt(this.level);
+    const what = Bl.BILLS.map((b) => b.name).join(", ");
+    if (this.cents >= due) {
+      this.cents -= due;
+      this.say(`Paid the week's bills: ${what} (${signed(-due)})`);
+      return;
+    }
+    let item: Item | null = null;
+    for (const it of this.bag) if (!Items.isTreasured(it) && (!item || it.price < item.price)) item = it;
+    if (!item) {
+      this.say(`Couldn't pay the week's bills (${euro(due)}), and the debt collector found nothing to take: written off`);
+      return;
+    }
+    this.bag.splice(this.bag.indexOf(item), 1);
+    this.say(`Couldn't pay the week's bills (${euro(due)}): a debt collector took his ${item.name} instead`);
+  }
+
+  /** A new day for his pet: it eats if he can pay, or else is grumpy today; when its days are over it passes. */
+  private petDay(date: string, t: number): void {
+    const p = this.pets.pet;
+    if (!p) return;
+    if (this.pets.oldAt(t)) {
+      const title = this.pets.title();
+      const days = Math.round((t - p.since) / 86400);
+      this.pets.pass(t);
+      this.addBuff({ name: `Missing ${p.name}`, min: Pt.MISSING_MIN, per_h: { mood: Pt.MISSING_MOOD_PER_H } });
+      const line = p.fairy ? `${title} went back to the fairy hills, after ${days} days together` : `${title} passed away in its sleep, old and much loved, after ${days} days together`;
+      this.milestone(`pet_gone${p.since}`, line);
+      this.say(line);
+      return;
+    }
+    if (this.cents < Pt.PET_FOOD) {
+      this.say(`No money for pet food today (${euro(Pt.PET_FOOD)}): ${p.name} is grumpy`);
+      return;
+    }
+    this.cents -= Pt.PET_FOOD;
+    p.fed = date;
+  }
+
+  /** A stray of `kind` at `place` may stay with him for good, if he has no pet yet. Its own dice, so the walk's stay the same. */
+  private stray(kind: Pt.PetKind, place: string): void {
+    if (this.pets.pet) return;
+    const t = this.now();
+    const rng = new Rng(seedOf(`pet${t}${place}`));
+    if (rng.randf() >= Pt.ADOPT_CHANCE) return;
+    const p = this.pets.adopt(kind, t, dayOf(t * 1000), rng);
+    this.milestone(`pet${t}`, `Took in a stray ${kind} and named it ${p.name}`);
+    this.say(`The ${kind} stays with him for good. He names it ${p.name}`);
+  }
+
+  /** Right after reaching `place`: a pet high enough may show its fairy self at a real old place (see pet.ts). Its own dice, so the walk's stay the same. */
+  private petAt(place: Pick<Place, "name" | "class"> & { made?: unknown }): void {
+    const p = this.pets.pet;
+    if (!p || p.fairy || this.pets.level() < Pt.FAIRY_LEVEL || !Pt.isFairyPlace(place)) return;
+    if (new Rng(seedOf(`fairy${p.name}${this.now()}${place.name}`)).randf() >= Pt.FAIRY_CHANCE) return;
+    p.fairy = true;
+    const f = Pt.KINDS[p.kind].fairy;
+    const line = `At ${place.name}, ${f.where}: ${p.name} was a ${f.name} all along`;
+    this.milestone(`pet_fairy${p.since}`, line);
+    this.say(line);
+  }
+
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
   walkFor(minutes: number, rng: Rng): string {
     this.walkMin += minutes;
     let line = "";
     while (this.walkMin >= 1) {
       this.walkMin -= 1;
-      if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find")) continue;
+      if (rng.randf() >= findChance(this.attr("luck")) * F.mult(this.forecast(), "find") * this.pets.findMult()) continue;
       const n = rng.randiRange(FIND_MIN, FIND_MAX);
       this.cents += n;
       line = this.say(`Found ${euro(n)} on the street (${signed(n)})`);
@@ -705,7 +784,7 @@ export class Stats {
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
     let text = action.name;
     const risk = action.risk;
-    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck"))) {
+    if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult()) {
       spent += toCents(risk.cost ?? 0);
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
@@ -962,6 +1041,15 @@ export class Stats {
     this.addBuff(Mg.LEY_CHARM);
   }
 
+  /** Right after reaching `place`: now and then a local word that fits it (words.ts). Its own dice, so his walk stays the same. */
+  wordAt(place: Pick<Place, "class" | "name">): void {
+    if (!this.wordBook) return;
+    const w = this.words.learn(this.wordBook, this.where.code, place.class, new Rng(seedOf(`word${this.now()}${place.name}`)).randf());
+    if (!w) return;
+    this.applyFx({ wit: WORD_WIT, xp: WORD_XP });
+    this.say(`🗣 Learned a ${w.language} word at ${place.name}: "${w.word}" means ${w.meaning}`);
+  }
+
   /** Right after reaching `place`: a burst of Magic at a place on a ley line (once a day each), and maybe a spell from an old book. Its own dice, so his walk stays the same. */
   magicAt(place: Pick<Place, "class" | "name" | "lat" | "lon">): void {
     const t = this.now();
@@ -1086,13 +1174,16 @@ export class Stats {
    * Returns its feed line, or "". Without a deck the stories are off and
    * nothing rolls, so the dice stay the same as without one.
    */
-  happen(place: Pick<Place, "name" | "class" | "lat" | "lon">, hour: number, rng: Rng): string {
+  happen(place: Pick<Place, "name" | "class" | "lat" | "lon"> & { made?: unknown }, hour: number, rng: Rng): string {
+    this.petAt(place);
     if (!this.incidents.length) return "";
-    const tone = this.story.roll(rng, riskMult(this.attr("luck")));
+    const tone = this.story.roll(rng, riskMult(this.attr("luck")) * this.pets.riskMult());
     const card = tone && Inc.pick(this.incidents, tone, { place: place.name, kind: place.class, hour, rides: this.getsAbout() }, inTime, rng, this.story.recent);
     if (tone && card) {
       this.story.after(card.id, tone);
-      return (this.incidentLine = Inc.play(card, this, place.name, rng));
+      this.incidentLine = Inc.play(card, this, place.name, rng);
+      if (card.stray) this.stray(card.stray, place.name);
+      return this.incidentLine;
     }
     // Clubs roll their own dice, so the walk's stay the same.
     const t = this.now();
@@ -1154,7 +1245,8 @@ export class Stats {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
-      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
+      clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
+      pets: this.pets.toJSON(),
     };
   }
 
@@ -1196,6 +1288,8 @@ export class Stats {
     s.story = Storyteller.fromJSON(d.story);
     // A save from before quests starts with none, and rolls the board of the city he is in.
     s.quests = Quests.fromJSON(d.quests);
+    // A save from before pets: none yet.
+    s.pets = Pt.Pets.fromJSON(d.pets);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
@@ -1203,6 +1297,8 @@ export class Stats {
     // A save from before clubs, townies and anniversaries: no clubs yet, news from the next day on, and his birthday is the day he set out, if his life story knows it.
     s.clubs = Clubs.fromJSON(d.clubs);
     s.townies = Townies.fromJSON(d.townies);
+    // A save from before local words: none learned yet.
+    s.words = Words.fromJSON(d.words);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
     return s;
   }

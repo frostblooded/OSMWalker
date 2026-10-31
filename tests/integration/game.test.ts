@@ -75,6 +75,7 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     creatures: JSON.parse(dataFile("creatures.json")),
     spells: JSON.parse(dataFile("spells.json")),
     moments: opts.moments ? JSON.parse(dataFile("moments.json")) : undefined,
+    words: JSON.parse(dataFile("words.json")),
   };
   const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
@@ -161,6 +162,8 @@ describe("game", () => {
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.incidents).toHaveLength(2);
     plain.stats.story.tension = g.stats.story.tension = 100;
+    // One clock for both, so the dice seeded from the time (a local word, a spell, …) roll the same.
+    plain.stats.now = g.stats.now = () => 1_800_000_000;
     run(plain, 3 * 3600);
     run(g, 3 * 3600);
     const texts = g.stats.history.entries.map((e) => e.text);
@@ -989,6 +992,15 @@ describe("game", () => {
       const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
       expect(again.moment).toBeNull();
       expect(again.stats.history.entries.some((e) => / Decided by himself: /.test(e.text))).toBe(true);
+    });
+
+    it("picks up local words while away, at the places they fit", async () => {
+      const { again } = await reopen(8 * HOUR, { places: [CAFE] });
+      const learned = again.away!.lines.filter((l) => l.text.startsWith("🗣 Learned a Bulgarian word"));
+      expect(learned.length).toBeGreaterThan(0);
+      // The first stops are cafés, so the first word is coffee.
+      expect(learned[0]!.text).toMatch(/ at .*[Cc]afe.*: "кафе \(kafe\)" means coffee$/);
+      expect(again.stats.words.known.bg?.[0]).toBe("coffee");
     });
 
     it("has nothing to catch up after a short break or from an old save", async () => {

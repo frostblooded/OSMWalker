@@ -3,6 +3,7 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bills from "../core/bills";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Chron from "../core/chronicle";
@@ -35,6 +36,7 @@ import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
 import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
+import * as Pet from "../core/pet";
 import * as Postcard from "../core/postcard";
 import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
@@ -55,6 +57,7 @@ import * as Weather from "../core/weather";
 import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
+import * as Words from "../core/words";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
@@ -218,6 +221,27 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    BILLS_L1: euro(Bills.billsAt(1)),
+    BILLS_L10: euro(Bills.billsAt(10)),
+    BILLS_L30: euro(Bills.billsAt(30)),
+    ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
+    PET_FOOD: euro(Pet.PET_FOOD),
+    PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
+    PET_MOOD_PER_LEVEL: num(Pet.PET_MOOD_PER_LEVEL),
+    PET_KM_2: num(Pet.kmFor(2)),
+    PET_KM_3: num(Pet.kmFor(3)),
+    PET_MAX_LEVEL: num(Pet.PET_MAX_LEVEL),
+    PET_KM_MAX: num(Pet.kmFor(Pet.PET_MAX_LEVEL)),
+    DOG_FIND_PCT: pct(Pet.DOG_FIND_PER_LEVEL),
+    CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
+    PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
+    PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
+    PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
+    PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
+    MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
@@ -384,6 +408,7 @@ export function values(data: GameData): Record<string, string> {
     SHEET_TALL_PCT: String(Math.round(Snap.TALL * 100)),
     SHEET_CLOSE_PCT: String(Math.round(Snap.CLOSE_AT * 100)),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
+    POSE_EVERY_S: String(Looks.POSE_EVERY_S),
     LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
@@ -518,6 +543,12 @@ export function values(data: GameData): Record<string, string> {
     JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
     JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
+    WORD_COUNTRIES: num(Object.keys(data.words?.countries ?? {}).length),
+    WORD_LANGUAGES: num(Object.keys(data.words?.languages ?? {}).length),
+    WORD_EACH: num(Math.round(Object.values(data.words?.languages ?? {}).reduce((n, l) => n + l.words.length, 0) / Math.max(Object.keys(data.words?.languages ?? {}).length, 1))),
+    WORD_PCT: pct(Words.LEARN_CHANCE),
+    WORD_WIT: num(Words.WORD_WIT),
+    WORD_XP: num(Words.WORD_XP),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),

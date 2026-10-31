@@ -19,6 +19,16 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("shows his pet, its level and km together, and the pets he had", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No pet yet");
+    const p = stats.pets.adopt("cat", stats.now(), "", new Rng(1));
+    expect(shown(stats)).toContain(`${p.name} the cat`);
+    expect(shown(stats)).toContain("No, grumpy");
+    stats.pets.pass(stats.now() + 86400 * 300);
+    expect(shown(stats)).toContain("Remembered");
+  });
+
   it("after a flyer lands, shows his walking speed", () => {
     const stats = new Stats();
     stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
@@ -74,6 +84,23 @@ describe("Stats sheet", () => {
     expect(text).toContain(`Spells1 / ${spells.length}`);
     expect(text).toContain("🍲 Warm soup20 Magic · cast 3×");
     expect(text).not.toContain("none yet");
+  });
+
+  it("shows the local words he knows by language, with the last one", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("🗣Local wordsLearnednone so far");
+    stats.wordBook = { at: {}, languages: { bg: { name: "Bulgarian", words: [["здравей (zdravey)", "hello"], ["кафе (kafe)", "coffee"]] } }, countries: { BGR: "bg" } };
+    stats.words.known = { bg: ["hello", "coffee"] };
+    expect(shown(stats)).toContain("🗣Local words2Bulgarian 2 / 2кафе (kafe) = coffee");
+    // Past four languages, the ones with fewest words fold away.
+    for (const k of ["a", "b", "c", "d"]) {
+      stats.wordBook.languages[k] = { name: `Lang${k}`, words: [["x", "one"]] };
+      stats.words.known[k] = ["one"];
+    }
+    const text = shown(stats);
+    expect(text).toContain("Bulgarian 2 / 2");
+    expect(text).toContain("More languages ▸1");
+    expect(text).not.toContain("Langd");
   });
 
   it("lists his clubs on the Friends card, with their city and night", () => {
