@@ -114,6 +114,8 @@ export type Summary = {
   endLevel: number;
   /** "Bought ..." lines. */
   bought: string[];
+  /** His elder stage ran out, so the catch-up stopped there (coveredS is up to then) and the game retires him. */
+  retired?: boolean;
   /** Everything he did, oldest first. */
   lines: Line[];
   /** Where he is at the end: the city, the spot and the place he stays at (null for a made-up place or none). */
@@ -211,7 +213,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
-      // His elder stage ran out: the game retires him and his heir lives the rest.
+      // His elder stage ran out: the game retires him, and his heir starts on the real clock.
       if (stats.life.retireDue) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
@@ -286,7 +288,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (leftMin() > 0 && !stats.life.retireDue) pass(leftMin(), 0);
+    if (stats.life.retireDue) {
+      s.retired = true;
+      s.coveredS = Math.min(elapsed, coveredS);
+    } else if (leftMin() > 0) pass(leftMin(), 0);
   } finally {
     stats.now = clock;
     stats.onSay = heard;

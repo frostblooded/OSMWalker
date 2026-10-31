@@ -596,10 +596,11 @@ export class Game {
    * waits until he lands (your ask is kept); if neither loads, he tries again
    * after RETIRE_RETRY_MS.
    */
-  async retire(by: Ancestor["by"]): Promise<void> {
+  async retire(by: Ancestor["by"], inWake = false): Promise<void> {
     const w = this.walker;
     if (!w || this.retiring || this.stats.life.stage < ELDER) return;
-    if (w.isTraveling() || this.now() < this.retryRetireAt) {
+    // Mid catch-up (wake) the walker and his stats are still the catch-up's, so only wake's own call goes on.
+    if (w.isTraveling() || this.now() < this.retryRetireAt || (this.waking && !inWake)) {
       // He can't yet: your ask is kept, and he retires at the next chance.
       if (by === "you" && !this.stats.life.asked) {
         this.stats.life.asked = true;
@@ -726,7 +727,8 @@ export class Game {
    */
   async wake(): Promise<void> {
     const w = this.walker;
-    if (!w || this.waking) return;
+    // While he retires, the old walker's catch-up would land on the heir; the heir's own wake comes later.
+    if (!w || this.waking || this.retiring) return;
     const from = this.savedAt;
     const awayS = (this.now() - from) / 1000;
     if (!from || awayS < MIN_AWAY_S) return this.woken();
@@ -749,7 +751,9 @@ export class Game {
       const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       // His elder stage ran out while you were away: the catch-up stopped there, and the heir sets out now.
-      if (this.stats.life.retireDue) await this.retire("age");
+      // Aged to now first, since time past the catch-up's limit counts towards his life too.
+      this.stats.passTime(0, 0);
+      if (this.stats.life.retireDue) await this.retire("age", true);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
       this.dilemma = this.retired

@@ -296,7 +296,7 @@ export function values(data: GameData): Record<string, string> {
     STAGE_DAYS: num(Life.STAGE_DAYS),
     STAGE_COUNT: num(Life.STAGES.length),
     LIFE_DAYS: num(Life.LIFE_S / Life.DAY_S),
-    STAGE_LIST: Life.STAGES.map((st) => `- ${st.icon} ${st.name}: ${stageText(st)}${st.attr ? `; his care in the stage before nudges ${Inc.ATTR_NAMES[st.attr]}` : ""},`).join("\n"),
+    STAGE_LIST: Life.STAGES.map((st, i, all) => `- ${st.icon} ${st.name}: ${stageText(st)}${st.attr ? `; his care in the stage before nudges ${Inc.ATTR_NAMES[st.attr]}` : ""}${i === all.length - 1 ? "." : ","}`).join("\n"),
     GOOD_STARVE_H: num(Life.GOOD_STARVE_H),
     POOR_FAINTS: num(Life.POOR_FAINTS),
     POOR_STARVE_H: num(Life.POOR_STARVE_H),

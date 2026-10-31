@@ -26,7 +26,7 @@ export function LifeCard({ life, now }: { life: L.Life; now: number }) {
   return (
     <Card icon={st.icon} title={life.title()} right={`Day ${life.ageDays(now) + 1}`}>
       <KV k={next ? `⏳ ${next.name} in` : "🌅 Retires in"} v={life.retireDue ? "any moment" : days(life.leftS(now))} />
-      <KV k="❤ Care this stage" v={`${TIER_WORD[tier]} · ${life.faints} faints · ${Math.floor(life.starveMin / 60)} h starving`} tone={TIER_TONE[tier]} />
+      <KV k="❤ Care this stage" v={`${TIER_WORD[tier]} · ${life.faints} ${life.faints === 1 ? "faint" : "faints"} · ${Math.floor(life.starveMin / 60)} h starving`} tone={TIER_TONE[tier]} />
       <KV k="✨ Stage does" v={stageDoes(st) || <span class="dim">Nothing special</span>} />
       {life.gen > 1 && <KV k="👪 Family perk" v={`XP +${Math.round((life.perkXp() - 1) * 100)}% · ${euro(life.perkCents())} more to start`} />}
     </Card>
@@ -68,7 +68,7 @@ function Ancestor({ a }: { a: L.Ancestor }) {
           <div class="tree-body">
             <p class="letter">{a.letter}</p>
             <KV k="📅 Lived" v={`${date(a.born)} – ${date(a.retired)}`} />
-            <KV k="🚶 Walked" v={`${Math.round(a.km)} km · ${a.cities} cities`} />
+            <KV k="🚶 Walked" v={`${Math.round(a.km)} km · ${a.cities} ${a.cities === 1 ? "city" : "cities"}`} />
             <KV k="🌅 Retired" v={a.by === "you" ? "when you said so" : "of old age"} />
           </div>
         )}

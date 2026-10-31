@@ -428,7 +428,7 @@ Each stage starts the count over. You never have to do anything: he looks after 
 ## Retiring {retire}
 At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
 
-He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how far he got. His heir then sets out from the favourite city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later. If you retire him while he is on a ride, he says he will and retires once he lands.
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. His heir then sets out from the favourite city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later. If you retire him while he is on a ride, he says he will and retires once he lands.
 ## His heirs and the family {family}
 Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words or wants and fears. What the family keeps:
 - an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
@@ -437,7 +437,7 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 - his pet, if he has one (see His pet),
 - your clovers, care packages and storyteller.
 
-A card found by an heir says which walker of the family found it in the Collection. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
+Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).

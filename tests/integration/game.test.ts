@@ -968,6 +968,25 @@ describe("game", () => {
       expect(g.stats.life.gen).toBe(2);
     });
 
+    it("a reopen while he is retiring waits for the heir, so the old walker's catch-up never lands on him", async () => {
+      const ok = streets().load;
+      let open: () => void = () => {};
+      let gate: Promise<void> | null = null;
+      let now = Date.now();
+      const { g } = await elder(-1, { load: (t, o) => (gate ? gate.then(() => ok(t, o)) : ok(t, o)), clock: () => now });
+      g.save();
+      gate = new Promise((r) => (open = r));
+      run(g, 1);
+      expect(g.stats.life.gen).toBe(1);
+      now += 2 * 3600 * 1000;
+      await g.wake();
+      expect(g.away).toBeNull();
+      open();
+      await settled(g);
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.away).toBeNull();
+    });
+
     it("a Retire from the menu that can't load streets is kept and done on a later try", async () => {
       const ok = streets().load;
       let down = false;
@@ -1070,6 +1089,20 @@ describe("game", () => {
       expect(ready).toBeGreaterThan(-1);
       expect(lines[ready]!.t).toBeLessThan(Date.UTC(2026, 9, 29, 8) / 1000 + 2 * 3600 + 15 * 60);
       expect(lines.at(-1)!.t).toBeLessThan(Date.UTC(2026, 9, 29, 8) / 1000 + 3 * 3600);
+      expect(again.retired?.by).toBe("age");
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.dilemma).toBeNull();
+      // The card says he lived only until then, and that he retired.
+      expect(again.away!.retired).toBe(true);
+      expect(again.away!.coveredS).toBeLessThan(3 * 3600);
+    });
+
+    it("when his elder stage runs out past the catch-up's limit, he still retires on reopen, with no dilemma", async () => {
+      const { again } = await reopen(30 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 26 * 3600;
+      });
       expect(again.retired?.by).toBe("age");
       expect(again.stats.life.gen).toBe(2);
       expect(again.dilemma).toBeNull();
