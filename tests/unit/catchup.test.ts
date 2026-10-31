@@ -416,6 +416,27 @@ describe("catch-up", () => {
     expect(stats.history.entries.some((e) => /^(🌳|🧚) /.test(e.text))).toBe(true);
   });
 
+  it("a stop where a creature shows up while away takes no place moment", () => {
+    const stats = Object.assign(new Stats(), { creatureKinds: JSON.parse(dataFile("creatures.json")), placeMoments: JSON.parse(dataFile("moments.json")) });
+    const parks = [place("Town Park", "park", "park", 0.003, 0), place("Rose Garden", "garden", "garden", 0, 0.004), place("Old Fountain", "fountain", "fountain", -0.003, 0)];
+    const seen: string[] = [];
+    const meetAt = stats.meetAt.bind(stats);
+    stats.meetAt = (p) => {
+      const met = meetAt(p);
+      seen.push(met ? "creature" : "stop");
+      return met;
+    };
+    const byHimself = stats.byHimself.bind(stats);
+    stats.byHimself = (m, where, dice) => {
+      if (m) seen.push("moment");
+      byHimself(m, where, dice);
+    };
+    catchUp(stats, { ...HOME, places: [...PLACES, ...parks] }, [0, 0], 24 * 3600, START_MS, deps());
+    expect(seen).toContain("creature");
+    expect(seen).toContain("moment");
+    expect(seen.join(" ")).not.toContain("creature moment");
+  });
+
   it("draws Magic from the places on ley lines and learns spells from library books while away", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
     const sights = [place("St Mary", "place_of_worship", "christian", 0.003, 0), place("City Library", "library", "library", 0, 0.004), place("Old Monument", "monument", "monument", -0.003, 0)];
