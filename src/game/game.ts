@@ -966,9 +966,10 @@ export class Game {
     this.changed();
   }
 
-  /** The away card's choice is on screen: its time starts now. */
-  dilemmaShown(): void {
+  /** The away card's choice is on screen: its time starts now, if it hasn't yet. Returns the seconds left. */
+  dilemmaShown(): number {
     if (this.dilemmaLeft === Infinity) this.dilemmaLeft = this.momentS;
+    return this.dilemmaLeft;
   }
 
   /** Your pick on the summary card's dilemma. */

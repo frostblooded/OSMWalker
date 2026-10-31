@@ -3,7 +3,7 @@
 // and level before and after, the clover this check-in earned, now and then
 // one small choice, and everything he did folded away below. After a week
 // turns over, last week's recap leads it, once.
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import type { Summary } from "../core/catchup";
 import type { Dilemma } from "../core/dilemmas";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
@@ -23,7 +23,7 @@ export function AwaySheet({
   onChoose,
   onShown,
   onDone,
-}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onShown: () => void; onDone: () => void }) {
+}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onShown: () => number; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -114,16 +114,16 @@ function weekText(start: number): string {
 }
 
 /** The one choice this reopen offers: tap an option before the bar runs out (`leftS`), or he decides by himself. */
-function DilemmaCard({ d, leftS, onChoose, onShown }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void; onShown: () => void }) {
-  // Its time starts when you see it, and the bar drains once from there (see MomentSheet).
-  useEffect(onShown, []);
-  const [drain] = useState(leftS);
+function DilemmaCard({ d, leftS, onChoose, onShown }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void; onShown: () => number }) {
+  // Its time starts when you first see it (onShown gives the seconds), and the bar drains once from there (see MomentSheet).
+  const [drain] = useState(onShown);
+  const left = Math.min(leftS, drain);
   return (
     <Card icon={d.icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
       <p>{d.ask}</p>
       {d.picked === null ? (
         <>
-          <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(leftS)} seconds to choose`}>
+          <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
             <div style={{ animationDuration: `${drain}s` }} />
           </div>
           <div class="choices dilemma">

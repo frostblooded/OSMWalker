@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The away card: its Side income card shows what his businesses and the lottery brought in, and only then.
+// The away card: its Side income card shows what his businesses and the lottery brought in, and only then; its dilemma bar starts when shown.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import type { Summary } from "../../src/core/catchup";
@@ -12,7 +12,7 @@ const summary = (o: Partial<Summary> = {}): Summary => ({
 });
 const shown = (s: Summary) => {
   const root = document.createElement("div");
-  render(h(AwaySheet, { summary: s, clover: false, week: new Week(), dilemma: null, dilemmaS: 0, onChoose: () => {}, onShown: () => {}, onDone: () => {} }), root);
+  render(h(AwaySheet, { summary: s, clover: false, week: new Week(), dilemma: null, dilemmaS: 0, onChoose: () => {}, onShown: () => 0, onDone: () => {} }), root);
   return root.textContent ?? "";
 };
 
@@ -22,5 +22,13 @@ describe("away card", () => {
     const text = shown(summary({ takings: 1234, lotteryWon: 500 }));
     expect(text).toContain("💹 His businesses took in+€12.34");
     expect(text).toContain("🎟 Lottery prizes+€5");
+  });
+
+  it("starts the dilemma's bar when the card shows, not before (its time is unknown until then)", () => {
+    const root = document.createElement("div");
+    const dilemma = { id: "bread", city: null, icon: "🥖", ask: "Bread?", labels: ["Yes", "No"], picked: null, by: null, said: "" };
+    render(h(AwaySheet, { summary: summary(), clover: false, week: new Week(), dilemma, dilemmaS: Infinity, onChoose: () => {}, onShown: () => 5, onDone: () => {} }), root);
+    expect(root.querySelector<HTMLElement>(".moment-time > div")!.style.animationDuration).toBe("5s");
+    expect(root.querySelector(".moment-time")!.getAttribute("aria-label")).toBe("5 seconds to choose");
   });
 });
