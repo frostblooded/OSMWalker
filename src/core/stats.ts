@@ -19,6 +19,7 @@ import * as Mg from "./magic";
 import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
 import { Diary, type DiaryData } from "./diary";
+import { Mailbox, type MailData } from "./mail";
 import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
@@ -220,6 +221,9 @@ export class Stats {
   /** His diary (saved), and its templates from data/diary.json (not saved, the game sets them). */
   diary = new Diary();
   diaryData: DiaryData | null = null;
+  /** Letters and gifts from his friends, and their lines from data/mail.json (not saved, the game sets them). */
+  mail = new Mailbox();
+  mailData: MailData | null = null;
   /** Golden bricks and the monuments they paid for. */
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
@@ -648,6 +652,8 @@ export class Stats {
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
   private newDay(date: string, t: number): void {
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
+    const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
+    for (const line of this.mail.day(t, this.where.city, this.friends.list, spots, this.mailData, new Rng(seedOf(`mail${date}`)))) this.say(line);
     this.petDay(date, t);
     this.visaDay();
     const f = this.friends;
@@ -981,6 +987,11 @@ export class Stats {
     if (home) {
       this.say(home);
       this.diary.note("spot", place.name);
+    }
+    const gift = this.spots.isSpot(this.where.city, place) ? this.mail.pickUp(this.where.city) : null;
+    if (gift) {
+      this.applyFx(gift.gift.fx);
+      this.say(`${gift.gift.icon} Found a gift at ${place.name} from ${gift.from}: ${gift.gift.line.toLowerCase()}`);
     }
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
@@ -1394,7 +1405,7 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
       careers: this.careers.toJSON(),
     };
@@ -1449,6 +1460,8 @@ export class Stats {
     s.spots = Spots.fromJSON(d.spots);
     // A save from before the diary: an empty one, starting with the next day.
     s.diary = Diary.fromJSON(d.diary);
+    // A save from before letters and gifts: an empty mailbox.
+    s.mail = Mailbox.fromJSON(d.mail);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

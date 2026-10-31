@@ -3,7 +3,7 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks and his spot. Items with a story open to show it. His records close it.
+// moves his mood), his quirks, his spot and his mailbox. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -28,7 +28,7 @@ import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skil
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
-import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
+import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
   health: ["❤", "Health", "#c01c28"],
@@ -50,6 +50,8 @@ const SLOT: Record<Slot, [string, string]> = {
   vehicle: ["🚲", "Vehicle"],
 };
 
+/** Letters the Mailbox card shows. */
+const MAIL_SHOWN = 4;
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString();
 /** Hours as a 24-hour clock time. */
 const hhmm = (h: number) => {
@@ -333,6 +335,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       <MindCard s={s} />
       <QuirksCard s={s} />
       <SpotCard s={s} />
+      <MailCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -547,6 +550,26 @@ function SpotCard({ s }: { s: Stats }) {
     <Card icon="🏠" title="His spot" right={spot.name}>
       <KV k="Visits" v={spot.n} />
       <KV k="Regular's discount" v={<span class="tone-ok">−{Math.round(SPOT_DISCOUNT * 100)}%</span>} />
+    </Card>
+  );
+}
+
+/** Letters his friends wrote him, newest first, and a gift waiting at one of his spots. */
+function MailCard({ s }: { s: Stats }) {
+  const m = s.mail;
+  const recent = m.letters.slice(-MAIL_SHOWN).reverse();
+  return (
+    <Card icon="📬" title="Mailbox" right={m.letters.length || undefined}>
+      {recent.length ? (
+        <div class="zebra">
+          {recent.map((l) => (
+            <Entry key={`${l.t}${l.from}`} title={`${l.icon} ${l.from}, ${l.city.split(",")[0]}`} lines={[l.text]} />
+          ))}
+        </div>
+      ) : (
+        <p class="dim small">No letters yet. Friends he made write from their cities.</p>
+      )}
+      {m.waiting.length > 0 && <KV k="🎁 Gifts wait at his spot in" v={m.waiting.map((w) => w.city.split(",")[0]).join(", ")} tone="ok" />}
     </Card>
   );
 }

@@ -828,6 +828,10 @@ Camera follows him (a switch, on at first and remembered) keeps him in view: the
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
+## Letters and gifts {mail}
+His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. The Mailbox card on the Stats sheet shows the newest; tap one to read it. It keeps the last {KEEP_LETTERS}.
+
+Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there: a flower, cake, a lucky coin, a book. It waits, one per city, until he next reaches his spot, and then he gets its boost.
 ## Diary and dreams {diary}
 📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
 
@@ -854,6 +858,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
 - Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
+- Mailbox: the newest letters from his friends, each opening on a tap, and where a gift waits at his spot (see Letters and gifts).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.

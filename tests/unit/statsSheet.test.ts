@@ -33,6 +33,17 @@ describe("Stats sheet", () => {
     expect(text).toContain("Rank 5 / 5");
   });
 
+  it("shows his newest letters and where gifts wait", () => {
+    const stats = new Stats();
+    expect(shown(stats)).toContain("No letters yet.");
+    stats.mail.letters = [{ from: "Ana", icon: "👩", city: "Porto, Portugal", text: "Come back soon!", t: 1 }];
+    stats.mail.waiting = [{ from: "Bo", city: "Sofia, Bulgaria", gift: { name: "cake", icon: "🍰", fx: {}, line: "Cake" } }];
+    const text = shown(stats);
+    expect(text).toContain("📬Mailbox1");
+    expect(text).toContain("👩 Ana, Porto");
+    expect(text).toContain("🎁 Gifts wait at his spot inSofia");
+  });
+
   it("shows his quirks, and his spot once he has one", () => {
     const stats = new Stats();
     stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };

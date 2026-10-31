@@ -16,6 +16,7 @@ import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
 import * as Diary from "../core/diary";
+import * as Mail from "../core/mail";
 import * as Mind from "../core/mind";
 import * as Quirks from "../core/quirks";
 import * as Spot from "../core/spot";
@@ -436,6 +437,11 @@ export function values(data: GameData): Record<string, string> {
     LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
     DIARY_LINES: String(Diary.DAY_LINES),
+    FRIEND_LETTER_PCT: pct(Mail.LETTER_CHANCE),
+    FRIEND_LETTER_AT: String(Mail.LETTER_AT),
+    SPOT_GIFT_PCT: pct(Mail.GIFT_CHANCE),
+    SPOT_GIFT_AT: String(Mail.GIFT_AT),
+    KEEP_LETTERS: String(Mail.KEEP_LETTERS),
     DIARY_DAYS: String(Diary.KEEP_DAYS),
     DREAM_PCT: pct(Diary.DREAM_CHANCE),
     QUIRK_PULL: num(Quirks.QUIRK_PULL),
