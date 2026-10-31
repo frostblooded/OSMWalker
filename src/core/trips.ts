@@ -10,6 +10,7 @@
 // hours of open play, sleeping in hostels on the way (no streets load on the
 // way: he is on the zoomed-out map like a ride). A long flight leaves him
 // jet-lagged. Very rarely a portal (portals.ts) takes him, free and at once.
+import type { Home } from "./home";
 import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from "./cityCheck";
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
@@ -299,6 +300,18 @@ export class Trips {
   options(kind: Kind, country: string, lat: number, lon: number): City[] {
     if (kind === "stay") return [];
     return this.cities.filter((c) => (c.code === country) === (kind === "city") && distanceM(lat, lon, c.lat, c.lon) >= SAME_CITY_M);
+  }
+
+  /** The city `key` names ("Sofia, Bulgaria"), or null when it isn't in the list. */
+  byKey(key: string): City | null {
+    return this.cities.find((c) => `${c.name}, ${c.country}` === key) ?? null;
+  }
+
+  /** On a trip roll: his home's city (see home.ts) when its own dice `r` call him home while he is away (`atHome` false), else null. By name, or else the listed city nearest his home (the city he set out from has a place-search name), or else, for a town not in the list, a city made from his home itself. */
+  homeward(home: Home, atHome: boolean, r: number): City | null {
+    if (!home.callsHome(r, atHome)) return null;
+    const parts = home.city.split(",").map((p) => p.trim());
+    return this.byKey(home.city) ?? nearest(this.cities, home.at[0], home.at[1], SAME_CITY_M) ?? { name: parts[0]!, code: home.code, country: parts.at(-1)!, lat: home.at[0], lon: home.at[1], pop: 0 };
   }
 
   /** A city for a trip of `kind`, weighted by population and his bucket list's `pull` (see tripWeights), or null when there is nowhere to go. */

@@ -1,7 +1,7 @@
 // The game's own map icons: a white picture on a round badge whose colour
 // says what kind of place it is (blue travel, green food and rest, amber
 // work, purple story places, quests and events, indigo magic, gold his
-// monuments, his orange for his spot), drawn at 32 CSS px,
+// monuments, his orange for his spot and his home), drawn at 32 CSS px,
 // and the map layer that shows them. Loaded as its own chunk the first time
 // the map shows an icon (see MapView.setMapIcons).
 import type { Map as MlMap } from "maplibre-gl";
@@ -44,6 +44,7 @@ export const ICONS: Record<string, string> = {
   "quest-step": badge(STORY, `<path d="M22 14h3v34h-3z"/><path d="M25 15h20l-5 7 5 7H25z"/>`),
   event: badge(STORY, `<path d="M32 12l5 12 13 1-10 8 3 13-11-7-11 7 3-13-10-8 13-1z"/>`),
   home: badge(HIM, `<path d="M32 15L14 31h5v17h10V37h6v11h10V31h5z"/>`),
+  flat: badge(HIM, `<rect x="39" y="15" width="5" height="10"/><path d="M32 13L13 31h5v18h28V31h5z"/><rect x="28" y="37" width="8" height="12" fill="BADGE"/><rect x="21" y="34" width="5" height="5" fill="BADGE"/>`),
   plaque: badge(GOLD, `<rect x="16" y="20" width="32" height="20" rx="3"/><rect x="20" y="24" width="24" height="3" fill="BADGE"/><rect x="20" y="30" width="16" height="3" fill="BADGE"/><rect x="22" y="40" width="4" height="8"/><rect x="38" y="40" width="4" height="8"/>`),
 };
 

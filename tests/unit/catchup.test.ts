@@ -239,6 +239,42 @@ describe("catch-up", () => {
     expect(away(true).some((t) => t.startsWith("Took the plane to Farcity"))).toBe(true);
   });
 
+  it("a share of his trips go home, as in a watched trip", () => {
+    const home = (stats: Stats) => stats.home.rent("Farcity, B-land", "BBB", [10, 10], 0);
+    const went = Array.from({ length: 20 }, (_, i) => {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      home(stats);
+      let rolls = 0;
+      return catchUp(stats, HOME, [0, 0], 3600, START_MS + i * 60_000, deps({ roll: () => (rolls++ ? 0.99 : 0.05) })).lines.some((l) => l.text.startsWith("Took the plane to Farcity"));
+    });
+    expect(went).toContain(true);
+    expect(went).toContain(false);
+  });
+
+  it("someone greets him at real places while he is away, where he is known", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown, A-land", "AAA", "A-land");
+    stats.fame.add(stats.here(), 1000);
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
+    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps());
+    expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(true);
+  });
+
+  it("no one greets him at made-up places while he is away, as in the watched game", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown, A-land", "AAA", "A-land");
+    stats.fame.add(stats.here(), 1000);
+    // A deck that never plays, so a stop gets as far as the greeting.
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
+    for (const places of [null, []]) {
+      const s = catchUp(stats, { ...HOME, places }, [0, 0], 24 * 3600, START_MS, deps());
+      expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(false);
+    }
+  });
+
   it("packs a travel kit as he boards, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 500_000;
