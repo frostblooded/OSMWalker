@@ -357,11 +357,11 @@ On top of the usual drift, named moodlets nudge his mood a little every hour whi
 
 The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
 ## Wants and fears {wants}
-He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}), and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
+He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}) for up to {LONG_H} hours, as his city may have none, and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
 
 A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
 
-A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
+A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}. If he hasn't beaten it within {LONG_H} hours, the fear fades on its own.
 ## Quirks {quirks}
 What he does often turns into a quirk. Each counts the things he does at some kinds of places, in all his cities:
 {QUIRK_LIST}
@@ -927,7 +927,7 @@ Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT
 ## Diary and dreams {diary}
 📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
 
-When he naps or sleeps at a place (a nap on a bench, in a reading room or under a tree, dozing in the summer sun, a siesta in the shade, falling asleep in a film, a cabin, a hostel bunk or a hotel room for the night; not a fairy ring), {DREAM_PCT} of the time he dreams: an odd mix of the places of his day. The dream shows in History and under that day in his diary.
+When he naps or sleeps at a place (a nap on a bench, in a reading room or under a tree, dozing in the summer sun, a siesta in the shade, falling asleep in a film, a cabin, a hostel bunk or a hotel room for the night; not a fairy ring), {DREAM_PCT} of the time he dreams: an odd mix of the places of his day. The dream shows in History and under that day in his diary, at most {MAX_DREAMS} a day.
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).

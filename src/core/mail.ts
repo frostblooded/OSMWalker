@@ -7,6 +7,7 @@
 // partner is with him, so never writes or leaves one.
 // Lines and gifts live in data/mail.json. Pure; Stats owns one.
 import { FRIEND_LETTER_MARK } from "./bond";
+import { fill } from "./diary";
 import type { Friend } from "./friends";
 import type { Fx } from "./stats";
 import type { Rng } from "./rng";
@@ -26,7 +27,6 @@ export type Letter = { from: string; icon: string; city: string; text: string; t
 /** A gift waiting at his spot in `city`. */
 export type Waiting = { from: string; city: string; gift: Gift };
 
-const fill = (line: string, v: Record<string, string>) => line.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);
 
 export class Mailbox {
   letters: Letter[] = [];

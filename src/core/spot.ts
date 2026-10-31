@@ -16,7 +16,7 @@ export const SPOT_DISCOUNT = 0.1;
 export const SPOT_KEEP = 12;
 
 /** `t` counts up with each visit in the city, so the least recently reached place can go. */
-export type Visits = { name: string; class: string; lat: number; lon: number; n: number; t: number };
+export type Visits = { name: string; lat: number; lon: number; n: number; t: number };
 
 const same = (a: Pick<Place, "name" | "lat" | "lon">, b: Pick<Place, "name" | "lat" | "lon">) => a.name === b.name && a.lat.toFixed(4) === b.lat.toFixed(4) && a.lon.toFixed(4) === b.lon.toFixed(4);
 
@@ -25,7 +25,7 @@ export class Spots {
   cities: Record<string, Visits[]> = {};
 
   /** He reached `place` in `city`; returns a feed line when it just became his spot, else "". */
-  visit(city: string, place: Pick<Place, "name" | "lat" | "lon"> & { class?: string }): string {
+  visit(city: string, place: Pick<Place, "name" | "lat" | "lon">): string {
     const list = (this.cities[city] ??= []);
     const was = this.spot(city);
     const t = Math.max(0, ...list.map((x) => x.t)) + 1;
@@ -38,7 +38,7 @@ export class Spots {
         const old = rest.filter((x) => x.n === low).reduce((a, b) => (b.t < a.t ? b : a));
         list.splice(list.indexOf(old), 1);
       }
-      v = { name: place.name, class: place.class ?? "", lat: place.lat, lon: place.lon, n: 0, t };
+      v = { name: place.name, lat: place.lat, lon: place.lon, n: 0, t };
       list.push(v);
     }
     v.n++;
@@ -72,7 +72,7 @@ export class Spots {
 
   static fromJSON(d?: Partial<ReturnType<Spots["toJSON"]>>): Spots {
     const s = new Spots();
-    for (const [c, list] of Object.entries(d?.cities ?? {})) s.cities[c] = list.map((v) => ({ ...v, t: v.t ?? 0 }));
+    for (const [c, list] of Object.entries(d?.cities ?? {})) s.cities[c] = list.map((v) => ({ ...v }));
     return s;
   }
 }

@@ -156,3 +156,30 @@ describe("through Stats", () => {
     expect(minded(NO_NEED, { class: "cafe" }, s)).toBe(NO_NEED);
   });
 });
+
+describe("words", () => {
+  it("spells plurals and articles right", () => {
+    expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(M.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
+    expect(M.wantText({ kind: "long", place: "aquarium", until: 0 })).toBe("See an aquarium");
+    expect(M.wantText({ kind: "short", place: "cafe", until: 0 })).toBe("Go to a cafe");
+    expect(M.wantText({ kind: "shake", place: "ice_cream", until: 0 })).toBe("Cheer up at an ice cream parlour");
+  });
+});
+
+describe("wants that can't come true", () => {
+  it("a long want and the want to face a fear end after LONG_H hours, and the fear fades with it", () => {
+    const m = new M.Mind();
+    m.refill(0, () => new Rng(1));
+    expect(m.wants.find((w) => w.kind === "long")!.until).toBe(M.LONG_H * 3600);
+    m.fears = ["park"];
+    m.wants.push({ kind: "face", place: "park", until: M.LONG_H * 3600 });
+    m.refill(M.LONG_H * 3600, () => new Rng(2));
+    expect(m.fears).toEqual([]);
+    expect(m.wants.some((w) => w.kind === "face")).toBe(false);
+    expect(m.wants.filter((w) => w.kind === "long")).toHaveLength(1);
+    // An old save's endless want starts counting from the next tick.
+    const old = M.Mind.fromJSON({ wants: [{ kind: "long", place: "zoo", until: 0 }] });
+    old.refill(100, () => new Rng(3));
+    expect(old.wants.find((w) => w.place === "zoo")!.until).toBe(100 + M.LONG_H * 3600);
+  });
+});
