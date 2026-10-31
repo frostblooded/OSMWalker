@@ -82,6 +82,15 @@ describe("Stats sheet", () => {
     stats.wordBook = { at: {}, languages: { bg: { name: "Bulgarian", words: [["здравей (zdravey)", "hello"], ["кафе (kafe)", "coffee"]] } }, countries: { BGR: "bg" } };
     stats.words.known = { bg: ["hello", "coffee"] };
     expect(shown(stats)).toContain("🗣Local words2Bulgarian 2 / 2кафе (kafe) = coffee");
+    // Past four languages, the ones with fewest words fold away.
+    for (const k of ["a", "b", "c", "d"]) {
+      stats.wordBook.languages[k] = { name: `Lang${k}`, words: [["x", "one"]] };
+      stats.words.known[k] = ["one"];
+    }
+    const text = shown(stats);
+    expect(text).toContain("Bulgarian 2 / 2");
+    expect(text).toContain("More languages ▸1");
+    expect(text).not.toContain("Langd");
   });
 
   it("lists his clubs on the Friends card, with their city and night", () => {

@@ -131,22 +131,28 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** The local words he knows, by language, with the last one learned. */
+/** Languages shown on the Local words card before the rest fold away. */
+const WORD_ROWS = 4;
+
+/** The local words he knows, by language (most first, the rest folded), with the last one learned. */
 function LocalWords({ stats: s }: { stats: Stats }) {
   const book = s.wordBook;
-  const langs = Object.entries(s.words.known).filter(([k, l]) => l.length && book?.languages[k]);
+  const rows = Object.entries(s.words.known)
+    .filter(([k, l]) => l.length && book?.languages[k])
+    .sort(([, a], [, b]) => b.length - a.length)
+    .map(([k, l]) => {
+      const lang = book!.languages[k]!;
+      const last = lang.words.find(([, m]) => m === l.at(-1));
+      return <KV key={k} k={`${lang.name} ${l.length} / ${lang.words.length}`} v={last ? `${last[0]} = ${last[1]}` : ""} />;
+    });
+  const more = rows.slice(WORD_ROWS);
   return (
     <Card icon="🗣" title="Local words" right={s.words.count() || undefined}>
-      {langs.length && book ? (
-        <div class="zebra">
-          {langs.map(([k, l]) => {
-            const lang = book.languages[k]!;
-            const last = lang.words.find(([, m]) => m === l.at(-1));
-            return <KV key={k} k={`${lang.name} ${l.length} / ${lang.words.length}`} v={last ? `${last[0]} = ${last[1]}` : ""} />;
-          })}
-        </div>
-      ) : (
-        <KV k="Learned" v="none so far" />
+      {rows.length ? <div class="zebra">{rows.slice(0, WORD_ROWS)}</div> : <KV k="Learned" v="none so far" />}
+      {more.length > 0 && (
+        <Collapsible title="More languages" right={more.length}>
+          <div class="zebra">{more}</div>
+        </Collapsible>
       )}
     </Card>
   );
