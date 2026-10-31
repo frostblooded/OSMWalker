@@ -689,9 +689,9 @@ export class Stats {
       } else if (k === "below") {
         for (const [m, v] of Object.entries(need as object)) if (this.meters[m as Meter] >= v) return false;
       } else if (k === "lang") {
-        // A language learned abroad: his own doesn't count.
+        // A language learned abroad: his own and English, which he had from the start, don't count.
         const lang = this.lang();
-        if (lang === this.languages.native || this.languages.level(lang) < (need as number)) return false;
+        if (lang === this.languages.native || lang === Lang.ENGLISH || this.languages.level(lang) < (need as number)) return false;
       } else if (isSkill(k)) {
         if (this.skills.level(k) < (need as number)) return false;
       } else if (this.attr(k as Attr) < (need as number)) return false;

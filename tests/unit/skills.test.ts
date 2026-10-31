@@ -197,6 +197,10 @@ describe("languages", () => {
     expect(s.canDo(guide, 12)).toBe(false);
     s.languages.add("French", Lang.LANG_HOURS[Lang.FLUENT]!);
     expect(s.canDo(guide, 12)).toBe(true);
+    // English he had from the start, so it doesn't count.
+    s.arrive("London", "GBR", "United Kingdom");
+    expect(s.languages.level(Lang.ENGLISH)).toBe(Lang.FLUENT);
+    expect(s.canDo(guide, 12)).toBe(false);
   });
 });
 

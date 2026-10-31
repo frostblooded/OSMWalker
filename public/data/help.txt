@@ -232,7 +232,7 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Skills: some need a level of a skill, such as a street concert at music 4 (see Skills).
-- Language: guiding and translating need {FLUENT} in the local language, learned abroad (see Languages).
+- Language: guiding and translating need {FLUENT} in the local language, learned abroad: not his own, nor English (see Languages).
 - Cooking needs ingredients for a recipe he knows, and buying them room in his pantry (see Cooking).
 - Level: some need a minimum level.
 - Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
@@ -404,7 +404,7 @@ He has a meter for every language. Each hour in a country fills its language's m
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
 
-Each level adds {LANG_CHARM} Charm while he is in a country that speaks the language, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). At {FLUENT} in a language he learned abroad (not his own), he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
+Each level adds {LANG_CHARM} Charm while he is in a country that speaks the language, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). At {FLUENT} in a language he learned abroad (not his own, nor English), he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
 
 The Stats sheet lists the languages he speaks, his best first.
 # ⭐ Progress

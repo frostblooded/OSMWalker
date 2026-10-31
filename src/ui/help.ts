@@ -170,7 +170,6 @@ const crawlKinds = (c: K.Crawl) => {
   const words = Collection.CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
   return c.id === "sights" ? `${words} (see Landmark cards)` : words;
 };
-/** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 /** One Help line per skill: the actions that train it, and those that need a level of it. */
 const skillLines = (actions: Activities.ActionTable) => {
   const all = Object.values(actions).flat();
@@ -185,6 +184,7 @@ const skillLines = (actions: Activities.ActionTable) => {
 };
 const recipeLines = () =>
   Cook.RECIPES.map((r) => `- ${r.icon} ${r.name[0]!.toUpperCase()}${r.name.slice(1)} (cooking ${r.level}): ${Cook.listOf(r.uses)}, ${Object.entries(r.fx).map(([k, v]) => `+${num(v)} ${k === "str" ? "strength" : k === "magic" ? "Magic" : k}`).join(", ")}.`).join("\n");
+/** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
 /** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
