@@ -76,6 +76,12 @@ describe("the real help", () => {
     expect(body).toContain("at most 2 other modifiers");
   });
 
+  it("lists the quirks' places in plain plurals", () => {
+    const body = page("quirks").body;
+    expect(body).toContain("times at bakeries");
+    expect(body).toContain("times at ice cream parlours");
+  });
+
   it("takes the nap threshold from the data", () => {
     expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
   });
@@ -215,5 +221,11 @@ describe("search", () => {
   it("counts the local words from the word list", () => {
     const text = page("words").body;
     expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
+  });
+});
+
+describe("plural", () => {
+  it("spells the quirk places right", () => {
+    expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(Help.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
   });
 });

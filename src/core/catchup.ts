@@ -9,7 +9,7 @@
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
-import { anyUrgent, choose, exploreWeight, minded, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, minded, placePull, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
@@ -244,14 +244,16 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      stats.stop(place);
       if (city.places) {
+        // Visit first, as the watched game does, so his spot counts this visit.
         const bonus = stats.visit(place);
+        stats.stop(place);
         if (bonus > 0) s.firstVisits++;
         stats.say(bonus > 0 ? `Reached ${place.name} for the first time (+${bonus} XP)` : `Reached ${place.name}`);
         stats.care.open(stats);
         stats.collect(place, deps.cardRng ?? rng);
       } else {
+        stats.stop({ ...place, made: true });
         stats.say(`Reached ${place.name}`);
         stats.care.open(stats);
       }
@@ -376,7 +378,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const d = Math.hypot(v[0], v[1]);
       if (d <= ARRIVE_M) return 0;
       any = true;
-      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * exploreWeight(real[i]!, stats);
+      return (keep ? nearWeight(d) * n.pull : flat.rank[i]! * distanceWeight(d) * headingWeight(heading, v) * n.pull) * placePull(real[i]!, stats, sky.hour);
     });
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);

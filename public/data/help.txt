@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear.
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear, ×{QUIRK_PULL} for each of his quirks there (see Quirks). His spot weighs ×{SPOT_PULL} in the morning (see His spot).
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -325,6 +325,15 @@ He always has two wants, each for a kind of place: a long one, a sight he dreams
 A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
 
 A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
+## Quirks {quirks}
+What he does often turns into a quirk. Each counts the things he does at some kinds of places, in all his cities:
+{QUIRK_LIST}
+
+A quirk makes its kinds of places pull his goal ×{QUIRK_PULL} (see Picking the next goal), and each time he does something there it cheers him a little ({QUIRK_MOOD}, see Moodlets). He has at most {MAX_QUIRKS}: a new one pushes out the oldest, which never comes back. The Quirks card on the Stats sheet lists them.
+## His spot {spot}
+The real place he has reached most in a city becomes his spot once he has been there {SPOT_MIN} times. A house marks it on the map, and the His spot card on the Stats sheet shows it. Each city remembers {SPOT_KEEP} places; a new one pushes out the least recently reached of the least visited (never his spot), so another place can take over.
+
+From {SPOT_FROM} to {SPOT_TO} his spot pulls his goal ×{SPOT_PULL}, so he drifts back there in the mornings. As a regular he pays {SPOT_DISCOUNT} less for what he does there (not for shopping or card packs).
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -822,6 +831,9 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
 - Pet: his pet's level, the km they walked together towards the next level, its perk, how long it has been with him and whether it ate today; the pets he had fold into Remembered (see His pet).
+- Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
+- Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
+- His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
