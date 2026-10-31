@@ -205,6 +205,7 @@ A sheet opens over the map and he stands still while it is open. A bar shows the
 Every tap is optional:
 - When the bar runs out, you close the sheet or you leave the game, he picks himself, and his History says "Decided by himself". Once you have started Tap fast, you get what your taps have scored so far instead.
 - With the timer Off the sheet never opens and he always picks himself.
+- While the While you were away card is open, no sheet covers it: he picks himself.
 - While you are away he lives through the same moments, at the same places and trips, and always picks himself (see While you were away).
 
 At a choice he takes the usual option, unless his attribute tilts him to the bolder first one: {MOMENT_LEAN_PCT} for each point above 1 of the attribute that choice leans on, up to {MOMENT_LEAN_CAP_PCT}. A choice with a shady option (robbing a till, skipping the bill) may tempt him: he takes it by himself as often as his karma says, more often the worse it is (see Karma).
