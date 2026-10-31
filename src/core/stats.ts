@@ -1783,12 +1783,18 @@ export class Stats {
         if (card.stray) this.stray(card.stray, place.name);
         return this.incidentLine;
       }
-      if (card.stray) this.stray(card.stray, place.name);
       // A choice plays on its own dice, so your tap (or none) leaves the card dice as in the catch-up.
       const dice = new Rng(seedOf(`incident${this.now()}${card.id}`));
       const his = Inc.hisPick(card, this, dice);
-      if (!ask) return (this.incidentLine = Inc.play(card, this, place.name, dice, his));
-      ask(Inc.moment(card, place.name), () => String(his), (p) => (this.incidentLine = Inc.play(card, this, place.name, dice, Number(p.id), p.you)));
+      const settle = (picked: number, you?: boolean) => {
+        this.incidentLine = Inc.play(card, this, place.name, dice, picked, you);
+        if (card.stray) this.stray(card.stray, place.name);
+      };
+      if (!ask) {
+        settle(his);
+        return this.incidentLine;
+      }
+      ask(Inc.moment(card, place.name), () => String(his), (p) => settle(Number(p.id), p.you));
       return "";
     }
     // Clubs roll their own dice, so the walk's stay the same.

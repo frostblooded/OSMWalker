@@ -463,13 +463,13 @@ export class Game {
     this.changed();
   }
 
+  /** True while a story moment (storyAsk) is open; saves wait for it. */
+  private storyOpen = false;
   /**
    * Asks a moment from inside a story rule (Stats.happen) and saves once it
    * settles. When none can open (timer Off, or one already open) he picks at
    * once, so it lands before the action he then chooses, as in the catch-up.
    */
-  /** True while a story moment (storyAsk) is open; saves wait for it. */
-  private storyOpen = false;
   private storyAsk: Ask = (m, his, settle) => {
     if (this.momentS <= 0 || this.moment) return settle({ id: his(), you: false });
     this.storyOpen = true;
