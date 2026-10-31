@@ -99,7 +99,7 @@ function Taps({ onScore, onPlay }: { onScore: (s: number) => void; onPlay: (s: n
   };
   return (
     <button class="btn primary tapper" onClick={tap}>
-      👆 Tap! {taps} / {TAPS}
+      👆 Tap! {String(taps).padStart(String(TAPS).length, "\u2007")} / {TAPS}
     </button>
   );
 }
