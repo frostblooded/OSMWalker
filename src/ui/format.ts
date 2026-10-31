@@ -32,8 +32,9 @@ export function countdown(seconds: number): string {
 
 /** Seconds left as h:mm:ss, or m:ss under an hour (see countdown). */
 export function clock(seconds: number): string {
-  const s = Math.ceil(Math.max(seconds - 0.001, 0));
-  return s < 3600 ? countdown(s) : `${Math.floor(s / 3600)}:${countdown(s % 3600).padStart(5, "0")}`;
+  if (seconds <= 3599) return countdown(seconds);
+  const s = Math.ceil(seconds - 0.001);
+  return `${Math.floor(s / 3600)}:${countdown(s % 3600).padStart(5, "0")}`;
 }
 
 /** `part` of `whole` as "14%", with a decimal under 10% ("1.5%"), and at least "0.1%" once part is above 0. */

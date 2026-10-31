@@ -8,7 +8,7 @@ export const BOOST = 10;
 /** Shorter absences give no boost. */
 export const MIN_AWAY_S = 60;
 
-/** Real seconds of boost that `awayS` seconds away earn: the missed time, made up at BOOST x. */
+/** Real seconds of boost that `awayS` seconds away earn (at least MIN_AWAY_S, see Game.wake): the missed time, made up at BOOST x. */
 export function boostFor(awayS: number): number {
-  return awayS < MIN_AWAY_S ? 0 : awayS / (BOOST - 1);
+  return awayS / (BOOST - 1);
 }

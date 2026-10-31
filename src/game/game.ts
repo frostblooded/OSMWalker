@@ -372,10 +372,10 @@ export class Game {
     // actually lived is used up, so a moment that opens mid-step (or a retirement) keeps the rest.
     for (let real = Math.min(dt, MAX_STEP_S); real > 1e-9 && this.walker === w && !this.retiring && !this.moment; ) {
       const fast = Math.min(real, this.boostS, MAX_STEP_S / BOOST);
-      const slow = fast > 0 ? 0 : real;
+      const s = fast || real;
       this.boostS -= fast;
-      real -= fast + slow;
-      this.live(fast * BOOST + slow);
+      real -= s;
+      this.live(fast ? fast * BOOST : s);
     }
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
@@ -530,8 +530,8 @@ export class Game {
   private storyOpen = false;
   /**
    * Asks a moment from inside a story rule (Stats.happen) and saves once it
-   * settles. When none can open (timer Off, one already open, or the away
-   * card up) he picks at once, so it lands before the action he then
+   * settles. When none can open (timer Off, one already open, or the
+   * welcome-back card up) he picks at once, so it lands before the action he then
    * chooses.
    */
   private storyAsk: Ask = (m, his, settle) => {

@@ -195,7 +195,7 @@ Every tap is optional:
 - When the bar runs out, you close the sheet or you leave the game, he picks himself, and his History says "Decided by himself". Once you have started Tap fast, you get what your taps have scored so far instead.
 - With the timer Off the sheet never opens and he always picks himself.
 - While the Welcome back card is open, no sheet covers it: he picks himself.
-- The bar counts your own seconds, also during a boost, and the boost waits while a sheet is open (see Welcome back and the boost).
+- The bar counts your own seconds, also during a boost, and the boost waits while it is open (see Welcome back and the boost).
 
 At a choice he takes the usual option, unless his attribute tilts him to the bolder first one: {MOMENT_LEAN_PCT} for each point above 1 of the attribute that choice leans on, up to {MOMENT_LEAN_CAP_PCT}. A choice with a shady option (robbing a till, skipping the bill) may tempt him: he takes it by himself as often as his karma says, more often the worse it is (see Karma).
 

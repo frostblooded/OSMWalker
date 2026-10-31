@@ -36,7 +36,7 @@ export const MAX_CITY_RADIUS_M = 25_000;
 export const MAX_SKIPS = 3;
 /** Where he stands on landing, until the new city's streets load. Never a tile or OSM id. */
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
-/** A flyer lands only where a street corner is this close to the park. */
+/** He stands on the nearest loaded corner only when it is this close; else on a lone point until the streets load. */
 export const SNAP_M = 100;
 /** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and at most LAND_SHARE of his distance. */
 export const FLY_MIN_M = 400;

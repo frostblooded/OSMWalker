@@ -15,8 +15,6 @@ import { HALL } from "../core/hall";
 import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
 import * as Boost from "../core/boost";
-import { duration } from "./format";
-
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Crawl from "../core/crawl";
@@ -89,6 +87,7 @@ import * as Notes from "../core/sightNotes";
 import { CITIES_SHOWN, STREET_MARK } from "../core/streetBook";
 import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
+import { duration } from "./format";
 import { MIN_CHARS } from "./Picker";
 
 /** The taxi ride Help prices as an example. */

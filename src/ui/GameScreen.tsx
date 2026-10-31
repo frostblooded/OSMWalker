@@ -446,7 +446,7 @@ function StoryCard({ game, id, onClose }: { game: Game; id: string; onClose: () 
   );
 }
 
-/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats, the Collection, the Care package sheet, the away sheet). */
+/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats, the Collection, the Care package sheet, the welcome-back card). */
 function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
   const [mod, setMod] = useState<M | null>(null);
   const [failed, setFailed] = useState(false);

@@ -36,6 +36,10 @@ describe("texts", () => {
     expect(F.countdown(60)).toBe("1:00");
     expect(F.countdown(59.2)).toBe("1:00");
     expect(F.countdown(0.5)).toBe("0:01");
+    // clock: m:ss under an hour, then h:mm:ss.
+    expect(F.clock(59.2)).toBe("1:00");
+    expect(F.clock(3599.5)).toBe("1:00:00");
+    expect(F.clock(3661)).toBe("1:01:01");
     expect(F.countdown(0)).toBe("0:00");
   });
 
