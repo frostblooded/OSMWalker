@@ -314,6 +314,15 @@ describe("game", () => {
     expect(g.chase).toBeNull();
     expect(g.stats.law.chases).toBe(0);
     expect(g.stats.history.latest()).toBe("🚓 The police gave up the chase");
+    // Heading for a ride out loses them too, so jail never lands mid-trip.
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.chase = { m: R.chaseMoment(g.stats.him()), place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+    g.walker!.departing = {} as never;
+    now += 1000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.stats.history.latest()).toBe("🚓 He hurried off to catch his ride, and the police lost him");
+    g.walker!.departing = null;
     for (let i = 0; i < 10; i++) {
       g.stats.say(`Did a thing ${i}`);
       now += 1000;

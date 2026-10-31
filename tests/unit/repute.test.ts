@@ -292,6 +292,20 @@ describe("the law", () => {
     expect(faded.cents).toBe(0);
   });
 
+  it("he picks his way out by his money when the chase ends, not when it began", () => {
+    for (let i = 0; i < 20; i++) {
+      const s = at();
+      s.bond.lean = -LEAN_MAX;
+      s.attrs.cha = 10;
+      s.law.addHeat(40);
+      s.cents = 1_000_000;
+      expect(R.chaseMoment(s.him()).rascal).toBe("bribe");
+      s.cents = 0;
+      s.runChase(`Kiosk ${i}`);
+      expect(s.history.latest()).not.toMatch(/bribe/);
+    }
+  });
+
   it("running or hiding may lose them (more heat), a bribe clears it at a karma cost", () => {
     const s = at();
     s.law.addHeat(40);

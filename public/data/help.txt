@@ -745,7 +745,7 @@ With {PAYOFF_STARS} stars or more he can pay it off at a police station: {PAYOFF
 
 While he has a star, the police may spot him at each stop: {SPOT_PER_STAR_PCT} a star, times 1 + {FAME_SPOT} for each tier all his fame together reaches. Then a chase starts (see Police chases).
 ## Police chases {police_chase}
-When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. If his heat drops under a star by then (he paid it off, or it faded) or he boards a ride out, the police give up. Otherwise it ends, by how he chooses:
+When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. If his heat drops under a star by then (he paid it off, or it faded) or he heads for a ride out, the police give up. Otherwise it ends, by how he chooses:
 - 🙌 Give up: he is caught, and gets +{SURRENDER_KARMA} karma for owning up.
 - 🏃 Run: gets away {RUN_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Strength above 1, and more with energy above half, less below.
 - 🫣 Hide: gets away {HIDE_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Wits above 1 and half that for Luck.

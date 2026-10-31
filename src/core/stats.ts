@@ -1024,10 +1024,10 @@ export class Stats {
     return null;
   }
 
-  /** Ends chase `m`, begun at the place named `place`, with your `pick` or else his own by his karma (moments.ts defaultPick); see chased. Its own dice. */
-  runChase(m: Moment, place: string, pick?: R.Pick): number {
+  /** Ends the chase begun at the place named `place`, with your `pick` or else his own by his karma (moments.ts defaultPick) from his money and energy as they are now, not when it began; see chased. Its own dice. */
+  runChase(place: string, pick?: R.Pick): number {
     const rng = new Rng(seedOf(`chase${this.now()}${place}`));
-    return this.chased(pick ?? (defaultPick(m, this, rng) as R.Pick), rng.randf());
+    return this.chased(pick ?? (defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick), rng.randf());
   }
 
   /** The chase ends with `pick` and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */

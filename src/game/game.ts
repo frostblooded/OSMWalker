@@ -613,10 +613,10 @@ export class Game {
     const c = this.chase;
     const w = this.walker;
     if (!c || !w) return;
-    // Nobody to chase once the heat is gone (paid off, or faded), or once he has boarded a ride out.
-    if (this.stats.law.stars() === 0 || w.isTraveling()) {
+    // Nobody to chase once the heat is gone (paid off, or faded), or once he heads for a ride out or boards it (jail mid-trip would leave the trip half set up).
+    if (this.stats.law.stars() === 0 || w.isTraveling() || w.isDeparting()) {
       this.chase = null;
-      this.stats.say(w.isTraveling() ? "🚓 He got on board just in time and left the police behind" : "🚓 The police gave up the chase");
+      this.stats.say(w.isTraveling() ? "🚓 He got on board just in time and left the police behind" : w.isDeparting() ? "🚓 He hurried off to catch his ride, and the police lost him" : "🚓 The police gave up the chase");
       this.changed();
       return;
     }
@@ -624,7 +624,7 @@ export class Game {
     if (this.now() < c.ends) return;
     this.chase = null;
     // Until the timed choices can ask you, he takes his own pick.
-    const jail = this.stats.runChase(c.m, c.place);
+    const jail = this.stats.runChase(c.place);
     if (jail) {
       this.doing = { name: "In jail", min: jail };
       w.restFor(jail);

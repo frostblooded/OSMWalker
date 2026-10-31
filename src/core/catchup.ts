@@ -276,7 +276,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       const chase = stats.reputeAt(place);
       if (chase) {
         // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
-        const jail = stats.runChase(chase, place.name);
+        const jail = stats.runChase(place.name);
         s.stops++;
         pass(Math.min(jail || restMinutes({ name: "", min: 1 }), leftMin()), 0);
         yield;
