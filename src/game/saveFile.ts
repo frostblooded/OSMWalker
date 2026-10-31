@@ -7,6 +7,7 @@
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Holiday } from "../core/holidays";
 import { Problems } from "../core/problems";
+import { MOMENT_S, MOMENT_TIMERS } from "../core/moments";
 import { Stats, type Place } from "../core/stats";
 import type { WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
@@ -45,7 +46,7 @@ export type Saved = {
   made: Record<string, Place[]>;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean; momentS: number };
 
 /** The stored form; its keys never change, so older saves still load. */
 type Stored = {
@@ -60,7 +61,7 @@ type Stored = {
   saved_at?: number;
   made_places?: Record<string, Place[]>;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean; moment_s?: number };
 
 export function safeStorage(): KV | null {
   try {
@@ -138,7 +139,7 @@ export class SaveFile {
         walker,
         // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
         // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
-        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, ruin crawls, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), and his bucket list (empty, filled on the next new day).
+        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, ruin crawls, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), and his bucket list (empty, filled on the next new day). Ancestors from before the hall of walkers keep no countries or bests, and the hall (hall.ts) skips them for those.
         // The day's stops that older saves carry are dropped.
         stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
@@ -161,7 +162,7 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma, momentS: MOMENT_TIMERS.includes(d.moment_s as never) ? d.moment_s! : MOMENT_S };
     } catch {
       return "Settings were unreadable; using defaults";
     }
@@ -187,7 +188,7 @@ export class SaveFile {
 
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName, always_dilemma: s.alwaysDilemma };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName, always_dilemma: s.alwaysDilemma, moment_s: s.momentS };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.

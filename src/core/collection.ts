@@ -3,6 +3,7 @@
 // found; a feat counts something and has Bronze, Silver and Gold tiers, and
 // Gold gives him a title. A new feature adds its SETS and FEATS here, and the
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
+import { HALL, heldBy } from "./hall";
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
 import { DREAMS } from "./bucket";
 import { BUSINESSES } from "./business";
@@ -481,6 +482,7 @@ export const FEATS: Feat[] = [
   { id: "citizen", tab: "world", icon: "🎫", name: "Citizen", what: "{n} countries where he is a citizen", tiers: [1, 2, 5], title: "Citizen of the World", count: (s) => Object.values(s.visas.days).filter((d) => d >= VISAS[3].from).length },
   { id: "known", tab: "world", icon: "⭐", name: "Known face", what: "{n} cities that know his face", tiers: [1, 5, 20], title: "Celebrity", count: (s) => s.fame.citiesAt(1) },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
+  { id: "heir", tab: "world", icon: "🏛", name: "Pride of the family", what: "{n} family records held over the walkers before him", tiers: [1, 3, HALL.length], title: "Family Legend", count: (s) => heldBy(s).length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "ruins", tab: "places", icon: "🏰", name: "Delver", what: "{n} ruins crawled", tiers: [1, 5, 20], title: "Delver", count: (s) => s.ruins.count },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },

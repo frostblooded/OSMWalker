@@ -90,21 +90,3 @@ export async function reopenAfter(page: Page, hours: number) {
   }, hours * 3600_000);
   await page.reload();
 }
-
-/** Reloads with him walking to a bus station for a trip to Plovdiv, the "Where to?" guess open. */
-export async function reopenDeparting(page: Page) {
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem("departing")) return;
-    sessionStorage.setItem("departing", "1");
-    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
-    const station = { name: "Central Bus", class: "bus", subclass: "bus_station", rank: 1, lat: 42.69, lon: 23.322 };
-    const city = { name: "Plovdiv", code: "BGR", country: "Bulgaria", lat: 42.15, lon: 24.75, pop: 340000 };
-    Object.assign(d.walker, { goal: [station.lat, station.lon], goal_node: null, route: [], place: station, rest_m: 0, rest_total_m: 0, rested_m: 0 });
-    d.walker.departing = { city, mode: "bus", station, fare: 1248, arrive: [city.lat, city.lon], distance_m: 120000 };
-    d.stats.care = { ...d.stats.care, guess: { abroad: false, choices: ["Varna", "Plovdiv", "Burgas"], answer: "Plovdiv", pick: "" } };
-    d.saved_at = Date.now();
-    localStorage.setItem("osmwalker.save", JSON.stringify(d));
-  });
-  await page.reload();
-}

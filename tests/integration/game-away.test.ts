@@ -3,15 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { FULLNESS_PER_H, type Place } from "../../src/core/stats";
 import { cityBounds, LONG_WALK_MAX_S, SLEEPER_FROM_M } from "../../src/core/trips";
+import { MOMENT_S } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
 import { getCrawler, setCrawler } from "../../src/core/ruins";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { dataFile } from "../support/data";
-import { START, CAFE, MemStorage, game, HOUR, reopen, reopenDilemma } from "../support/game";
+import { START, CAFE, MemStorage, game, HOUR, reopen, reopenDilemma, run } from "../support/game";
 
 describe("game", () => {
   describe("catch-up", () => {
+    it("takes his own pick at each place's moment while away, and says so in his History", async () => {
+      const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
+      expect(again.moment).toBeNull();
+      expect(again.stats.history.entries.some((e) => / Decided by himself: /.test(e.text))).toBe(true);
+    });
+
     it("knows the holiday kept on the device on reopen, so time away on a holiday has holiday actions", async () => {
       // The list was fetched on an earlier day; Nager.Date is down now.
       const storage = new MemStorage();
@@ -183,6 +190,28 @@ describe("game", () => {
       expect(r.again.stats.history.entries.some((e) => e.text.startsWith("Decided by himself: "))).toBe(true);
     });
 
+    it("decides by himself once the moment timer runs out after the card shows, or at once with it Off", async () => {
+      const { again } = await reopenDilemma("bread");
+      // Behind another sheet the card isn't seen yet, so its time hasn't started.
+      run(again, 60);
+      expect(again.dilemma).toMatchObject({ picked: null });
+      again.dilemmaShown();
+      run(again, 1);
+      // Shown again (the card reopened), it keeps counting down.
+      again.dilemmaShown();
+      expect(again.dilemmaLeft).toBe(MOMENT_S - 1);
+      run(again, MOMENT_S - 2);
+      expect(again.dilemma).toMatchObject({ picked: null });
+      run(again, 1);
+      expect(again.dilemma).toMatchObject({ by: "him" });
+
+      const off = await reopen(5 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        while (g.momentS) g.nextMomentTimer();
+      });
+      expect(off.again.dilemma).toMatchObject({ by: "him" });
+    });
+
     it("takes him to the offered city when he hops on a free ride", async () => {
       const r = await reopenDilemma("trucker");
       const again = r.again;
@@ -243,17 +272,15 @@ describe("game", () => {
       expect(new Game({ ...(long.g as unknown as { deps: GameDeps }).deps }).woke).toBe(false);
     });
 
-    it("lets a free ride replace a trip he is walking to, with its guess", async () => {
+    it("lets a free ride replace a trip he is walking to", async () => {
       const { again } = await reopenDilemma("trucker");
       const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
       again.dilemma!.city = vidin!;
       const w = again.walker!;
       w.departing = { city: { ...plovdiv!, bounds: cityBounds(plovdiv!) }, mode: "bus", station: null, fare: 1248, arrive: [plovdiv!.lat, plovdiv!.lon], distance_m: 120000 } as unknown as typeof w.departing;
-      again.stats.care.guess = { abroad: false, choices: ["Plovdiv", "Vidin"], answer: "Plovdiv", pick: "" };
       again.chooseDilemma(0);
       expect(again.city).toBe("Vidin, Bulgaria");
       expect(w.departing).toBeNull();
-      expect(again.stats.care.guess).toBeNull();
     });
 
     it("still finishes a reopen when the dilemma code can't load", async () => {

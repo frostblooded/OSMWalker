@@ -3,6 +3,7 @@
 // and level before and after, the clover this check-in earned, now and then
 // one small choice, and everything he did folded away below. After a week
 // turns over, last week's recap leads it, once.
+import { useState } from "preact/hooks";
 import type { Summary } from "../core/catchup";
 import type { Dilemma } from "../core/dilemmas";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
@@ -18,9 +19,11 @@ export function AwaySheet({
   clover,
   week,
   dilemma,
+  dilemmaS,
   onChoose,
+  onShown,
   onDone,
-}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; onChoose: (pick: number) => void; onDone: () => void }) {
+}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onShown: () => number; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -33,7 +36,7 @@ export function AwaySheet({
         {lost >= 60 && s.retire !== "done" && <KV k={s.retire ? "🌅 Stopped to retire, not counted" : "Past the limit, not counted"} v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
-      {dilemma && <DilemmaCard d={dilemma} onChoose={onChoose} />}
+      {dilemma && <DilemmaCard d={dilemma} leftS={dilemmaS} onChoose={onChoose} onShown={onShown} />}
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
         <KV k="✨ New places" v={s.firstVisits} />
@@ -110,13 +113,19 @@ function weekText(start: number): string {
   return `${f(start + 3600)} – ${f(start + 6 * 86400 + 3600)}`;
 }
 
-/** The one choice this reopen offers: tap an option, or carry on and he decides by himself. */
-function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => void }) {
+/** The one choice this reopen offers: tap an option before the bar runs out (`leftS`), or he decides by himself. */
+function DilemmaCard({ d, leftS, onChoose, onShown }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void; onShown: () => number }) {
+  // Its time starts when you first see it (onShown gives the seconds), and the bar drains once from there (see MomentSheet).
+  const [drain] = useState(onShown);
+  const left = Math.min(leftS, drain);
   return (
     <Card icon={d.icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
       <p>{d.ask}</p>
       {d.picked === null ? (
         <>
+          <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
+            <div style={{ animationDuration: `${drain}s` }} />
+          </div>
           <div class="choices dilemma">
             {d.labels.map((n, i) => (
               <button key={n} class="btn" onClick={() => onChoose(i)}>
@@ -124,7 +133,7 @@ function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => 
               </button>
             ))}
           </div>
-          <p class="dim small">Or carry on, and he decides by himself.</p>
+          <p class="dim small">Or wait, and he decides by himself.</p>
         </>
       ) : (
         <>
