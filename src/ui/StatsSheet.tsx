@@ -403,7 +403,6 @@ function PetCard({ s }: { s: Stats }) {
 
 const STANDING = { nemesis: "Nemesis", rival: "Rival", friend: "Friendly rival" } as const;
 
-/** Viktor: his level, their record, and what they are to each other. */
 const perH = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${n1(Math.abs(n))}/h`;
 const hoursLeft = (min: number) => (min >= 60 ? `${Math.ceil(min / 60)} h` : `${Math.ceil(min)} min`);
 
@@ -416,11 +415,14 @@ function MindCard({ s }: { s: Stats }) {
   return (
     <Card icon="💭" title="Mind">
       <div class="zebra">
+        {/* A fear shows as its want to face it, so the card stays at 5 rows at most. */}
         {m.wants.map((w) => (
-          <KV key={`${w.kind}${w.place}`} k={`${wantIcon(w)} ${wantText(w)}`} v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""} />
-        ))}
-        {m.fears.map((f) => (
-          <KV key={f} k={`😨 Wary of ${noun(f)}s`} v="" tone="warning" />
+          <KV
+            key={`${w.kind}${w.place}`}
+            k={w.kind === "face" ? `😨 Wary of ${noun(w.place)}s: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
+            v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""}
+            tone={w.kind === "face" ? "warning" : undefined}
+          />
         ))}
       </div>
       <Collapsible title="🙂 Mood" right={perH(total)}>
@@ -443,6 +445,7 @@ function MindCard({ s }: { s: Stats }) {
   );
 }
 
+/** Viktor: his level, their record, and what they are to each other. */
 function RivalCard({ s }: { s: Stats }) {
   const r = s.rival;
   const last = r.memory.at(-1);
