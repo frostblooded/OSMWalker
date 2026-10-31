@@ -84,9 +84,12 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
           </button>
         </div>
       </Card>
-      <Card icon="🤔" title="Dilemmas">
+      <Card icon="🤔" title="Choices">
         <button class="btn" role="switch" aria-checked={g.alwaysDilemma} onClick={() => g.setAlwaysDilemma(!g.alwaysDilemma)}>
           One on every long reopen <span class={`switch${g.alwaysDilemma ? " on" : ""}`} aria-hidden="true" />
+        </button>
+        <button class="btn" onClick={act(() => g.debugMoment())}>
+          ⏱ Try a moment
         </button>
       </Card>
       <Card icon="📜" title="Logs">

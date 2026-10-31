@@ -785,7 +785,7 @@ Its buttons change the game right away:
 - New city sends him straight to another city in the same country.
 - New country sends him straight to a city in another country.
 
-The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice (see One choice on reopen), for testing. The switch is remembered.
+In the 🤔 Choices card, the switch "One on every long reopen" makes every reopen after {DILEMMA_AWAY_H} hours bring a choice (see One choice on reopen), for testing; it is remembered. ⏱ Try a moment opens a timed moment where he is: a plain choice, then each mini-game in turn (see Timed moments). It counts like any other.
 ## New city {new_city}
 New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 

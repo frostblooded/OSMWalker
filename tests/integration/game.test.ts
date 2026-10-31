@@ -21,7 +21,7 @@ import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
-import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { DEBUG_MOMENTS, Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -450,6 +450,19 @@ describe("game", () => {
       g.play("a");
       run(g, MOMENT_S);
       expect(await p).toEqual({ id: "a", you: true });
+    });
+
+    it("the Debug button opens a plain choice, then each mini-game in turn", async () => {
+      const { g } = withMoments();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      const kinds: string[] = [];
+      for (let i = 0; i < DEBUG_MOMENTS.length + 1; i++) {
+        g.debugMoment();
+        kinds.push(g.moment!.m.game ?? "");
+        expect(g.moment!.m.ask).not.toContain("{PLACE}");
+        g.settleMoment(null);
+      }
+      expect(kinds).toEqual([...DEBUG_MOMENTS, ""]);
     });
 
     it("lets another moment that comes while one is open take his own pick at once", async () => {

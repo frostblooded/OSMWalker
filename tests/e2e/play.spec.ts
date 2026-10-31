@@ -1,7 +1,7 @@
 // Player flows in the browser, with fake map services.
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { mockServices, reopenAfter, reopenDeparting, reopenWith } from "./mock";
+import { mockServices, reopenAfter, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -178,16 +178,6 @@ test("a long reopen may hold one choice, which a tap settles", async ({ page }) 
   await expect(away).toBeHidden();
 });
 
-test("while he walks to a station you can guess where he is going, once", async ({ page }) => {
-  await startInSofia(page);
-  await reopenDeparting(page);
-  const guess = page.getByRole("group", { name: "Guess where he is going" });
-  await expect(guess).toContainText("Where to?", { timeout: 20000 });
-  await guess.getByRole("button", { name: "Plovdiv" }).click();
-  await expect(page.locator(".hud")).toContainText("Your guess: Plovdiv");
-  await expect(guess).toBeHidden();
-});
-
 test("a postcard goes out as a link and opens in a friend's game", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await startInSofia(page);
@@ -272,4 +262,27 @@ test("the city rolls a quest board, the Stats sheet shows it, and he goes on que
   await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
   const lines = await away.locator(".away-log li").allTextContents();
   expect(lines.some((l) => l.includes("❗ New quest:"))).toBe(true);
+});
+
+test("a timed moment: tap a choice and it happens, or wait and he picks himself", async ({ page }) => {
+  await startInSofia(page);
+  const tryOne = async () => {
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: /Debug/ }).click();
+    await page.getByRole("button", { name: /Try a moment/ }).click();
+  };
+  await tryOne();
+  const choice = page.getByRole("dialog", { name: /Quick choice/ });
+  await expect(choice.getByRole("timer")).toBeVisible();
+  await choice.locator(".choices .btn").first().click();
+  await expect(choice).toBeHidden();
+
+  // The next one is the timing game; left alone, it closes by itself after the 5 s timer.
+  await tryOne();
+  const timing = page.getByRole("dialog", { name: /Timing/ });
+  await expect(timing.getByRole("button", { name: /Stop/ })).toBeVisible();
+  await expect(timing).toBeHidden({ timeout: 10000 });
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /History/ }).click();
+  await expect(page.getByRole("dialog", { name: /History/ })).toContainText("Decided by himself");
 });

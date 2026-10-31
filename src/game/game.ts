@@ -58,6 +58,8 @@ const iso2Module = () => (iso2Load ??= import("../core/iso2"));
 /** Street cells loaded with no places of note before the city counts as having none. */
 export const NO_PLACES_CELLS = 3;
 export const SAVE_EVERY_S = 5;
+/** The Debug button's moments in turn: a plain choice (""), then each mini-game. */
+export const DEBUG_MOMENTS = ["", "timing", "cards", "taps", "odd"] as const;
 /** Longest step that counts as walking, so a stall never jumps him ahead. */
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
@@ -156,6 +158,8 @@ export class Game {
   awayClover = false;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
+  /** How many moments the Debug button has opened, so the next is another kind. */
+  private debugMoments = 0;
   /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS). */
   dilemmaLeft = 0;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
@@ -548,6 +552,13 @@ export class Game {
     this.loader.setGraph(this.walker!.graph);
     this.save();
     this.changed();
+  }
+
+  /** Debug button: opens a place moment now, a plain choice and then each mini-game in turn (DEBUG_MOMENTS). */
+  debugMoment(): void {
+    const kind = DEBUG_MOMENTS[this.debugMoments++ % DEBUG_MOMENTS.length];
+    const m = Object.values(this.stats.placeMoments).find((x) => (x.game ?? "") === kind);
+    this.askPlaceMoment(m ?? null, this.city.split(",")[0]!, momentDice(this.stats.now(), "debug"));
   }
 
   /** Debug button: ends any rest or trip and picks a new goal now, rolling the trip dice again. */
