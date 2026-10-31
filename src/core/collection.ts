@@ -395,6 +395,7 @@ export const FEATS: Feat[] = [
   { id: "skills", tab: "world", icon: "🎓", name: "Skilled", what: "{n} skills at level 5 or more", tiers: [1, 3, SKILLS.length], title: "Jack of All Trades", count: (s) => SKILLS.filter((k) => s.skills.level(k) >= 5).length },
   { id: "cooked", tab: "world", icon: "🧑‍🍳", name: "Home cook", what: "{n} meals cooked", tiers: [10, 50, 200], title: "Chef", count: (s) => s.pantry.cooked },
   { id: "tycoon", tab: "world", icon: "💹", name: "Tycoon", what: "{n} businesses owned", tiers: [1, 3, BUSINESSES.length], title: "Tycoon", count: (s) => s.business.owned.length },
+  { id: "shares", tab: "world", icon: "🏠", name: "Regular", what: "{n} shares in his spots", tiers: [1, 3, 10], title: "Shareholder", count: (s) => s.business.shares.length },
   { id: "lottery", tab: "world", icon: "🎟", name: "Lucky ticket", what: "{n} lottery prizes won", tiers: [1, 5, 20], title: "Lucky Devil", count: (s) => s.lottery.prizes },
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },

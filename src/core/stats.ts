@@ -607,7 +607,7 @@ export class Stats {
     if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
     if (date !== this.anniversaries.day) this.newDay(date, t);
-    if (this.lottery.ticket && t >= this.lottery.ticket) this.lotteryDraw(Lt.roll(new Rng(seedOf(`lottery${this.lottery.ticket}`)).randf(), this.attr("luck")));
+    if (this.lottery.ticket && t >= this.lottery.ticket) this.lotteryDraw(Lt.roll(new Rng(seedOf(`lottery${this.lottery.ticket}:${this.lottery.tickets}:${this.cents}`)).randf(), this.attr("luck")));
     this.week.walked(walkedM);
     const h = minutes / 60;
     const sky = weatherPerH(this.sky);
@@ -675,15 +675,24 @@ export class Stats {
     const c = this.business.payout();
     if (!c) return;
     this.cents += c;
-    const icons = this.business.owned.map((o) => Bz.kindOf(o.id)!.icon).join("");
-    this.say(`${icons} His ${Bz.namesOf(this.business.owned)} took in ${signed(c)}`);
+    const b = this.business;
+    const icons = b.owned.map((o) => Bz.kindOf(o.id)!.icon).join("") + (b.shares.length ? "🏠" : "");
+    this.say(`${icons} His ${Bz.namesOf(b.owned, b.shares)} took in ${signed(c)}`);
   }
 
-  /** Each morning: with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
+  /** Each morning: a share in his spot here if he has none in this city, then, with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
   private invest(t: number): void {
+    if (this.bond.nudge === "save") return;
+    const spare = () => this.cents - Math.max(this.savingTarget(), KEEP_CENTS);
+    const spot = this.spots.spot(this.where.city);
+    if (spot && !this.business.share(this.where.city) && spare() >= Bz.SHARE_PRICE) {
+      this.cents -= Bz.SHARE_PRICE;
+      this.business.buyShare(this.where.city, spot.name, t);
+      this.milestone("share", `Bought a share in ${spot.name}, his spot`);
+      this.say(`🏠 Bought a share in ${spot.name}, his spot (${signed(-Bz.SHARE_PRICE)}): it pays a little each day, more when he drops by`);
+    }
     const k = this.business.next();
-    if (!k || this.bond.nudge === "save") return;
-    if (this.cents - Math.max(this.savingTarget(), KEEP_CENTS) < k.cents) return;
+    if (!k || spare() < k.cents) return;
     const city = this.where.city.split(",")[0] || "town";
     this.cents -= k.cents;
     this.business.buy(k, city, t);
@@ -1001,6 +1010,7 @@ export class Stats {
   visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string; made?: unknown }): number {
     // Only a real place can be his spot.
     if (!place.made) this.sayIf(this.spots.visit(this.where.city, place));
+    if (!place.made) this.business.visited(this.where.city, place.name);
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);

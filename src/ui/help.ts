@@ -4,6 +4,8 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Biz from "../core/business";
+import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
@@ -767,6 +769,25 @@ export function values(data: GameData): Record<string, string> {
     CLUB_MAX: num(Clubs.MAX_CLUBS),
     CLUB_NIGHT_H: num(Clubs.NIGHT_H),
     CLUB_LIST: Clubs.helpList(),
+    BUSINESS_LIST: Biz.BUSINESSES.map((b) => `- ${b.icon} a ${b.name}: ${euro(b.cents)}, bringing in about ${euro(b.perH * 24)} a day`).join("\n"),
+    BUSINESS_PAYBACK: (() => {
+      const days = Biz.BUSINESSES.map((b) => Math.round(b.cents / b.perH / 24));
+      const lo = Math.min(...days);
+      const hi = Math.max(...days);
+      return lo === hi ? num(lo) : `${lo} to ${hi}`;
+    })(),
+    SHARE_PRICE: euro(Biz.SHARE_PRICE),
+    SHARE_BASE: euro(Biz.SHARE_BASE),
+    SHARE_PER_VISIT: euro(Biz.SHARE_PER_VISIT),
+    SHARE_VISITS_MAX: num(Biz.SHARE_VISITS_MAX),
+    SHARE_DAY_MAX: euro(Biz.SHARE_BASE + Biz.SHARE_PER_VISIT * Biz.SHARE_VISITS_MAX),
+    TICKET: euro(Lot.TICKET),
+    DRAW_HOUR: `${Lot.DRAW_HOUR}:00`,
+    PRIZE_LIST: [...Lot.PRIZES].reverse().map((p) => `- ${p.match} numbers: ${euro(p.cents)}, one ticket in ${p.odds.toLocaleString("en-US")}`).join("\n"),
+    LUCK_NUDGE_PCT: pct(Lot.LUCK_NUDGE),
+    LUCK_MULT_MAX: num(Lot.LUCK_MULT_MAX),
+    TICKET_BACK: euro(Math.round(Lot.PRIZES.reduce((sum, p) => sum + p.cents / p.odds, 0))),
+    BIG_MATCH: num(Lot.BIG_MATCH),
     SKILL_MAX: num(Skills.SKILL_MAX),
     SKILL_STEP: num(Skills.SKILL_STEP),
     SKILL_L4: num(Skills.stepsTo(4)),

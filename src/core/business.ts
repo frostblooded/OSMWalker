@@ -2,26 +2,37 @@
 // business's price to spare past what he saves up for, he buys the next one,
 // cheapest first, in the city he is in. A local partner runs it, so it brings
 // in money by the hour wherever he is, also while you're away, and pays him
-// once a day. The last one is a small fantasy touch: a potion stall. All by
-// himself. Pure; Stats owns one.
+// once a day. The last one is a small fantasy touch: a potion stall. He also
+// buys a share in his spot (see spot.ts) in each city that has one: it pays
+// a little each day, and more for each time he dropped by since, so it is a
+// reason to come back. All by himself. Pure; Stats owns one.
 
 export type BusinessKind = { id: string; icon: string; name: string; /** Price, in cents. */ cents: number; /** Cents it brings in an hour. */ perH: number };
 
-/** What he can own, one of each, bought in this order. Each pays for itself in about 17 to 19 days. */
+/** What he can own, one of each, bought in this order. Each pays for itself in about four weeks. */
 export const BUSINESSES: BusinessKind[] = [
-  { id: "cart", icon: "☕", name: "coffee cart", cents: 30_000, perH: 75 },
-  { id: "kiosk", icon: "📰", name: "newspaper kiosk", cents: 100_000, perH: 250 },
-  { id: "hostel", icon: "🛏", name: "room at a hostel", cents: 300_000, perH: 700 },
-  { id: "truck", icon: "🚚", name: "food truck", cents: 800_000, perH: 1800 },
-  { id: "potions", icon: "🧪", name: "potion stall", cents: 2_000_000, perH: 4500 },
+  { id: "cart", icon: "☕", name: "coffee cart", cents: 30_000, perH: 45 },
+  { id: "kiosk", icon: "📰", name: "newspaper kiosk", cents: 100_000, perH: 150 },
+  { id: "hostel", icon: "🛏", name: "room at a hostel", cents: 300_000, perH: 450 },
+  { id: "truck", icon: "🚚", name: "food truck", cents: 800_000, perH: 1200 },
+  { id: "potions", icon: "🧪", name: "potion stall", cents: 2_000_000, perH: 3000 },
 ];
 
 export type Owned = { id: string; city: string; since: number };
+/** A share in his spot `place` in `city`, and his visits there since the last payout. */
+export type Share = { city: string; place: string; since: number; visits: number };
+
+/** What a share costs, and what it pays a day: SHARE_BASE, plus SHARE_PER_VISIT for each of up to SHARE_VISITS_MAX visits since the last payout (cents). */
+export const SHARE_PRICE = 15_000;
+export const SHARE_BASE = 100;
+export const SHARE_PER_VISIT = 150;
+export const SHARE_VISITS_MAX = 3;
 
 export const kindOf = (id: string) => BUSINESSES.find((b) => b.id === id);
 
 export class Business {
   owned: Owned[] = [];
+  shares: Share[] = [];
   /** Cents taken in since the last payout, with fractions. */
   pending = 0;
   /** Cents his businesses have paid him in all. */
@@ -41,27 +52,48 @@ export class Business {
     this.owned.push({ id: k.id, city, since: t });
   }
 
+  /** The share he holds in `city`, if any. */
+  share(city: string): Share | undefined {
+    return this.shares.find((x) => x.city === city);
+  }
+
+  buyShare(city: string, place: string, t: number): void {
+    this.shares.push({ city, place, since: t, visits: 0 });
+  }
+
+  /** He reached `place` in `city`: a visit for the share he holds in it. */
+  visited(city: string, place: string): void {
+    const x = this.share(city);
+    if (x && x.place === place) x.visits++;
+  }
+
   /** `h` hours of takings. */
   pass(h: number): void {
     this.pending += this.perH() * h;
   }
 
-  /** Pays out the whole cents taken in so far; returns them. */
+  /** Pays out the whole cents taken in so far, and a day's pay for each share; returns them. */
   payout(): number {
-    const c = Math.floor(this.pending);
+    let c = Math.floor(this.pending);
     this.pending -= c;
+    for (const x of this.shares) {
+      c += SHARE_BASE + SHARE_PER_VISIT * Math.min(x.visits, SHARE_VISITS_MAX);
+      x.visits = 0;
+    }
     this.earned += c;
     return c;
   }
 
   toJSON() {
-    return { owned: this.owned, pending: this.pending, earned: this.earned };
+    return { owned: this.owned, shares: this.shares, pending: this.pending, earned: this.earned };
   }
 
   /** Old saves own none; unknown kinds are dropped. */
   static fromJSON(d: unknown): Business {
     const out = new Business();
-    const v = d as { owned?: unknown; pending?: unknown; earned?: unknown } | null;
+    const v = d as { owned?: unknown; shares?: unknown; pending?: unknown; earned?: unknown } | null;
+    if (Array.isArray(v?.shares))
+      out.shares = (v.shares as Share[]).filter((x) => x && typeof x.city === "string" && typeof x.place === "string").map((x) => ({ city: x.city, place: x.place, since: Number(x.since) || 0, visits: Math.max(Number(x.visits) || 0, 0) }));
     if (Array.isArray(v?.owned)) out.owned = (v.owned as Owned[]).filter((o) => o && kindOf(o.id) && typeof o.city === "string").map((o) => ({ id: o.id, city: o.city, since: Number(o.since) || 0 }));
     out.pending = Math.max(Number(v?.pending) || 0, 0);
     out.earned = Math.max(Number(v?.earned) || 0, 0);
@@ -69,8 +101,8 @@ export class Business {
   }
 }
 
-/** "coffee cart and newspaper kiosk". */
-export function namesOf(owned: readonly Owned[]): string {
-  const names = owned.map((o) => kindOf(o.id)!.name);
+/** "coffee cart, newspaper kiosk and share in Cafe Rila". */
+export function namesOf(owned: readonly Owned[], shares: readonly Share[] = []): string {
+  const names = [...owned.map((o) => kindOf(o.id)!.name), ...shares.map((x) => `share in ${x.place}`)];
   return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : (names[0] ?? "");
 }

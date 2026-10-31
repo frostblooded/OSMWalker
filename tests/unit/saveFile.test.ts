@@ -260,6 +260,21 @@ describe("save file", () => {
     expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
   });
 
+  it("loads saves from before side income: no businesses, shares, dishes or lottery ticket", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.business;
+    delete d.stats.lottery;
+    delete d.stats.pantry.dishes;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(back.business).toMatchObject({ owned: [], shares: [], pending: 0, earned: 0 });
+    expect(back.lottery.toJSON()).toEqual({ ticket: 0, tickets: 0, prizes: 0, won: 0, best: 0 });
+    expect(back.pantry.dishes).toEqual([]);
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

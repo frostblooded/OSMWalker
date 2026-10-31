@@ -183,7 +183,7 @@ function LanguagesCard({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** His side income: the businesses he owns (listed under Owned), what they bring in, the next he would buy, and his lottery ticket and wins. */
+/** His side income: the businesses and shares he owns (listed under Owned), what they have brought in, the next business he would buy, and his lottery ticket and wins. */
 function SideIncomeCard({ stats: s }: { stats: Stats }) {
   const b = s.business;
   const next = b.next();
@@ -191,17 +191,20 @@ function SideIncomeCard({ stats: s }: { stats: Stats }) {
   const won = l.prizes ? `${l.prizes} ${l.prizes === 1 ? "prize" : "prizes"}, ${euro(l.won)}` : `${l.tickets} ${l.tickets === 1 ? "draw" : "draws"}, no prize yet`;
   return (
     <Card icon="💹" title="Side income" right={b.owned.length ? `${euro(b.perH() * 24)} a day` : undefined}>
-      <KV k="💹 Businesses" v={`${b.owned.length} / ${BUSINESSES.length}`} />
+      <KV k="💹 Businesses" v={`${b.owned.length} / ${BUSINESSES.length}${b.shares.length ? ` · 🏠 ${b.shares.length} ${b.shares.length === 1 ? "share" : "shares"}` : ""}`} />
       {b.earned > 0 && <KV k="💵 Taken in" v={euro(b.earned)} tone="ok" />}
       {next && <KV k="⏭ Next" v={`${next.icon} ${cap(next.name)} · ${euro(next.cents)}`} />}
       <KV k="🎟 Lottery" v={l.ticket ? "a ticket for the next draw" : won} />
-      {b.owned.length > 0 && (
-        <Collapsible title="Owned" right={b.owned.length}>
+      {b.owned.length + b.shares.length > 0 && (
+        <Collapsible title="Owned" right={b.owned.length + b.shares.length}>
           <div class="zebra">
             {b.owned.map((o) => {
               const k = kindOf(o.id)!;
               return <KV key={o.id} k={`${k.icon} ${cap(k.name)}`} v={`${euro(k.perH * 24)} a day · ${o.city}`} />;
             })}
+            {b.shares.map((x) => (
+              <KV key={x.city} k={`🏠 Share in ${x.place}`} v={`${x.city} · ${x.visits} ${x.visits === 1 ? "visit" : "visits"} today`} />
+            ))}
           </div>
         </Collapsible>
       )}

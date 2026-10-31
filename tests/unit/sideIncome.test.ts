@@ -47,11 +47,11 @@ describe("businesses", () => {
     expect(b.next()).toBeNull();
   });
 
-  it("each pay for themselves in two to four weeks", () => {
+  it("each pay for themselves in three to five weeks", () => {
     for (const k of Bz.BUSINESSES) {
       const days = k.cents / k.perH / 24;
-      expect(days).toBeGreaterThan(14);
-      expect(days).toBeLessThan(28);
+      expect(days).toBeGreaterThan(21);
+      expect(days).toBeLessThan(35);
     }
   });
 
@@ -227,5 +227,70 @@ describe("lottery", () => {
     const old = JSON.parse(JSON.stringify(s));
     delete old.lottery;
     expect(Stats.fromJSON(old).lottery.ticket).toBe(0);
+  });
+});
+
+describe("shares in his spot", () => {
+  const cafe = { name: "Cafe Rila", class: "cafe", subclass: "cafe", rank: 1, lat: 42.69, lon: 23.32 };
+  /** In Sofia with Cafe Rila as his spot. */
+  const regular = (t = at(23)) => {
+    const s = inSofia(t);
+    for (let i = 0; i < 3; i++) s.visit(cafe);
+    expect(s.spots.isSpot("Sofia", cafe)).toBe(true);
+    return s;
+  };
+
+  it("pay a little a day, more for each visit since, up to a few", () => {
+    const b = new Bz.Business();
+    b.buyShare("Sofia", "Cafe Rila", NOON);
+    expect(b.payout()).toBe(Bz.SHARE_BASE);
+    b.visited("Sofia", "Cafe Rila");
+    b.visited("Sofia", "Somewhere else");
+    expect(b.payout()).toBe(Bz.SHARE_BASE + Bz.SHARE_PER_VISIT);
+    for (let i = 0; i < 10; i++) b.visited("Sofia", "Cafe Rila");
+    expect(b.payout()).toBe(Bz.SHARE_BASE + Bz.SHARE_PER_VISIT * Bz.SHARE_VISITS_MAX);
+    expect(b.payout()).toBe(Bz.SHARE_BASE);
+  });
+
+  it("are bought each morning in the city where he has a spot, one share a city", () => {
+    const s = regular();
+    s.cents = Math.max(s.savingTarget(), KEEP_CENTS) + Bz.SHARE_PRICE;
+    const lines: string[] = [];
+    s.onSay = (l) => lines.push(l);
+    live(s, 2);
+    expect(s.business.shares).toEqual([expect.objectContaining({ city: "Sofia", place: "Cafe Rila" })]);
+    expect(lines.some((l) => l.includes("Bought a share in Cafe Rila"))).toBe(true);
+    s.cents = Math.max(s.savingTarget(), KEEP_CENTS) + Bz.SHARE_PRICE;
+    s.now = () => at(23, 11);
+    live(s, 2);
+    expect(s.business.shares).toHaveLength(1);
+  });
+
+  it("are not bought without a spot", () => {
+    const s = inSofia(at(23));
+    s.cents = Math.max(s.savingTarget(), KEEP_CENTS) + Bz.SHARE_PRICE;
+    live(s, 2);
+    expect(s.business.shares).toHaveLength(0);
+  });
+
+  it("count his visits to the place, and pay with the businesses' takings", () => {
+    const s = regular(at(1));
+    // The day's first minute, so the next payout is at midnight.
+    s.passTime(1, 0);
+    s.business.buyShare("Sofia", "Cafe Rila", at(1));
+    s.visit(cafe);
+    const lines: string[] = [];
+    s.onSay = (l) => lines.push(l);
+    const before = s.cents;
+    live(s, 24);
+    expect(s.cents - before).toBe(Bz.SHARE_BASE + Bz.SHARE_PER_VISIT);
+    expect(lines.some((l) => l.includes("share in Cafe Rila") && l.includes("took in"))).toBe(true);
+  });
+
+  it("are saved", () => {
+    const s = regular();
+    s.business.buyShare("Sofia", "Cafe Rila", NOON);
+    s.business.visited("Sofia", "Cafe Rila");
+    expect(roundTrip(s).business.shares).toEqual(s.business.shares);
   });
 });
