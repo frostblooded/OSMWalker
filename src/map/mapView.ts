@@ -6,7 +6,7 @@
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
-import type { Look } from "../core/look";
+import { POSE_EVERY_S, type Look } from "../core/look";
 import type { MapIcon } from "../core/mapIcons";
 import { RIVAL_ICON } from "../core/rival";
 import type { LatLon } from "../core/trips";
@@ -67,6 +67,8 @@ export class MapView implements MapPort {
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
+  /** performance.now() when his pose last moved. */
+  private poseAt = 0;
   private iconKey = "";
   /** The icon pictures and layer, added the first time there is an icon to show. */
   private iconLayer: Promise<boolean> | null = null;
@@ -206,18 +208,29 @@ export class MapView implements MapPort {
   /**
    * His face, bubble and pose, written to the page only when one changes. A
    * new pose plays its CSS animation a few times and then holds still, so the
-   * GPU is idle again after a few seconds.
+   * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
     const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
-    if (key === this.lookKey) return;
-    this.lookKey = key;
     const el = this.him.getElement();
+    const bubble = el.querySelector<HTMLElement>(".bubble")!;
+    const now = performance.now();
+    if (key === this.lookKey) {
+      if (!l.pose || now - this.poseAt < POSE_EVERY_S * 1000) return;
+      // Dropping the pose's class and a reflow restart its CSS animation.
+      this.poseAt = now;
+      const cls = bubble.className;
+      bubble.className = "bubble";
+      void bubble.offsetWidth;
+      bubble.className = cls;
+      return;
+    }
+    this.lookKey = key;
+    this.poseAt = now;
     el.querySelector(".face")!.textContent = l.face;
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
-    const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
     bubble.hidden = !bubble.textContent;
