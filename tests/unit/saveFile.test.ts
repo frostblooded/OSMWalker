@@ -232,6 +232,21 @@ describe("save file", () => {
     expect(back.anniversaries).toMatchObject({ born: 1234, day: "" });
   });
 
+  it("loads saves from before skills, cooking and languages: none yet, an empty pantry, English only", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.skills;
+    delete d.stats.pantry;
+    delete d.stats.languages;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = (f.read() as Saved).stats;
+    expect(Object.values(back.skills.steps)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(back.pantry).toMatchObject({ items: [], cooked: 0 });
+    expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
+  });
+
   it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

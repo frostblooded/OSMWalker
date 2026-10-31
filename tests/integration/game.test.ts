@@ -146,8 +146,11 @@ describe("game", () => {
     Object.assign(g.data, { jokes: { cafe: ["Cafe joke."], _generic: ["Other joke."] }, forecasts });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.forecast().id).toBe("cafe");
-    run(g, 3 * 3600);
-    const texts = g.stats.history.entries.map((e) => e.text);
+    // Every line he says, not only the feed's last ones: a joke comes on one in eight.
+    const texts: string[] = [];
+    g.stats.onSay = (l) => texts.push(l);
+    // An hour at a time until a joke comes, at most half a day.
+    for (let h = 0; h < 12 && !texts.some((t) => t.endsWith(" joke.")); h++) run(g, 3600);
     expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
