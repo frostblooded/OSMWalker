@@ -225,6 +225,7 @@ export function values(data: GameData): Record<string, string> {
     PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
     PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
     MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
     CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
