@@ -218,7 +218,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       // Quests and events need real places; in a city whose places aren't loaded he just lives his day.
       const cardRng = deps.cardRng ?? rng;
       if (stats.quests.city !== city.name || !stats.quests.rolled) stats.quests.roll(city.name, city.pop ?? 0, city.places ?? [], cardRng);
-      const place = (city.places && questGoal(stats, city.places, here, cardRng)) || pickPlace();
+      // A quest step at a closed place waits for it to open; he lives his day meanwhile.
+      const step = city.places && questGoal(stats, city.places, here, cardRng);
+      const open = step && skyNow();
+      const place = (step && open && isOpen(step, open.clock, open.holiday) ? step : null) || pickPlace();
       if (!place) {
         // Everything near is closed: like the walker, he heads for a random spot and walks on.
         const spot = randomSpot(rng, city.bounds, here, heading);

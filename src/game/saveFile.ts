@@ -15,7 +15,7 @@ export const SAVE_KEY = "osmwalker.save";
 export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
-/** The last weather forecast, so a reopen knows the weather while the game was closed without waiting for the network. */
+/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands (the catch-up uses none). */
 export const WEATHER_KEY = "osmwalker.weather";
 export const DEFAULT_ZOOM = 17;
 

@@ -1026,12 +1026,14 @@ export class Game {
     if (q.rev !== rev) this.changed();
   }
 
-  /** A quest step or world event to walk to (core/quests.ts). */
+  /** A quest step or world event to walk to (core/quests.ts), or null while that place is closed: the story waits for it to open. */
   private questGoal(): Place | null {
     const w = this.walker!;
     if (w.isTraveling()) return null;
     this.rollBoard();
-    return Q.questGoal(this.stats, this.storyPlaces(), w.position(), this.cardRng);
+    const goal = Q.questGoal(this.stats, this.storyPlaces(), w.position(), this.cardRng);
+    const sky = this.stats.sky;
+    return goal && sky && !isOpen(goal, sky.clock, sky.holiday) ? null : goal;
   }
 
   /** The quest and event icons: the board's quest givers, the step he is on, and the events near him. */

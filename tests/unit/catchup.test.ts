@@ -402,6 +402,20 @@ describe("catch-up", () => {
     expect(s.stops).toBe(s.lines.filter((l) => /^Reached (?!level )/.test(l.text)).length);
   });
 
+  it("lets a quest step at a closed place wait for it to open, instead of going back all night", () => {
+    const stats = new Stats();
+    const shop = place("Shoe Shop", "shop", "shoes", 0.003, 0);
+    const town: AwayCity = { ...HOME, places: [shop, place("Duck Park", "park", "park", 0, 0.003)] };
+    stats.quests.city = town.name;
+    stats.quests.rolled = true;
+    const at = { name: shop.name, class: shop.class, subclass: shop.subclass, lat: shop.lat, lon: shop.lon };
+    stats.quests.active = { key: "k", kind: "none", giver: "Ana", item: 0, twist: 0, at, step: 0, target: at };
+    const s = catchUp(stats, town, [0, 0], 3 * 3600, Date.UTC(2026, 9, 29, 22), deps({ skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null) }));
+    expect(s.lines.some((l) => l.text.includes("Shoe Shop"))).toBe(false);
+    expect(s.lines.some((l) => l.text.startsWith("Reached Duck Park"))).toBe(true);
+    expect(stats.quests.active?.key).toBe("k");
+  });
+
   it("doesn't let a closed fix for an urgent need hold him: he goes where it's open", () => {
     const stats = new Stats();
     stats.meters.fullness = 0;
