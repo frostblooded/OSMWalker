@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, his skills, languages and pantry, and his side income.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, his skills, languages and pantry, his side income and his home.
 // Also the Diary sheet: its days, newest first, with their dreams.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
@@ -11,12 +11,15 @@ import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
 import { PANTRY_MAX } from "../../src/core/cooking";
 import { stepsTo } from "../../src/core/skills";
 import { BUSINESSES } from "../../src/core/business";
+import { billsAt } from "../../src/core/bills";
+import { HOME_PRICE, HOME_THINGS, RENT_CENTS as HOME_RENT } from "../../src/core/home";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import { DiarySheet } from "../../src/ui/DiarySheet";
 import type { Spell } from "../../src/core/magic";
 import SPELLS from "../../public/data/spells.json";
 
+const RILA = { name: "Cafe Rila", lat: 42.69, lon: 23.32 };
 const shown = (stats: Stats, afoot = false) => {
   const root = document.createElement("div");
   render(h(StatsSheet, { stats, afoot }), root);
@@ -89,6 +92,22 @@ describe("Stats sheet", () => {
     expect(shown(stats)).toContain("No, grumpy");
     stats.pets.pass(stats.now() + 86400 * 300);
     expect(shown(stats)).toContain("Remembered");
+  });
+
+  it("shows his home once he has one: the rent, then the things he put up", () => {
+    const stats = new Stats();
+    expect(shown(stats)).not.toContain("A night there");
+    stats.home.rent("Sofia, Bulgaria", "BG", [0, 0], 0);
+    expect(shown(stats)).toContain(`Rent${euro(HOME_RENT)} a week`);
+    // What it takes is the price on top of what he keeps back, as Stats.settle buys.
+    stats.cents = HOME_PRICE + 1000;
+    expect(shown(stats)).toContain(`To buy it${euro(stats.cents)} / ${euro(HOME_PRICE + Math.max(stats.savingTarget(), KEEP_CENTS))}`);
+    expect(shown(stats)).toContain(`Weekly bills${euro(billsAt(1) + HOME_RENT)}`);
+    stats.home.bought = 1;
+    stats.home.things = [{ name: "Silk Shawl", slot: "trinket", stats: {}, rarity: "Common", price: 1 }];
+    expect(shown(stats)).toContain("His ownno rent");
+    expect(shown(stats)).toContain(`Things up1 / ${HOME_THINGS}`);
+    expect(shown(stats)).toContain("What he put up");
   });
 
   it("tells a failed quest from an event that went badly", () => {
@@ -205,7 +224,7 @@ describe("Stats sheet", () => {
     expect(text).toContain("⏭ Next☕ Coffee cart · €300");
     expect(text).toContain("🎟 Lottery0 draws, no prize yet");
     stats.business.buy(BUSINESSES[0]!, "Sofia", 0);
-    stats.business.buyShare("Sofia", "Cafe Rila", 0);
+    stats.business.buyShare("Sofia", RILA, 0);
     stats.business.earned = 1234;
     stats.lottery.ticket = 1;
     text = shown(stats);

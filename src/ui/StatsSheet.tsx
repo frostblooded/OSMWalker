@@ -3,18 +3,18 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks, his spot and his mailbox. Items with a story open to show it. His life stage comes
+// moves his mood), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his records and family tree close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
-import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
 import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
-import { noun, wantIcon, wantText } from "../core/mind";
+import { noun, plural, wantIcon, wantText } from "../core/mind";
 import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
 import { SPOT_DISCOUNT } from "../core/spot";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
@@ -23,6 +23,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { HOME_PRICE, HOME_THINGS } from "../core/home";
 import { BUSINESSES, kindOf } from "../core/business";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
@@ -330,7 +331,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
-        <KV k="Weekly bills" v={euro(billsAt(s.level))} />
+        <KV k="Weekly bills" v={euro(billsAt(s.level) + s.home.rentAt(s.level))} />
       </Card>
       <LifeCard life={s.life} now={s.now()} />
       <QuestCard q={s.quests} now={s.now()} />
@@ -416,6 +417,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <MindCard s={s} />
       <QuirksCard s={s} />
+      <HomeCard s={s} />
       <SpotCard s={s} />
       <MailCard s={s} />
       <RivalCard s={s} />
@@ -581,7 +583,7 @@ function MindCard({ s }: { s: Stats }) {
         {m.wants.map((w) => (
           <KV
             key={`${w.kind}${w.place}`}
-            k={w.kind === "face" ? `😨 Wary of ${noun(w.place)}s: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
+            k={w.kind === "face" ? `😨 Wary of ${plural(noun(w.place))}: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
             v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""}
             tone={w.kind === "face" ? "warning" : undefined}
           />
@@ -620,6 +622,29 @@ function QuirksCard({ s }: { s: Stats }) {
         </div>
       ) : (
         <p class="dim small">None yet. What he does often turns into a quirk.</p>
+      )}
+    </Card>
+  );
+}
+
+/** His home, once he has one: rented or his, and what he put up (folded away, one row each). */
+function HomeCard({ s }: { s: Stats }) {
+  const h = s.home;
+  if (!h.has()) return null;
+  return (
+    <Card icon="🏡" title="Home" right={h.city.split(",")[0]}>
+      <KV k={h.bought ? "His own" : "Rent"} v={h.bought ? "no rent" : `${euro(h.rentAt(s.level))} a week`} />
+      {!h.bought && <KV k="To buy it" v={`${euro(s.cents)} / ${euro(HOME_PRICE + Math.max(s.savingTarget(), KEEP_CENTS))}`} />}
+      {h.bought > 0 && <KV k="Things up" v={`${h.things.length} / ${HOME_THINGS}`} />}
+      <KV k="A night there" v={`free, mood +${h.mood()}`} tone="ok" />
+      {h.things.length > 0 && (
+        <Collapsible title="What he put up">
+          <div class="zebra">
+            {h.things.map((i, n) => (
+              <KV key={n} k={i.name} v={<span class="dim">from {i.story?.from.split(",")[0] ?? "somewhere"}</span>} />
+            ))}
+          </div>
+        </Collapsible>
       )}
     </Card>
   );

@@ -197,7 +197,7 @@ export function weight(action: Action, stats: Stats): number {
  * saved up for pulls GOAL_SHOP_PULL, which only an urgent need beats. With a
  * full bag, a resale shop meets a need in full, for a selling run.
  */
-export function needOf(actions: Action[], stats: Stats, hour: number): Need {
+export function needOf(actions: Action[], stats: Stats, hour: number, kind = ""): Need {
   const saving = stats.saving();
   const shop = saving ? undefined : stats.vehicleGoal()?.kind;
   let pull = 1;
@@ -207,7 +207,7 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   let bottom = false;
   let goalShop = false;
   for (const a of actions) {
-    if (!stats.canDo(a, hour)) continue;
+    if (!stats.canDo(a, hour, kind)) continue;
     if (shop && a.item === shop) goalShop = true;
     const s = needScore(a, stats);
     pull = Math.max(pull, (1 + NEED_BOOST * s.score) * strengthLean(a, stats));
@@ -229,9 +229,9 @@ export function anyUrgent(stats: Stats): boolean {
   return (Object.keys(stats.meters) as Meter[]).some((m) => stats.felt(m) < URGENT_AT);
 }
 
-/** One of `actions` he can do at `hour`, picked by weight with `roll` in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
-export function choose(actions: Action[], stats: Stats, hour: number, roll: number): Action | null {
-  let options = actions.filter((a) => stats.canDo(a, hour));
+/** One of `actions` he can do at `hour` at a place of map class `kind`, picked by weight with `roll` in [0, 1), or null. With an urgent need, mostly only what fixes one (see urgentRules). */
+export function choose(actions: Action[], stats: Stats, hour: number, roll: number, kind = ""): Action | null {
+  let options = actions.filter((a) => stats.canDo(a, hour, kind));
   const needs = options.map((a) => ({ urgent: fixesUrgent(a, stats), bottom: fixesUrgent(a, stats, BOTTOM_AT) }));
   const [keep, u] = urgentRules(needs, roll);
   let r = u;

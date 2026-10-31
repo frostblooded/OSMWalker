@@ -14,7 +14,7 @@ import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
 import { skyNeed, type Sky } from "./sky";
-import type { Rng } from "./rng";
+import { Rng, seedOf } from "./rng";
 import { FLYERS } from "./speeds";
 import { questGoal, questStop } from "./quests";
 import { momentDice, tripMoment } from "./placeMoments";
@@ -294,7 +294,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, sky.hour, cardRng);
+      stats.happen(city.places ? place : { ...place, made: true }, sky.hour, cardRng);
       s.stops++;
       const story = city.places ? questStop(stats, place, city.places, sky.hour, cardRng) : null;
       if (story !== null) {
@@ -302,7 +302,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf());
+      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf(), place.class);
       if (action) {
         stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
         // Nobody to ask: he takes his own pick of the place's moment, as game.ts does when you don't tap.
@@ -338,7 +338,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const places = city.places ?? [];
     const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
-    const found = trips.pick(kind, city.code, here[0], here[1], rng, (c) => stats.bucket.pull(cityKey(c)));
+    const home = stats.home.has() ? trips.homeward(stats.home, stats.atHome(), new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
+    const found = home ?? trips.pick(kind, city.code, here[0], here[1], rng, stats.bucket.pull());
     if (!found) return false;
     const dest = { ...found, bounds: cityBounds(found) };
     const plan = trips.planTrip(dest, here, city.places ?? madeUpStations(city), stats.cents, stats.vehicle() === "car", rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
@@ -392,7 +393,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
     const sky = skyNow();
-    const need = flat.kinds.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
+    const need = flat.kinds.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour, p.class), p, sky), p, stats));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
@@ -408,7 +409,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);
     const made = madeUp();
-    const madeNeed = made.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
+    const madeNeed = made.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour, p.class), p, sky), p, stats));
     const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
     return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }
@@ -419,7 +420,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     for (let i = 0; i < MADE_UP_TRIES; i++) {
       const k = MADE_UP_KINDS[pickIndex(MADE_UP_KINDS.map((x) => x.weight), rng.randf())]!;
       const [lat, lon] = randomSpot(rng, city.bounds, here, heading);
-      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon });
+      // Marked made-up, so he never collects, greets or adopts there, even in a city whose (empty) places list is loaded.
+      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon, made: true });
     }
     return out;
   }

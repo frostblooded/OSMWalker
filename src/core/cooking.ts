@@ -4,6 +4,7 @@
 // level knows and his pantry holds: bread + cheese + tomato is a picnic, more
 // filling than each alone. All by himself. Pure; Stats owns a Pantry.
 import type { Fx } from "./stats";
+import { list } from "./travelKit";
 
 export const INGREDIENTS = ["bread", "cheese", "tomato", "eggs", "pasta", "meat", "veg", "fruit"] as const;
 export type Ingredient = (typeof INGREDIENTS)[number];
@@ -115,7 +116,4 @@ export class Pantry {
 }
 
 /** "bread, cheese and tomatoes". */
-export const listOf = (uses: readonly Ingredient[]) => {
-  const names = uses.map((i) => INGREDIENT[i][1]);
-  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : (names[0] ?? "");
-};
+export const listOf = (uses: readonly Ingredient[]) => list(uses.map((i) => INGREDIENT[i][1]));

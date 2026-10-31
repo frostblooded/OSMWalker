@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
+import { LONG_H } from "../../src/core/mind";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
@@ -270,6 +271,24 @@ describe("save file", () => {
     d.stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
+  });
+
+  it("loads saves from before wants ran out: an endless long or face want starts counting, and an unfaced fear then fades", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.mind = { moodlets: [], fears: ["park"], wants: [{ kind: "long", place: "zoo", until: 0 }, { kind: "face", place: "park", until: 0 }] };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    let t = 1_800_000_000;
+    stats.now = () => t;
+    stats.passTime(1, 0);
+    expect(stats.mind.wants.filter((w) => w.kind !== "short").map((w) => w.until)).toEqual([t + LONG_H * 3600, t + LONG_H * 3600]);
+    t += LONG_H * 3600;
+    stats.passTime(1, 0);
+    expect(stats.mind.fears).toEqual([]);
+    expect(stats.mind.wants.some((w) => w.kind === "face")).toBe(false);
   });
 
   it("loads saves from before letters and gifts: an empty mailbox", () => {

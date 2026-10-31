@@ -63,6 +63,32 @@ describe("journey", () => {
     expect(j.takeLog()).toMatchObject({ abroad: 4, outcome: "country" });
   });
 
+  it("a share of his trips go home instead, on their own dice", () => {
+    const { j, stats } = journey(0.05);
+    stats.cents = 1e7;
+    stats.where = { city: "Bigtown, A-land", code: "AAA", country: "A-land" };
+    stats.home.rent("Farcity, B-land", "BBB", [10, 10], 0);
+    const went: string[] = [];
+    for (let t = 0; t < 40; t++) {
+      stats.now = () => t;
+      went.push(j.consider(where(), stats)!.city.name);
+      j.takeLog();
+    }
+    expect(went).toContain("Farcity");
+    expect(went).toContain("Nexttown");
+  });
+
+  it("names his home city when a trip goes home, whatever the dice said", () => {
+    const { j, stats } = journey(0); // the dice say abroad
+    stats.cents = 1e7;
+    stats.home.rent("Nexttown, A-land", "AAA", [1, 0], 0);
+    for (let t = 0; t < 40 && !stats.history.entries.some((e) => e.text.includes("Nexttown")); t++) {
+      stats.now = () => t;
+      j.consider(where(), stats);
+    }
+    expect(stats.history.entries.find((e) => e.text.includes("Nexttown"))).toBeDefined();
+  });
+
   it("plans a bus to another city of the country and says so", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;

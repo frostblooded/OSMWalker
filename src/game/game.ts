@@ -20,7 +20,7 @@ import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
+import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
 import * as R from "../core/repute";
@@ -332,7 +332,7 @@ export class Game {
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
-    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky), p, this.stats);
+    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour(), p.class), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => placePull(p, this.stats, this.hour());
     w.events = {
       landed: (c, t) => this.onLanded(c, t),
@@ -450,7 +450,7 @@ export class Game {
       this.changed();
       return;
     }
-    const action = choose([...this.activities.forPlace(place, this.country, sky.holiday), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
+    const action = choose([...this.activities.forPlace(place, this.country, sky.holiday), ...this.cityFacts], this.stats, sky.hour, this.rng.randf(), place.class);
     this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -670,7 +670,7 @@ export class Game {
     this.retiring = true;
     try {
       const life = this.stats.life;
-      const home = life.favourite(this.city);
+      const home = this.stats.homeCity();
       const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
       const at = life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
       const here = { city: this.city, origin: this.origin, bounds: w.bounds };
@@ -868,7 +868,7 @@ export class Game {
           // No free ride while he is on a paid one.
           if (w.isTraveling()) return null;
           const here = w.position();
-          return this.trips.pick(kind, this.country, here[0], here[1], this.rng, (c) => this.stats.bucket.pull(cityKey(c)));
+          return this.trips.pick(kind, this.country, here[0], here[1], this.rng, this.stats.bucket.pull());
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
       // Its time starts when the card shows (dilemmaShown).
       this.dilemmaLeft = Infinity;
@@ -1388,7 +1388,7 @@ export class Game {
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...this.questIcons()];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...homeIcons(this.stats.home, this.stats.atHome()), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

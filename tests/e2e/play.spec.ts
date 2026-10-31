@@ -57,6 +57,14 @@ test("his pet trots at his side on the map", async ({ page }) => {
   await expect(page.locator(".marker.him .pet")).toHaveText("🐈", { timeout: 20000 });
 });
 
+test("his home shows on the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, `d.stats.home = { city: d.city, code: "BG", at: [42.6977, 23.3219], since: 0, bought: 1, things: [] };`);
+  await page.getByRole("button", { name: "Menu" }).click({ timeout: 20000 });
+  await page.getByRole("button", { name: /Stats/ }).click();
+  await expect(page.locator(".card", { hasText: "Home" })).toContainText("no rent");
+});
+
 test("picks up where he was after a reload", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
