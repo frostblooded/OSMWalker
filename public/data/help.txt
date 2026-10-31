@@ -655,7 +655,7 @@ From {LEAN_AT} either way:
 - Rascal: prices are {RASCAL_MARKUP_PCT} higher and his fame gives no discount, but he sells at fence prices (see Kind or rascal) and may shoplift at clothes, sports, shoe, jewellery, gift and second-hand shops, taking the item for free. Shady quests only for rascals can come up on a city's board. Every bad deed is a crime (see The police).
 - In between, he only gets his fame's discount.
 
-When a choice comes up and he picks by himself, his karma pulls him: he takes the rascal's option {RASCAL_BASE_PCT} of the time at karma 0, {RASCAL_PER_KARMA_PCT} more for each point below 0 and less for each above, never under {RASCAL_MIN_PCT} or over {RASCAL_MAX_PCT}. So a saint stays kind and a crook keeps at it, with a small chance to change.
+His karma pulls his own picks: kind deeds weigh more for a kind walker and rascal deeds for a rascal (see How he chooses), and when a choice with a rascal's option comes up (for now, how a police chase ends) he takes that option {RASCAL_BASE_PCT} of the time at karma 0, {RASCAL_PER_KARMA_PCT} more for each point below 0 and less for each above, never under {RASCAL_MIN_PCT} or over {RASCAL_MAX_PCT}. So a saint stays kind and a crook keeps at it, with a small chance to change.
 
 At {AURA_AT} or more he wears a small gold halo on the map, and at −{AURA_AT} or less two red horns (see His face and bubble). The Stats sheet shows it all on its Reputation card.
 ## Fame {fame}
@@ -666,7 +666,7 @@ His fame's discount counts unless he leans rascal (see Karma). All his fame toge
 ## The police {police}
 One heat follows him everywhere: it goes from 0 to {HEAT_MAX}, and each {STAR_HEAT} is a wanted star, up to {STARS_MAX}. The top card shows a red 🚨 with his stars while he has one or more.
 
-Every bad deed is a crime: it adds {HEAT_PER_KARMA} heat for each point of karma it costs, times 1 + {FAME_HEAT} for each fame tier of the city he does it in. For example, shoplifting as a stranger adds {STEAL_HEAT}. Heat fades by {HEAT_FADE_PER_H} an hour, watched or away, so a full {HEAT_MAX} is gone in {HEAT_GONE_H} hours.
+Every bad deed but a bribe is a crime: it adds {HEAT_PER_KARMA} heat for each point of karma it costs, times 1 + {FAME_HEAT} for each fame tier of the city he does it in. For example, shoplifting as a stranger adds {STEAL_HEAT}. Heat fades by {HEAT_FADE_PER_H} an hour, watched or away, so a full {HEAT_MAX} is gone in {HEAT_GONE_H} hours.
 
 With {PAYOFF_STARS} stars or more he can pay it off at a police station: {PAYOFF_PCT} of the fine it would be (see Police chases), as long as it leaves him {KEEP_CENTS}. Police stations then pull him (see Picking the next goal), and once there he pays and the heat is gone.
 
@@ -788,7 +788,8 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
-- Reputation: his karma with a bar (green when good, red when bad), his fame in this city, what that does to his prices, whether the police want him and how many stars, what paying it off would cost, and his chases so far (see Karma, Fame and The police).
+- Reputation: his karma with a bar (green when good, red when bad), his fame in this city and what that does to his prices (see Karma and Fame).
+- The police, once they want him or have chased him: his wanted stars, what paying it off would cost, and his chases so far (see The police).
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).

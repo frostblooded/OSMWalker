@@ -100,7 +100,7 @@ test("A wanted walker shows his stars on the top card, a halo of good karma, and
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Reputation", "😇 Kind (+80 of ±100)", "Fame here", "Stranger", "−5%", "2 of 5 stars", "Paying it off"]) await expect(sheet).toContainText(t);
+  for (const t of ["Reputation", "😇 Kind (+80 of ±100)", "Fame here", "Stranger", "−5%", "The police", "2 of 5 stars", "Paying it off"]) await expect(sheet).toContainText(t);
 });
 
 test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {

@@ -162,22 +162,28 @@ function Records({ stats: s }: { stats: Stats }) {
 
 const LEAN_WORD = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
 
-/** His karma, how well this city knows him, what it does to prices, and the police. */
+/** His karma, how well this city knows him and what it does to prices; then the police, once they want him or have chased him. */
 function Repute({ stats: s }: { stats: Stats }) {
   const lean = s.bond.lean;
   const off = s.shopDiscount();
   const law = s.law;
   const stars = law.stars();
   return (
-    <Card icon="⚖" title="Reputation" right={stars ? <span class="tone-error">🚨 {"★".repeat(stars)}</span> : undefined}>
-      <KV k="Karma" v={`${LEAN_WORD[s.bond.leaning()]} (${lean > 0 ? "+" : ""}${Math.round(lean)} of ±${LEAN_MAX})`} />
-      <Bar share={(lean + LEAN_MAX) / (2 * LEAN_MAX)} color={lean < 0 ? "var(--error)" : "var(--ok)"} />
-      <KV k="⭐ Fame here" v={`${FAME_NAMES[s.fame.tier(s.here())]} (${Math.floor(s.fame.points(s.here()))})`} />
-      <KV k="🏷 Prices" v={off ? `${off > 0 ? "−" : "+"}${Math.round(Math.abs(off) * 100)}%` : "As listed"} tone={off < 0 ? "error" : off > 0 ? "ok" : undefined} />
-      <KV k="🚨 Wanted" v={stars ? `${stars} of ${STARS_MAX} stars` : "No"} tone={stars ? "error" : undefined} />
-      {stars > 0 && <KV k="🚓 Paying it off" v={euro(payoffOf(law.heat))} />}
-      {law.chases > 0 && <KV k="Chases" v={`${law.chases}: got away ${law.escapes + law.bribes}, caught ${law.caught}, jailed ${law.jailed}`} />}
-    </Card>
+    <>
+      <Card icon="⚖" title="Reputation">
+        <KV k="Karma" v={`${LEAN_WORD[s.bond.leaning()]} (${lean > 0 ? "+" : ""}${Math.round(lean)} of ±${LEAN_MAX})`} />
+        <Bar share={(lean + LEAN_MAX) / (2 * LEAN_MAX)} color={lean < 0 ? "var(--error)" : "var(--ok)"} />
+        <KV k="⭐ Fame here" v={`${FAME_NAMES[s.fame.tier(s.here())]} (${Math.floor(s.fame.points(s.here()))})`} />
+        <KV k="🏷 Prices" v={off ? `${off > 0 ? "−" : "+"}${Math.round(Math.abs(off) * 100)}%` : "As listed"} tone={off < 0 ? "error" : off > 0 ? "ok" : undefined} />
+      </Card>
+      {(stars > 0 || law.chases > 0) && (
+        <Card icon="🚓" title="The police" right={stars ? <span class="tone-error">🚨 {"★".repeat(stars)}</span> : undefined}>
+          <KV k="🚨 Wanted" v={stars ? `${stars} of ${STARS_MAX} stars` : "No"} tone={stars ? "error" : undefined} />
+          {stars > 0 && <KV k="Paying it off" v={euro(payoffOf(law.heat))} />}
+          {law.chases > 0 && <KV k="Chases" v={`${law.chases}: got away ${law.escapes + law.bribes}, caught ${law.caught}, jailed ${law.jailed}`} />}
+        </Card>
+      )}
+    </>
   );
 }
 
