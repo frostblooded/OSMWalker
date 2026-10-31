@@ -218,6 +218,19 @@ describe("save file", () => {
     expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
   });
 
+  it("loads saves from before quirks and spots: no habits counted, no spot", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.quirks;
+    delete d.stats.spots;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    expect(stats.quirks.toJSON()).toEqual({ counts: {}, have: [], faded: [] });
+    expect(stats.spots.toJSON()).toEqual({ cities: {} });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

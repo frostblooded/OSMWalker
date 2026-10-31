@@ -31,6 +31,20 @@ describe("Stats sheet", () => {
     expect(text).toContain("Rank 5 / 5");
   });
 
+  it("shows his quirks, and his spot once he has one", () => {
+    const stats = new Stats();
+    stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    expect(shown(stats)).toContain("None yet.");
+    expect(shown(stats)).not.toContain("His spot");
+    stats.quirks.have = ["culture"];
+    for (let i = 0; i < 3; i++) stats.visit({ name: "Cafe A", class: "cafe", lat: 1, lon: 2 });
+    const text = shown(stats);
+    expect(text).toContain("🌟Quirks1 / 5");
+    expect(text).toContain("🎭 Culture vulture");
+    expect(text).toContain("🏠His spotCafe A");
+    expect(text).toContain("−10%");
+  });
+
   it("shows his wants, fears and the total that moves his mood", () => {
     const stats = new Stats();
     stats.now = () => 1_800_000_000;
