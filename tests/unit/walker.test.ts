@@ -971,36 +971,6 @@ describe("commands", () => {
   });
 });
 
-describe("relocate", () => {
-  it("stands on the nearest loaded corner close by, with nothing planned", () => {
-    walker.startAt(n(2));
-    headForCafe();
-    walker.restFor(1);
-    const p = graph.nodes.get(n(3))!;
-    walker.relocate([p[0] + 0.0001, p[1]], CITY_BOX, false);
-    expect(walker.fromNode).toBe(n(3));
-    expect(walker.goal).toBeNull();
-    expect(walker.place).toBeNull();
-    expect(walker.isResting()).toBe(false);
-    expect(walker.bounds).toEqual(CITY_BOX);
-  });
-
-  it("waits on a lone point where no streets are loaded", () => {
-    walker.startAt(n(2));
-    walker.relocate([42.05, 23.05], CITY_BOX, false);
-    expect(walker.fromNode).toBe(W.ARRIVAL_NODE);
-    expect(walker.position()).toEqual([42.05, 23.05]);
-    expect(walker.graph).toBe(graph);
-  });
-
-  it("drops the streets in a new city", () => {
-    walker.startAt(n(2));
-    walker.relocate([48.85, 2.35], CITY_BOX, true);
-    expect(walker.graph).not.toBe(graph);
-    expect(walker.position()).toEqual([48.85, 2.35]);
-    expect(walker.isTraveling()).toBe(false);
-  });
-});
 
 describe("flying mounts", () => {
   const lonOf = (node: number) => 23.0 + (node - 1) * 0.00604;

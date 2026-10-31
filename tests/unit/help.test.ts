@@ -150,9 +150,10 @@ describe("the real help", () => {
     expect(page("map").body).toContain("more than 20% of the view away from the middle");
     expect(page("menu").body).toContain("Camera follows him");
     expect(page("map").body).toContain("ⓘ");
-    expect(page("away").body).toContain("at most 24 hours");
     expect(page("away").body).toContain("at least 1 minute");
-    expect(page("offline").body).toContain("While you were away");
+    expect(page("away").body).toContain("divided by 9");
+    expect(page("away").body).toContain("8 hours away give 53 min of 10× speed");
+    expect(page("offline").body).toContain("Welcome back and the boost");
     expect(page("postcards").body).toContain("up to 24 letters");
     expect(page("moments").body).toContain("5 seconds at first");
     expect(page("moments").body).toContain("(3, 5, 10, 20 seconds, or Off; remembered)");

@@ -1,10 +1,9 @@
 // Chance cards at work (The Sims' career chance cards): now and then a paid
 // shift brings a small dilemma, such as the boss asking him to cover a double.
-// While you watch it pops up as a timed moment you may answer; if you don't,
-// or while you are away, he picks by himself, leaning on one of his
-// attributes. The bold choice can pay off or go wrong, by the same
-// attribute. The feed shows what was chosen and how it went. Pure; Stats.do
-// draws one.
+// It pops up as a timed moment you may answer; if you don't, he picks by
+// himself, leaning on one of his attributes. The bold choice can pay off or go
+// wrong, by the same attribute. The feed shows what was chosen and how it went.
+// Pure; Stats.do draws one.
 import { effect } from "./gifts";
 import { ATTR_NAMES, leanShare } from "./incidents";
 import { signed } from "./money";
@@ -122,7 +121,7 @@ export function settle(stats: Stats, d: Drawn, pick: Pick, you: boolean, rng: Rn
   return `${c.icon} At work: ${c.text} ${you ? "" : "Decided by himself: "}${bold ? c.bold.label : c.safe.label}: he ${o.say}${what ? ` (${what})` : ""}`;
 }
 
-/** A card with nobody to ask (the catch-up, or no screen): he draws, picks and plays it himself. Returns the feed line, or "". */
+/** A card with nobody to ask (no screen): he draws, picks and plays it himself. Returns the feed line, or "". */
 export function draw(stats: Stats, wage: number, rng: Rng): string {
   const d = drawCard(wage, rng);
   return d ? settle(stats, d, hisPick(stats, d.card, rng), false, rng) : "";

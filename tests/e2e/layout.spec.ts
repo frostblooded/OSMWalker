@@ -320,20 +320,21 @@ for (const width of [360, 412]) {
       await check(page, "explored");
       await page.getByRole("dialog", { name: /Explored/ }).getByRole("button", { name: /Close/ }).click();
 
-      // The choice timer at 20 s (remembered), so the away dilemma doesn't decide itself mid-shot on a busy machine.
+      // The choice timer at 20 s (remembered), so the reopen's dilemma doesn't decide itself mid-shot on a busy machine.
       await openMenuItem(page, /Choice timer/);
       await page.getByRole("button", { name: /Choice timer/ }).click();
       await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
       await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
       await reopenAfter(page, 5);
-      const away = page.getByRole("dialog", { name: /While you were away/ });
+      const away = page.getByRole("dialog", { name: /Welcome back/ });
       await expect(away).toContainText("One choice", { timeout: 20000 });
       await check(page, "away");
       await away.locator(".choices button").last().click();
       await check(page, "away-dilemma");
-      await away.getByRole("button", { name: /events, newest first/ }).click();
-      await check(page, "away-events");
       await away.getByRole("button", { name: "Carry on" }).click();
+      // The map with the boost's countdown badge under the top card.
+      await expect(page.getByRole("timer", { name: /10 times speed/ })).toBeVisible();
+      await check(page, "boost");
 
       await openMenuItem(page, /Send a postcard/);
       await check(page, "postcard");

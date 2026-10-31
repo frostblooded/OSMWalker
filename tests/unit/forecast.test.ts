@@ -1,12 +1,7 @@
 // The daily forecast: the same rule for everyone on a date, and what each one changes.
 import { describe, expect, it } from "vitest";
 import * as F from "../../src/core/forecast";
-import { Activities } from "../../src/core/activities";
-import { catchUp } from "../../src/core/catchup";
-import { bboxAround } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
-import { skyAt } from "../../src/core/sky";
-import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 import * as S from "../../src/core/stats";
 import { FIRST_VISIT_XP, Stats } from "../../src/core/stats";
@@ -90,29 +85,5 @@ describe("daily forecast", () => {
       expect(F.words(f)).not.toContain("{n}");
     }
     expect(F.words(LIST.find((f) => f.id === "fares")!)).toBe("Fares are 20% off today");
-  });
-
-  it("each day he lives through while away has its own forecast", () => {
-    const stats = new Stats();
-    stats.forecasts = LIST;
-    const start = Date.UTC(2026, 9, 29, 20, 0, 0);
-    const seen: [string, number][] = [];
-    const real = stats.forecast.bind(stats);
-    stats.forecast = () => {
-      const f = real();
-      seen.push([f.id, stats.now()]);
-      return f;
-    };
-    const city = { name: "Town", code: "", center: [0, 0] as [number, number], bounds: bboxAround(0, 0, 3000), places: null };
-    catchUp(stats, city, [0, 0], 24 * 3600, start, {
-      activities: new Activities(JSON.parse(dataFile("actions.json"))),
-      trips: new Trips(parseCities(""), parseAirports("")),
-      rng: new Rng(1),
-      skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
-      roll: () => 0.99,
-    });
-    expect(seen.length).toBeGreaterThan(10);
-    for (const [id, t] of seen) expect(id).toBe(F.forecastAt(LIST, t).id);
-    expect(new Set(seen.map(([, t]) => new Date(t * 1000).getDate())).size).toBe(2);
   });
 });

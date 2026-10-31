@@ -36,13 +36,13 @@ export const MAX_CITY_RADIUS_M = 25_000;
 export const MAX_SKIPS = 3;
 /** Where he stands on landing, until the new city's streets load. Never a tile or OSM id. */
 export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
-/** After a catch-up he stands on the nearest loaded corner when it is this close to where he ended up. */
+/** He stands on the nearest loaded corner only when it is this close; else on a lone point until the streets load. */
 export const SNAP_M = 100;
 /** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and at most LAND_SHARE of his distance. */
 export const FLY_MIN_M = 400;
 export const LAND_MAX_M = 1500;
 export const LAND_SHARE = 0.5;
-export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
+const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /**
  * A flight over the city: from where he took off to the corner `node` by the
  * park he lands in. With `mps`, a ride across town to a trip's station at that
@@ -279,30 +279,6 @@ export class Walker {
     this.restFor(1);
     this.place = place;
     return moved;
-  }
-
-  /**
-   * Puts him at `at` without walking there (after the catch-up), with nothing
-   * planned: on the nearest loaded corner when one is within SNAP_M, else on
-   * a lone point until the streets there load. A new city drops the graph.
-   */
-  relocate(at: LatLon, bounds: BBox, newCity: boolean): void {
-    this.travel = null;
-    this.flight = null;
-    this.departing = null;
-    this.place = null;
-    this.goal = null;
-    this.goalNode = null;
-    this.route = [];
-    this.routeArrives = false;
-    this.restM = 0;
-    this.restTotalM = 0;
-    this.legFrom = null;
-    this.tripM = 0;
-    this.tripStartM = 0;
-    this.bounds = bounds;
-    if (newCity) this.graph = new StreetGraph();
-    this.startAt(this.cornerOrLone(at));
   }
 
   /** The nearest loaded corner within SNAP_M of `at`, or null. */

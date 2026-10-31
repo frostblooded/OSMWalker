@@ -85,7 +85,7 @@ describe("townies", () => {
 });
 
 describe("townies in his stats", () => {
-  it("rolls news on the first minute of a new local day, also in the catch-up, and loads saves from before townies", () => {
+  it("rolls news on the first minute of a new local day, and loads saves from before townies", () => {
     const s = new Stats();
     s.townNews = [small];
     s.friends.list = [local()];

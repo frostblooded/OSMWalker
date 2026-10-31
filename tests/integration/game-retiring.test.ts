@@ -88,7 +88,7 @@ describe("game", () => {
       expect(g.stats.life.gen).toBe(2);
     });
 
-    it("a reopen while he is retiring waits for the heir, so the old walker's catch-up never lands on him", async () => {
+    it("a reopen while he is retiring waits for the heir, so the old walker's reopen never lands on him", async () => {
       const ok = streets().load;
       let open: () => void = () => {};
       let gate: Promise<void> | null = null;
@@ -100,11 +100,11 @@ describe("game", () => {
       expect(g.stats.life.gen).toBe(1);
       now += 2 * 3600 * 1000;
       await g.wake();
-      expect(g.away).toBeNull();
+      expect(g.welcome?.card).toBeFalsy();
       open();
       await settled(g);
       expect(g.stats.life.gen).toBe(2);
-      expect(g.away).toBeNull();
+      expect(g.welcome?.card).toBeFalsy();
     });
 
     it("a later reopen still rolls a dilemma while the farewell letter waits to be read", async () => {
@@ -120,7 +120,7 @@ describe("game", () => {
       expect(g.dilemma).not.toBeNull();
     });
 
-    it("a choice still open on the away card is decided before the heir takes over", async () => {
+    it("a choice still open on the welcome-back card is decided before the heir takes over", async () => {
       let now = Date.now();
       const { g } = await elder(86400, { clock: () => now });
       g.setAlwaysDilemma(true);

@@ -1,4 +1,4 @@
-// One dilemma on reopen: now and then, after a long time away, the away card
+// One dilemma on reopen: now and then, after a long time away, the welcome-back card
 // holds one small choice ("A trucker offers a free ride to Varna. Hop on, or
 // stay?"). Your tap picks the outcome; if you just carry on he decides by
 // himself, leaning on one of his attributes. Nothing ever waits for
@@ -107,7 +107,7 @@ export const helpList = () =>
 
 /**
  * A dilemma that came up, with the city a trip offer goes to and what the
- * away card shows (so the card needs nothing from this file, which loads
+ * welcome-back card shows (so the card needs nothing from this file, which loads
  * only on a reopen).
  */
 export type Dilemma = { id: string; city: City | null; icon: string; ask: string; labels: string[]; picked: number | null; by: "you" | "him" | null; said: string };

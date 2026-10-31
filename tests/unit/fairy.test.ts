@@ -1,16 +1,11 @@
-// Fairy rings: where and when he naps, how rarely, what he wakes with, and the same while away.
+// Fairy rings: where and when he naps, how rarely, what he wakes with.
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { FEATS, SETS } from "../../src/core/collection";
 import * as F from "../../src/core/fairy";
-import { bboxAround } from "../../src/core/geo";
 import * as Items from "../../src/core/items";
 import { Rng, seedOf } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
-import { parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
-import { hourSky } from "../support/sky";
 
 const T0 = 1_800_000_000;
 const DAY = 86_400;
@@ -86,18 +81,6 @@ describe("fairy rings", () => {
     expect(s.rings.stories).toHaveLength(1);
     const story = F.STORIES.find((x) => x.id === s.rings.stories[0])!;
     expect(s.history.entries.at(-1)?.text).toBe(`✨ ${story.say} (Magic +${F.STORY_MAGIC})`);
-  });
-
-  it("while away he naps too, at real parks, and the time passes", () => {
-    const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [{ ...PARK, lat: 0.003 }, { ...PARK, name: "Cafe", class: "cafe", subclass: "cafe", lon: 0.003 }] };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0\t0\t1000\n")), rng: new Rng(7), skyAt: hourSky(() => DAWN), roll: () => 0.99 };
-    const stats = new Stats();
-    const s = catchUp(stats, home, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 5), deps);
-    expect(stats.rings.naps).toBeGreaterThan(0);
-    expect(s.lines.some((l) => l.text.startsWith("🍄 Lay down in a ring of mushrooms in Rose Park"))).toBe(true);
-    const none = new Stats();
-    catchUp(none, { ...home, places: null }, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 5), { ...deps, rng: new Rng(7) });
-    expect(none.rings.naps).toBe(0);
   });
 
   it("the Collection has a tile for every gift and story, and the badge counts them", () => {

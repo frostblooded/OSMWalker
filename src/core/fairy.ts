@@ -2,7 +2,7 @@
 // mushrooms for a nap, and wake hours later, rested, with either a fairy
 // gift (a trinket spun with a little fairy luck and Magic) or a burst of
 // Magic and a strange story he can't quite tell. At most once every
-// FAIRY_GAP_DAYS, the same watched and away (Stats.fairyAt).
+// FAIRY_GAP_DAYS (Stats.fairyAt).
 import * as Items from "./items";
 import type { Rng } from "./rng";
 import type { Fx, Place } from "./stats";

@@ -1,10 +1,8 @@
-// Timed moments with real Sofia streets and fixed dice: asking at a place, holding him still, his own pick, the timer setting, the catch-up's match and Debug.
+// Timed moments with real Sofia streets and fixed dice: asking at a place, holding him still, his own pick, the timer setting and Debug.
 import { describe, expect, it } from "vitest";
 import { MOMENT_S, MOMENT_TIMERS } from "../../src/core/moments";
-import { momentDice } from "../../src/core/placeMoments";
-import { Stats } from "../../src/core/stats";
 import { DEBUG_MOMENTS, type Game } from "../../src/game/game";
-import { CAFE, game, HOUR, reopen, run, START, tick } from "../support/game";
+import { CAFE, game, reopenDilemma, run, START, tick } from "../support/game";
 
 describe("timed moments", () => {
   const withMoments = () => game({ places: [CAFE], moments: true });
@@ -49,27 +47,6 @@ describe("timed moments", () => {
     expect(again.stats.history.entries.some((e) => e.text.startsWith("☕ Decided by himself:"))).toBe(true);
   });
 
-  it("goes as in the catch-up when untouched: same line, money and free item", async () => {
-    const { g } = withMoments();
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    // Every result of the cafe's moment gives a free item, so its dice matter.
-    const cafe = g.stats.placeMoments.cafe!;
-    const outcomes = Object.fromEntries(Object.entries(cafe.outcomes).map(([k, o]) => [k, { ...o, item: "improvised" as const }]));
-    g.stats.placeMoments = { ...g.stats.placeMoments, cafe: { ...cafe, outcomes } };
-    toMoment(g);
-    const away = Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON())));
-    away.placeMoments = g.stats.placeMoments;
-    const t = g.stats.now();
-    away.byHimself(away.placeMoments.cafe!, "Cafe Near", momentDice(t, "Cafe Near"));
-    // Watched, it settles when the timer runs out.
-    g.stats.now = () => t + MOMENT_S;
-    run(g, MOMENT_S);
-    await tick();
-    const items = (s: Stats) => [...Object.values(s.gear), ...s.bag].map((i) => i?.name);
-    expect(g.stats.history.entries.at(-1)!.text).toBe(away.history.entries.at(-1)!.text);
-    expect([g.stats.cents, items(g.stats)]).toEqual([away.cents, items(away)]);
-  });
-
   it("never opens with the timer Off, and steps through the timers in Settings, kept on the device", async () => {
     const { g, storage } = withMoments();
     expect(MOMENT_TIMERS.at(-1)).toBe(0);
@@ -109,14 +86,14 @@ describe("timed moments", () => {
     expect(kinds).toEqual([...DEBUG_MOMENTS, ""]);
   });
 
-  it("takes his own pick at once while the away card is open, so nothing covers it", async () => {
-    const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
-    expect(again.away).not.toBeNull();
+  it("takes his own pick at once while the welcome-back card is open, so nothing covers it", async () => {
+    const { again } = await reopenDilemma("bread");
+    expect(again.welcome!.card).toBe(true);
     const m = { id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" };
     const p = again.ask(m);
     expect(again.moment).toBeNull();
     expect(await p).toEqual({ id: "b", you: false });
-    again.dismissAway();
+    again.dismissWelcome();
     void again.ask(m);
     expect(again.moment).not.toBeNull();
   });

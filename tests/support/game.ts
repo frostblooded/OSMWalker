@@ -92,7 +92,7 @@ export async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Pl
   again.load();
   loaded(again);
   await again.wake();
-  return { g, again, setNow: (t: number) => (now = t), now: () => now };
+  return { g, again, storage, setNow: (t: number) => (now = t), now: () => now };
 }
 
 

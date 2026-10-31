@@ -1,16 +1,11 @@
-// Quests and world events (src/core/quests.ts, data/quests.json): the board, taking a quest on, its steps, events and the catch-up.
+// Quests and world events (src/core/quests.ts, data/quests.json): the board, taking a quest on, its steps and events.
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
-import { bboxAround } from "../../src/core/geo";
 import * as Q from "../../src/core/quests";
 import { Rng } from "../../src/core/rng";
 import { PRACTICE_MIN, QUEST_PRACTICE_MIN } from "../../src/core/skills";
 import { ATTRS, Stats, type Place } from "../../src/core/stats";
-import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 import { skyAt } from "../../src/core/sky";
-import { hourSky } from "../support/sky";
 
 const BANK = JSON.parse(dataFile("quests.json")) as Q.Bank;
 const ACTIONS = JSON.parse(dataFile("actions.json")) as Record<string, unknown>;
@@ -497,28 +492,5 @@ describe("world events", () => {
     const { s } = fresh({ names: ["Ana"], quests: [], events: [ev({ time: "night" })] });
     expect(Q.startEvent(s, null, TOWN[0]!, TOWN, 12, new Rng(11))).toBeNull();
     expect(Q.startEvent(s, null, TOWN[0]!, TOWN, 23, new Rng(11))).not.toBeNull();
-  });
-});
-
-describe("quests while he is away", () => {
-  it("he takes on quests and finishes them in the catch-up, and doesn't leave town mid-quest", () => {
-    const s = new Stats();
-    s.quests.bank = BANK;
-    const box = bboxAround(HERE[0], HERE[1], 2000);
-    const city: AwayCity = { name: "Testville, France", code: "FR", center: HERE, bounds: box, places: TOWN, pop: 300_000 };
-    const trips = new Trips(parseCities(dataFile("cities.tsv")), parseAirports(dataFile("airports.tsv")));
-    const sum = catchUp(s, city, HERE, 12 * 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), skyAt: hourSky(() => 12), roll: () => 0.999 });
-    expect(sum.lines.some((l) => l.text.includes("New quest"))).toBe(true);
-    expect(s.quests.log.length).toBeGreaterThan(0);
-  });
-
-  it("rolls the board of a city he left before enough of it had loaded", () => {
-    const s = new Stats();
-    s.quests = Q.Quests.fromJSON({ city: "Testville, France", rolled: false });
-    s.quests.bank = BANK;
-    const city: AwayCity = { name: "Testville, France", code: "FR", center: HERE, bounds: bboxAround(HERE[0], HERE[1], 2000), places: TOWN, pop: 300_000 };
-    const trips = new Trips(parseCities(dataFile("cities.tsv")), parseAirports(dataFile("airports.tsv")));
-    catchUp(s, city, HERE, 3600, Date.UTC(2026, 9, 30, 8), { activities: new Activities(JSON.parse(dataFile("actions.json")), {}), trips, rng: new Rng(12), skyAt: hourSky(() => 12), roll: () => 0.999 });
-    expect(s.quests.rolled).toBe(true);
   });
 });

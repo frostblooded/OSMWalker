@@ -40,4 +40,17 @@ describe("little moments", () => {
     expect(g.moment).not.toBeNull();
     expect(g.stats.beats.seen.size).toBe(seen);
   });
+
+  it("keep his bubble up for SAY_S real seconds during a boost", async () => {
+    const { g } = game({ beats: true, places: [] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.boostS = 600;
+    g.debugBeat();
+    g.step(0.5);
+    expect(g.saidNow()).not.toBe("");
+    for (let i = 0; i < 2 * SAY_S - 2; i++) g.step(0.5);
+    expect(g.saidNow()).not.toBe("");
+    g.step(1);
+    expect(g.saidNow()).toBe("");
+  });
 });

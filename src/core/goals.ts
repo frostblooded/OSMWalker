@@ -2,7 +2,7 @@
 // medium walking distance and by lying ahead along his last leg, times how
 // well they meet his needs; random spots are drawn with the same distance
 // and heading odds. With an urgent need only places that fix it count, and
-// the nearest of them wins. Pure functions, used by the walker and catch-up.
+// the nearest of them wins. Pure functions, used by the walker.
 import { distanceM, moved, offsetM, type BBox } from "./geo";
 import type { Rng } from "./rng";
 import type { Meter, Place } from "./stats";
@@ -43,7 +43,7 @@ export function urgentRules(needs: Pick<Need, "urgent" | "bottom">[], r: number)
 }
 export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; need_w: number; weight: number; urgent?: true };
 
-export const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
+const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
 
 /** 1 at GOAL_PEAK_M, falling off smoothly (log-normal) nearer and further. */
 export function distanceWeight(dM: number): number {
