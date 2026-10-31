@@ -43,6 +43,8 @@ export class Pantry {
   items: Ingredient[] = [];
   /** Meals he has cooked in all. */
   cooked = 0;
+  /** The recipes he has cooked at least once, by id, for the Collection. */
+  dishes: string[] = [];
 
   full(): boolean {
     return this.items.length >= PANTRY_MAX;
@@ -65,9 +67,11 @@ export class Pantry {
     return out;
   }
 
-  /** Uses up `r`'s ingredients. */
+  /** Uses up `r`'s ingredients, and counts it cooked. */
   use(r: Recipe): void {
     for (const i of r.uses) this.items.splice(this.items.indexOf(i), 1);
+    this.cooked++;
+    if (!this.dishes.includes(r.id)) this.dishes.push(r.id);
   }
 
   /**
@@ -95,13 +99,14 @@ export class Pantry {
   }
 
   toJSON() {
-    return { items: this.items, cooked: this.cooked };
+    return { items: this.items, cooked: this.cooked, dishes: this.dishes };
   }
 
-  /** Old saves have an empty pantry; unknown ingredients are dropped. */
+  /** Old saves have an empty pantry and no dishes; unknown ingredients and recipes are dropped. */
   static fromJSON(d: unknown): Pantry {
     const out = new Pantry();
-    const v = d as { items?: unknown; cooked?: unknown } | null;
+    const v = d as { items?: unknown; cooked?: unknown; dishes?: unknown } | null;
+    if (Array.isArray(v?.dishes)) out.dishes = v.dishes.filter((id) => RECIPES.some((r) => r.id === id));
     const items = v?.items;
     out.cooked = Math.max(Number(v?.cooked) || 0, 0);
     if (Array.isArray(items)) out.items = items.filter((i): i is Ingredient => (INGREDIENTS as readonly string[]).includes(i)).slice(0, PANTRY_MAX);

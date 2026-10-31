@@ -112,6 +112,9 @@ export type Summary = {
   endCents: number;
   startLevel: number;
   endLevel: number;
+  /** Cents his businesses paid him, and the lottery. */
+  takings: number;
+  lotteryWon: number;
   /** "Bought ..." lines. */
   bought: string[];
   /** He was due to retire (his elder stage ran out, or you asked on a ride), so the catch-up stopped there (coveredS is up to then): "soon", or "done" once the game has retired him. */
@@ -147,10 +150,14 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     endCents: stats.cents,
     startLevel: stats.level,
     endLevel: stats.level,
+    takings: 0,
+    lotteryWon: 0,
     bought: [],
     lines: [],
     end: { city, at: here, place: null, skipRoll: !!deps.skipRoll },
   };
+  const earned0 = stats.business.earned;
+  const won0 = stats.lottery.won;
   let elapsed = 0;
   let heading: Vec = [0, 0];
   let skipRoll = !!deps.skipRoll;
@@ -309,6 +316,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   }
   s.endCents = stats.cents;
   s.endLevel = stats.level;
+  s.takings = stats.business.earned - earned0;
+  s.lotteryWon = stats.lottery.won - won0;
   s.end.city = city;
   s.end.at = here;
   s.end.skipRoll = skipRoll;
