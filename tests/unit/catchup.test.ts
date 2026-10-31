@@ -323,6 +323,8 @@ describe("catch-up", () => {
 
   it("draws no Magic and learns no spells at made-up churches and libraries", () => {
     const stats = Object.assign(new Stats(), { spellKinds: JSON.parse(dataFile("spells.json")) });
+    // He wants a library all day, so his last lines surely hold one.
+    stats.mind.wants = [{ kind: "long", place: "library", until: 0 }, { kind: "short", place: "library", until: START_MS / 1000 + 48 * 3600 }];
     catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
     expect(stats.history.entries.some((e) => /^Reached a (church|library) in /.test(e.text))).toBe(true);
     expect(stats.magic).toBe(0);

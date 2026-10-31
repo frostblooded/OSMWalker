@@ -19,6 +19,21 @@ const shown = (stats: Stats, afoot = false) => {
 };
 
 describe("Stats sheet", () => {
+  it("shows his wants, fears and the total that moves his mood", () => {
+    const stats = new Stats();
+    stats.now = () => 1_800_000_000;
+    stats.mind.wants = [{ kind: "long", place: "castle", until: 0 }, { kind: "short", place: "cafe", until: 1_800_000_000 + 2 * 3600 }];
+    stats.mind.fears = ["dog_park"];
+    stats.mind.wants.push({ kind: "face", place: "dog_park", until: 0 });
+    stats.mind.feel("Wish come true", "🌠", 3, 4);
+    const text = shown(stats);
+    expect(text).toContain("💭Mind");
+    expect(text).toContain("🌠 See a castle");
+    expect(text).toContain("✨ Go to a cafe2 h");
+    expect(text).toContain("😨 Wary of dog parks: face the dog park again");
+    expect(text).toContain("🙂 Mood ▸+2/h"); // -1 drift + 3
+  });
+
   it("shows his pet, its level and km together, and the pets he had", () => {
     const stats = new Stats();
     expect(shown(stats)).toContain("No pet yet");
