@@ -812,12 +812,12 @@ export class Game {
     this.changed();
   }
 
-  /** Your pick on the summary card's dilemma. */
   /** The away card's choice is on screen: its time starts now. */
   dilemmaShown(): void {
     if (this.dilemmaLeft === Infinity) this.dilemmaLeft = this.momentS;
   }
 
+  /** Your pick on the summary card's dilemma. */
   chooseDilemma(pick: number): void {
     const d = this.dilemma;
     if (!d || d.picked !== null) return;

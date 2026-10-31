@@ -210,10 +210,10 @@ At a choice he takes the usual option, unless his attribute tilts him to the bol
 Some options are a gamble, like walking out without paying or robbing a till: they work {RISK_BASE_PCT} of the time, plus {RISK_PER_POINT_PCT} for each point of Luck above 1, up to {RISK_CAP_PCT}. When one fails he is caught: he may pay a fine (only what he has), get hurt and lose mood. Kind and shady picks are meant to raise and lower his karma; until karma comes to the game they change only what they say.
 ## Mini-games {minigames}
 A mini-game's result picks one of its options, from worst to best:
-- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle (marked ✔) for the best result, in the amber around it for the middle one.
-- 🂠 Pick a card: three cards lie face down, one bad, one middling and one good.
+- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle (marked ✔) for the best result, in the light green around it for the middle one.
+- 🂠 Pick a card: {CARDS} cards lie face down, one bad, one middling and one good.
 - 👆 Tap fast: tap {TAPS} times before the bar runs out. If it runs out first, you get what your taps have scored so far.
-- 🔍 Odd one out: six icons, one of them different. Tap it at once for the best result, after one wrong tap for the middle one; two wrong taps give the worst.
+- 🔍 Odd one out: {ODD_CELLS} icons, one of them different. Tap it at once for the best result, after one wrong tap for the middle one; two wrong taps give the worst.
 
 When you don't play, he plays himself and scores the middle result, never the worst. With some skill he scores the best: {MOMENT_LEAN_PCT} for each point above 1 of Charm at Timing, Luck at Pick a card, Strength at Tap fast and Wits at Odd one out, up to {MOMENT_LEAN_CAP_PCT}.
 ## How he chooses {choosing}

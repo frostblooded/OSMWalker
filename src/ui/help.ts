@@ -206,6 +206,8 @@ export function values(data: GameData): Record<string, string> {
     RISK_PER_POINT_PCT: pct(Moments.RISK_PER_POINT),
     RISK_CAP_PCT: pct(Moments.RISK_CAP),
     TAPS: num(Minigames.TAPS),
+    CARDS: num(Minigames.CARDS.length),
+    ODD_CELLS: num(Minigames.ODD_CELLS),
     DILEMMA_AWAY_H: num(Dilemmas.DILEMMA_AWAY_S / 3600),
     DILEMMA_PCT: pct(Dilemmas.DILEMMA_CHANCE),
     LEAN_PCT: pct(Dilemmas.LEAN_PER_POINT),

@@ -26,8 +26,11 @@ export const TAPS = 12;
 export const tapScore = (taps: number) => Math.min(taps / TAPS, 1);
 
 /** Pick a card: three face down, one each of worst, middle and best, in random order. */
+/** Pick a card: one bad, one middling and one good. */
+export const CARDS = [0, 0.5, 1];
+
 export function deal(rng: Rng): number[] {
-  const cards = [0, 0.5, 1];
+  const cards = [...CARDS];
   for (let i = cards.length - 1; i > 0; i--) {
     const j = rng.randiRange(0, i);
     [cards[i], cards[j]] = [cards[j]!, cards[i]!];

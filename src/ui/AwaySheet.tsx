@@ -3,6 +3,7 @@
 // and level before and after, the clover this check-in earned, now and then
 // one small choice, and everything he did folded away below. After a week
 // turns over, last week's recap leads it, once.
+import { useEffect, useState } from "preact/hooks";
 import type { Summary } from "../core/catchup";
 import type { Dilemma } from "../core/dilemmas";
 import { CLOVERS_PER_CHECKIN } from "../core/gifts";
@@ -11,7 +12,6 @@ import { placeIcon } from "../core/look";
 import { euro, signed } from "../core/money";
 import type { Recap, Week } from "../core/week";
 import { biasMin, dist, duration } from "./format";
-import { useEffect, useState } from "preact/hooks";
 import { Card, Collapsible, KV } from "./kit";
 
 export function AwaySheet({
