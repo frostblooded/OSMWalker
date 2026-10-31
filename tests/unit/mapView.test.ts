@@ -6,18 +6,27 @@ import { POSE_EVERY_S, type Look } from "../../src/core/look";
 import { MapView } from "../../src/map/mapView";
 
 /** A MapView with only his marker, no MapLibre. */
-function view(): { v: MapView; bubble: HTMLElement } {
+function view(): { v: MapView; bubble: HTMLElement; pet: HTMLElement } {
   const el = document.createElement("div");
-  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span>';
+  el.innerHTML = '<span class="face"></span><span class="mount"></span><span class="bubble"></span><span class="pet"></span>';
   const v = new MapView();
   Object.assign(v, { him: { getElement: () => el } });
-  return { v, bubble: el.querySelector(".bubble")! };
+  return { v, bubble: el.querySelector(".bubble")!, pet: el.querySelector(".pet")! };
 }
 
-const napping: Look = { face: "🙂", bubble: "", pose: { icon: "💤", motion: "rise" }, mount: "" };
+const napping: Look = { face: "🙂", bubble: "", pose: { icon: "💤", motion: "rise" }, mount: "", pet: "" };
 
 describe("MapView.setLook", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it("shows his pet at his side, and hides the spot without one", () => {
+    const { v, pet } = view();
+    v.setLook({ ...napping, pet: "🐕" });
+    expect(pet.textContent).toBe("🐕");
+    expect(pet.hidden).toBe(false);
+    v.setLook(napping);
+    expect(pet.hidden).toBe(true);
+  });
 
   it("replays the pose each POSE_EVERY_S while he stays", () => {
     let now = 0;

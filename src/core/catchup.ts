@@ -9,7 +9,7 @@
 // places aren't loaded he visits made-up places of the usual kinds ("a cafe
 // in Lyon"). The sky (sun, season and closed places, no weather) follows the hour
 // he is in. Pure: the game applies where he ends up.
-import { anyUrgent, choose, exploreWeight, needOf, restMinutes, type Activities } from "./activities";
+import { anyUrgent, choose, exploreWeight, minded, needOf, restMinutes, type Activities } from "./activities";
 import { distanceM, offsetM, type BBox } from "./geo";
 import { distanceWeight, headingWeight, nearWeight, pickIndex, randomSpot, rankWeight, urgentRules, weigh, type Vec } from "./goals";
 import { isOpen } from "./opening";
@@ -255,6 +255,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
+      stats.wordAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
       const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;
@@ -305,7 +306,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     }
     if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
-    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
+    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;
@@ -358,7 +359,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     if (flat.of !== real) flat = flatten(real, city.center);
     // Need depends only on the kind of place, so it is worked out once per kind.
     const sky = skyNow();
-    const need = flat.kinds.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const need = flat.kinds.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
     const [hx, hy] = offsetM(city.center[0], city.center[1], here[0], here[1]);
     const [keep, r] = urgentRules(need, rng.randf());
     let any = false;
@@ -374,7 +375,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     const pick = (places: Place[], w: number[], r: number) => (w.some((x) => x > 0) ? places[pickIndex(w, r)]! : null);
     if (any) return pick(real, weights, r);
     const made = madeUp();
-    const madeNeed = made.map((p) => skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky));
+    const madeNeed = made.map((p) => minded(skyNeed(needOf(activities.peek(p, city.code), stats, sky.hour), p, sky), p, stats));
     const [keepMade, rMade] = urgentRules(madeNeed, rng.randf());
     return pick(made, made.map((p, i) => (keepMade && !keepMade(madeNeed[i]!) ? 0 : weigh(p, here, heading, madeNeed[i]!.pull, !!keepMade).weight)), rMade);
   }

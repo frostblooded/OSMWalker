@@ -228,6 +228,7 @@ describe("retiring", () => {
     expect(heir.keepsakes).toBe(s.keepsakes);
     expect(heir.keepsakes.freePacks).toBe(3);
     expect(heir.care.clovers).toBe(7);
+    expect(heir.pets).toBe(s.pets);
     expect(heir.story.style).toBe("chaotic");
     expect(heir.chronicle.lines[0]!.text).toContain("Walker I");
     expect(heir.now()).toBe(t.now);

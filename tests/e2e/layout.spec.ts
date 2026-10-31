@@ -186,6 +186,10 @@ for (const width of [360, 412]) {
 
       await openMenuItem(page, /Stats/);
       await check(page, "stats");
+      const mood = page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /🙂 Mood/ });
+      await mood.click();
+      await mood.scrollIntoViewIfNeeded();
+      await check(page, "stats-mind");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
 
       await reopenWith(page, KEEPSAKES);
