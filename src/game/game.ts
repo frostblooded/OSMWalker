@@ -363,10 +363,9 @@ export class Game {
       if (this.moment.left <= 0) this.settleMoment(null);
       return;
     }
-    if (!w.isTraveling()) {
-      const here = w.position();
-      this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
-    }
+    const from = w.isTraveling() ? null : w.position();
+    const graph = w.graph;
+    if (from) this.loader.request(cellsByPriority(from[0], from[1], STREET_RING, this.goalHeading()));
     // He walks what is loaded and waits at the edge until more streets arrive.
     const s = Math.min(dt, MAX_STEP_S);
     const before = w.totalM;
@@ -380,6 +379,8 @@ export class Game {
     if (w.totalM > before) this.walkStreet(w.streetName());
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
+    // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
+    if (from && !w.isTraveling() && w.graph === graph && w.totalM > before) this.stats.explored.walk(from, w.position());
     if (this.stats.fainted()) this.faint();
     const leaving = this.stats.life.leaving;
     if (leaving) void this.retire(leaving);

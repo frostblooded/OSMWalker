@@ -953,7 +953,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Explored, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -1022,6 +1022,10 @@ A feat counts something he does. Its first number gives him a 🥉 Bronze badge,
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: arrivals, actions, purchases, level-ups, trips and faints. That includes what he did while you were away, at the times it happened.
 
 While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km), with numbered markers where things happened. Events at the same spot share one marker, such as "4-6". Tap an event to zoom the map to where it happened. Trips break the trail, long walks too, because they aren't drawn street by street.
+## Explored {explored}
+👣 Explored shows how much of the world he has walked. The world is split into squares of about {CELL_M} m a side, the same size everywhere, and each square he walks into counts as explored. Getting about in his city counts: on foot, with his own vehicle, or flying his own mount straight over the streets (see Speed and vehicles). Trips to other cities, portals, long walks between cities and the time the game was closed don't.
+
+The sheet shows the share of the squares in his city box (the box his goals are picked in, see Choosing a city) he has walked, such as "Sofia 14% explored", and the number of squares and km² he has walked in the whole world. While it is open the map shows his squares in green, zoomed to the ones in this city. They are kept for good, in every city he has been to, and pass to his heir when he retires, until New city.
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 

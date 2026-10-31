@@ -30,6 +30,13 @@ export function countdown(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** `part` of `whole` as "14%", with a decimal under 10% ("1.5%"), and at least "0.1%" once part is above 0. */
+export function share(part: number, whole: number): string {
+  if (!whole || !part) return "0%";
+  const p = (100 * part) / whole;
+  return p < 10 ? `${Math.max(Math.round(p * 10) / 10, 0.1)}%` : `${Math.round(p)}%`;
+}
+
 /** "5 km/h" or "16.5 km/h". */
 export function speed(mps: number): string {
   const kmh = Math.round(mps * 3.6 * 10) / 10;
