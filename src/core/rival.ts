@@ -41,7 +41,7 @@ export type Contest = { id: string; at: string[]; attr: Attr; text: string; won:
 /** How the game asks a contest as a mini-game: show `m`, then `settle` with your result or his own; settle returns the feed line. */
 export type ContestAsk = (m: Moment, his: () => string, settle: (p: Pick) => string) => void;
 /** The mini-game each contest attribute is played as: moments.ts GAME_ATTR the other way round. */
-export const CONTEST_GAME = Object.fromEntries(Object.entries(GAME_ATTR).map(([g, a]) => [a, g])) as Partial<Record<Attr, GameId>>;
+export const CONTEST_GAME = Object.fromEntries(Object.entries(GAME_ATTR).map(([g, a]) => [a, g])) as Record<Attr, GameId>;
 
 /** What a win and a loss do. */
 export const WIN_FX: Fx = { mood: 10, xp: 30 };
@@ -121,7 +121,7 @@ export class Rival {
       return `${you ? "" : "Played by himself: "}${won ? c.won : c.lost}${recall}`;
     };
     if (!ask) return stats.say(`${opening} ${settle(his, true)}`);
-    const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: what, game: CONTEST_GAME[c.attr] ?? "timing", options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
+    const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: what, game: CONTEST_GAME[c.attr], options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
     const line = stats.say(opening);
     ask(m, () => (his ? "won" : "lost"), (p) => stats.say(`${RIVAL_ICON} ${settle(p.id === "won", p.you)}`));
     return line;
