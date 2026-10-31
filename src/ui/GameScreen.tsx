@@ -20,6 +20,7 @@ import { MapScene, type Padding } from "../map/scene";
 import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
+import { ExploredSheet } from "./ExploredSheet";
 import { HistorySheet } from "./HistorySheet";
 import { Card, KV } from "./kit";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
@@ -30,7 +31,7 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "story" | null;
+type Sheet = "menu" | "history" | "explored" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -111,6 +112,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
+  // Explored does the same with the squares he walked.
+  const fitExplored = () => {
+    const on = sheet === "explored";
+    scene.current?.showExplored(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
+  };
+  useEffect(fitExplored, [sheet]);
   useEffect(() => scene.current?.showLeys(sheet === "stats"), [sheet]);
 
   const close = () => setSheet(null);
@@ -191,6 +198,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => setSheet("history")}>
               📜 History
             </button>
+            <button class="btn" onClick={() => setSheet("explored")}>
+              👣 Explored
+            </button>
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
@@ -242,6 +252,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
           <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
+        </SheetBox>
+      )}
+      {sheet === "explored" && (
+        <SheetBox title="👣 Explored" onClose={close} onResize={fitExplored}>
+          <ExploredSheet explored={s.explored} city={game.city} box={game.walker?.bounds ?? null} />
         </SheetBox>
       )}
       {sheet === "stats" && (

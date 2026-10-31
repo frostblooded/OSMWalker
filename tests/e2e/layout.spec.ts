@@ -225,6 +225,11 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
+      await openMenuItem(page, /Explored/);
+      await expect(page.getByRole("dialog", { name: /Explored/ })).toContainText(/\d+ squares?/);
+      await check(page, "explored");
+      await page.getByRole("dialog", { name: /Explored/ }).getByRole("button", { name: /Close/ }).click();
+
       await reopenAfter(page, 5);
       const away = page.getByRole("dialog", { name: /While you were away/ });
       await expect(away).toContainText("One choice", { timeout: 20000 });

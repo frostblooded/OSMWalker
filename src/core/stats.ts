@@ -18,6 +18,7 @@ import * as Gi from "./giants";
 import * as Fa from "./fairy";
 import * as F from "./forecast";
 import { Care, dayOf } from "./gifts";
+import { Explored } from "./explored";
 import { History } from "./history";
 import * as Inc from "./incidents";
 import * as Items from "./items";
@@ -163,6 +164,8 @@ export class Stats {
   level = 1;
   buffs: Buff[] = [];
   history = new History();
+  /** The 200 m squares he walked through, in every city. */
+  explored = new Explored();
   visited = new Set<string>();
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
@@ -1116,7 +1119,7 @@ export class Stats {
   toJSON() {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
-      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
+      buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
     };
@@ -1135,6 +1138,8 @@ export class Stats {
     s.buffs = d.buffs ?? [];
     s.walkMin = d.walkMin ?? 0;
     s.history = History.fromJSON(d.history);
+    // A save from before the explored squares: none walked yet.
+    s.explored = Explored.fromJSON(d.explored);
     s.visited = new Set(d.visited);
     s.gear = d.gear ?? {};
     s.bag = d.bag ?? [];

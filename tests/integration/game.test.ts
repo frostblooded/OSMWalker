@@ -446,6 +446,31 @@ describe("game", () => {
     expect(again.stats.history.entries.length).toBe(g.stats.history.entries.length);
   });
 
+  it("marks the squares he walks, keeps them across a save, and not those under a ride", async () => {
+    const { g, storage } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.explored.size).toBe(0);
+    await tick();
+    run(g, 300);
+    const walked = g.stats.explored.size;
+    expect(walked).toBeGreaterThan(0);
+    g.save();
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.problems.quiet = true;
+    expect(again.load()).toBe(true);
+    expect(again.stats.explored.size).toBe(walked);
+    // The bus to Plovdiv crosses 150 km of squares; none of them count.
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+    const boarded = g.stats.explored.size;
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.walker!.isTraveling()).toBe(false);
+    expect(g.stats.explored.size).toBeLessThanOrEqual(boarded + 1);
+  });
+
   it("starts with the route line off and remembers the switch", () => {
     const { g, storage } = game();
     expect(g.showRoute).toBe(false);
