@@ -1,6 +1,6 @@
 // Karma, fame and the law: what deeds do to them, perks either way, the police chase, and the same while away.
 import { describe, expect, it } from "vitest";
-import { Activities, BOUNTY_WEIGHT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
+import { Activities, BOUNTY_WEIGHT, SKINT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
 import { KIND_DEED_WEIGHT, DODGE_CHANCE } from "../../src/core/bond";
 import { FEATS, SETS } from "../../src/core/collection";
 import { Quests, type Bank } from "../../src/core/quests";
@@ -46,7 +46,6 @@ describe("fame", () => {
     expect(f.tier(k)).toBe(3);
     f.add(Fm.cityKey("Varna", "BG"), 5);
     f.add(Fm.cityKey("Paris", "FR"), 7);
-    expect(f.country("BG")).toBe(Fm.FAME_MAX + 5);
     expect(f.total()).toBe(Fm.FAME_MAX + 12);
     expect(f.citiesAt(1)).toBe(1);
     expect(Fm.Fame.fromJSON(JSON.parse(JSON.stringify(f))).toJSON()).toEqual(f.toJSON());
@@ -92,6 +91,16 @@ describe("karma", () => {
     s.do(action("restaurant", "Sneak out without paying"), "Diner", new Rng(1), "restaurant");
     expect(s.bond.lean).toBe(-DEED_STEP);
     expect(s.law.heat).toBe(DEED_STEP * R.HEAT_PER_KARMA);
+  });
+
+  it("a pick weighs what he would really pay against going skint", () => {
+    const s = at();
+    const meal = { name: "Eat", min: 20, cost: 10 };
+    s.cents = SKINT + 1050;
+    const plain = weight(meal, s);
+    s.bond.lean = -LEAN_AT;
+    expect(s.cents - s.priced(1000)).toBeLessThan(SKINT);
+    expect(weight(meal, s)).toBeCloseTo(plain / 2);
   });
 
   it("a rascal picks rascal deeds more often, and a dodged bus ticket is a rascal deed", () => {

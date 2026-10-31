@@ -134,11 +134,6 @@ export class Bond {
     return true;
   }
 
-  /** One of his own deeds: +1 kind, -1 rascal. */
-  deed(sign: number): void {
-    this.lean = clamp(this.lean + Math.sign(sign) * DEED_STEP, -LEAN_MAX, LEAN_MAX);
-  }
-
   /** Every field above is saved; the getters live on the prototype, so they stay out. */
   toJSON() {
     return { ...this };

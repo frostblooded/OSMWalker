@@ -166,7 +166,7 @@ export function weight(action: Action, stats: Stats): number {
   if (action.deed! > 0 && stats.bond.leaning() === "kind") w += KIND_DEED_WEIGHT;
   if (action.deed! < 0 && stats.bond.leaning() === "rascal") w += KIND_DEED_WEIGHT;
   if (action.bounty) w += BOUNTY_WEIGHT;
-  if (action.cost !== undefined && stats.cents - toCents(action.cost) < SKINT) w *= 0.5;
+  if (action.cost !== undefined && stats.cents - stats.priced(toCents(action.cost)) < SKINT) w *= 0.5;
   if (stats.saving()) {
     if (action.cost !== undefined || buys) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;

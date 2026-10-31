@@ -44,13 +44,6 @@ export class Fame {
     return FAME_DISCOUNT[this.tier(key)]!;
   }
 
-  /** Points over all of country `code`'s cities. */
-  country(code: string): number {
-    let n = 0;
-    for (const [k, v] of Object.entries(this.pts)) if (k.endsWith(`|${code}`)) n += v;
-    return n;
-  }
-
   /** Points over every city. */
   total(): number {
     return Object.values(this.pts).reduce((a, b) => a + b, 0);
