@@ -424,7 +424,7 @@ He spends them himself on lasting perks, as soon as he has enough for one. When 
 {PERK_LIST}
 The Character card on the Stats sheet shows his points, the price of the cheapest perk left, and the perks he has. The Lifetime rewards badge counts his perks (see Badges and titles).
 ## Beauty of surroundings {beauty}
-While the game is open, every {BEAUTY_EVERY_MIN} minutes he looks around him (not while riding something). Each kind of land the map draws up to {BEAUTY_M} m either side of him counts: +1 for {NICE_LAND}; -1 for {GRIM_LAND}. Places of an old town within {BEAUTY_M} m ({OLD_TOWN}) add +1 once. Above 0 he feels {PRETTY}; below 0 {GRIM}; at 0 nothing changes. One takes the place of the other. Only what is on screen counts, so with the map dragged away from him, only the places count. The time the game is closed has no surroundings.
+While the game is open, every {BEAUTY_EVERY_MIN} minutes he looks around him (not on a trip to another city). Each kind of land the map draws up to {BEAUTY_M} m either side of him counts: +1 for {NICE_LAND}; -1 for {GRIM_LAND}. Places of an old town within {BEAUTY_M} m ({OLD_TOWN}) add +1 once. Above 0 he feels {PRETTY}; below 0 {GRIM}; at 0 nothing changes. One takes the place of the other. Only what is on screen counts, so with the map dragged away from him, only the places count. The time the game is closed has no surroundings.
 
 While he feels Grim surroundings, green places ({GREEN_KINDS}) pull his goal ×{BEAUTY_PULL} (see Picking the next goal).
 ## Where he sleeps {beds}
