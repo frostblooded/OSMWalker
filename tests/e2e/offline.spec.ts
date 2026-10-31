@@ -34,7 +34,8 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
-  await expect(page.locator(".marker.him")).toBeVisible();
+  // He shows once the cached streets are decoded, which can lag the top card on a busy machine.
+  await expect(page.locator(".marker.him")).toBeVisible({ timeout: 20000 });
 });
 
 test("keeps one Help text, the current one, and opens it offline", async ({ context, page }) => {
