@@ -11,6 +11,6 @@
 
 ## Help pages
 
-## Screens (from the `screens` CI artifact)
+## Screens (from `screens/` after `npm run verify`)
 
 ## Review (CODING_STANDARDS.md)

@@ -288,6 +288,8 @@ async function dragAway(page: Page) {
 }
 
 test("Back to him shows after a drag only while the camera follows him", async ({ page }) => {
+  // Two drags and a reload: about 28 s on a busy CI runner, so it gets room.
+  test.setTimeout(60_000);
   await startInSofia(page);
   const back = page.getByRole("button", { name: /Back to him/ });
   await dragAway(page);
