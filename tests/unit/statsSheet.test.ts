@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, and what the sky does to him.
+// The Stats sheet's speed and saving goal for fantasy mounts, his clubs, his Magic and spells, what the sky does to him, and his skills, languages and pantry.
 import { h, render } from "preact";
 import { describe, expect, it } from "vitest";
 import * as Items from "../../src/core/items";
@@ -7,6 +7,8 @@ import { euro } from "../../src/core/money";
 import { Rng } from "../../src/core/rng";
 import { skyAt, SNOW_SPEED } from "../../src/core/sky";
 import { DRAGON_UPKEEP, KEEP_CENTS, Stats } from "../../src/core/stats";
+import { PANTRY_MAX } from "../../src/core/cooking";
+import { stepsTo } from "../../src/core/skills";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import type { Spell } from "../../src/core/magic";
@@ -42,6 +44,13 @@ describe("Stats sheet", () => {
     expect(shown(stats)).toContain("No, grumpy");
     stats.pets.pass(stats.now() + 86400 * 300);
     expect(shown(stats)).toContain("Remembered");
+  });
+
+  it("tells a failed quest from an event that went badly", () => {
+    const stats = new Stats();
+    stats.quests.log.push({ icon: "🧪", title: "Lost cause", city: "X", t: 0, good: false }, { icon: "🌟", title: "Rough fair", city: "X", t: 1, good: false, event: true });
+    expect(shown(stats)).toContain("Lost cause✖ Failed");
+    expect(shown(stats)).toContain("Rough fairWent badly");
   });
 
   it("after a flyer lands, shows his walking speed", () => {
@@ -129,5 +138,18 @@ describe("Stats sheet", () => {
     expect(shown(stats)).not.toContain("From enchanted gear");
     stats.equip(Items.build(Items.KINDS.trinkets[0]!, Items.MATERIALS[0]!, [Items.ENCHANTMENTS.find((e) => e.name === "of the Moon")!]));
     expect(shown(stats)).toContain("🌙 From enchanted gear+2 a km");
+  });
+
+  it("shows each skill's level, the languages he speaks with the local one marked, and his pantry", () => {
+    const stats = new Stats();
+    stats.skills.steps.music = stepsTo(3);
+    stats.arrive("Lyon", "FRA", "France");
+    stats.languages.add("France's language", 6);
+    stats.pantry.items = ["bread", "cheese"];
+    const text = shown(stats);
+    expect(text).toContain("🎵 Music3");
+    expect(text).toContain("France's language · herebasic");
+    expect(text).toContain("Englishfluent");
+    expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
   });
 });

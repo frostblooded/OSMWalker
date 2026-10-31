@@ -1,7 +1,7 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
-// four attributes with what his gear adds, every gear slot, the bag and his
+// four attributes with what his gear adds, his skills and languages, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind: wants, fears and what
 // moves his mood, and his character: emotion, tastes found and perks. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
@@ -22,6 +22,9 @@ import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
+import { LANG_LEVELS, LANGS_SHOWN } from "../core/languages";
+import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
@@ -135,6 +138,46 @@ function Spells({ stats: s }: { stats: Stats }) {
         </div>
       ) : (
         <KV k="Known" v="none yet" />
+      )}
+    </Card>
+  );
+}
+
+/** His skills, best first, each with its level and a bar towards the next; past SKILLS_SHOWN the rest fold away. */
+function SkillsCard({ stats: s }: { stats: Stats }) {
+  const ranked = [...SKILLS].sort((a, b) => s.skills.steps[b] - s.skills.steps[a]);
+  const row = (k: Skill) => {
+    const [icon, name] = SKILL[k];
+    const l = s.skills.level(k);
+    return (
+      <div key={k} class="meter">
+        <KV k={`${icon} ${name}`} v={l >= SKILL_MAX ? `${l} (top)` : l} />
+        <Bar share={s.skills.progress(k)} color="var(--lilac)" />
+      </div>
+    );
+  };
+  return (
+    <Card icon="🎓" title="Skills">
+      <div class="meters">{ranked.slice(0, SKILLS_SHOWN).map(row)}</div>
+      <Collapsible title="More" right={ranked.length - SKILLS_SHOWN}>
+        <div class="meters">{ranked.slice(SKILLS_SHOWN).map(row)}</div>
+      </Collapsible>
+    </Card>
+  );
+}
+
+/** The languages he speaks, his best first; "here" marks the one spoken where he is. Past LANGS_SHOWN the rest fold away. */
+function LanguagesCard({ stats: s }: { stats: Stats }) {
+  const here = s.lang();
+  const list = s.languages.list();
+  const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang}${lang === here ? " · here" : ""}`} v={LANG_LEVELS[level]} />;
+  return (
+    <Card icon="🗣" title="Languages" right={list.length}>
+      <div class="zebra">{list.slice(0, LANGS_SHOWN).map(row)}</div>
+      {list.length > LANGS_SHOWN && (
+        <Collapsible title="More" right={list.length - LANGS_SHOWN}>
+          <div class="zebra">{list.slice(LANGS_SHOWN).map(row)}</div>
+        </Collapsible>
       )}
     </Card>
   );
@@ -261,6 +304,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
         {s.meters.hygiene < DIRTY_AT && <p class="small tone-warning">🧼 Dirty: Charm counts less and mood drains.</p>}
       </Card>
+      <SkillsCard stats={s} />
+      <LanguagesCard stats={s} />
       <Card icon="🛡" title="Gear">
         <div class="zebra">
           {SLOTS.map((slot) => {
@@ -271,6 +316,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
       </Card>
       <Card icon="🎒" title="Bag">
+        <KV k="🧺 Pantry" v={`${s.pantry.items.map((i) => INGREDIENT[i][0]).join("") || "empty"} · ${s.pantry.items.length} / ${PANTRY_MAX}`} />
         {bag.length ? (
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
@@ -324,7 +370,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
       {recent.length > 0 && (
         <div class="zebra">
           {recent.map((e, i) => (
-            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
+            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : e.event ? "dim" : "tone-error"}>{e.good ? "✔ Went well" : e.event ? "Went badly" : "✖ Failed"}</span>} />
           ))}
         </div>
       )}
