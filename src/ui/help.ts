@@ -415,6 +415,7 @@ export function values(data: GameData): Record<string, string> {
     TASTE_KINDS: Tastes.KINDS.map(Tastes.plural).join(", "),
     POINTS_LONG: String(Perks.WANT_POINTS.long),
     POINTS_SHORT: String(Perks.WANT_POINTS.short),
+    POINTS_SHAKE: String(Perks.WANT_POINTS.shake),
     POINTS_FACE: String(Perks.WANT_POINTS.face),
     LEVEL_POINTS: String(Perks.LEVEL_POINTS),
     SILVER_PCT: pct(Perks.SILVER_PAY),

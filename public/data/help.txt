@@ -325,7 +325,7 @@ A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him
 
 Each wish that comes true also gives lifetime points (see Lifetime rewards).
 ## Emotions {emotions}
-His moodlets add up to one emotion, shown on the top card next to the city and on the Character card of the Stats sheet. Each moodlet counts its mood an hour towards its own emotion; ones with no emotion of their own count towards Happy when they lift his mood and Sad when they lower it. Energy of {FULL_ENERGY} or more counts {ENERGY_WEIGHT} towards Energised, and mood of {SAD_MOOD} or less {SAD_WEIGHT} towards Sad. The biggest wins. With nothing to count he is Bored when mood is under {BORED_MOOD}, else just Fine.
+His moodlets add up to one emotion, shown on the Character card of the Stats sheet and, unless he is just Fine, on the top card next to the city. Each moodlet counts its mood an hour towards its own emotion; ones with no emotion of their own count towards Happy when they lift his mood and Sad when they lower it. Energy of {FULL_ENERGY} or more counts {ENERGY_WEIGHT} towards Energised, and mood of {SAD_MOOD} or less {SAD_WEIGHT} towards Sad. The biggest wins. With nothing to count he is Bored when mood is under {BORED_MOOD}, else just Fine.
 
 Doing anything at some kinds of place brings an emotion's moodlet ({EMO_MOODLET}):
 - Focused ("Deep in thought"): {FOCUSED_KINDS}. Lifts Wits work.
@@ -340,7 +340,7 @@ Every walker is born with {LIKES} kinds of place he loves and {DISLIKES} he can'
 
 Known or not, a kind he loves pulls his goal ×{LIKE_PULL} and one he can't stand ×{DISLIKE_PULL} (see Picking the next goal). Each visit to a kind he loves gives {LIKE_MOOD}; one he can't stand gives {DISLIKE_MOOD}, which counts towards Tense (see Emotions).
 ## Lifetime rewards {perks}
-Wishes that come true give lifetime points: {POINTS_LONG} for a long want, {POINTS_SHORT} for a short one or cheering up, {POINTS_FACE} for facing a fear (see Wants and fears). Each level gives {LEVEL_POINTS}.
+Wishes that come true give lifetime points: {POINTS_LONG} for a long want, {POINTS_SHORT} for a short one, {POINTS_SHAKE} for cheering up, {POINTS_FACE} for facing a fear (see Wants and fears). Each level gives {LEVEL_POINTS}.
 
 He spends them himself on lasting perks, as soon as he has enough for one. When he can afford more than one he takes the one tied to his best attribute (perks with no attribute count his average), the cheaper on a tie:
 {PERK_LIST}
