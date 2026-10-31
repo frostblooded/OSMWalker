@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import * as DebugLog from "../../src/core/debugLog";
 import { NO_NEED } from "../../src/core/goals";
+import type { Sky } from "../../src/core/sky";
 import type { Place } from "../../src/core/stats";
 import { Game, type GameDeps } from "../../src/game/game";
 import { Api } from "../../src/net/api";
@@ -111,6 +112,31 @@ describe("game", () => {
       again.stats.passTime = (m, w) => (weather.push(again.stats.sky?.weather ?? null), pass(m, w));
       await again.wake();
       expect(weather[0]).toBeNull();
+    });
+
+    it("lives the ride's time on reopen under the sky at its end, not at the reopen", async () => {
+      let now = NOW;
+      const { api } = weatherApi(0, 15);
+      const { g, storage } = game({ api, clock: () => now, roll: 0.1 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      g.stats.cents = 50_000;
+      g.skipRoll = false;
+      g.debugNewGoal();
+      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      expect(g.walker!.isTraveling()).toBe(true);
+      g.save();
+      now += 12 * 3600_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      // Reopened half a day later: the ride ends the day it was saved, so its sun times are that day's.
+      const skies: [Sky, Sky][] = [];
+      const pass = again.stats.passTime.bind(again.stats);
+      again.stats.passTime = (m, w) => (skies.push([again.stats.sky!, again.sky(again.stats.now() * 1000)]), pass(m, w));
+      await again.wake();
+      expect(skies[0]![0].rise).toBeCloseTo(skies[0]![1].rise, 4);
     });
 
     it("goes on by the forecast kept on the device, and retries a failed fetch later", async () => {

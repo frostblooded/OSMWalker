@@ -958,7 +958,8 @@ export class Game {
       const clock = this.stats.now;
       this.stats.now = () => Math.floor(fromMs / 1000 + rideS);
       this.stats.onSay = (text, t) => ride.push({ text, t });
-      // Time passes on the ride before he lands, as in the catch-up, so a ride's buff covers it.
+      // Time passes on the ride before he lands, as in the catch-up, so a ride's buff covers it, under the sky at its end.
+      this.stats.sky = this.sky(fromMs + rideS * 1000);
       this.stats.passTime(rideS / 60, 0);
       // Exactly what is left, so rounding can't leave him a hair short of landing.
       w.advance(leftM);

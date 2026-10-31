@@ -1,8 +1,10 @@
 // Sky events: real full moons, the real peaks of the big meteor showers and
-// real lunar eclipses. The first time it gets dark on such a night he looks
-// up: a clear sky gives a feed line and a moodlet, real clouds hide it and he
-// grumbles. Once a night, the same watched and away (Stats.lookUp). Pure.
+// real lunar eclipses. The first time it gets dark on such a night (for an
+// eclipse, once it is on) he looks up: a clear sky gives a feed line and a
+// moodlet, real clouds hide it and he grumbles. Once a night, the same
+// watched and away (Stats.lookUp). Pure.
 import type { Sky } from "./sky";
+import type { WeatherKind } from "./weather";
 
 /** A known new moon (2000-01-06 18:14 UTC, unix seconds) and the mean synodic month in days. */
 export const NEW_MOON_S = 947_182_440;
@@ -12,7 +14,7 @@ export const FULL_WITHIN_DAYS = 0.5;
 /** It counts as night once Sky.dark passes this (see sky.ts). */
 export const NIGHT_DARK = 0.5;
 /** Weather that hides the sky. Unknown weather (as while you are away) hides nothing. */
-export const HIDING = ["cloudy", "fog", "rain", "snow", "storm"];
+export const HIDING: WeatherKind[] = ["cloudy", "fog", "rain", "snow", "storm"];
 
 export type EventId = "full_moon" | "quadrantids" | "lyrids" | "eta_aquariids" | "perseids" | "orionids" | "leonids" | "geminids" | "lunar_eclipse";
 export type SkyEvent = { id: EventId; icon: string; name: string; what: string; say: string; mood: [number, number] };
@@ -41,7 +43,10 @@ export const SHOWERS: [EventId, number, number][] = [
   ["geminids", 12, 13],
 ];
 
-/** Partial and total lunar eclipses, by the time of greatest eclipse (UTC). He sees one when it falls in his night. */
+/**
+ * Partial and total lunar eclipses, by the time of greatest eclipse (UTC), from NASA's tables. He sees one when it falls in his night, at that time.
+ * shortcut: the table ends in 2030; past its last entry the Lunar eclipse tile can't be won until more are added.
+ */
 export const ECLIPSES = ["2026-03-03T11:33Z", "2026-08-28T04:13Z", "2028-01-12T04:13Z", "2028-07-06T18:19Z", "2028-12-31T16:52Z", "2029-06-26T03:22Z", "2029-12-20T22:42Z", "2030-06-15T18:33Z"].map((s) => Date.parse(s) / 1000);
 
 /** Days from the nearest full moon at unix seconds `t`. */
@@ -55,12 +60,16 @@ export function nightOf(t: number, offsetS: number): string {
   return new Date((t + offsetS - 12 * 3600) * 1000).toISOString().slice(0, 10);
 }
 
+/** The time (unix seconds) of a lunar eclipse in the night that starts on local `date`, between its sunset and sunrise in local clock hours, if there is one. */
+export function eclipseOn(date: string, offsetS: number, set: number, rise: number): number | undefined {
+  const evening = Date.parse(`${date}T00:00Z`) / 1000 - offsetS;
+  return ECLIPSES.find((e) => e >= evening + set * 3600 && e <= evening + 86_400 + rise * 3600);
+}
+
 /** The best event of the night that starts on local `date` (an eclipse, then a shower, then a full moon), with the night's sunset and sunrise in local clock hours; null on an ordinary night. */
 export function eventOn(date: string, offsetS: number, set: number, rise: number): SkyEvent | null {
+  if (eclipseOn(date, offsetS, set, rise) !== undefined) return EVENTS.lunar_eclipse;
   const evening = Date.parse(`${date}T00:00Z`) / 1000 - offsetS;
-  const from = evening + set * 3600;
-  const to = evening + 86_400 + rise * 3600;
-  if (ECLIPSES.some((e) => e >= from && e <= to)) return EVENTS.lunar_eclipse;
   const [, m, d] = date.split("-").map(Number);
   const shower = SHOWERS.find(([, sm, sd]) => sm === m && sd === d);
   if (shower) return EVENTS[shower[0]];
@@ -79,15 +88,16 @@ export class Stargazing {
   }
 
   /**
-   * Looks up at unix seconds `t` under `sky`: on the first dark moment of a night with an event, notes it.
+   * Looks up at unix seconds `t` under `sky`: on the first dark moment of a night with an event (for an eclipse, once it is on), notes it.
    * Returns the event and whether clouds hid it, or null when there is nothing (new) to see.
    */
   look(t: number, sky: Sky | null): { ev: SkyEvent; hidden: boolean } | null {
     if (!sky || sky.dark < NIGHT_DARK) return null;
     const night = nightOf(t, sky.offsetS);
     if (night === this.night) return null;
-    this.night = night;
     const ev = eventOn(night, sky.offsetS, sky.set, sky.rise);
+    if (ev === EVENTS.lunar_eclipse && t < eclipseOn(night, sky.offsetS, sky.set, sky.rise)!) return null;
+    this.night = night;
     if (!ev) return null;
     const hidden = !!sky.weather && HIDING.includes(sky.weather.kind);
     if (hidden) this.clouded++;

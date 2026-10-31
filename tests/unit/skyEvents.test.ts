@@ -51,6 +51,14 @@ describe("Stargazing", () => {
     expect(g.count()).toBe(1);
   });
 
+  it("waits for an eclipse to come round in the night before he sees it", () => {
+    const g = new K.Stargazing();
+    // 3 March 2026, 11:33 UTC, is 05:33 in Chicago (UTC-6): not at dusk on the 2nd, but then.
+    const chicago = night(-6 * 3600);
+    expect(g.look(sec("2026-03-03T00:30Z"), chicago)).toBeNull();
+    expect(g.look(sec("2026-03-03T11:40Z"), chicago)).toMatchObject({ ev: { id: "lunar_eclipse" } });
+  });
+
   it("misses it under real clouds, but sees it when the weather is unknown", () => {
     const g = new K.Stargazing();
     expect(g.look(PERSEIDS, night(0, { kind: "cloudy", tempC: 15 }))).toMatchObject({ hidden: true });
