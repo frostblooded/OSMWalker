@@ -21,6 +21,9 @@ import * as Mind from "../core/mind";
 import * as Quirks from "../core/quirks";
 import * as Spot from "../core/spot";
 import * as Portals from "../core/portals";
+import * as Fame from "../core/fame";
+import * as Moments from "../core/moments";
+import * as Rep from "../core/repute";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
 import * as Collection from "../core/collection";
@@ -224,10 +227,10 @@ const recipeLines = () =>
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
-/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. Shoplifting is left out: it costs STEAL_KARMA, not DEED_STEP (see Karma). */
 function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   const names = new Set<string>();
-  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (!a.steal && Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
   return [...names].join(", ");
 }
 
@@ -386,6 +389,46 @@ export function values(data: GameData): Record<string, string> {
     DODGE_PCT: pct(Bond.DODGE_CHANCE),
     CAUGHT_PCT: pct(Bond.CAUGHT_CHANCE),
     FINE_MULT: num(Bond.FINE_MULT),
+    BOUNTY_WEIGHT: num(Activities.BOUNTY_WEIGHT),
+    PAYOFF_PULL: num(Activities.PAYOFF_PULL),
+    AURA_AT: num(Rep.AURA_AT),
+    STEAL_KARMA: num(Rep.STEAL_KARMA),
+    BRIBE_KARMA: num(Rep.BRIBE_KARMA),
+    SURRENDER_KARMA: num(Rep.SURRENDER_KARMA),
+    KIND_DISCOUNT_PCT: pct(Rep.KIND_DISCOUNT),
+    RASCAL_MARKUP_PCT: pct(Rep.RASCAL_MARKUP),
+    FREE_RIDE_PCT: pct(Rep.FREE_RIDE_CHANCE),
+    GIFT_PCT_KARMA: pct(Rep.GIFT_CHANCE),
+    RASCAL_BASE_PCT: pct(Moments.RASCAL_BASE),
+    RASCAL_PER_KARMA_PCT: pct(Moments.RASCAL_PER_KARMA),
+    RASCAL_MIN_PCT: pct(Moments.RASCAL_MIN),
+    RASCAL_MAX_PCT: pct(Moments.RASCAL_MAX),
+    RASCAL_HALF: num(-(0.5 - Moments.RASCAL_BASE) / Moments.RASCAL_PER_KARMA),
+    FAME_PER_H: num(Fame.FAME_PER_H),
+    FAME_LIST: Fame.FAME_NAMES.map((n, i) => `- ${n}: from ${num(Fame.FAME_TIERS[i]!)} points, ${Fame.FAME_DISCOUNT[i] ? `${pct(Fame.FAME_DISCOUNT[i]!)} off` : "no discount"}.`).join("\n") + `\nA city's fame stops at ${num(Fame.FAME_MAX)}.`,
+    HEAT_MAX: num(Rep.HEAT_MAX),
+    STAR_HEAT: num(Rep.STAR_HEAT),
+    STARS_MAX: num(Rep.STARS_MAX),
+    HEAT_PER_KARMA: num(Rep.HEAT_PER_KARMA),
+    FAME_HEAT: num(Rep.FAME_HEAT),
+    STEAL_HEAT: num(Rep.crimeHeat(Rep.STEAL_KARMA, 0)),
+    HEAT_FADE_PER_H: num(Rep.HEAT_FADE_PER_H),
+    HEAT_GONE_H: num(Rep.HEAT_MAX / Rep.HEAT_FADE_PER_H),
+    PAYOFF_STARS: num(Rep.PAYOFF_STARS),
+    PAYOFF_PCT: pct(Rep.PAYOFF_SHARE),
+    SPOT_PER_STAR_PCT: pct(Rep.SPOT_PER_STAR),
+    FAME_SPOT: num(Rep.FAME_SPOT),
+    CHASE_S: num(Rep.CHASE_S),
+    RUN_BASE_PCT: pct(Rep.RUN_BASE),
+    HIDE_BASE_PCT: pct(Rep.HIDE_BASE),
+    BRIBE_BASE_PCT: pct(Rep.BRIBE_BASE),
+    PER_POINT_PCT: pct(Rep.PER_POINT),
+    ESCAPE_CAP_PCT: pct(Rep.ESCAPE_CAP),
+    ESCAPE_HEAT: num(Rep.ESCAPE_HEAT),
+    BRIBE_PER_HEAT: euro(Rep.BRIBE_PER_HEAT),
+    FINE_PER_HEAT: euro(Rep.FINE_PER_HEAT),
+    FINE_FULL: euro(Rep.fineOf(Rep.HEAT_MAX)),
+    JAIL_MIN_PER_STAR_H: num(Rep.JAIL_MIN_PER_STAR / 60),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),

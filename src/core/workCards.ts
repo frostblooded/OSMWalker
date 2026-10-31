@@ -93,7 +93,7 @@ export function draw(stats: Stats, wage: number, rng: Rng): string {
   const pay = Math.max(Math.round(wage * (o.pay ?? 0)), -stats.cents);
   stats.cents += pay;
   stats.applyFx(o.fx ?? {});
-  if (o.deed) stats.bond.deed(o.deed);
+  if (o.deed) stats.deed(o.deed);
   const what = [pay ? signed(pay) : "", effect(o)].filter(Boolean).join(", ");
   return `${c.icon} At work: ${c.text} ${bold ? c.bold.label : c.safe.label}: he ${o.say}${what ? ` (${what})` : ""}`;
 }

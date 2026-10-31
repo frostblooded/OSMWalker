@@ -22,6 +22,7 @@ import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
+import * as R from "../../src/core/repute";
 import { Game, MADE_CITIES, RETIRE_RETRY_MS, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { doing, facts, hud, look } from "../../src/game/hud";
@@ -257,6 +258,81 @@ describe("game", () => {
     expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
     r.seenUntil = 2_000_000_000;
     expect(g.rivalAt()).toBeNull();
+  });
+
+  it("in a police chase the car follows the streets he ran, catching up, until the chase ends by his own pick", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.stats.bond.lean = 100;
+    const spot = vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => true);
+    for (let i = 0; i < 400 && !g.chase; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    expect(spot).toHaveBeenCalled();
+    const start = g.policeAt()!;
+    expect(start).not.toBeNull();
+    for (let i = 0; i < R.CHASE_S - 1; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    // The car drives his own trail: it set off where he was spotted and is now between his last two spots.
+    const trail = g.chase!.trail;
+    expect(start).toEqual(trail[0]);
+    const near = g.policeAt()!;
+    const [a, b] = [trail.at(-2)!, trail.at(-1)!];
+    for (const k of [0, 1]) {
+      expect(near[k]!).toBeGreaterThanOrEqual(Math.min(a[k]!, b[k]!) - 1e-9);
+      expect(near[k]!).toBeLessThanOrEqual(Math.max(a[k]!, b[k]!) + 1e-9);
+    }
+    now += 2000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.policeAt()).toBeNull();
+    expect(g.stats.law.chases).toBe(1);
+    // A saint gives himself up and pays.
+    expect(g.stats.law.caught).toBe(1);
+    expect(g.stats.law.heat).toBe(0);
+  });
+
+  it("the police give up a chase once the heat is gone, and praise counts towards his best karma", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => true);
+    for (let i = 0; i < 400 && !g.chase; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    expect(g.chase).not.toBeNull();
+    // He runs on instead of stopping.
+    expect(g.walker!.isResting()).toBe(false);
+    g.stats.law.payOff();
+    now += 1000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.stats.law.chases).toBe(0);
+    expect(g.stats.history.latest()).toBe("🚓 The police gave up the chase");
+    // Heading for a ride out loses them too, so jail never lands mid-trip.
+    g.stats.law.addHeat(R.HEAT_MAX);
+    g.chase = { place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+    g.walker!.departing = {} as never;
+    now += 1000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.stats.history.latest()).toBe("🚓 He hurried off to catch his ride, and the police lost him");
+    g.walker!.departing = null;
+    for (let i = 0; i < 10; i++) {
+      g.stats.say(`Did a thing ${i}`);
+      now += 1000;
+      g.stats.now = () => Math.floor(now / 1000);
+      g.judge(1);
+    }
+    expect(g.stats.law.bestKarma).toBe(g.stats.bond.lean);
+    expect(g.stats.law.bestKarma).toBeGreaterThan(0);
   });
 
   it("switches the storyteller from the menu and keeps it in the save", async () => {
@@ -918,6 +994,8 @@ describe("game", () => {
 
     it("at the end of elder he retires by himself and his heir sets out from his favourite city", async () => {
       const { g, storage } = await elder(-1);
+      // A chase after the old walker doesn't follow his heir.
+      g.chase = { place: "Cafe", ends: Date.now() + R.CHASE_S * 1000, trail: [g.walker!.position()] };
       run(g, 1);
       await settled(g);
       expect(g.retired).toMatchObject({ gen: 1, by: "age", home: "Sofia, Bulgaria", heirloom: "Bronze Sword", level: 9 });
@@ -926,6 +1004,8 @@ describe("game", () => {
       expect(g.stats.cents).toBe(20000 + PERK_CENTS);
       expect(g.stats.gear.weapon?.name).toBe("Bronze Sword");
       expect(g.city).toBe("Sofia, Bulgaria");
+      expect(g.chase).toBeNull();
+      expect(g.stats.history.entries.some((e) => e.text.includes("police"))).toBe(false);
       expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
       expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.life.gen).toBe(2);
       run(g, 30);
@@ -1230,6 +1310,18 @@ describe("game", () => {
       old.load();
       await old.wake();
       expect(old.away).toBeNull();
+    });
+
+    it("drops a chase that was under way when the tab was hidden", async () => {
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.chase = { place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(g.chase).toBeNull();
+      expect(g.policeAt()).toBeNull();
     });
 
     it("catches up after the tab was hidden, and the card can be closed", async () => {
