@@ -30,7 +30,7 @@ export const FINE_PER_HEAT = 150;
 export const PAYOFF_SHARE = 0.75;
 /** He pays off at a police station with this many stars or more, if he can spare it. */
 export const PAYOFF_STARS = 2;
-/** Jail when he can't pay: this many minutes per star. */
+/** Jail when he can't pay: this many minutes per star (at least one). */
 export const JAIL_MIN_PER_STAR = 60;
 /** A bribe costs this many cents per point of heat, clears it if taken, and costs this much karma. */
 export const BRIBE_PER_HEAT = 60;
@@ -164,7 +164,7 @@ export class Law {
     }
     this.caught++;
     const fine = fineOf(this.heat);
-    const jailMin = h.cents >= fine ? 0 : this.stars() * JAIL_MIN_PER_STAR;
+    const jailMin = h.cents >= fine ? 0 : Math.max(this.stars(), 1) * JAIL_MIN_PER_STAR;
     if (jailMin) this.jailed++;
     else this.paid += fine;
     this.heat = 0;

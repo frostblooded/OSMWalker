@@ -157,7 +157,6 @@ function Records({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
 const LEAN_WORD = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
 
 /** His karma, how well this city knows him, what it does to prices, and the police. */
@@ -179,6 +178,7 @@ function Repute({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
 export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: boolean }) {
   const need = xpToNext(s.level);
   const bag = [...s.bag].sort((a, b) => b.price - a.price);

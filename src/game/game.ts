@@ -391,6 +391,8 @@ export class Game {
       const at = this.walker!.position();
       this.chase = { m: chase, place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
       this.doing = null;
+      // He runs on at once instead of stopping.
+      this.walker!.restFor(0);
       this.changed();
       return;
     }
@@ -593,12 +595,19 @@ export class Game {
     const c = this.chase;
     const w = this.walker;
     if (!c || !w) return;
-    if (!w.isTraveling()) c.trail.push(w.position());
+    // Nobody to chase once the heat is gone (paid off, or faded), or once he has boarded a ride out.
+    if (this.stats.law.stars() === 0 || w.isTraveling()) {
+      this.chase = null;
+      this.stats.say(w.isTraveling() ? "🚓 He got on board just in time and left the police behind" : "🚓 The police gave up the chase");
+      this.changed();
+      return;
+    }
+    c.trail.push(w.position());
     if (this.now() < c.ends) return;
     this.chase = null;
     // Until the timed choices can ask you, he takes his own pick.
     const jail = this.stats.runChase(c.m, c.place);
-    if (jail && !w.isTraveling()) {
+    if (jail) {
       this.doing = { name: "In jail", min: jail };
       w.restFor(jail);
     }
@@ -851,6 +860,7 @@ export class Game {
   judge(sign: 1 | -1): void {
     const last = this.lastDeed();
     if (!last || !this.stats.bond.judge(sign, last.t)) return;
+    this.stats.law.karma(this.stats.bond.lean);
     this.save();
     this.changed();
   }

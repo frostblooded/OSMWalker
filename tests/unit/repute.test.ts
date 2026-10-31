@@ -200,6 +200,12 @@ describe("the law", () => {
     expect(broke.chased("run", 0.99)).toBe(R.STARS_MAX * R.JAIL_MIN_PER_STAR);
     expect(broke.law.jailed).toBe(1);
     expect(broke.chronicle.lines.map((l) => l.text)).toContain("Spent 5 hours in jail in Bigtown, A-land");
+    // Heat faded under a star during the chase: still at least an hour, and never a fine he can't pay.
+    const faded = at();
+    faded.cents = 0;
+    faded.law.addHeat(R.STAR_HEAT - 1);
+    expect(faded.chased("surrender", 0.99)).toBe(R.JAIL_MIN_PER_STAR);
+    expect(faded.cents).toBe(0);
   });
 
   it("running or hiding may lose them (more heat), a bribe clears it at a karma cost", () => {
@@ -243,9 +249,12 @@ describe("the law", () => {
     const old = JSON.parse(JSON.stringify(new Stats()));
     delete old.fame;
     delete old.law;
+    old.bond.lean = 80;
     const o = Stats.fromJSON(old);
     expect(o.law.heat).toBe(0);
     expect(o.fame.total()).toBe(0);
+    // His karma so far counts towards the halo tile and the Saint badge.
+    expect(o.law.bestKarma).toBe(80);
   });
 
   it("while away, a wanted walker gets chased and it plays out by itself", () => {

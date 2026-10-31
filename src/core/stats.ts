@@ -1294,6 +1294,7 @@ export class Stats {
     // A save from before fame and the law: a stranger everywhere, and nobody after him.
     s.fame = Fame.fromJSON(d.fame);
     s.law = R.Law.fromJSON(d.law);
+    s.law.karma(s.bond.lean);
     s.bricks = Br.Bricks.fromJSON(d.bricks);
     // A save from before the chronicle: his firsts are long past, so only what comes next is written.
     s.chronicle = Chronicle.fromJSON(d.chronicle ?? { done: ["start", "trip", "abroad", "job", "faint", "letter"] });

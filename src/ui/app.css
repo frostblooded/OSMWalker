@@ -12,6 +12,7 @@
   --accent: #ff7a3d;
   --accent-dark: #b4531f;
   --coin: #ffd66b;
+  --halo: #fff1a8;
   --lilac: #e9dcff;
   /* The shade over the map at night; its opacity follows the sun. */
   --night: #0b1a4a;
@@ -186,7 +187,7 @@ a.btn { color: inherit; text-decoration: none; }
 /* Karma shows on him: a gold halo on his head, or two red horns (core/look.ts aura). Drawn in CSS, nothing animates. */
 .him .aura { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); pointer-events: none; }
 .him .aura[hidden] { display: none; }
-.him .aura.halo { width: 26px; height: 8px; border: 3px solid var(--coin); border-radius: 50%; box-shadow: 0 0 0 1px var(--ink); }
+.him .aura.halo { width: 26px; height: 8px; border: 3px solid var(--halo); border-radius: 50%; box-shadow: 0 0 0 1px var(--ink); }
 .him .aura.horns { width: 30px; height: 10px; }
 .him .aura.horns::before, .him .aura.horns::after { content: ""; position: absolute; top: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid var(--hp); }
 .him .aura.horns::before { left: 0; transform: rotate(-20deg); }

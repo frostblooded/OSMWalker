@@ -664,7 +664,7 @@ With {PAYOFF_STARS} stars or more he can pay it off at a police station: {PAYOFF
 
 While he has a star, the police may spot him at each stop: {SPOT_PER_STAR_PCT} a star, times 1 + {FAME_SPOT} for each tier all his fame together reaches. Then a chase starts (see Police chases).
 ## Police chases {police_chase}
-When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. Then it ends, by how he chooses:
+When the police spot him the feed says "🚨 The police spotted him", he skips what he would have done there and runs on. While you watch, a 🚓 drives the very streets he ran after him and catches up over {CHASE_S} seconds. If his heat drops under a star by then (he paid it off, or it faded) or he boards a ride out, the police give up. Otherwise it ends, by how he chooses:
 - 🙌 Give up: he is caught, and gets +{SURRENDER_KARMA} karma for owning up.
 - 🏃 Run: gets away {RUN_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Strength above 1, and more with energy above half, less below.
 - 🫣 Hide: gets away {HIDE_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Wits above 1 and half that for Luck.
@@ -673,7 +673,7 @@ None of them gets away more than {ESCAPE_CAP_PCT} of the time. Getting away by r
 
 He picks by himself: a kind or middling walker usually gives himself up, a rascal usually takes the way out with his best odds (see Karma).
 
-Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead. Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped.
+Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped.
 # 📖 Stories
 ## The storyteller {storyteller}
 A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.

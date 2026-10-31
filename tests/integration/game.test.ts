@@ -270,6 +270,35 @@ describe("game", () => {
     expect(g.stats.law.heat).toBe(0);
   });
 
+  it("the police give up a chase once the heat is gone, and praise counts towards his best karma", async () => {
+    let now = 2_000_000_000_000;
+    const { g } = game({ places: [CAFE], clock: () => now });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.law.addHeat(R.HEAT_MAX);
+    vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => R.chaseMoment(g.stats.him()));
+    for (let i = 0; i < 400 && !g.chase; i++) {
+      now += 1000;
+      g.step(1);
+    }
+    expect(g.chase).not.toBeNull();
+    // He runs on instead of stopping.
+    expect(g.walker!.isResting()).toBe(false);
+    g.stats.law.payOff();
+    now += 1000;
+    g.step(1);
+    expect(g.chase).toBeNull();
+    expect(g.stats.law.chases).toBe(0);
+    expect(g.stats.history.latest()).toBe("🚓 The police gave up the chase");
+    for (let i = 0; i < 10; i++) {
+      g.stats.say(`Did a thing ${i}`);
+      now += 1000;
+      g.stats.now = () => Math.floor(now / 1000);
+      g.judge(1);
+    }
+    expect(g.stats.law.bestKarma).toBe(g.stats.bond.lean);
+    expect(g.stats.law.bestKarma).toBeGreaterThan(0);
+  });
+
   it("switches the storyteller from the menu and keeps it in the save", async () => {
     const { g, storage } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
