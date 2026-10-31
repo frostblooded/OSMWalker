@@ -9,6 +9,7 @@ import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
 import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
+import { BOOST } from "../core/boost";
 import { GAME_NAME } from "../core/moments";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
@@ -19,7 +20,7 @@ import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
 import { MapScene, type Padding } from "../map/scene";
 import { DebugSheet } from "./DebugSheet";
-import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
+import { clock, countdown, dist, duration, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { ExploredSheet } from "./ExploredSheet";
 import { HistorySheet } from "./HistorySheet";
@@ -187,6 +188,17 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </button>
           )}
         </section>
+        {game.boostS > 0 && (
+          <span class="pill boost" role="timer" aria-label={`${BOOST} times speed, ${duration(game.boostS)} left`}>
+            ⏩ {BOOST}× {clock(game.boostS)}
+          </span>
+        )}
+        {game.welcome && !game.welcome.card && game.welcome.boostS > 0 && (
+          <div class="toast story" role="status" key={`welcome${game.welcome.n}`}>
+            👋 Welcome back! {BOOST}× speed for {duration(game.welcome.boostS)}
+            {game.welcome.clover && " · ☘ +1 clover"}
+          </div>
+        )}
         {s.history.entries.length > 0 && (
           <div class={`toast${s.incidentLatest() ? " story" : ""}`} role="status" key={s.history.entries.length}>
             {s.history.latest()}
@@ -340,7 +352,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
         </SheetBox>
       )}
-      {received && sheet === null && game.woke && !game.away && (
+      {received && sheet === null && game.woke && !game.welcome?.card && (
         <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
           <ReceivedSheet
             card={received}
@@ -375,17 +387,17 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           }}
         />
       )}
-      {game.retired && !game.away && sheet === null && (
+      {game.retired && !game.welcome?.card && sheet === null && (
         <SheetBox title="✉ A farewell letter" onClose={() => game.dismissRetired()} full>
           <Lazy load={() => import("./Family")} what="the farewell letter">
             {(m) => <m.Farewell a={game.retired!} life={s.life} onDone={() => game.dismissRetired()} />}
           </Lazy>
         </SheetBox>
       )}
-      {game.away && sheet === null && (
-        <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
-          <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
-            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onShown={() => game.dilemmaShown()} onDone={() => game.dismissAway()} />}
+      {game.welcome?.card && sheet === null && (
+        <SheetBox title="👋 Welcome back" onClose={() => game.dismissWelcome()} full>
+          <Lazy load={() => import("./WelcomeSheet")} what="the welcome-back card">
+            {(m) => <m.WelcomeSheet awayS={game.welcome!.awayS} boostS={game.welcome!.boostS} clover={game.welcome!.clover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onShown={() => game.dilemmaShown()} onDone={() => game.dismissWelcome()} />}
           </Lazy>
         </SheetBox>
       )}

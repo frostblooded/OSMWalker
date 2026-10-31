@@ -122,7 +122,7 @@ export function settle(stats: Stats, d: Drawn, pick: Pick, you: boolean, rng: Rn
   return `${c.icon} At work: ${c.text} ${you ? "" : "Decided by himself: "}${bold ? c.bold.label : c.safe.label}: he ${o.say}${what ? ` (${what})` : ""}`;
 }
 
-/** A card with nobody to ask (the catch-up, or no screen): he draws, picks and plays it himself. Returns the feed line, or "". */
+/** A card with nobody to ask (no screen): he draws, picks and plays it himself. Returns the feed line, or "". */
 export function draw(stats: Stats, wage: number, rng: Rng): string {
   const d = drawCard(wage, rng);
   return d ? settle(stats, d, hisPick(stats, d.card, rng), false, rng) : "";

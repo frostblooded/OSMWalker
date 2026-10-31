@@ -1,16 +1,11 @@
 // The storyteller's pacing (src/core/storyteller.ts) and the incident deck it deals from (src/core/incidents.ts, data/incidents.json).
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
-import { bboxAround } from "../../src/core/geo";
 import * as Inc from "../../src/core/incidents";
 import * as Items from "../../src/core/items";
 import type { Moment, Pick } from "../../src/core/moments";
 import { Rng } from "../../src/core/rng";
-import { skyAt } from "../../src/core/sky";
 import { ATTRS, inTime, Stats, type Place } from "../../src/core/stats";
 import { FIRE_AT, FIRE_MAX, LUCKY_H, RECENT, STYLE, STYLES, Storyteller, TENSION_MAX, WEALTH_CAP, WEALTH_STEP } from "../../src/core/storyteller";
-import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
 
 const DECK = JSON.parse(dataFile("incidents.json")) as Inc.Incident[];
@@ -276,23 +271,5 @@ describe("incidents in his life", () => {
     const old = JSON.parse(JSON.stringify(s));
     delete old.story;
     expect(Stats.fromJSON(old).story).toEqual(new Storyteller());
-  });
-
-  it("brings incidents while he is away", () => {
-    const places = ["cafe", "restaurant", "park", "bar", "museum"].map((k, i): Place => ({ name: `${k} ${i}`, class: k, subclass: k, rank: 1, lat: 0.003 * i, lon: 0.002 * (i % 2) }));
-    const city: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places };
-    const s = new Stats();
-    s.incidents = DECK;
-    const icons = new Set(DECK.map((c) => c.icon));
-    const sum = catchUp(s, city, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 8), {
-      activities: new Activities(JSON.parse(dataFile("actions.json"))),
-      trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\n"), parseAirports("")),
-      rng: new Rng(7),
-      cardRng: new Rng(8),
-      skyAt: (ms, c) => skyAt(ms, c.center[0], c.center[1], 0, null),
-      roll: () => 0.99,
-    });
-    const told = sum.lines.filter((l) => icons.has([...l.text][0]!));
-    expect(told.length).toBeGreaterThanOrEqual(3);
   });
 });

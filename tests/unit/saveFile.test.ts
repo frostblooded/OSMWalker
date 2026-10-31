@@ -40,7 +40,7 @@ function saved(): Saved {
   stats.cents = 4321;
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000, made: { "Sofia, Bulgaria": [INN] } };
+  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000, boostS: 1234, made: { "Sofia, Bulgaria": [INN] } };
 }
 
 describe("save file", () => {
@@ -55,12 +55,22 @@ describe("save file", () => {
     expect(f.write(saved())).toBe("");
     expect(f.has()).toBe(true);
     const back = f.read() as Saved;
-    expect(back).toMatchObject({ city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, savedAt: 1_800_000_000_000 });
+    expect(back).toMatchObject({ city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, savedAt: 1_800_000_000_000, boostS: 1234 });
     expect(back.walker.totalM).toBe(123);
     expect(back.walker.position()).toEqual([42.7, 23.3]);
     expect(back.stats.cents).toBe(4321);
     expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
     expect(back.made).toEqual({ "Sofia, Bulgaria": [INN] });
+  });
+
+  it("loads saves from before the boost, with none left", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.boost_s;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).boostS).toBe(0);
   });
 
   it("loads saves from before made-up places, with none made yet", () => {
@@ -77,7 +87,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["city", "country", "debug_log",
+    expect(Object.keys(d).sort()).toEqual(["boost_s", "city", "country", "debug_log",
       "made_places", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
   });
 
@@ -370,7 +380,7 @@ describe("save file", () => {
     expect(back.bucket.toJSON()).toEqual({ list: [], done: [] });
   });
 
-  it("loads saves from before the catch-up without a time, so there is nothing to catch up", () => {
+  it("loads saves from before the time was saved, so a reopen earns no boost", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
     f.write(saved());

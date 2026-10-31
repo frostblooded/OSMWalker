@@ -131,6 +131,8 @@ a.btn { color: inherit; text-decoration: none; }
 .pill.level { background: var(--lilac); }
 .pill.sky { background: var(--paper); }
 .pill.wanted { background: var(--paper); color: var(--error); }
+/* The boost after time away, under the card: the countdown keeps its width as the digits change. */
+.pill.boost { align-self: flex-start; background: var(--paper); font-variant-numeric: tabular-nums; }
 /* One flat layer over the map, none by day: costs a blend, never a map redraw. */
 .night { position: absolute; inset: 0; background: var(--night); pointer-events: none; transition: opacity 2s linear; }
 .menu .pill { margin-left: auto; }
@@ -257,7 +259,6 @@ a.btn { color: inherit; text-decoration: none; }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
 .gifts > li { display: flex; align-items: center; gap: var(--s3); }
-.away-log > li { display: flex; align-items: baseline; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
 .burger .dot { position: absolute; top: -2px; right: -2px; margin: 0; }

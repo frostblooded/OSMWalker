@@ -1,46 +1,65 @@
-// The catch-up on reopen with real Sofia streets, fake servers and fixed dice: time away, clovers, rides and dilemmas.
+// A reopen with real Sofia streets, fake servers and fixed dice: the boost, clovers, the welcome-back card and dilemmas.
 import { describe, expect, it, vi } from "vitest";
-import { distanceM } from "../../src/core/geo";
-import { FULLNESS_PER_H, type Place } from "../../src/core/stats";
+import { FULLNESS_PER_H, } from "../../src/core/stats";
 import { cityBounds, LONG_WALK_MAX_S, SLEEPER_FROM_M } from "../../src/core/trips";
 import { MOMENT_S } from "../../src/core/moments";
+import { BOOST } from "../../src/core/boost";
 import * as R from "../../src/core/repute";
-import { getCrawler, setCrawler } from "../../src/core/ruins";
 import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { HOLIDAYS_KEY } from "../../src/game/saveFile";
-import { dataFile } from "../support/data";
-import { START, CAFE, MemStorage, game, HOUR, reopen, reopenDilemma, run } from "../support/game";
+import { START, game, HOUR, reopen, reopenDilemma, run } from "../support/game";
 
 describe("game", () => {
-  describe("catch-up", () => {
-    it("takes his own pick at each place's moment while away, and says so in his History", async () => {
-      const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
-      expect(again.moment).toBeNull();
-      expect(again.stats.history.entries.some((e) => / Decided by himself: /.test(e.text))).toBe(true);
+  describe("time away", () => {
+    it("earns BOOST x speed for away ÷ (BOOST - 1), shown in a note, with nothing lived while closed", async () => {
+      const { g, again } = await reopen(9 * HOUR, {}, (g) => (g.stats.meters.fullness = 80));
+      expect(again.boostS).toBeCloseTo(3600);
+      expect(again.welcome).toMatchObject({ awayS: 9 * 3600, card: false, n: 1 });
+      expect(again.welcome!.boostS).toBeCloseTo(3600);
+      // Nothing happened to him while the game was closed.
+      expect(again.stats.meters.fullness).toBe(80);
+      expect(again.walker!.totalM).toBe(g.walker!.totalM);
     });
 
-    it("knows the holiday kept on the device on reopen, so time away on a holiday has holiday actions", async () => {
-      // The list was fetched on an earlier day; Nager.Date is down now.
-      const storage = new MemStorage();
-      storage.setItem(HOLIDAYS_KEY, JSON.stringify({ lists: { "BG:2026": [{ date: "2026-10-29", name: "Test Day", localName: "" }] }, said: "" }));
-      // A park stays open on a holiday, so he has somewhere to celebrate.
-      const park: Place = { name: "Holiday Park", class: "park", subclass: "park", rank: 1, lat: CAFE.lat, lon: CAFE.lon };
-      const { again } = await reopen(6 * HOUR, { storage, places: [park] });
-      const names: string[] = JSON.parse(dataFile("actions.json"))._holiday.map((a: { name: string }) => a.name);
-      expect(again.away!.lines.some((l) => names.some((n) => l.text.includes(n)))).toBe(true);
+    it("runs BOOST x while the boost lasts, then 1x, counting the boost down in real seconds", async () => {
+      const { again } = await reopen(9 * 60_000, {}, (g) => (g.stats.meters.fullness = 90));
+      expect(again.boostS).toBeCloseTo(60);
+      const before = again.stats.meters.fullness;
+      run(again, 30);
+      expect(again.boostS).toBeCloseTo(30);
+      expect(before - again.stats.meters.fullness).toBeCloseTo((FULLNESS_PER_H * 300) / 3600, 3);
+      run(again, 40);
+      expect(again.boostS).toBe(0);
+      // 30 more boosted seconds, then 10 at 1x.
+      expect(before - again.stats.meters.fullness).toBeCloseTo((FULLNESS_PER_H * 610) / 3600, 3);
     });
 
-    it("picks up local words while away, at the places they fit", async () => {
-      const { again } = await reopen(8 * HOUR, { places: [CAFE] });
-      const learned = again.away!.lines.filter((l) => l.text.startsWith("🗣 Learned a Bulgarian word"));
-      expect(learned.length).toBeGreaterThan(0);
-      // A word learned at a café is coffee (his wants may take him elsewhere first).
-      expect(learned.find((l) => / at .*[Cc]afe/.test(l.text))?.text).toMatch(/: "кафе \(kafe\)" means coffee$/);
-      expect(again.stats.words.known.bg).toContain("coffee");
+    it("keeps a boost left over when you leave again, adds the next one, and saves it", async () => {
+      const r = await reopen(9 * 60_000);
+      run(r.again, 20);
+      expect(r.again.boostS).toBeCloseTo(40);
+      r.again.leave();
+      r.setNow(r.now() + 9 * 60_000);
+      await r.again.wake();
+      expect(r.again.boostS).toBeCloseTo(100);
+      expect(r.again.welcome).toMatchObject({ n: 2 });
+      const back = new Game({ ...(r.g as unknown as { deps: GameDeps }).deps, storage: r.storage });
+      back.load();
+      expect(back.boostS).toBeCloseTo(100);
     });
 
-    it("has nothing to catch up after a short break or from an old save", async () => {
-      expect((await reopen(30_000)).again.away).toBeNull();
+    it("keeps the boost while a timed moment holds him, as the moment counts your seconds", async () => {
+      const { again } = await reopen(9 * 60_000);
+      void again.ask({ id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" });
+      expect(again.moment).not.toBeNull();
+      run(again, 3);
+      expect(again.boostS).toBeCloseTo(60);
+      expect(again.moment!.left).toBeCloseTo(again.moment!.total - 3);
+    });
+
+    it("gives no boost after a short break or from an old save", async () => {
+      const short = (await reopen(30_000)).again;
+      expect(short.boostS).toBe(0);
+      expect(short.welcome).toBeNull();
       const { g, storage } = game();
       await g.startCity("Sofia, Bulgaria", ...START, null);
       g.save();
@@ -50,7 +69,8 @@ describe("game", () => {
       const old = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       old.load();
       await old.wake();
-      expect(old.away).toBeNull();
+      expect(old.boostS).toBe(0);
+      expect(old.welcome).toBeNull();
     });
 
     it("drops a chase that was under way when the tab was hidden", async () => {
@@ -65,72 +85,21 @@ describe("game", () => {
       expect(g.policeAt()).toBeNull();
     });
 
-    it("a reopen loads the ruin crawls before the catch-up", async () => {
-      setCrawler(null);
-      let now = Date.UTC(2026, 9, 29, 8);
-      const { g } = game({ clock: () => now });
-      await g.startCity("Sofia, Bulgaria", ...START, null);
-      g.save();
-      now += HOUR;
-      await g.wake();
-      expect(getCrawler()).not.toBeNull();
-      setCrawler(null);
-    });
-
-    it("catches up after the tab was hidden, and the card can be closed", async () => {
-      let now = Date.UTC(2026, 9, 29, 8);
-      const { g } = game({ clock: () => now });
-      await g.startCity("Sofia, Bulgaria", ...START, null);
-      g.save();
-      now += HOUR;
-      await g.wake();
-      expect(g.away!.coveredS).toBe(3600);
-      g.dismissAway();
-      expect(g.away).toBeNull();
-      // Caught up: waking again right away has nothing more to do.
-      await g.wake();
-      expect(g.away).toBeNull();
-    });
-
-    it("finishes the ride he was on first, then lives in the new city", async () => {
-      const { again } = await reopen(10 * HOUR, { roll: 0.1 }, (g) => {
-        g.stats.cents = 50_000;
-        g.skipRoll = false;
-        g.debugNewGoal();
-        for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
-      });
-      const s = again.away!;
-      expect(s.cities[0]).toBe("Plovdiv, Bulgaria");
-      expect(s.coveredS).toBe(10 * 3600);
-      expect(again.walker!.isTraveling()).toBe(false);
-      expect(again.loader.graph).toBe(again.walker!.graph);
-      expect(again.city).toBe(s.end.city.name);
-    });
-
-    it("a long walk that outlasts the time away goes on when you are back, and lands with its reward", async () => {
-      const walk = (g: Game) => {
+    it("a ride he was on waits while the game is closed, and goes on BOOST x as fast after", async () => {
+      const { again } = await reopen(LONG_WALK_MAX_S * 1000, {}, (g) => {
         const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
         g.stats.meters.fullness = 100;
         g.stats.ride(0, "walk", "the road out of town", "Vidin, Bulgaria");
         g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
-      };
-      const { again } = await reopen(HOUR, {}, walk);
-      expect(again.away!.coveredS).toBe(HOUR / 1000);
+      });
       expect(again.walker!.isTraveling()).toBe(true);
-      expect(again.walker!.travel!.mode).toBe("walk");
       expect(again.city).toBe("Sofia, Bulgaria");
-      again.dismissAway();
-      for (let i = 0; i < LONG_WALK_MAX_S && again.walker!.isTraveling(); i++) again.step(1);
+      // The whole walk fits in the boost the time away earned, so it takes a tenth of its real time.
+      let s = 0;
+      for (; s < LONG_WALK_MAX_S && again.walker!.isTraveling(); s++) again.step(1);
+      expect(s).toBeLessThanOrEqual(Math.ceil(LONG_WALK_MAX_S / BOOST) + 1);
       expect(again.city).toBe("Vidin, Bulgaria");
       expect(again.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
-
-      // Away for longer than the walk: he lands first, then lives in the new town.
-      const long = (await reopen(LONG_WALK_MAX_S * 1000 + 60_000, {}, walk)).again;
-      expect(long.walker!.isTraveling()).toBe(false);
-      // Fed by the hostels the whole way: only the minute after landing drains him.
-      expect(long.stats.meters.fullness).toBeGreaterThan(100 - FULLNESS_PER_H / 10);
-      expect(long.away!.cities[0]).toBe("Vidin, Bulgaria");
-      expect(long.away!.lines.some((l) => /^Walked \d+ km to Vidin, Bulgaria/.test(l.text))).toBe(true);
     });
 
     it("a reopen that earns a clover adds trust, and he writes when it passes a letter step", async () => {
@@ -142,23 +111,30 @@ describe("game", () => {
       );
       expect(again.stats.bond.trust).toBe(32);
       expect(again.stats.history.entries.some((e) => e.text === "✉ First letter.")).toBe(true);
-      expect(again.lastDeed()!.text).not.toMatch(/^✉/);
+      expect(again.lastDeed()?.text ?? "").not.toMatch(/^✉/);
     });
 
-    it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
+    it("earns a clover for a reopen after an hour, shown in the note; a care package sent before you left waits for his next stop", async () => {
       const { again } = await reopen(2 * HOUR, {}, (g) => {
         g.stats.care.clovers = 1;
         g.sendGift("snack");
       });
-      expect(again.awayClover).toBe(true);
+      expect(again.welcome!.clover).toBe(true);
       expect(again.stats.care.clovers).toBe(1);
-      expect(again.stats.care.parcel).toBe("");
-      expect(again.away!.lines.some((l) => l.text.startsWith("Opened your care package: 🥪 Snack"))).toBe(true);
-      again.dismissAway();
-      expect(again.awayClover).toBe(false);
-      expect((await reopen(30 * 60_000)).again.awayClover).toBe(false);
+      expect(again.stats.care.parcel).toBe("snack");
+      expect((await reopen(30 * 60_000)).again.welcome!.clover).toBe(false);
     });
 
+    it("opens the welcome-back card only for a dilemma or last week's recap, and closing it keeps the boost", async () => {
+      const { again } = await reopenDilemma("bread");
+      expect(again.welcome!.card).toBe(true);
+      const boost = again.boostS;
+      again.dismissWelcome();
+      expect(again.welcome).toBeNull();
+      expect(again.dilemma).toBeNull();
+      expect(again.boostS).toBe(boost);
+      expect((await reopen(2 * HOUR)).again.welcome!.card).toBe(false);
+    });
 
     it("settles a dilemma by your tap, or by himself when the card closes", async () => {
       const { again } = await reopenDilemma("wallet");
@@ -167,11 +143,11 @@ describe("game", () => {
       again.chooseDilemma(0);
       expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
       expect(again.stats.cents).toBe(cents + 4000);
-      again.dismissAway();
+      again.dismissWelcome();
       expect(again.dilemma).toBeNull();
 
       const other = (await reopenDilemma("musician")).again;
-      other.dismissAway();
+      other.dismissWelcome();
       expect(other.stats.history.latest()).toMatch(/^Decided by himself: /);
     });
 
@@ -262,13 +238,13 @@ describe("game", () => {
       expect(again.dilemma).toMatchObject({ picked: 1, by: "you" });
     });
 
-    it("says when the first wake has run, so a postcard from a link waits for the away card", async () => {
+    it("says when the first wake has run, so a postcard from a link waits for the welcome-back card", async () => {
       const short = await reopen(10_000);
       expect(short.again.woke).toBe(true);
-      expect(short.again.away).toBeNull();
+      expect(short.again.welcome).toBeNull();
       const long = await reopen(2 * HOUR);
       expect(long.again.woke).toBe(true);
-      expect(long.again.away).not.toBeNull();
+      expect(long.again.welcome).not.toBeNull();
       expect(new Game({ ...(long.g as unknown as { deps: GameDeps }).deps }).woke).toBe(false);
     });
 
@@ -291,7 +267,7 @@ describe("game", () => {
         });
       try {
         const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true), offline);
-        expect(again.away).not.toBeNull();
+        expect(again.welcome).not.toBeNull();
         expect(again.dilemma).toBeNull();
       } finally {
         vi.doUnmock("../../src/core/dilemmas");
@@ -304,21 +280,6 @@ describe("game", () => {
         again.save();
         expect(again.stats.history.entries.some((e) => e.text === "🥉 Bronze badge: Growing up (level 5)")).toBe(true);
       });
-    });
-
-    it("goes on trips while away and lands him in the new city", async () => {
-      const { again } = await reopen(24 * HOUR, { roll: 0.1 }, (g) => {
-        g.stats.cents = 500_000;
-      });
-      const s = again.away!;
-      expect(s.cities.length).toBeGreaterThan(0);
-      expect(again.city).toBe(s.end.city.name);
-      // He may ride back and forth; he ends in the last city he reached.
-      expect(again.city).toBe(s.cities.at(-1));
-      // Back in Sofia, whose streets are loaded, he steps onto the nearest corner.
-      const [lat, lon] = again.walker!.position();
-      expect(distanceM(lat, lon, s.end.at[0], s.end.at[1])).toBeLessThan(100);
-      expect(again.loader.graph).toBe(again.walker!.graph);
     });
   });
 });

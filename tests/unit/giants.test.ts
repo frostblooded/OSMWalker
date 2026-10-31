@@ -1,15 +1,10 @@
 // Giants seen from afar: where they show, how rarely, what he gets, and the same while away.
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { FEATS, SETS } from "../../src/core/collection";
-import { bboxAround } from "../../src/core/geo";
 import * as G from "../../src/core/giants";
 import { Rng, seedOf } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
-import { parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
-import { hourSky } from "../support/sky";
 
 const T0 = 1_800_000_000;
 const DAY = 86_400;
@@ -78,17 +73,6 @@ describe("giants seen from afar", () => {
     expect(entries.find((e) => e.id === "kraken")).toMatchObject({ got: true, info: "Photo from Old Port, Bigtown, A-land" });
     expect(entries.find((e) => e.id === "serpent")).toMatchObject({ got: false, info: "Seen from a ferry terminal or a swimming lake, very rarely" });
     expect(FEATS.find((f) => f.id === "giants")!.count(s)).toBe(1);
-  });
-
-  it("while away he sees them at real places too", () => {
-    const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [{ ...VIEW, lat: 0.003 }, place("Cafe", "cafe", "cafe", 0, 0.003)] };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: new Trips(parseCities("Bigtown\tAAA\tA-land\t0\t0\t1000\n")), rng: new Rng(7), skyAt: hourSky((ms: number) => new Date(ms).getUTCHours()), roll: () => 0.99 };
-    const stats = new Stats();
-    catchUp(stats, home, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 8), deps);
-    expect(stats.giants.seen.giant).toBeGreaterThan(0);
-    const none = new Stats();
-    catchUp(none, { ...home, places: null }, [0, 0], 24 * 3600, Date.UTC(2026, 9, 29, 8), { ...deps, rng: new Rng(7) });
-    expect(none.giants.seen).toEqual({});
   });
 
   it("the save keeps them, and an old save starts with none", () => {

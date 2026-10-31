@@ -146,7 +146,7 @@ describe("through Stats", () => {
   it("visits make his spot, which pulls in the morning and costs less", () => {
     const s = at();
     const cafe = place("Cafe A", "cafe");
-    // Visit, then stop, as both the game and the catch-up do: the visit that makes his spot already counts.
+    // Visit, then stop, as the game does: the visit that makes his spot already counts.
     for (let i = 0; i < Sp.SPOT_MIN; i++) s.visit(cafe);
     expect(s.history.entries.at(-1)!.text).toContain("Cafe A is his spot now");
     expect(placePull(cafe, s, 8)).toBe(Sp.SPOT_PULL);

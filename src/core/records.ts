@@ -1,7 +1,7 @@
 // His records over a whole life: longest stretch between stops, most walked
 // and most places in a day, most money held, longest run without fainting,
 // and totals (countries, cities, mishaps, faints). Stats feeds it, so a
-// record counts the same whether he was watched or lived through a catch-up.
+// record counts every minute he lives.
 // Beating a best may get a feed line, at most one a day.
 import { euro } from "./money";
 

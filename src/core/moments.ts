@@ -53,7 +53,7 @@ export type Moment = {
 /**
  * How the game asks a moment that comes up inside a pure rule (a story
  * choice, a contest): show `m`, and call `settle` with your tap or with
- * `his()` once time runs out. The catch-up has none: nobody to ask.
+ * `his()` once time runs out.
  */
 export type Ask = (m: Moment, his: () => string, settle: (p: Pick) => void) => void;
 

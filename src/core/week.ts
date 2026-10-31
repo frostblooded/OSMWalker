@@ -1,7 +1,7 @@
 // His week in numbers, for the weekly recap: how far he walked, where he
 // stopped, new places and cities, and his money and level at the start. When
 // a new week starts (Monday at midnight) the old one becomes the recap,
-// shown once in the While you were away sheet.
+// shown once in the next reopen's welcome-back card.
 export const WEEK_S = 7 * 86400;
 
 export type Tally = {

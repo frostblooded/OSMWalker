@@ -14,7 +14,8 @@ import * as Bricks from "../core/bricks";
 import { HALL } from "../core/hall";
 import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
-import * as CatchUp from "../core/catchup";
+import * as Boost from "../core/boost";
+import { duration } from "./format";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Crawl from "../core/crawl";
@@ -259,8 +260,10 @@ export function values(data: GameData): Record<string, string> {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
     MAX_STEP_S: num(G.MAX_STEP_S),
     SAVE_EVERY_S: num(G.SAVE_EVERY_S),
-    MIN_AWAY_MIN: num(CatchUp.MIN_AWAY_S / 60),
-    MAX_AWAY_H: num(CatchUp.MAX_AWAY_S / 3600),
+    MIN_AWAY_MIN: num(Boost.MIN_AWAY_S / 60),
+    BOOST: num(Boost.BOOST),
+    BOOST_DIV: num(Boost.BOOST - 1),
+    EIGHT_H_BOOST: duration(Boost.boostFor(8 * 3600)),
     CLOVER_AWAY_H: num(Gifts.CLOVER_AWAY_S / 3600),
     CLOVERS_PER_DAY: num(Gifts.CLOVERS_PER_DAY),
     CLOVERS_PER_CHECKIN: num(Gifts.CLOVERS_PER_CHECKIN),
@@ -361,7 +364,6 @@ export function values(data: GameData): Record<string, string> {
     GIFT_PCT: pct(Fairy.GIFT_CHANCE),
     FAIRY_PCT: pct(Fairy.FAIRY_CHANCE),
     FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
-    NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
     FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
     STORY_MAGIC: num(Fairy.STORY_MAGIC),
     GIANT_PCT: pct(Giants.GIANT_CHANCE),
@@ -457,7 +459,6 @@ export function values(data: GameData): Record<string, string> {
     FINE_FULL: euro(Rep.fineOf(Rep.HEAT_MAX)),
     JAIL_MIN_PER_STAR_H: num(Rep.JAIL_MIN_PER_STAR / 60),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
-    CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
     MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
     BED_ENERGY: num(CityCheck.BED_ENERGY),
     AIRPORT_POP: num(Trips.AIRPORT_POP),
@@ -475,7 +476,6 @@ export function values(data: GameData): Record<string, string> {
     ICON_CAP: num(MapIcons.ICON_CAP.place),
     QUEST_ICON_CAP: num(MapIcons.ICON_CAP.quest),
     EVENT_ICON_CAP: num(MapIcons.ICON_CAP.event),
-    SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
     BIKE_KMH: kmh(Speeds.BIKE),

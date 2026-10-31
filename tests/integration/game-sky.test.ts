@@ -43,7 +43,7 @@ describe("game", () => {
       expect(weatherCalls()).toBe(2);
     });
 
-    it("doesn't wait for the weather on reopen, and the catch-up lives without it", async () => {
+    it("doesn't wait for the weather on reopen", async () => {
       let now = NOW;
       const { weatherCalls, api } = weatherApi(71, -2);
       // A slow answer, which the reopen must not wait for.
@@ -59,16 +59,10 @@ describe("game", () => {
       const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       again.problems.quiet = true;
       again.load();
-      const weather: boolean[] = [];
-      const pass = again.stats.passTime.bind(again.stats);
-      again.stats.passTime = (m, w, a) => (weather.push(!!again.stats.sky?.weather), pass(m, w, a));
       const t0 = performance.now();
       await again.wake();
       expect(performance.now() - t0).toBeLessThan(600);
-      expect(again.away).not.toBeNull();
-      // He had a kept forecast with snow, but none of it reached the catch-up.
-      expect(weather.length).toBeGreaterThan(0);
-      expect(weather.filter(Boolean)).toEqual([]);
+      expect(again.welcome).not.toBeNull();
       expect(weatherCalls()).toBeGreaterThanOrEqual(1);
     });
 

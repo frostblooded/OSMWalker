@@ -18,7 +18,7 @@ export const SAVE_KEY = "osmwalker.save";
 export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
-/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands (the catch-up uses none). */
+/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands. */
 export const WEATHER_KEY = "osmwalker.weather";
 /** Public holidays fetched from Nager.Date, kept a year so each country is asked once a year. */
 export const HOLIDAYS_KEY = "osmwalker.holidays";
@@ -40,8 +40,10 @@ export type Saved = {
   walker: Walker;
   stats: Stats;
   debugLog: DebugLog;
-  /** Unix ms when it was saved, for the catch-up; 0 when an old save didn't record it. */
+  /** Unix ms when it was saved, so a reopen knows the time away; 0 when an old save didn't record it. */
   savedAt: number;
+  /** Real seconds of boost left (core/boost.ts); 0 in old saves. */
+  boostS: number;
   /** Made-up places (core/poiGen.ts) by city, so a city keeps its own; empty in old saves. */
   made: Record<string, Place[]>;
 };
@@ -59,6 +61,7 @@ type Stored = {
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
   saved_at?: number;
+  boost_s?: number;
   made_places?: Record<string, Place[]>;
 };
 type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean; moment_s?: number };
@@ -95,6 +98,7 @@ export class SaveFile {
       stats: g.stats.toJSON(),
       debug_log: g.debugLog.toJSON(),
       saved_at: g.savedAt,
+      boost_s: g.boostS,
       made_places: g.made,
     };
     try {
@@ -144,6 +148,7 @@ export class SaveFile {
         stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
         savedAt: d.saved_at ?? 0,
+        boostS: d.boost_s ?? 0,
         made: d.made_places ?? {},
       };
     } catch {

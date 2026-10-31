@@ -6,7 +6,7 @@
 /** Country code -> [a word, what it means, the local money ("" where they pay in euros)], the guards' quips, and country code -> its main language (see languages.ts). */
 export type Borders = { words: Record<string, [word: string, meaning: string, money: string]>; guards: string[]; languages?: Record<string, string> };
 
-/** The same quip for the same crossing, so the catch-up and a watched game agree without a dice roll. */
+/** The same quip for the same crossing, without a dice roll. */
 const quip = (guards: string[], code: string, stamps: number) => guards[[...code].reduce((n, c) => n + c.charCodeAt(0), stamps) % guards.length];
 
 /** Lines for crossing into `country` (`code`): `stamps` is how many countries he has been to, this one included, `first` true on his first visit. */

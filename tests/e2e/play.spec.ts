@@ -1,5 +1,4 @@
-// Player flows in the browser, with fake map services.
-import { readFileSync } from "node:fs";
+
 import { expect, test } from "@playwright/test";
 import { mockServices, reopenAfter, reopenWith } from "./mock";
 
@@ -72,21 +71,16 @@ test("picks up where he was after a reload", async ({ page }) => {
   await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
 });
 
-test("the storyteller switches from the menu, is remembered, and brings incidents while he is away", async ({ page }) => {
+test("the storyteller switches from the menu and is remembered", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   const teller = page.getByRole("button", { name: /Storyteller/ });
   await expect(teller).toContainText("Classic");
   await teller.click();
   await expect(teller).toContainText("Chaotic");
-  // Chaotic and at full tension, six hours away bring incidents for sure; an empty quest board leaves every stop to them.
-  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.story.tension = 100; d.stats.quests = { city: d.city, rolled: true, board: [] };");
-  const away = page.getByRole("dialog", { name: /While you were away/ });
-  await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
-  const icons = (JSON.parse(readFileSync("public/data/incidents.json", "utf8")) as { icon: string }[]).map((c) => c.icon);
-  const lines = await away.locator(".away-log li").allTextContents();
-  expect(lines.some((l) => icons.some((i) => l.includes(`${i} `)))).toBe(true);
-  await away.getByRole("button", { name: "Carry on" }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").stats?.story?.style)).toBe("chaotic");
+  await page.reload();
+  await expect(page.locator(".hud .city")).toContainText("Sofia", { timeout: 20000 });
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("button", { name: /Storyteller/ })).toContainText("Chaotic");
 });
@@ -125,28 +119,15 @@ test("his friends and partner show on the Stats sheet", async ({ page }) => {
   await expect(sheet).toContainText("💗💗💗 · Sofia");
 });
 
-test("sums up what he did while the game was closed", async ({ page }) => {
+test("after time away he runs 10x for a while: a welcome note with its clover, and a countdown badge", async ({ page }) => {
   await startInSofia(page);
   await reopenAfter(page, 3);
-  const away = page.getByRole("dialog", { name: /While you were away/ });
-  await expect(away).toBeVisible({ timeout: 20000 });
-  await expect(away).toContainText("Lived through");
-  await expect(away).toContainText("3 h");
-  await away.getByRole("button", { name: /events, newest first/ }).click();
-  await expect(away.locator(".away-log li").first()).toBeVisible();
-  await away.getByRole("button", { name: "Carry on" }).click();
-  await expect(away).toBeHidden();
-  // He may have taken a trip while away, so only check that he is somewhere and walking on.
-  await expect(page.locator(".hud .city")).toContainText(/\S/);
-  await expect(page.locator(".marker.him")).toBeVisible();
-});
-
-test("a reopen earns a clover that sends him a care package", async ({ page }) => {
-  await startInSofia(page);
-  await reopenAfter(page, 3);
-  const away = page.getByRole("dialog", { name: /While you were away/ });
-  await expect(away).toContainText("Clover for checking in", { timeout: 20000 });
-  await away.getByRole("button", { name: "Carry on" }).click();
+  // 3 h away make up in 20 min at 10x.
+  await expect(page.getByRole("status").filter({ hasText: "Welcome back!" })).toContainText("10× speed for 20 min · ☘ +1 clover", { timeout: 20000 });
+  const badge = page.getByRole("timer", { name: /10 times speed/ });
+  await expect(badge).toContainText(/⏩ 10× (20:00|19:\d\d)/);
+  await expect(page.getByRole("dialog", { name: /Welcome back/ })).toHaveCount(0);
+  // The clover sends him a care package.
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Care package/ }).click();
   const care = page.getByRole("dialog", { name: /Care package/ });
@@ -158,9 +139,8 @@ test("a reopen earns a clover that sends him a care package", async ({ page }) =
 
 test("you can whisper to him three times a day, and praise his latest line once", async ({ page }) => {
   await startInSofia(page);
-  // A reopen gives him a day of deeds to praise, and trust from the check-in.
+  // A reopen gives him trust from the check-in, and the boost soon some deeds to praise.
   await reopenAfter(page, 3);
-  await page.getByRole("dialog", { name: /While you were away/ }).getByRole("button", { name: "Carry on" }).click();
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Care package/ }).click();
   const care = page.getByRole("dialog", { name: /Care package/ });
@@ -183,8 +163,9 @@ test("a long reopen may hold one choice, which a tap settles", async ({ page }) 
   await debug.getByRole("switch", { name: /One on every long reopen/ }).click();
   await expect(debug.getByRole("switch", { name: /One on every long reopen/ })).toHaveAttribute("aria-checked", "true");
   await reopenAfter(page, 5);
-  const away = page.getByRole("dialog", { name: /While you were away/ });
+  const away = page.getByRole("dialog", { name: /Welcome back/ });
   await expect(away).toContainText("One choice", { timeout: 20000 });
+  await expect(away).toContainText("10× speed for");
   await expect(away).toContainText("he decides by himself");
   await away.locator(".choices button").last().click();
   await expect(away).toContainText("You chose");
@@ -280,7 +261,7 @@ test("every tap target is at least 48 px", async ({ page }) => {
   expect(small).toEqual([]);
 });
 
-test("after a week turns over, the away sheet opens with his week", async ({ page }) => {
+test("after a week turns over, the welcome-back card opens with his week", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
   // His week started 8 days ago, with a few stops in it.
@@ -292,25 +273,18 @@ test("after a week turns over, the away sheet opens with his week", async ({ pag
     localStorage.setItem("osmwalker.save", JSON.stringify(d));
   });
   await reopenAfter(page, 1);
-  const away = page.getByRole("dialog", { name: /While you were away/ });
+  const away = page.getByRole("dialog", { name: /Welcome back/ });
   await expect(away).toContainText("His week", { timeout: 20000 });
   await expect(away).toContainText("cafe ×5");
 });
 
-test("the city rolls a quest board, the Stats sheet shows it, and he goes on quests while he is away", async ({ page }) => {
+test("the city rolls a quest board, and the Stats sheet shows it", async ({ page }) => {
   await startInSofia(page);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").stats?.quests?.board?.length ?? 0), { timeout: 30000 }).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const stats = page.getByRole("dialog", { name: /Stats/ });
   await expect(stats).toContainText("On the board");
-  await stats.getByRole("button", { name: /Close/ }).click();
-  // Six hours away, ready for his next quest: he takes one on and walks it (no trip dice before that first stop, or a trip may take him off first).
-  await reopenWith(page, "d.saved_at -= 6 * 3600_000; d.stats.quests.since = 9; d.skip_roll = true;");
-  const away = page.getByRole("dialog", { name: /While you were away/ });
-  await away.getByRole("button", { name: /events, newest first/ }).click({ timeout: 20000 });
-  const lines = await away.locator(".away-log li").allTextContents();
-  expect(lines.some((l) => l.includes("❗ New quest:"))).toBe(true);
 });
 
 test("a timed moment: tap a choice and it happens, or wait and he picks himself", async ({ page }) => {

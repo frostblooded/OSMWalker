@@ -218,7 +218,7 @@ export class Stats {
   gear: Partial<Record<Slot, Item>> = {};
   bag: Item[] = [];
   keepsakes = new K.Keepsakes();
-  /** Where he is now, for keepsakes and item stories; the game and the catch-up set it (see arrive). */
+  /** Where he is now, for keepsakes and item stories; the game sets it (see arrive). */
   where = { city: "", code: "", country: "" };
   /** Placedex rarities from data/placedex.json; not saved, the game sets it. */
   dex: K.Dex = {};
@@ -338,15 +338,15 @@ export class Stats {
   incidentLine = "";
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
-  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); off, as in the catch-up, he picks by himself. Not saved. */
+  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); off, he picks by himself. Not saved. */
   askCards = false;
   /** A chance card at work waiting for your tap, and its dice, for the game to ask; not saved. */
   workCard: { d: Work.Drawn; dice: Rng } | null = null;
-  /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
+  /** Unix seconds, for history entries; tests replace it. */
   now = () => Math.floor(Date.now() / 1000);
-  /** The sky over him (season, sun, weather); the game and the catch-up set it, null when unknown. */
+  /** The sky over him (season, sun, weather); the game sets it, null when unknown. */
   sky: Sky | null = null;
-  /** Hears every feed line as it is said; the catch-up collects them for its summary. */
+  /** Hears every feed line as it is said; tests collect them. */
   onSay: ((line: string, t: number) => void) | null = null;
 
   /** An attribute with his gear's and buffs' bonuses, and for Charm a finished city card set and the local language; Charm counts less while he is dirty. */
@@ -548,8 +548,7 @@ export class Stats {
 
   /**
    * Pays `fare` for a ride by `mode` from `station` to `to` ("Plovdiv,
-   * Bulgaria") and returns its History line, the same while he plays and in
-   * the catch-up. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if
+   * Bulgaria") and returns its History line. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if
    * caught (CAUGHT_CHANCE), is fined FINE_MULT times the fare, as much as he
    * has. His partner comes along, or maybe a fellow traveller who pays back
    * part of what he paid (never of a fine). Rolls its own dice from the
@@ -621,12 +620,12 @@ export class Stats {
     while (this.bag.length > BAG_SIZE) this.sellCheapest();
   }
 
-  /** Boards a ride (see ride) to `to`, in country `code`, and packs for it (see packForTrip): the feed lines, the same watched and in the catch-up. */
+  /** Boards a ride (see ride) to `to`, in country `code`, and packs for it (see packForTrip): the feed lines. */
   board(fare: number, mode: T.Mode, station: string, to: string, code: string): string[] {
     return [this.ride(fare, mode, station, to), this.packForTrip(code)].filter(Boolean);
   }
 
-  /** Lands in `to` after `distM` of road by `mode` from longitude `fromLon` to `toLon` (see landFlight, landRide): the feed lines, the same watched and in the catch-up. */
+  /** Lands in `to` after `distM` of road by `mode` from longitude `fromLon` to `toLon` (see landFlight, landRide): the feed lines. */
   land(mode: T.Mode, fromLon: number, toLon: number, distM: number, to: string): string[] {
     return [mode === "plane" ? this.landFlight(fromLon, toLon) : "", this.landRide(mode, distM, to)].filter(Boolean);
   }
@@ -1685,13 +1684,6 @@ export class Stats {
     return M.defaultPick(c.moment, this, Cr.meetingDice(t, `${where}pick`));
   }
 
-  /** Right after reaching `place` with nobody to ask (the catch-up): meets its creature if one shows up, taking his own pick. True when one did. */
-  meetAt(place: Pick<Place, "class" | "name">): boolean {
-    const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, this.creaturePick(c, place.name), { you: false, t: this.now(), attr: (a) => this.attr(a) });
-    return !!c;
-  }
-
   /** The moment at `place` when he starts an activity there, or null with none loaded. */
   momentAt(place: Pick<Place, "class" | "subclass">): PM.PlaceMoment | null {
     return PM.momentFor(this.placeMoments, place);
@@ -1718,11 +1710,6 @@ export class Stats {
       got = ` and got a free ${item.rarity} ${item.name}`;
     }
     return this.say(`${m.icon} ${you ? "" : "Decided by himself: "}${o.say.replaceAll("{PLACE}", where)}${got}${net ? ` (${signed(net)})` : ""}`);
-  }
-
-  /** Moment `m` at `where` with nobody to ask (the catch-up): he takes his own pick, on `dice` (placeMoments.ts momentDice). */
-  byHimself(m: PM.PlaceMoment | null, where: string, dice: Rng): void {
-    if (m) this.settleMoment(m, where, M.defaultPick(m, this, dice), false, dice);
   }
 
   /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
@@ -1902,7 +1889,7 @@ export class Stats {
         if (card.stray) this.stray(card.stray, place.name);
         return this.incidentLine;
       }
-      // A choice plays on its own dice, so your tap (or none) leaves the card dice as in the catch-up.
+      // A choice plays on its own dice, so your tap (or none) leaves the card dice the same.
       const dice = new Rng(seedOf(`incident${this.now()}${card.id}`));
       const his = Inc.hisPick(card, this, dice);
       const settle = (picked: number, you?: boolean) => {

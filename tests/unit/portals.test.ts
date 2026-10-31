@@ -1,15 +1,11 @@
 // Portals: which places open, how rarely, where they lead, and the same while away.
 import { describe, expect, it } from "vitest";
-import { Activities } from "../../src/core/activities";
-import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { FEATS } from "../../src/core/collection";
-import { bboxAround } from "../../src/core/geo";
 import * as P from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
 import { Stats, type Place } from "../../src/core/stats";
 import { fare, MODES, parseCities, rideS, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
-import { hourSky } from "../support/sky";
 
 const DAY = 86_400;
 const T0 = 1_800_000_000;
@@ -80,25 +76,6 @@ describe("portals", () => {
     for (const [c, k, n] of [["Bigtown", "AAA", "A-land"], ["Nexttown", "AAA", "A-land"], ["Farcity", "BBB", "B-land"]]) everywhere.arrive(`${c}, ${n}`, k!, n!);
     expect(everywhere.portalAt(ARCH, TRIPS)).toBeNull();
     expect(everywhere.portals.went).toEqual([]);
-  });
-
-  it("while away, a portal takes him to the new city like a ride, and he lives on there", () => {
-    const home: AwayCity = { name: "Bigtown, A-land", code: "AAA", center: [0, 0], bounds: bboxAround(0, 0, 3000), places: [{ ...ARCH, lat: 0.003 }, place("Cafe", "cafe", "cafe", 0, 0.003)] };
-    const deps = { activities: new Activities(JSON.parse(dataFile("actions.json"))), trips: TRIPS, rng: new Rng(7), skyAt: hourSky((ms: number) => new Date(ms).getUTCHours()), roll: () => 0.99 };
-    // A start whose day holds an open portal at the arch.
-    let start = Date.UTC(2026, 9, 29, 8);
-    let stats = new Stats();
-    let s = catchUp(stats, home, [0, 0], 24 * 3600, start, deps);
-    for (let i = 0; i < 20 && !stats.portals.went.length; i++) {
-      start += 3_600_000;
-      stats = new Stats();
-      s = catchUp(stats, home, [0, 0], 24 * 3600, start, { ...deps, rng: new Rng(7) });
-    }
-    const went = stats.portals.went[0]!;
-    expect(["Nexttown, A-land", "Farcity, B-land"]).toContain(went);
-    expect(s.cities).toContain(went);
-    expect(s.lines.map((l) => l.text)).toContain(`🌀 Stepped out in ${went}, blinking. Nobody saw him arrive`);
-    expect(stats.where.city).not.toBe("Bigtown, A-land");
   });
 
   it("the save keeps them, an old save starts with none, and the Collection badge counts them", () => {

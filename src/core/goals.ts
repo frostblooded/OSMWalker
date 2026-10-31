@@ -2,7 +2,7 @@
 // medium walking distance and by lying ahead along his last leg, times how
 // well they meet his needs; random spots are drawn with the same distance
 // and heading odds. With an urgent need only places that fix it count, and
-// the nearest of them wins. Pure functions, used by the walker and catch-up.
+// the nearest of them wins. Pure functions, used by the walker.
 import { distanceM, moved, offsetM, type BBox } from "./geo";
 import type { Rng } from "./rng";
 import type { Meter, Place } from "./stats";

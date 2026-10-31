@@ -164,14 +164,14 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "country", trip: "Paris, France" });
   });
 
-  it("shows last week's recap once: closing the away sheet marks it seen", async () => {
+  it("shows last week's recap once: closing the welcome-back card marks it seen", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.week.roll(1, 0, 1, 0);
     g.stats.week.stop("cafe");
     g.stats.week.roll(8 * 86400, 0, 1, 0);
     expect(g.stats.week.pending()).not.toBeNull();
-    g.dismissAway();
+    g.dismissWelcome();
     expect(g.stats.week.pending()).toBeNull();
   });
 
