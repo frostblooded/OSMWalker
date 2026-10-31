@@ -98,6 +98,9 @@ export function rankShift(c: Career, rank: number): Action {
   return { name: c.shifts[rank - 2]!, min: 120, earn: c.base * RANK_PAY[rank - 2]!, fx: { energy: -20, xp: 20 + 5 * rank }, needs: { rank }, career: c.id };
 }
 
+/** Each career's rank shifts, ranks 2 to TOP_RANK, built once and shared by all its places. */
+export const RANK_SHIFTS = new Map(CAREERS.map((c) => [c.id, Array.from({ length: TOP_RANK - 1 }, (_, i) => rankShift(c, i + 2))]));
+
 /** His shifts in each career he has worked in, by career id. */
 export class Careers {
   shifts: Record<string, number> = {};

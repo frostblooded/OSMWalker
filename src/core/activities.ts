@@ -7,7 +7,7 @@
 // count for it. On a public holiday the "_holiday" actions join every place's.
 // Picks an action he can do, leaning towards what he needs and his karma.
 import { KIND_DEED_WEIGHT } from "./bond";
-import { CAREER_PULL, careerAt, isCareerShift, rankShift, TOP_RANK } from "./careers";
+import { CAREER_PULL, careerAt, isCareerShift, RANK_SHIFTS } from "./careers";
 import { urgentRules, type Need, type NeedKey } from "./goals";
 import { toCents } from "./money";
 import { SKILL_LEAN, SKILL_MAX } from "./skills";
@@ -123,8 +123,7 @@ export class Activities {
     for (const [key, list] of Object.entries(data)) {
       const c = careerAt(key);
       if (!c || !list.some(isCareerShift)) continue;
-      const ranks = Array.from({ length: TOP_RANK - 1 }, (_, i) => rankShift(c, i + 2));
-      this.data[key] = [...list.map((a) => (isCareerShift(a) ? { ...a, career: c.id } : a)), ...ranks];
+      this.data[key] = [...list.map((a) => (isCareerShift(a) ? { ...a, career: c.id } : a)), ...RANK_SHIFTS.get(c.id)!];
     }
     for (const [code, table] of Object.entries(flavour)) {
       this.flavour[code] = {};
