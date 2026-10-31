@@ -6,7 +6,7 @@
 import { anyUrgent } from "../core/activities";
 import type { Entry } from "../core/debugLog";
 import { euro } from "../core/money";
-import type { Rng } from "../core/rng";
+import { Rng, seedOf } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
 import { cityBounds, heading, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
 
@@ -50,7 +50,10 @@ export class Journey {
     const kind = roll(r, boost, abroad);
     this.log = { roll: r, boost, ...(abroad > 1 ? { abroad } : {}), outcome: kind };
     if (kind === "stay") return null;
-    const found = this.destination(kind, at);
+    // A share of trips go home; their own dice, so the walk's stay the same.
+    const home = stats.home.has() ? this.deps.trips.homeward(stats.home, stats.where.city, new Rng(seedOf(`home${stats.now()}`)).randf()) : null;
+    if (home) this.log.home = home.name;
+    const found = home ?? this.destination(kind, at);
     if (!found) return null;
     const dest = { ...found, bounds: cityBounds(found) };
     const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");

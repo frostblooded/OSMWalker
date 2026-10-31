@@ -4,6 +4,7 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Home from "../core/home";
 import * as Biz from "../core/business";
 import * as Lot from "../core/lottery";
 import * as Visas from "../core/visas";
@@ -285,6 +286,16 @@ export function values(data: GameData): Record<string, string> {
     BILLS_L1: euro(Bills.billsAt(1)),
     BILLS_L10: euro(Bills.billsAt(10)),
     BILLS_L30: euro(Bills.billsAt(30)),
+    RENT_TIER_NAME: Fame.FAME_NAMES[Home.RENT_TIER]!,
+    RENT_L1: euro(Home.RENT_CENTS),
+    RENT_PER_LEVEL: euro(Home.RENT_PER_LEVEL),
+    HOME_PRICE: euro(Home.HOME_PRICE),
+    HOME_THINGS: num(Home.HOME_THINGS),
+    HOME_MOOD: num(Home.HOME_MOOD),
+    HOME_MOOD_PER_THING: num(Home.HOME_MOOD_PER_THING),
+    HOME_TRIP_PCT: pct(Home.HOME_TRIP),
+    GREET_PCT: pct(Fame.GREET_PER_TIER),
+    GREET_HERO_PCT: pct(Fame.GREET_PER_TIER * (Fame.FAME_NAMES.length - 1)),
     ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
     PET_FOOD: euro(Pet.PET_FOOD),
     PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),

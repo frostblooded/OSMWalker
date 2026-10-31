@@ -8,6 +8,7 @@ import { BUSINESSES } from "./business";
 import { listOf, RECIPES } from "./cooking";
 import { dayOf } from "./gifts";
 import { GIANTS } from "./giants";
+import { HOME_PRICE, HOME_THINGS } from "./home";
 import { STORIES } from "./fairy";
 import type { Rarity } from "./items";
 import * as Items from "./items";
@@ -15,12 +16,14 @@ import * as K from "./keepsakes";
 import { LEAN_AT, LEAN_MAX } from "./bond";
 import { walkerName } from "./life";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { FAIRY_LEVEL } from "./pet";
 import { euro } from "./money";
 import { SKILLS } from "./skills";
 import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
+import { visaFor, VISAS } from "./visas";
 
 export const TABS = [
   { id: "cards", icon: "🎴", name: "Cards" },
@@ -396,6 +399,30 @@ export const SETS: CSet[] = [
     ],
   },
   {
+    id: "settled",
+    tab: "world",
+    icon: "🏡",
+    title: "A life of his own",
+    entries: (s) => {
+      const pets = [...(s.pets.pet ? [s.pets.pet] : []), ...s.pets.past];
+      const visas = Object.values(s.visas.days).map((d) => visaFor(d).name);
+      const row = (id: string, icon: string, name: string, got: boolean, hint: string) => ({ id, icon, name, got, info: hint });
+      return [
+        row("pet", "🐕", "A pet", pets.length > 0, "A stray that stays with him"),
+        row("fairy", "🐺", "A fairy pet", pets.some((p) => p.fairy), `A pet of level ${FAIRY_LEVEL} at a real castle or monument`),
+        row("rent", "🏡", "A flat", s.home.has(), "Become a Regular in a city"),
+        row("own", "🔑", "His own home", s.home.bought > 0, `Have ${euro(HOME_PRICE)} to spare while renting`),
+        row("full", "🖼", "A full home", s.home.things.length >= HOME_THINGS, `${HOME_THINGS} things from his travels up at home`),
+        row("long", "🛂", "A long stay visa", visas.some((v) => v !== VISAS[0].name), `${VISAS[1].from} days in one country`),
+        row("citizen", "🎫", "Citizenship", visas.includes(VISAS[3].name), `${VISAS[3].from} days in one country`),
+      ];
+    },
+    facts: (s) => [
+      ["Pets", `${s.pets.past.length + (s.pets.pet ? 1 : 0)}`],
+      ["Things up at home", `${s.home.things.length} / ${HOME_THINGS}`],
+    ],
+  },
+  {
     id: "vehicles",
     tab: "gear",
     icon: "🚲",
@@ -434,6 +461,8 @@ export const FEATS: Feat[] = [
   { id: "villain", tab: "world", icon: "😈", name: "Bad name", what: "karma −{n}", tiers: [LEAN_AT, AURA_AT, LEAN_MAX], title: "Villain", count: (s) => Math.max(Math.round(-s.law.worstKarma), 0) },
   { id: "wanted", tab: "world", icon: "🚨", name: "Most wanted", what: "{n} wanted stars", tiers: [1, 3, STARS_MAX], title: "Public Enemy", count: (s) => s.law.topStars },
   { id: "getaways", tab: "world", icon: "🏃", name: "Escape artist", what: "{n} getaways from the police", tiers: [1, 10, 50], title: "Ghost", count: (s) => s.law.escapes + s.law.bribes },
+  { id: "homebody", tab: "world", icon: "🖼", name: "Homebody", what: "{n} things up at home", tiers: [1, 5, HOME_THINGS], title: "Homebody", count: (s) => s.home.things.length },
+  { id: "citizen", tab: "world", icon: "🎫", name: "Citizen", what: "{n} countries where he is a citizen", tiers: [1, 2, 5], title: "Citizen of the World", count: (s) => Object.values(s.visas.days).filter((d) => d >= VISAS[3].from).length },
   { id: "known", tab: "world", icon: "⭐", name: "Known face", what: "{n} cities that know his face", tiers: [1, 5, 20], title: "Celebrity", count: (s) => s.fame.citiesAt(1) },
   { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },

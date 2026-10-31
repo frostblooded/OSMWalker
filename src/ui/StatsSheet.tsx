@@ -3,7 +3,7 @@
 // the local words he has picked up,
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
-// moves his mood), his quirks, his spot and his mailbox. Items with a story open to show it. His life stage comes
+// moves his mood), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his records and family tree close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
@@ -23,6 +23,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { HOME_PRICE, HOME_THINGS } from "../core/home";
 import { BUSINESSES, kindOf } from "../core/business";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
@@ -315,7 +316,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
-        <KV k="Weekly bills" v={euro(billsAt(s.level))} />
+        <KV k="Weekly bills" v={euro(billsAt(s.level) + s.home.rentAt(s.level))} />
       </Card>
       <LifeCard life={s.life} now={s.now()} />
       <QuestCard q={s.quests} now={s.now()} />
@@ -400,6 +401,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <MindCard s={s} />
       <QuirksCard s={s} />
+      <HomeCard s={s} />
       <SpotCard s={s} />
       <MailCard s={s} />
       <RivalCard s={s} />
@@ -605,6 +607,21 @@ function QuirksCard({ s }: { s: Stats }) {
       ) : (
         <p class="dim small">None yet. What he does often turns into a quirk.</p>
       )}
+    </Card>
+  );
+}
+
+/** His home, once he has one: rented or his, and what he put up. */
+function HomeCard({ s }: { s: Stats }) {
+  const h = s.home;
+  if (!h.has()) return null;
+  return (
+    <Card icon="🏡" title="Home" right={h.city.split(",")[0]}>
+      <KV k={h.bought ? "His own" : "Rent"} v={h.bought ? "no rent" : `${euro(h.rentAt(s.level))} a week`} />
+      {!h.bought && <KV k="To buy it" v={`${euro(s.cents)} / ${euro(HOME_PRICE)}`} />}
+      {h.bought > 0 && <KV k="Things up" v={`${h.things.length} / ${HOME_THINGS}`} />}
+      {h.things.length > 0 && <p class="dim">{h.things.map((i) => i.name).join(", ")}</p>}
+      <KV k="A night there" v={`free, mood +${h.mood()}`} tone="ok" />
     </Card>
   );
 }

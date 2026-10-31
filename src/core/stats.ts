@@ -29,9 +29,10 @@ import * as Po from "./portals";
 import * as Gi from "./giants";
 import * as Fa from "./fairy";
 import * as F from "./forecast";
-import { Fame, cityKey, tierOf, FAME_NAMES, FAME_PER_H } from "./fame";
+import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
 import { History } from "./history";
+import * as Hm from "./home";
 import * as Inc from "./incidents";
 import * as Items from "./items";
 import * as L from "./life";
@@ -304,6 +305,8 @@ export class Stats {
   visas = new V.Visas();
   /** His pet, and the pets he had. */
   pets = new Pt.Pets();
+  /** His flat, rented then bought (see home.ts). */
+  home = new Hm.Home();
   /** The incident deck from data/incidents.json; not saved, the game sets it. */
   incidents: readonly Inc.Incident[] = [];
   /** The feed line of the last incident, so the screen can make it stand out; not saved. */
@@ -693,7 +696,7 @@ export class Stats {
       this.say(`${st.icon} Now ${title}${nudge && name ? ` (${name} ${nudge > 0 ? "+" : "−"}${Math.abs(nudge)})` : ""}`);
       this.milestone(`stage${stage}`, `Became ${title}`);
     }
-    if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.life.favourite(this.where.city).split(",")[0]}`);
+    if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.homeCity().split(",")[0]}`);
   }
 
   /**
@@ -705,7 +708,7 @@ export class Stats {
    * his favourite city unless its streets won't load (see game.ts retire). Changes
    * nothing of his, so the game can try again; the heir says hello once he is out.
    */
-  retire(by: L.Ancestor["by"], home = this.life.favourite(this.where.city)): { heir: Stats; ancestor: L.Ancestor } {
+  retire(by: L.Ancestor["by"], home = this.homeCity()): { heir: Stats; ancestor: L.Ancestor } {
     const t = this.now();
     const heirloom = Object.values(this.gear)
       .filter((it): it is Item => !!it && !it.vehicle)
@@ -730,6 +733,7 @@ export class Stats {
     heir.rings = this.rings;
     heir.finds = this.finds;
     heir.portals = this.portals;
+    heir.home = this.home;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
     return { heir, ancestor };
@@ -740,6 +744,7 @@ export class Stats {
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     this.petDay(date, t);
     this.takings();
+    this.settle(t);
     this.invest(t);
     this.visaDay();
     const f = this.friends;
@@ -774,6 +779,50 @@ export class Stats {
     const b = this.business;
     const icons = b.owned.map((o) => Bz.kindOf(o.id)!.icon).join("") + (b.shares.length ? "🏠" : "");
     this.say(`${icons} His ${Bz.namesOf(b.owned, b.shares)} took in ${signed(c)}`);
+  }
+
+  /** Where he settles and retires: his home's city, or else the one he spent most time in. */
+  homeCity(): string {
+    return this.home.city || this.life.favourite(this.where.city);
+  }
+
+  /** True in his home's city. */
+  atHome(): boolean {
+    return this.home.has() && this.where.city === this.home.city;
+  }
+
+  /**
+   * Each morning (see home.ts): with no home yet, he rents a flat where he is
+   * once the city knows him as a Regular; renting, he buys it with its price
+   * to spare past what he saves up for (not while you whisper to save); and
+   * in a home he owns he puts up a thing from his travels.
+   */
+  private settle(t: number): void {
+    const h = this.home;
+    const town = this.where.city.split(",")[0];
+    if (!h.has()) {
+      const spot = this.spots.spot(this.where.city);
+      const at = spot ? ([spot.lat, spot.lon] as T.LatLon) : this.life.cityAt[this.where.city];
+      if (!at || this.fame.tier(this.here()) < Hm.RENT_TIER) return;
+      h.rent(this.where.city, this.where.code, at, t);
+      this.milestone("home_rent", `Rented a flat in ${town}`);
+      this.say(`🏡 Rented a flat in ${town}${spot ? ` near ${spot.name}` : ""}: ${euro(h.rentAt(this.level))} a week with his bills`);
+      return;
+    }
+    if (!h.bought) {
+      if (this.bond.nudge === "save" || this.cents - Math.max(this.savingTarget(), KEEP_CENTS) < Hm.HOME_PRICE) return;
+      this.cents -= Hm.HOME_PRICE;
+      h.bought = t;
+      this.milestone("home_buy", `Bought his flat in ${h.city.split(",")[0]}`);
+      this.say(`🔑 Bought his flat in ${h.city.split(",")[0]} (${signed(-Hm.HOME_PRICE)}): no more rent`);
+      return;
+    }
+    if (!this.atHome() || h.things.length >= Hm.HOME_THINGS) return;
+    const it = Hm.nextThing(this.bag, h.city, Items.isTreasured);
+    if (!it) return;
+    this.bag.splice(this.bag.indexOf(it), 1);
+    h.things.push(it);
+    this.say(`🖼 Put up his ${it.name} from ${it.story!.from} at home (${h.things.length} of ${Hm.HOME_THINGS})`);
   }
 
   /** Each morning: a share in his spot here if he has none in this city, then, with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */
@@ -826,8 +875,9 @@ export class Stats {
 
   /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
   private payBills(): void {
-    const due = Bl.billsAt(this.level);
-    const what = Bl.BILLS.map((b) => b.name).join(", ");
+    const rent = this.home.rentAt(this.level);
+    const due = Bl.billsAt(this.level) + rent;
+    const what = [...(rent ? ["rent"] : []), ...Bl.BILLS.map((b) => b.name)].join(", ");
     if (this.cents >= due) {
       this.cents -= due;
       this.say(`Paid the week's bills: ${what} (${signed(-due)})`);
@@ -1070,11 +1120,14 @@ export class Stats {
     if (action.lottery) return this.buyTicket(action, where);
     // A regular's discount at his spot.
     const regular = !!where && this.atSpot;
-    let spent = this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
+    // A night in a hostel or hotel in his home city is a night in his own bed: free, and it cheers him.
+    const home = !!action.sleep && kind === "lodging" && this.atHome();
+    let spent = home ? 0 : this.priced(Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1)));
     const fx: Fx = { ...action.fx };
+    if (home) fx.mood = (fx.mood ?? 0) + this.home.mood();
     if (action.skill) skilled(fx, this.skills.mult(action.skill));
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
-    let text = action.name;
+    let text = home ? "🏡 Slept at home in his own bed" : action.name;
     const risk = action.risk;
     if (risk && rng.randf() < risk.p * riskMult(this.attr("luck")) * this.pets.riskMult()) {
       spent += toCents(risk.cost ?? 0);
@@ -1099,7 +1152,7 @@ export class Stats {
     const jokes = jokesFor(this.jokes, kind);
     // No jokes loaded, no roll, so the dice stay the same as without them.
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
-    const line = this.say(text + (where ? ` at ${where}` : "") + money + joke);
+    const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
     if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
@@ -1115,7 +1168,14 @@ export class Stats {
   /** Adds fame where he is; a new tier is said in the feed. */
   addFame(n: number): void {
     const tier = this.fame.add(this.here(), n);
-    if (tier !== null) this.say(`⭐ ${this.where.city} knows his face now: ${FAME_NAMES[tier]}`);
+    if (tier === null) return;
+    this.say(`⭐ ${this.where.city} knows his face now: ${FAME_NAMES[tier]}`);
+    if (tier < FAME_NAMES.length - 1) return;
+    // A Local hero makes the local paper; its own dice.
+    const town = this.where.city.split(",")[0]!;
+    const head = new Rng(seedOf(`paper${this.here()}`)).pick(PAPER).replace("{CITY}", town);
+    this.milestone(`paper${this.here()}`, `In the ${town} paper: "${head}"`);
+    this.say(`📰 The ${town} paper runs a story on him: "${head}"`);
   }
 
   /**
@@ -1643,7 +1703,12 @@ export class Stats {
     const met = this.rival.meet(this, this.contests, place.name, place.class, [place.lat, place.lon], rng);
     if (met) return (this.incidentLine = met);
     const f = this.friends.stop({ city: this.where.city, place: place.name, kind: place.class, lat: place.lat, lon: place.lon, t: this.now() }, this.friendData, rng);
-    return f && (this.incidentLine = this.say(f));
+    if (f) return (this.incidentLine = this.say(f));
+    // Where they know him, someone may greet him; its own dice.
+    if (place.made || !place.name) return "";
+    const g = new Rng(seedOf(`greet${t}${place.name}`));
+    const hi = greeting(this.fame.tier(this.here()), place.name, g.randf(), g.randf());
+    return hi && this.say(hi);
   }
 
   /** True while his latest feed line is an incident, so the line over the map stands out. */
@@ -1698,6 +1763,7 @@ export class Stats {
       care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
+      home: this.home.toJSON(),
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
@@ -1751,6 +1817,7 @@ export class Stats {
     s.quests = Quests.fromJSON(d.quests);
     // A save from before pets: none yet.
     s.pets = Pt.Pets.fromJSON(d.pets);
+    s.home = Hm.Home.fromJSON(d.home);
     // A save from before visas: every country starts on Tourist.
     s.visas = V.Visas.fromJSON(d.visas);
     // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.

@@ -21,7 +21,7 @@ import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
+import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
 import * as R from "../core/repute";
 import { Rng } from "../core/rng";
@@ -635,7 +635,7 @@ export class Game {
     this.retiring = true;
     try {
       const life = this.stats.life;
-      const home = life.favourite(this.city);
+      const home = this.stats.homeCity();
       const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
       const at = life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
       const here = { city: this.city, origin: this.origin, bounds: w.bounds };
@@ -1303,7 +1303,7 @@ export class Game {
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...this.questIcons()];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...homeIcons(this.stats.home, this.stats.where.city), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

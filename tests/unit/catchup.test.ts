@@ -239,6 +239,19 @@ describe("catch-up", () => {
     expect(away(true).some((t) => t.startsWith("Took the plane to Farcity"))).toBe(true);
   });
 
+  it("a share of his trips go home, as in a watched trip", () => {
+    const home = (stats: Stats) => stats.home.rent("Farcity, B-land", "BBB", [10, 10], 0);
+    const went = Array.from({ length: 20 }, (_, i) => {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      home(stats);
+      let rolls = 0;
+      return catchUp(stats, HOME, [0, 0], 3600, START_MS + i * 60_000, deps({ roll: () => (rolls++ ? 0.99 : 0.05) })).lines.some((l) => l.text.startsWith("Took the plane to Farcity"));
+    });
+    expect(went).toContain(true);
+    expect(went).toContain(false);
+  });
+
   it("packs a travel kit as he boards, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 500_000;

@@ -741,7 +741,40 @@
       "twists": ["One guest is a food critic.", "The oven only works on one side."],
       "good": ["Every plate comes back clean. {GIVER} pays him and asks for the recipe.", "The guests clap for the cook."],
       "worse": ["The stew burns, and they order pizza.", "Half the guests are vegetarian, which nobody said."],
-      "reward": { "skill": "cooking", "eur": [15, 40], "xp": 50, "fx": { "mood": 10, "fullness": 30 } } }
+      "reward": { "skill": "cooking", "eur": [15, 40], "xp": 50, "fx": { "mood": 10, "fullness": 30 } } },
+    { "id": "moving_day", "icon": "📦", "title": "Moving Day", "lean": "str",
+      "items": ["a wobbly wardrobe", "a piano nobody can lift", "forty boxes of books", "a sofa that won't fit the stairs"],
+      "steps": [
+        { "at": ["shop/hardware", "shop/doityourself", "shop"], "say": ["At {PLACE} {GIVER} is buying tape and rope: they move flats today and their helpers didn't come.", "{GIVER} waves him over at {PLACE}: \"Strong arms? I have {ITEM} to move.\""] },
+        { "at": ["park", "cafe", "bus"], "say": ["Halfway across town with {ITEM}, they rest at {PLACE}.", "At {PLACE} they stop to argue about which way up {ITEM} goes."] },
+        { "at": ["bakery", "cafe", "restaurant"], "say": ["The new flat is done; {GIVER} buys him lunch at {PLACE}.", "At {PLACE} {GIVER} toasts the new place with him."] }
+      ],
+      "twists": ["The lift in the new building is out of order.", "The neighbours turn out to be {GIVER}'s old school friends."],
+      "good": ["{GIVER} gives him a spare key: \"Drop by when you're in town.\"", "Everything is in by dark and nothing broke."],
+      "worse": ["{ITEM} gets stuck in the stairwell until the fire brigade frees it.", "His back hurts for days, but {GIVER} is moved in."],
+      "reward": { "eur": [5, 20], "xp": 45, "fx": {"mood": 8, "str": 0.1, "karma": 3} } },
+    { "id": "cat_on_the_roof", "icon": "🐈", "title": "The Cat on the Roof", "lean": "luck",
+      "items": ["a ginger tomcat", "a tiny grey kitten", "a fat old tabby", "a black cat with one white paw"],
+      "steps": [
+        { "at": ["shop/pet", "veterinary", "cafe"], "say": ["At {PLACE} {GIVER} is in tears: {ITEM} got out and is on a roof.", "{GIVER} pins a LOST poster for {ITEM} at {PLACE}."] },
+        { "at": ["park", "garden", "playground"], "say": ["At {PLACE} he hears it mewing from a tree.", "He shakes a box of treats all the way across {PLACE}."] },
+        { "at": ["cafe", "bakery", "ice_cream"], "say": ["Back at {PLACE}, {GIVER} hugs {ITEM} and won't let go.", "At {PLACE} {GIVER} buys him a treat, and one for {ITEM}."] }
+      ],
+      "twists": ["A second cat follows him down as well.", "It turns out {ITEM} just wanted the warm chimney."],
+      "good": ["{ITEM} purrs in {GIVER}'s arms and the whole street claps.", "{GIVER} names a spot on the windowsill after him."],
+      "worse": ["{ITEM} came home by itself while he looked; he gets a scratch for his trouble.", "He finds the wrong cat, which is very offended."],
+      "reward": { "eur": [0, 10], "xp": 35, "fx": {"mood": 10, "karma": 4} } },
+    { "id": "paperwork_queue", "icon": "🛂", "title": "The Paperwork Queue", "lean": "wit",
+      "items": ["a residence form in triplicate", "a stamp that must be blue", "a photo exactly 35 by 45 mm", "a letter from the consulate"],
+      "steps": [
+        { "at": ["office/government", "town_hall", "post"], "say": ["At {PLACE} {GIVER} has queued three hours for {ITEM} and their number still isn't up.", "{GIVER} at {PLACE} can't read the form for {ITEM}; he offers to help."] },
+        { "at": ["post", "office", "shop/kiosk"], "say": ["At {PLACE} they find the one window that sells the right stamp.", "At {PLACE} they get {ITEM} copied twice, to be safe."] },
+        { "at": ["cafe", "bar", "restaurant"], "say": ["Papers stamped, {GIVER} celebrates at {PLACE}.", "At {PLACE} {GIVER} frames the receipt for {ITEM} as a joke."] }
+      ],
+      "twists": ["The clerk asks for a form that needs the form they came for.", "The office closes for lunch exactly as they reach the front."],
+      "good": ["Every stamp is in place; {GIVER} can stay.", "The clerk is so impressed she fast-tracks his own papers too."],
+      "worse": ["They get it all done, then learn it expires in a month.", "Wrong colour of ink: back to the start, tomorrow."],
+      "reward": { "eur": [5, 15], "xp": 40, "fx": {"mood": 6, "wit": 0.1} } }
   ],
   "events": [
     { "id": "lamp_in_the_window", "fantasy": true, "icon": "🌙", "title": "A lamp in the window", "at": ["shop/antiques", "shop/second_hand"], "time": "midnight", "min": [10, 20], "lean": "luck", "text": ["A lamp is lit in the window of {PLACE}, long after closing.", "The door of {PLACE} stands ajar after midnight, and something inside glitters."], "win": { "say": "The owner lets him try a ring that tingles; a little Magic stays on his finger.", "xp": 15, "fx": { "magic": 10, "luck": 0.2 } }, "lose": { "say": "By the time he gets there the lamp is out and the door locked.", "xp": 5 }, "missed": "Someone saw a lamp in the window of {PLACE} after midnight." },

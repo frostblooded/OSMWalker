@@ -5,6 +5,7 @@
 // monuments he built in this city always show, uncapped (see bricks.ts), and
 // so does his spot (see spot.ts).
 import { MONUMENTS, type Monument } from "./bricks";
+import type { Home } from "./home";
 import type { Visits } from "./spot";
 import { distanceM, type BBox } from "./geo";
 import { isAirport, isBusStation } from "./cityCheck";
@@ -67,3 +68,6 @@ export const monumentIcons = (built: Monument[], city: string): MapIcon[] =>
 
 /** A house icon on his spot, if he has one in this city. */
 export const spotIcons = (spot: Visits | null): MapIcon[] => (spot ? [{ id: "spot", at: [spot.lat, spot.lon], icon: "home", label: `His spot: ${spot.name}`, kind: "place" }] : []);
+
+/** His home's icon, in its city. */
+export const homeIcons = (home: Home, city: string): MapIcon[] => (home.has() && home.city === city ? [{ id: "home", at: home.at, icon: "flat", label: home.bought ? "His home" : "His flat (rented)", kind: "place" }] : []);
