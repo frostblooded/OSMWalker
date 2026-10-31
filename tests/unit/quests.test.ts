@@ -54,7 +54,7 @@ describe("the quest bank", () => {
     const odd = "juggling" as Q.Reward["skill"];
     const bad: Q.Bank = {
       names: ["A"],
-      quests: [one({ steps: [{ at: ["moon"], say: [] }], reward: { skill: odd } })],
+      quests: [one({ steps: [{ at: ["moon"], say: [] }], reward: { skill: odd, meal: "feast" as Q.Reward["meal"], bed: "hammock" as Q.Reward["bed"] } })],
       events: [{ ...BANK.events[0]!, next: { win: "nope" }, lose: { say: "x", skill: odd } }],
     };
     const out = Q.check(bad, new Set(Object.keys(ACTIONS)), ATTRS);
@@ -62,6 +62,8 @@ describe("the quest bank", () => {
     expect(out.join("\n")).toMatch(/two steps/);
     expect(out.join("\n")).toMatch(/no follow-up nope/);
     expect(out.filter((l) => l.endsWith("skill juggling"))).toHaveLength(2);
+    expect(out.join("\n")).toMatch(/meal feast/);
+    expect(out.join("\n")).toMatch(/bed hammock/);
   });
 });
 
@@ -279,6 +281,19 @@ describe("going on a quest", () => {
     Q.questStop(s, Q.questGoal(s, TOWN, HERE, low)!, TOWN, 12, low);
     expect(s.quests.finished).toBe(1);
     expect(s.skills.steps.cooking).toBe(QUEST_PRACTICE_MIN / PRACTICE_MIN);
+  });
+
+  it("a quest that ends with a treat brings its meal's moodlet", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [one({ reward: { eur: 10, meal: "lavish" } })], events: [] });
+    s.quests.roll("Testville", 300_000, TOWN, new Rng(3));
+    const low = { randf: () => 0, randiRange: (lo: number) => lo, pick: <T>(l: readonly T[]) => l[0]! } as unknown as Rng;
+    for (let i = 0; i < Q.QUEST_EVERY_MAX; i++) Q.questStop(s, TOWN[4]!, TOWN, 12, low);
+    const giver = Q.questGoal(s, TOWN, HERE, low)!;
+    Q.questStop(s, giver, TOWN, 12, low);
+    Q.questStop(s, Q.questGoal(s, TOWN, HERE, low)!, TOWN, 12, low);
+    expect(s.quests.finished).toBe(1);
+    expect(s.mind.moodlets.map((m) => m.name)).toContain("Lavish meal");
+    expect(s.comforts.lavish).toBe(1);
   });
 
   it("can fail at its middle step: it ends early, with no reward", () => {

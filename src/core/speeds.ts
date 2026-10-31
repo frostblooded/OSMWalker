@@ -18,6 +18,9 @@ export const FOR_VEHICLE: Record<Exclude<Vehicle, "">, number> = {
 /** Mounts that fly over the streets instead of following them. */
 export const FLYERS: ReadonlySet<Vehicle> = new Set(["broom", "carpet", "dragon"]);
 
+/** Across town to a trip's station: the metro, counting the walk to and from it and the wait. */
+export const METRO = 30 / 3.6;
+
 /** Between cities. */
 export const BUS = 80 / 3.6;
 export const PLANE = 800 / 3.6;

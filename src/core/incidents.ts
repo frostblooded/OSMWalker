@@ -4,7 +4,7 @@
 // happens and whether it is good, bad or odd, and this file picks a card that
 // fits where he is (night legends at castles and graveyards first) and plays
 // it out. Some cards hold a choice of two, asked as a timed moment while you
-// watch (moment()); untapped, or while you are away, he picks by himself,
+// watch (moment()); untapped, he picks by himself,
 // leaning on one of his attributes. A bad card never takes more than LOSS_CAP_SHARE of his money, and only
 // takes an item from his bag, never his gear or a treasured item.
 import type { Item } from "./items";

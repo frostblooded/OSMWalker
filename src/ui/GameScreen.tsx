@@ -18,6 +18,7 @@ import { ELDER, walkerName } from "../core/life";
 import { STYLE } from "../core/storyteller";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
+import { BEAUTY_M } from "../core/comforts";
 import { MapScene, type Padding } from "../map/scene";
 import { DebugSheet } from "./DebugSheet";
 import { clock, countdown, dist, duration, isResetWord, streetLine, walkTime } from "./format";
@@ -57,6 +58,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       .then((v) => {
         if (gone) return v.destroy();
         view = v;
+        game.land = (at) => v.landAt(at, BEAUTY_M);
         v.onIconTap = (id) => {
           if (!game.storyCard(id)) return;
           setStory(id);
@@ -83,6 +85,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     const unsub = game.subscribe(() => redraw((n) => n + 1));
     return () => {
       gone = true;
+      game.land = null;
       unsub();
       loop?.stop();
       view?.destroy();

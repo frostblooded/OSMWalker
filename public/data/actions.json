@@ -171,7 +171,8 @@
     "per_h": {
      "energy": 3
     }
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Three-course dinner",
@@ -192,7 +193,8 @@
     "per_h": {
      "mood": 2
     }
-   }
+   },
+   "meal": "lavish"
   },
   {
    "name": "Try the local speciality",
@@ -202,7 +204,8 @@
     "fullness": 45,
     "mood": 15,
     "xp": 30
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Soup and bread",
@@ -260,7 +263,8 @@
    },
    "needs": {
     "cha": 4
-   }
+   },
+   "meal": "scraps"
   },
   {
    "name": "Wash dishes for a meal",
@@ -343,7 +347,8 @@
      "health": -20,
      "mood": -15
     }
-   }
+   },
+   "meal": "lavish"
   },
   {
    "name": "Cook on the line for a shift",
@@ -762,7 +767,8 @@
     "fullness": 45,
     "mood": 10,
     "xp": 5
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Darts",
@@ -931,7 +937,8 @@
     "fx": {
      "mood": -5
     }
-   }
+   },
+   "bed": "rough"
   },
   {
    "name": "Sketch an exhibit",
@@ -1020,7 +1027,8 @@
     "fx": {
      "mood": -5
     }
-   }
+   },
+   "bed": "rough"
   },
   {
    "name": "Sketch an exhibit",
@@ -1481,7 +1489,8 @@
    "fx": {
     "energy": 20,
     "xp": 5
-   }
+   },
+   "bed": "rough"
   }
  ],
  "zoo": [
@@ -1539,7 +1548,8 @@
    "fx": {
     "energy": 20,
     "xp": 5
-   }
+   },
+   "bed": "rough"
   },
   {
    "name": "Plan routes on the free wifi",
@@ -1613,7 +1623,8 @@
      "health": -5,
      "mood": -5
     }
-   }
+   },
+   "bed": "open"
   },
   {
    "name": "Jog a lap",
@@ -1737,7 +1748,8 @@
    },
    "needs": {
     "season": "spring"
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Doze in the summer sun",
@@ -1751,7 +1763,8 @@
    "needs": {
     "season": "summer",
     "weather": "sunny"
-   }
+   },
+   "bed": "open"
   },
   {
    "name": "Tiptoe over the ice",
@@ -1867,7 +1880,8 @@
     "fullness": 40,
     "xp": 10
    },
-   "skill": "cooking"
+   "skill": "cooking",
+   "meal": "fine"
   },
   {
    "name": "Chat with the locals",
@@ -1909,7 +1923,8 @@
      "health": -5,
      "mood": -5
     }
-   }
+   },
+   "bed": "open"
   },
   {
    "name": "Jog a lap",
@@ -2024,7 +2039,8 @@
     "fullness": 40,
     "xp": 10
    },
-   "skill": "cooking"
+   "skill": "cooking",
+   "meal": "fine"
   }
  ],
  "playground": [
@@ -2363,7 +2379,8 @@
     "energy": 80,
     "hygiene": 10,
     "xp": 5
-   }
+   },
+   "bed": "cabin"
   },
   {
    "name": "Cook over the campfire",
@@ -2373,7 +2390,8 @@
     "fullness": 40,
     "xp": 10
    },
-   "skill": "cooking"
+   "skill": "cooking",
+   "meal": "fine"
   }
  ],
  "harbor": [
@@ -2456,7 +2474,8 @@
     "p": 0.1,
     "text": "and a bunkmate stole 10c",
     "cost": 10
-   }
+   },
+   "bed": "bunk"
   },
   {
    "name": "Hotel room",
@@ -2472,7 +2491,8 @@
    },
    "needs": {
     "time": "night"
-   }
+   },
+   "bed": "hotel"
   },
   {
    "name": "Hotel breakfast buffet",
@@ -2491,7 +2511,8 @@
     "per_h": {
      "energy": 3
     }
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Swap stories in the common room",
@@ -4104,7 +4125,8 @@
    "fx": {
     "fullness": 15,
     "xp": 3
-   }
+   },
+   "meal": "scraps"
   },
   {
    "name": "Burek and a yoghurt drink",
@@ -4968,7 +4990,8 @@
     "fullness": 35,
     "mood": 15,
     "xp": 8
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Nap on a picnic bench",
@@ -4977,7 +5000,8 @@
    "fx": {
     "energy": 20,
     "xp": 3
-   }
+   },
+   "bed": "rough"
   },
   {
    "name": "Cook on the barbecue",
@@ -4987,7 +5011,8 @@
     "fullness": 40,
     "xp": 10
    },
-   "skill": "cooking"
+   "skill": "cooking",
+   "meal": "fine"
   }
  ],
  "recycling": [
@@ -5500,7 +5525,8 @@
    "fx": {
     "fullness": 45,
     "xp": 3
-   }
+   },
+   "meal": "fine"
   }
  ],
  "old_well": [
@@ -5678,7 +5704,8 @@
     "mood": 12,
     "cha": 0.1,
     "xp": 10
-   }
+   },
+   "meal": "fine"
   },
   {
    "name": "Toast the holiday with strangers",

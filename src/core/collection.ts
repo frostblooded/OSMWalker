@@ -24,6 +24,8 @@ import { SKILLS } from "./skills";
 import { AURA_AT, STARS_MAX } from "./repute";
 import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
+import { PERKS } from "./perks";
+import { DISLIKES, LIKES } from "./tastes";
 import type { Stats } from "./stats";
 import { visaFor, VISAS } from "./visas";
 
@@ -473,6 +475,10 @@ export const FEATS: Feat[] = [
   { id: "words", tab: "world", icon: "🗣", name: "Polyglot", what: "{n} local words", tiers: [10, 50, 200], title: "Polyglot", count: (s) => s.words.count() },
   { id: "streets", tab: "world", icon: "🛣", name: "Street collector", what: "{n} streets walked", tiers: [100, 500, 2000], title: "Street collector", count: (s) => s.streets.count() },
   { id: "notes", tab: "world", icon: "📖", name: "Well read", what: "{n} sights read up on", tiers: [5, 25, 100], title: "Well read", count: (s) => s.sightNotes.read.length },
+  { id: "tastes", tab: "world", icon: "💛", name: "Know thyself", what: "{n} hidden tastes found out", tiers: [1, 3, LIKES + DISLIKES], title: "Self-aware", count: (s) => s.tastes.known.length },
+  { id: "perks", tab: "world", icon: "🏆", name: "Lifetime rewards", what: "{n} perks", tiers: [1, 3, PERKS.length], title: "Seasoned", count: (s) => s.perks.owned.length },
+  { id: "gourmet", tab: "world", icon: "🍽", name: "Gourmet", what: "{n} lavish meals", tiers: [5, 25, 100], title: "Gourmet", count: (s) => s.comforts.lavish },
+  { id: "hotels", tab: "world", icon: "👑", name: "Five-star sleeper", what: "{n} hotel nights", tiers: [5, 25, 100], title: "Jet-setter", count: (s) => s.comforts.hotel },
   { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
   { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
   { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },

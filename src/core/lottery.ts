@@ -3,7 +3,7 @@
 // real lottery's, and each point of Luck nudges every prize a little likelier
 // (LUCK_NUDGE, up to LUCK_MULT_MAX). Like a real one it pays back well under
 // the price on average, so it is a small treat, not a living; a big win is
-// a rare story for his chronicle. Drawn by itself, also while you're away.
+// a rare story for his chronicle. Drawn by itself, by the clock.
 // Pure; Stats owns one.
 
 /** A prize this many numbers or more goes in his chronicle. */

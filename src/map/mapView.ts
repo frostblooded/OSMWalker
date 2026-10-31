@@ -43,6 +43,9 @@ export function lightStyle(style: StyleSpecification): StyleSpecification {
   return { ...style, layers: style.layers.filter((l) => l.type !== "fill-extrusion") };
 }
 
+/** Tile layers whose features' class names a kind of land (see landAt). */
+const LAND_LAYERS = new Set(["landcover", "landuse", "transportation"]);
+
 const none: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 const line = (coords: LatLon[][]): GeoJSON.Feature => ({
@@ -437,6 +440,26 @@ export class MapView implements MapPort {
   /** Tiles MapLibre still waits for, for the loading details. */
   loaded(): boolean {
     return this.map.areTilesLoaded();
+  }
+
+  /**
+   * The kinds of land the map draws in a square `m` metres either side of `at` (see core/comforts.ts):
+   * water and parks by their tile layer, the rest by their class (wood, industrial,
+   * motorway...). Only what is drawn on screen counts, so off screen it is none.
+   */
+  landAt(at: LatLon, m: number): string[] {
+    const p = this.map.project([at[1], at[0]]);
+    const r = Math.max(4, m * this.pxPerMeter(at[0]));
+    const out = new Set<string>();
+    for (const f of this.map.queryRenderedFeatures([
+      [p.x - r, p.y - r],
+      [p.x + r, p.y + r],
+    ])) {
+      const layer = f.sourceLayer ?? "";
+      if (layer === "water" || layer === "park") out.add(layer);
+      else if (LAND_LAYERS.has(layer)) out.add(String(f.properties?.class ?? ""));
+    }
+    return [...out];
   }
 
   destroy(): void {

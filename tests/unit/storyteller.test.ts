@@ -5,7 +5,7 @@ import * as Items from "../../src/core/items";
 import type { Moment, Pick } from "../../src/core/moments";
 import { Rng } from "../../src/core/rng";
 import { ATTRS, inTime, Stats, type Place } from "../../src/core/stats";
-import { FIRE_AT, FIRE_MAX, LUCKY_H, RECENT, STYLE, STYLES, Storyteller, TENSION_MAX, WEALTH_CAP, WEALTH_STEP } from "../../src/core/storyteller";
+import { FIRE_AT, FIRE_MAX, LUCKY_MIN, RECENT, STYLE, STYLES, Storyteller, TENSION_MAX, WEALTH_CAP, WEALTH_PER_H, WEALTH_STEP } from "../../src/core/storyteller";
 import { dataFile } from "../support/data";
 
 const DECK = JSON.parse(dataFile("incidents.json")) as Inc.Incident[];
@@ -20,21 +20,21 @@ describe("the storyteller", () => {
     const rates = STYLES.map((style) => {
       const s = new Storyteller();
       s.style = style;
-      s.pass(60, 0);
+      s.pass(10, 0);
       return s.tension;
     });
-    expect(rates).toEqual(STYLES.map((st) => STYLE[st].per_h));
+    expect(rates).toEqual(STYLES.map((st) => STYLE[st].per_h / 6));
     expect(rates[0]).toBeLessThan(rates[1]!);
     expect(rates[1]).toBeLessThan(rates[2]!);
   });
 
   it("builds it faster the richer he is, up to a cap, and never past the top", () => {
     const s = new Storyteller();
-    s.pass(60, WEALTH_STEP * 2);
-    expect(s.tension).toBe(STYLE.classic.per_h + 2);
+    s.pass(6, WEALTH_STEP * 2);
+    expect(s.tension).toBeCloseTo((STYLE.classic.per_h + 2 * WEALTH_PER_H) / 10, 9);
     const rich = new Storyteller();
-    rich.pass(60, WEALTH_STEP * 1000);
-    expect(rich.tension).toBe(STYLE.classic.per_h + WEALTH_CAP);
+    rich.pass(6, WEALTH_STEP * 1000);
+    expect(rich.tension).toBeCloseTo((STYLE.classic.per_h + WEALTH_CAP) / 10, 9);
     rich.pass(60 * 100, 0);
     expect(rich.tension).toBe(TENSION_MAX);
   });
@@ -65,7 +65,7 @@ describe("the storyteller", () => {
     expect(s.tension).toBe(0);
     s.tension = TENSION_MAX;
     expect(s.roll(fixed(0, 0, 0))).toBe("good");
-    s.pass(LUCKY_H * 60, 0);
+    s.pass(LUCKY_MIN, 0);
     s.tension = TENSION_MAX;
     expect(s.roll(fixed(0, 0))).toBe("bad");
     s.after("y", "good");

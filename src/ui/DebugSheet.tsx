@@ -45,7 +45,13 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
         <KV k="Country" v={g.country || "?"} />
         <KV k="City box" v={f.boxKm ? `${f.boxKm[0].toFixed(1)} × ${f.boxKm[1].toFixed(1)} km` : "none"} />
         <KV k="Where" v={f.where.map((x) => x.toFixed(5)).join(", ")} />
+        <KV k="Surroundings" v={g.looked ? `${g.looked.score > 0 ? "+" : ""}${g.looked.score}: ${g.looked.land.join(", ") || "nothing drawn"} (${g.looked.ms.toFixed(1)} ms)` : "not looked yet"} />
         <p class="small dim">Doing: {f.doing}</p>
+        <div class="buttons">
+          <button class="btn" onClick={() => g.lookAround()}>
+            👀 Look around
+          </button>
+        </div>
       </Card>
       <Card icon="🛣" title="Loaded">
         <KV k="Street squares" v={`${ls.loaded} (${ls.from_cache} cached, ${ls.downloaded} downloaded)`} />

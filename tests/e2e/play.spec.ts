@@ -174,6 +174,19 @@ test("a long reopen may hold one choice, which a tap settles", async ({ page }) 
   await expect(away).toBeHidden();
 });
 
+test("he looks at the land the map draws around him", async ({ page }) => {
+  await startInSofia(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Debug/ }).click();
+  const debug = page.getByRole("dialog", { name: /Debug/ });
+  await expect(debug).toContainText("not looked yet");
+  // The test style draws only roads, so what he sees is their classes.
+  await expect(async () => {
+    await debug.getByRole("button", { name: /Look around/ }).click();
+    await expect(debug).toContainText(/\b(minor|service|primary|secondary|tertiary|path)\b.* ms\)/, { timeout: 500 });
+  }).toPass({ timeout: 15000 });
+});
+
 test("a postcard goes out as a link and opens in a friend's game", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await startInSofia(page);
