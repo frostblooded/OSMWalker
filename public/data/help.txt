@@ -699,6 +699,10 @@ A word that fits the place comes first: coffee at a café, bread at a bakery, th
 At a big sight (a landmark of map rank {NOTE_RANK} or better, such as a famous museum, cathedral or monument) he reads up on it: the first sentence of its Wikipedia article shows in the feed, for example "📖 Read up on Alexander Nevsky Cathedral: The Alexander Nevsky Cathedral is a cathedral in Sofia." He looks in English Wikipedia first, then in the Wikipedia of the country's language, and takes only an article within {NOTE_RADIUS} m whose title names the sight. Each note gives wits +{NOTE_WIT} and {NOTE_XP} XP.
 
 He looks each sight up once (a sight with no article is not asked again), at most {NOTE_PER_HOUR} an hour, and only while you watch, as it needs the network; offline he just walks on and tries another time. The Well read badge counts the sights he read up on (see Badges and titles).
+## Streets he walked {streets}
+Every named street he walks along, even for a few steps, goes into his street collection for that city. Every {STREET_MARK} new streets in a city the feed counts them, for example "🛣 Walked 100 streets in Sofia". The Streets card on the Stats sheet shows how many streets he walked in each city, his own city first, and the names of the ones in his city. The Street collector badge counts them all (see Badges and titles).
+
+Only streets he walks while you watch count: the time he spends away doesn't walk the map, and streets under a flight or a ride don't count.
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -979,6 +983,7 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
+- Streets: how many streets he walked in each city, his own first and past {STREET_ROWS} cities the rest folded away, and the names in his city (see Streets he walked).
 - Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
 - Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
 - Languages: the languages he speaks with their level, his best first, the one spoken where he is marked "here"; past {LANGS_SHOWN} the rest fold into More (see Languages).

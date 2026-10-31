@@ -130,6 +130,8 @@ export class Game {
   /** When he last looked sights up (unix ms, the past hour), and whether a lookup is under way (see readUp). */
   private noteAsks: number[] = [];
   private noteBusy = false;
+  /** The street he walked last (see walkStreet); not saved. */
+  private street = "";
   /** Two-letter country codes (see loadIso2). */
   private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
@@ -374,6 +376,7 @@ export class Game {
     w.advance(s * SPEED_MPS);
     this.stats.passTime(s / 60, w.totalM - before, w.afoot);
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
+    if (w.totalM > before) this.walkStreet(w.streetName());
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
     // Only steps walked from start to end in one city mark squares, so a ride, or a portal that lands within the step (a new graph), never draws a line of them.
@@ -394,6 +397,13 @@ export class Game {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  /** Notes the street he walks for his street collection, once each time he turns into another one. */
+  private walkStreet(name: string): void {
+    if (name === this.street) return;
+    this.street = name;
+    this.stats.streetAt(name);
   }
 
   /** His spot goes in the history and extends the trail. */
