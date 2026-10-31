@@ -5,6 +5,7 @@
 // the people in his life: friends, their clubs and news, and his anniversaries.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
+import * as Bl from "./bills";
 import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
@@ -554,7 +555,7 @@ export class Stats {
   /** Lets `minutes` pass, `walkedM` of them on the move (on foot when `afoot`, else as he gets about). */
   passTime(minutes: number, walkedM: number, afoot = false): void {
     const t = this.now();
-    this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset());
+    if (this.week.roll(t, this.cents, this.level, -new Date(t * 1000).getTimezoneOffset())) this.payBills();
     const date = dayOf(t * 1000);
     if (date !== this.anniversaries.day) this.newDay(date, t);
     this.week.walked(walkedM);
@@ -598,6 +599,25 @@ export class Stats {
     this.applyFx(mark.fx);
     if (mark.buff) this.addBuff(mark.buff);
     this.say(mark.line);
+  }
+
+  /** The week's bills (see bills.ts): paid if he can, or else a debt collector takes the cheapest thing in his bag that isn't treasured. */
+  private payBills(): void {
+    const due = Bl.billsAt(this.level);
+    const what = Bl.BILLS.map((b) => b.name).join(", ");
+    if (this.cents >= due) {
+      this.cents -= due;
+      this.say(`Paid the week's bills: ${what} (${signed(-due)})`);
+      return;
+    }
+    let item: Item | null = null;
+    for (const it of this.bag) if (!Items.isTreasured(it) && (!item || it.price < item.price)) item = it;
+    if (!item) {
+      this.say(`Couldn't pay the week's bills (${euro(due)}), and the debt collector found nothing to take: written off`);
+      return;
+    }
+    this.bag.splice(this.bag.indexOf(item), 1);
+    this.say(`Couldn't pay the week's bills (${euro(due)}): a debt collector took his ${item.name} instead`);
   }
 
   /** A new day for his pet: it eats if he can pay, or else is grumpy today; when its days are over it passes. */

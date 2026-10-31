@@ -243,7 +243,12 @@ Prices are real-world euro prices, the same in every country: a coffee is a few 
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. Each week he pays his bills (see Bills).
+## Bills {bills}
+At the start of each week (Monday at midnight by your phone's clock), his bills arrive, also while you're away, and he pays them by himself:
+{BILL_LIST}
+
+At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
@@ -740,7 +745,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
