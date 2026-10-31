@@ -998,6 +998,18 @@ describe("game", () => {
       expect(old.away).toBeNull();
     });
 
+    it("drops a chase that was under way when the tab was hidden", async () => {
+      let now = Date.UTC(2026, 9, 29, 8);
+      const { g } = game({ clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.chase = { m: R.chaseMoment(g.stats.him()), place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+      g.save();
+      now += HOUR;
+      await g.wake();
+      expect(g.chase).toBeNull();
+      expect(g.policeAt()).toBeNull();
+    });
+
     it("catches up after the tab was hidden, and the card can be closed", async () => {
       let now = Date.UTC(2026, 9, 29, 8);
       const { g } = game({ clock: () => now });

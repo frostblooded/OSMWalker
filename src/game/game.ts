@@ -705,6 +705,8 @@ export class Game {
     const awayS = (this.now() - from) / 1000;
     if (!from || awayS < MIN_AWAY_S) return this.woken();
     this.leaveDilemma();
+    // A chase under way when the page was left is dropped; the catch-up rolls its own.
+    this.chase = null;
     this.waking = true;
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
     // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
