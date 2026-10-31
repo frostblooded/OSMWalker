@@ -180,13 +180,16 @@ for (const width of [360, 412]) {
       await family.getByRole("button", { name: /Walker II ·/ }).click();
       await family.locator(".tree").scrollIntoViewIfNeeded();
       await check(page, "stats-family");
-      const hall = family.locator(".card", { hasText: "Hall of walkers" });
+      await family.getByRole("button", { name: /Close/ }).click();
+      await openMenuItem(page, /Records/);
+      const records = page.getByRole("dialog", { name: /Records/ });
+      const hall = records.locator(".card", { hasText: "Hall of walkers" });
       await hall.scrollIntoViewIfNeeded();
       await hall.getByRole("button", { name: /Bests/ }).click();
       await expect(hall).toContainText("Most money held");
       await expect(hall).toContainText("€12,345 · Walker II");
-      await check(page, "stats-hall");
-      await family.getByRole("button", { name: /Close/ }).click();
+      await check(page, "records-hall");
+      await records.getByRole("button", { name: /Close/ }).click();
 
     });
 
@@ -230,7 +233,7 @@ for (const width of [360, 412]) {
 
     // The walk through every other screen comes in three parts, so each stays well inside its time limit
     // while the full e2e run keeps four browsers busy (one walk of it all ran past 180 s).
-    test("no picker, menu, Help, Diary or Stats screen has overlapping text or sideways scroll", async ({ page }) => {
+    test("no picker, menu, Help, Diary, Stats or Records screen has overlapping text or sideways scroll", async ({ page }) => {
       test.setTimeout(120_000);
       await page.goto(`./#${encode({ from: "Ivan", city: "Kyoto, Japan", place: "Kinkaku-ji", level: 7, line: "Matcha at a tea house in Kyoto (-€6)" })}`);
       await expect(page.getByRole("dialog", { name: "Postcard" })).toBeVisible();
@@ -278,6 +281,14 @@ for (const width of [360, 412]) {
       await mood.scrollIntoViewIfNeeded();
       await check(page, "stats-mind");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      await openMenuItem(page, /Records/);
+      const records = page.getByRole("dialog", { name: /Records/ });
+      await expect(records).toContainText("Longest walk without a stop");
+      await records.getByRole("button", { name: /Totals/ }).click();
+      await expect(records).toContainText("🏙 Cities");
+      await check(page, "records");
+      await records.getByRole("button", { name: /Close/ }).click();
     });
 
     test("no Debug, History, away, postcard or care screen has overlapping text or sideways scroll", async ({ page }) => {
