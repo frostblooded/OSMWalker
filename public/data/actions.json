@@ -14,7 +14,8 @@
     "per_h": {
      "energy": 5
     }
-   }
+   },
+   "coffee": true
   },
   {
    "name": "Cappuccino and people-watching",
@@ -24,7 +25,8 @@
     "energy": 15,
     "mood": 10,
     "xp": 5
-   }
+   },
+   "coffee": true
   },
   {
    "name": "Croissant and coffee",
@@ -34,7 +36,8 @@
     "fullness": 20,
     "energy": 15,
     "xp": 5
-   }
+   },
+   "coffee": true
   },
   {
    "name": "Slice of cake",
@@ -54,7 +57,8 @@
     "thirst": 25,
     "energy": 10,
     "xp": 5
-   }
+   },
+   "coffee": true
   },
   {
    "name": "Read the free newspaper",
@@ -4388,7 +4392,8 @@
     "energy": 10,
     "thirst": 5,
     "xp": 3
-   }
+   },
+   "coffee": true
   },
   {
    "name": "Fix someone's printer",
@@ -5333,7 +5338,8 @@
    "fx": {
     "cha": 0.5,
     "xp": 8
-   }
+   },
+   "mend": true
   }
  ],
  "shop/newsagent": [
