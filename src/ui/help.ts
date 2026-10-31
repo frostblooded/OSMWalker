@@ -163,6 +163,12 @@ export const build = (text: string, data: GameData) => parse(fill(text, values(d
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
+/** "bakery" -> "bakeries", "church" -> "churches", "place of worship" -> "places of worship". */
+export const plural = (noun: string): string => {
+  const [head, ...rest] = noun.split(" of ");
+  const p = /[^aeiou]y$/.test(head!) ? `${head!.slice(0, -1)}ies` : /(s|x|ch|sh)$/.test(head!) ? `${head}es` : `${head}s`;
+  return [p, ...rest].join(" of ");
+};
 /** The least the POI sweep must find of a kind for this Placedex rarity, as "1,000". */
 const band = (r: Items.Rarity) => (K.DEX_BANDS.find(([, b]) => b === r)?.[0] ?? 0).toLocaleString("en-GB");
 const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
@@ -392,7 +398,7 @@ export function values(data: GameData): Record<string, string> {
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
     QUIRK_PULL: num(Quirks.QUIRK_PULL),
     QUIRK_MOOD: `+${Quirks.QUIRK_MOOD[0]} an hour for ${Quirks.QUIRK_MOOD[1]} hour`,
-    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => `${Mind.noun(k)}s`).join(" or ")}`}`).join("\n"),
+    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => plural(Mind.noun(k))).join(" or ")}`}`).join("\n"),
     SPOT_MIN: String(Spot.SPOT_MIN),
     SPOT_PULL: num(Spot.SPOT_PULL),
     SPOT_FROM: `${Spot.SPOT_FROM}:00`,

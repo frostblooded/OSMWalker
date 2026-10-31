@@ -217,3 +217,9 @@ describe("search", () => {
     expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
   });
 });
+
+describe("plural", () => {
+  it("spells the quirk places right", () => {
+    expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(Help.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
+  });
+});

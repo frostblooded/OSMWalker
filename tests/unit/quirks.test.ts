@@ -85,6 +85,18 @@ describe("his spot", () => {
     for (let i = 0; i < Sp.SPOT_KEEP + 5; i++) s.visit(CITY, place(`P${i}`, "cafe", 1 + i / 100));
     expect(s.cities[CITY]).toHaveLength(Sp.SPOT_KEEP);
   });
+
+  it("drops the least recently reached of the least visited, so a place he keeps coming back to can still win", () => {
+    const s = new Sp.Spots();
+    for (let i = 0; i < Sp.SPOT_KEEP; i++) s.visit(CITY, place(`P${i}`, "cafe", 1 + i / 100));
+    const x = place("X", "cafe", 9);
+    let line = "";
+    for (let i = 0; i < Sp.SPOT_MIN; i++) {
+      line = s.visit(CITY, x);
+      s.visit(CITY, place(`New${i}`, "cafe", 5 + i / 100));
+    }
+    expect(line).toContain("X is his spot now");
+  });
 });
 
 describe("through Stats", () => {
@@ -124,11 +136,14 @@ describe("through Stats", () => {
     expect(s.history.entries.at(-1)!.text).toContain("Cafe A is his spot now");
     expect(placePull(cafe, s, 8)).toBe(Sp.SPOT_PULL);
     const coffee = { name: "Drink a coffee", min: 1, cost: 3 } as Action;
+    s.stop(cafe);
     const before = s.cents;
     s.do(coffee, "Cafe A", new Rng(1), "cafe");
     expect(before - s.cents).toBe(Math.round(300 * (1 - Sp.SPOT_DISCOUNT)));
+    // Another place of the same name is not his spot.
+    s.stop(place("Cafe A", "cafe", 2));
     const elsewhere = s.cents;
-    s.do(coffee, "Cafe B", new Rng(1), "cafe");
+    s.do(coffee, "Cafe A", new Rng(1), "cafe");
     expect(elsewhere - s.cents).toBe(300);
   });
 });

@@ -807,6 +807,9 @@ export class Stats {
     if (lost) this.say(`${lost.icon} He is no longer a ${lost.name}`);
   }
 
+  /** Set by stop(): he is at his spot in this city (the same name and spot on the map). */
+  private atSpot = false;
+
   /** Set by act() when the action's risk went wrong. */
   private mishap = false;
 
@@ -833,7 +836,7 @@ export class Stats {
       return this.openPack(rng, `Bought a card pack${where ? ` at ${where}` : ""} (${signed(-toCents(action.cost ?? 0))})`);
     }
     // A regular's discount at his spot.
-    const regular = !!where && this.spots.spot(this.where.city)?.name === where;
+    const regular = !!where && this.atSpot;
     let spent = Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1));
     const fx: Fx = { ...action.fx };
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
@@ -1232,7 +1235,8 @@ export class Stats {
   }
 
   /** Notes a stop at a place, for the weekly recap. */
-  stop(place: { class: string; subclass: string }): void {
+  stop(place: { class: string; subclass: string } & Partial<Pick<Place, "name" | "lat" | "lon">> & { made?: unknown }): void {
+    this.atSpot = !place.made && place.name !== undefined && this.spots.isSpot(this.where.city, place as Pick<Place, "name" | "lat" | "lon">);
     this.week.stop(place.class);
     this.sayIf(this.records.stopped(dayOf(this.now() * 1000)));
   }
