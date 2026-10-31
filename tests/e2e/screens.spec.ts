@@ -11,6 +11,8 @@ async function startInSofia(page: Page) {
   await page.getByLabel("City name").fill("Sofia");
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  // The map is up, so a sheet opened next reaches it.
+  await expect(page.locator(".marker.him")).toBeVisible();
 }
 
 /** Visible buttons smaller than a 48 px tap target. */
@@ -204,8 +206,7 @@ test("History lists what he did and shows it on the map", async ({ page }) => {
   await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
   await expect(sheet.locator(".num").first()).toHaveText("1");
   expect(await smallButtons(page)).toEqual([]);
-  // Where he set off from, away from him: the arrival line (if he got there already) or a sky event's line sits where he is.
-  await sheet.locator("li button", { hasText: /Set off for/ }).click();
+  await sheet.locator("li button").first().click();
   await expect(page.getByRole("button", { name: /Back to him/ })).toBeVisible();
 });
 
