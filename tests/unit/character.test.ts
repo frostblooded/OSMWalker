@@ -8,6 +8,7 @@ import * as P from "../../src/core/perks";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Action } from "../../src/core/stats";
 import * as T from "../../src/core/tastes";
+import { dataFile } from "../support/data";
 
 const T0 = 1_800_000_000;
 const ml = (per_h: number, emo?: E.Emotion): Moodlet => ({ name: `m${per_h}${emo}`, icon: "", per_h, left: 60, ...(emo ? { emo } : {}) });
@@ -138,6 +139,43 @@ describe("lifetime rewards", () => {
     const pay = s.wageMult(job);
     s.perks.owned.push("silver_tongue");
     expect(s.wageMult(job)).toBeCloseTo(pay * (1 + P.SILVER_PAY));
+  });
+});
+
+describe("lifetime rewards, the rest", () => {
+  it("Lucky streak finds money more often, Never weary tires him less, Quick study gives more XP", () => {
+    const s = at();
+    s.attrs.luck = 1;
+    const finds = (t: Stats) => {
+      let n = 0;
+      const rng = new Rng(3);
+      for (let i = 0; i < 2000; i++) if (t.walkFor(1, rng)) n++;
+      return n;
+    };
+    const plain = finds(s);
+    const lucky = at();
+    lucky.attrs.luck = 1;
+    lucky.perks.owned = ["lucky_streak"];
+    expect(finds(lucky)).toBeGreaterThan(plain * 1.5);
+    const walk = (t: Stats) => {
+      t.meters.energy = 50;
+      t.passTime(1, 1000);
+      return 50 - t.meters.energy;
+    };
+    const tired = walk(at());
+    const weary = at();
+    weary.perks.owned = ["never_weary"];
+    expect(walk(weary)).toBeLessThan(tired);
+    const study = at();
+    study.perks.owned = ["quick_study"];
+    expect(study.emoXpMult({ name: "Look", min: 1 })).toBeCloseTo(1 + P.STUDY_XP);
+  });
+});
+
+describe("data", () => {
+  it("emotions and tastes name place classes that actions.json has", () => {
+    const classes = new Set(Object.keys(JSON.parse(dataFile("actions.json"))).map((k) => k.split("/")[0]));
+    for (const k of [...Object.values(E.INFO).flatMap((i) => i.kinds), ...T.KINDS]) expect(classes, k).toContain(k);
   });
 });
 

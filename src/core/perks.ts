@@ -21,7 +21,7 @@ export const STUDY_XP = 0.1;
 
 export const PERKS: Perk[] = [
   { id: "iron_stomach", name: "Iron stomach", icon: "🍲", cost: 10, attr: "str", what: "no mishaps from food and drink" },
-  { id: "bargain_eye", name: "Bargain eye", icon: "🔍", cost: 10, attr: "wit", what: `paid actions cost ${BARGAIN_CUT * 100}% less` },
+  { id: "bargain_eye", name: "Bargain eye", icon: "🔍", cost: 10, attr: "wit", what: `paid actions cost ${BARGAIN_CUT * 100}% less (not shopping or card packs)` },
   { id: "silver_tongue", name: "Silver tongue", icon: "🗣", cost: 15, attr: "cha", what: `jobs pay ${SILVER_PAY * 100}% more` },
   { id: "lucky_streak", name: "Lucky streak", icon: "🍀", cost: 15, attr: "luck", what: `finds money on the street ${LUCKY_FIND} times as often` },
   { id: "never_weary", name: "Never weary", icon: "🥾", cost: 20, what: `getting about tires him ${WEARY_CUT * 100}% less` },

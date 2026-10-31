@@ -334,7 +334,7 @@ Doing anything at some kinds of place brings an emotion's moodlet ({EMO_MOODLET}
 - Energised ("Pumped"): {ENERGISED_KINDS}. Lifts Strength work.
 Rattled and Scared moodlets count towards Tense, and so does a taste he can't stand.
 
-An emotion pulls his goal ×{EMO_PULL} towards its kinds of place, and when sad, tense or bored to places that help: Sad to {SAD_KINDS}; Tense to {TENSE_KINDS}; Bored to {BORED_KINDS}. Focused, Inspired, Playful and Energised also weigh actions that train or need their attribute ×{EMO_PULL}, and give those actions {EMO_BONUS_PCT} more XP and pay. Happy gives {HAPPY_XP_PCT} more XP from every action.
+An emotion pulls his goal ×{EMO_PULL} towards its kinds of place, and when sad, tense or bored to places that help: Sad to {SAD_KINDS}; Tense to {TENSE_KINDS}; Bored to {BORED_KINDS}. Focused, Inspired, Playful and Energised also weigh actions that train or need their attribute ×{EMO_PULL}, and give those actions {EMO_BONUS_PCT} more XP; jobs that need the attribute pay {EMO_BONUS_PCT} more. Happy gives {HAPPY_XP_PCT} more XP from every action.
 ## Hidden tastes {tastes}
 Every walker is born with {LIKES} kinds of place he loves and {DISLIKES} he can't stand, picked at random from {TASTE_KINDS}. Nobody knows them at first, not even him: the first time he does something at one, the feed says so ("Turns out he loves zoos"), and the Character card on the Stats sheet lists it from then on.
 
