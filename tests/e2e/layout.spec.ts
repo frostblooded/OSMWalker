@@ -122,6 +122,8 @@ for (const width of [360, 412]) {
 
     // The Collection's five tabs have their own walk, so the one above stays well inside its time limit.
     test("no Collection tab has overlapping text or sideways scroll", async ({ page }) => {
+      // Two city loads and five tabs: about 10 s locally, 17-30 s on a busy CI runner.
+      test.setTimeout(60_000);
       await page.goto("./");
       await page.getByLabel("City name").fill("Sofia");
       await page.getByRole("button", { name: /Sofia/ }).click();
