@@ -788,6 +788,9 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
 - Pet: his pet's level, the km they walked together towards the next level, its perk, how long it has been with him and whether it ate today; the pets he had fold into Remembered (see His pet).
+- Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
+- Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
+- His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
