@@ -428,7 +428,7 @@ export class Stats {
   speedBonus(afoot = false): number {
     let v = 0;
     const noRide = afoot || this.sulking();
-    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle")) v += item?.stats.speed ?? 0;
+    for (const [slot, item] of Object.entries(this.gear)) if (!(noRide && slot === "vehicle") && !Cl.isTattered(item)) v += item?.stats.speed ?? 0;
     return v;
   }
 
@@ -853,7 +853,7 @@ export class Stats {
     heir.life = this.life.heir(ancestor);
     heir.cents = START_CENTS + heir.life.perkCents();
     // A new walker owes the police nothing: what the old one stole is his heir's by right.
-    if (heirloom) heir.gear[heirloom.slot] = { ...heirloom, stolen: undefined };
+    if (heirloom) heir.gear[heirloom.slot] = { ...heirloom, stolen: undefined, wear: undefined };
     heir.keepsakes = this.keepsakes;
     heir.bricks = this.bricks;
     heir.care = this.care;
@@ -1907,7 +1907,7 @@ export class Stats {
   /** Magic his enchanted gear gathers for each km he walks. */
   gearMagic(): number {
     let v = 0;
-    for (const item of Object.values(this.gear)) v += item?.stats.magic ?? 0;
+    for (const item of Object.values(this.gear)) if (!Cl.isTattered(item)) v += item?.stats.magic ?? 0;
     return v;
   }
 

@@ -114,6 +114,14 @@ describe("clothes wear", () => {
     expect(s.tattered()).toBe(false);
   });
 
+  it("tattered, its speed and Magic count for nothing too", () => {
+    const s = at();
+    s.gear.feet = { name: "Swift Cotton Trainers", slot: "feet", stats: { speed: 4, magic: 1 }, rarity: "Uncommon", price: 1000, wear: Cl.WEAR_KM };
+    expect([s.speedBonus(), s.gearMagic()]).toEqual([0, 0]);
+    delete s.gear.feet.wear;
+    expect([s.speedBonus(), s.gearMagic()]).toEqual([4, 1]);
+  });
+
   it("only wears on foot, not on a ride", () => {
     const s = at();
     s.gear.body = shirt();
@@ -151,6 +159,9 @@ describe("beliefs", () => {
     expect(b.pull("bar")).toBe(1);
     expect(b.lean({ earn: 10 })).toBe(B.BELIEF_LEAN);
     expect(b.lean({ cost: 5 })).toBe(1);
+    const thrift = B.Beliefs.fromJSON({ held: { thrift: T0 } });
+    expect(thrift.lean({ name: "Sit on a bench" } as never)).toBe(B.BELIEF_LEAN);
+    for (const buy of [{ item: "clothes" }, { midnight: true }, { bounty: true }, { steal: true }]) expect(thrift.lean(buy), JSON.stringify(buy)).toBe(1);
   });
 
   it("living by one keeps it; one not lived by for FADE_DAYS fades, and may come back", () => {
