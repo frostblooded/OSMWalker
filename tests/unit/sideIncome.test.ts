@@ -1,8 +1,12 @@
 // Side income (src/core/business.ts, lottery.ts): the businesses he buys
 // once he has money to spare and what they bring in, his lottery tickets and
-// the draw, how Stats runs both (also while away), and saving them.
+// the draw, shares in his spot, how Stats runs them (also while away), their
+// Collection entries and feats, and saving them.
 import { describe, expect, it } from "vitest";
 import * as Bz from "../../src/core/business";
+import * as C from "../../src/core/collection";
+import * as Cook from "../../src/core/cooking";
+import { stepsTo } from "../../src/core/skills";
 import * as Lt from "../../src/core/lottery";
 import { euro } from "../../src/core/money";
 import { Rng } from "../../src/core/rng";
@@ -292,5 +296,49 @@ describe("shares in his spot", () => {
     s.business.buyShare("Sofia", "Cafe Rila", NOON);
     s.business.visited("Sofia", "Cafe Rila");
     expect(roundTrip(s).business.shares).toEqual(s.business.shares);
+  });
+});
+
+describe("in the Collection", () => {
+  const set = (id: string) => C.SETS.find((x) => x.id === id)!;
+  const feat = (id: string) => C.FEATS.find((x) => x.id === id)!;
+
+  it("recipes: cooking one notes the dish and counts the meal", () => {
+    const s = inSofia();
+    s.pantry.items = ["bread", "cheese", "tomato"];
+    const picnic = Cook.RECIPES.find((r) => r.id === "picnic")!;
+    s.pantry.use(picnic);
+    s.pantry.items = ["bread", "cheese", "tomato"];
+    s.pantry.use(picnic);
+    expect(s.pantry.dishes).toEqual(["picnic"]);
+    expect(s.pantry.cooked).toBe(2);
+    const entries = set("recipes").entries(s);
+    expect(entries).toHaveLength(Cook.RECIPES.length);
+    expect(entries.filter((e) => e.got).map((e) => e.id)).toEqual(["picnic"]);
+    expect(feat("cooked").count(s)).toBe(2);
+  });
+
+  it("businesses, shares and lottery prizes each count", () => {
+    const s = inSofia();
+    s.business.buy(Bz.BUSINESSES[0]!, "Sofia", NOON);
+    s.business.buyShare("Sofia", "Cafe Rila", NOON);
+    s.lotteryDraw(Lt.PRIZES[0]!);
+    const got = set("businesses").entries(s).filter((e) => e.got);
+    expect(got.map((e) => e.id)).toEqual([Bz.BUSINESSES[0]!.id]);
+    expect(got[0]!.info).toContain("In Sofia");
+    expect(feat("tycoon").count(s)).toBe(1);
+    expect(feat("shares").count(s)).toBe(1);
+    expect(feat("lottery").count(s)).toBe(1);
+  });
+
+  it("skills at level 5 and languages learned to basic count, not his own or English", () => {
+    const s = inSofia();
+    s.passTime(1, 0);
+    expect(feat("languages").count(s)).toBe(0);
+    s.languages.add("French", 6);
+    expect(feat("languages").count(s)).toBe(1);
+    s.skills.steps.music = stepsTo(5);
+    s.skills.steps.art = stepsTo(4);
+    expect(feat("skills").count(s)).toBe(1);
   });
 });

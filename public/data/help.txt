@@ -289,21 +289,21 @@ A fantasy mount counts as the vehicle it sits beside: on a tortoise he saves for
 
 Once he has the money (and isn't still saving for a trip fare), a shop that sells that vehicle weighs {GOAL_SHOP_PULL} times as much as an ordinary place when he picks his next goal, so he heads for one, and browsing there gets +{GOAL_SHOP}. A bike shop or vehicle dealer shows him {DEALER_OFFERS} random vehicles and he buys the best one he can afford while keeping his reserve. If all of them cost too much (a better material or modifiers raise the price), he walks on and tries again later. The Stats sheet shows his goal under Saving for, and with a dragon, its gold on a day it hasn't eaten yet.
 ## Side businesses {business}
-Once he has money to spare, he buys a little business, all by himself. Each morning (his first minute of a new day by your phone's clock) he looks at his money: if he has the next one's price on top of what he saves up for (see Saving for a vehicle) and his reserve of {KEEP_CENTS}, he buys it in the city he is in. He buys them cheapest first, one of each:
+Once he has money to spare, he buys a little business, all by himself. Each morning (his first minute of a new day by your phone's clock) he looks at his money: if he could pay the next one's price and still keep what he saves up for (see Saving for a vehicle), and never less than his reserve of {KEEP_CENTS}, he buys it in the city he is in. He buys them cheapest first, one of each:
 {BUSINESS_LIST}
 
 A local partner runs it, so it brings in money every hour wherever he is, also while you're away. Each morning it pays him what it took in the day before, in one line in his History, and the away card shows what it brought in. Each pays for itself in about {BUSINESS_PAYBACK} days. He buys nothing while you whisper "save" to him (see Whispers).
 
 The Side income card on the Stats sheet shows how many he owns, what they brought in, the next one and its price, and under Owned each one with its city. They are in the Collection too (World tab).
 ## Shares in his spot {shares}
-In a city where he has a spot (see His spot), he buys a share in it, one share a city: each morning, if he has {SHARE_PRICE} to spare past what he saves up for and his reserve, as he does for a business (see Side businesses). Shares come before the next business.
+In a city where he has a spot (see His spot), he buys a share in it, one share a city: each morning, if he could pay {SHARE_PRICE} and still keep what he saves up for, and never less than his reserve, as for a business (see Side businesses). Shares come before the next business.
 
 A share pays {SHARE_BASE} a day, plus {SHARE_PER_VISIT} for each time he reached the place that day, for up to {SHARE_VISITS_MAX} visits, so at most {SHARE_DAY_MAX} a day. It is a reason to come back to a city. The share stays on the place he bought it in, even if another place becomes his spot. It pays with his businesses, in the same line, also while you're away.
 ## The lottery {lottery}
 Kiosks, corner shops and newsagents sell lottery tickets for {TICKET}. He buys one now and then, by himself, one ticket a draw. The draw is every day at {DRAW_HOUR} by your phone's clock, also while you're away; a ticket bought after that is for the next day's. The odds are a real lottery's:
 {PRIZE_LIST}
 
-Each point of Luck makes every prize {LUCK_NUDGE_PCT} likelier, up to {LUCK_MULT_MAX} times as likely (see Luck). Even so, like a real lottery a ticket pays back about {TICKET_BACK} on average, so it is a small treat, not a living. A win of {BIG_MATCH} numbers or more goes in his life story (see His life). The Side income card on the Stats sheet shows his prizes, or that he holds a ticket for the next draw, and the away card shows what he won.
+Each point of Luck makes every prize {LUCK_NUDGE_PCT} likelier, up to {LUCK_MULT_MAX} times as likely (see Luck). Even so, like a real lottery a ticket pays back well under its price on average: about {TICKET_BACK} at Luck 1, and {TICKET_BACK_MAX} at the most, so it is a small treat, not a living. A win of {BIG_MATCH} numbers or more goes in his life story (see His life). The Side income card on the Stats sheet shows his prizes, or that he holds a ticket for the next draw, and the away card shows what he won.
 ## Buffs and debuffs {buffs}
 Some actions leave an effect that lasts a while, shown with the minutes left on the Stats sheet. Buffs count down in game minutes, while the game is open and through the time away it catches up (see While you were away).
 
@@ -435,7 +435,7 @@ Luck does five things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # 🎓 Skills and languages
 ## Skills {skills}
-Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one. Some quests and world events train one too, as much as a {QUEST_PRACTICE_MIN}-minute action (see Quests).
 
 Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
 
@@ -460,7 +460,7 @@ At a hotel or hostel, a park, a garden, a campsite or a picnic site he cooks: he
 
 A high cooking level also opens kitchen jobs (see Skills).
 ## Languages {languages}
-He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more. The levels, by hours:
+He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more, as do some quests (see Quests). The levels, by hours:
 {LANG_LIST}.
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.

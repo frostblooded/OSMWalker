@@ -250,6 +250,6 @@ describe("side income pages", () => {
     const lot = page("lottery").body;
     expect(lot).toContain("- 6 numbers: €100,000, one ticket in 14,000,000");
     expect(lot).toContain("every day at 20:00");
-    expect(lot).toMatch(/pays back about €0\.\d+ on average/);
+    expect(lot).toMatch(/about €0\.\d+ at Luck 1, and €0\.\d+ at the most/);
   });
 });

@@ -1,4 +1,5 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
+import { BUSINESSES } from "../../src/core/business";
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
 import { catchUp, legM, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
@@ -201,6 +202,17 @@ describe("catch-up", () => {
     const s = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps());
     expect(stats.languages.level("A-land's language")).toBeGreaterThanOrEqual(2);
     expect(s.lines.some((l) => l.text === "🗣 A-land's language: now basic")).toBe(true);
+  });
+
+  it("counts what his businesses and the lottery brought in while away, for the card", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown", "AAA", "A-land");
+    stats.business.buy(BUSINESSES[1]!, "Bigtown", 0);
+    stats.business.earned = 5000;
+    const s = catchUp(stats, HOME, [0, 0], 30 * 3600, START_MS, deps());
+    expect(s.takings).toBeGreaterThan(0);
+    expect(s.takings).toBe(stats.business.earned - 5000);
+    expect(s.lotteryWon).toBe(stats.lottery.won);
   });
 
   it("lands jet-lagged after a flight, as in a watched trip", () => {
