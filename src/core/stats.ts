@@ -2,7 +2,8 @@
 // XP and level, timed buffs, gear and a bag of items, speed, his history and
 // his keepsakes (landmark cards, Placedex, souvenirs, crawls), the
 // storyteller that paces the incidents that happen to him, his quests, and
-// the people in his life: friends, their clubs and news, and his anniversaries.
+// the people in his life: friends, their clubs and news, and his anniversaries,
+// and his life stages and family (life.ts): retire() hands over to an heir.
 // Time passes in game minutes, which are real minutes while the app is open.
 import { Anniversaries } from "./anniversaries";
 import * as B from "./bond";
@@ -21,6 +22,7 @@ import { Care, dayOf } from "./gifts";
 import { History } from "./history";
 import * as Inc from "./incidents";
 import * as Items from "./items";
+import * as L from "./life";
 import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
@@ -189,6 +191,8 @@ export class Stats {
   bricks = new Br.Bricks();
   /** His life, one sentence per milestone. */
   chronicle = new Chronicle();
+  /** His life stage, his care in it, and his family (life.ts). */
+  life = new L.Life();
   /** The place creatures he has met. */
   creatures = new Cr.Creatures();
   /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
@@ -304,7 +308,7 @@ export class Stats {
     const v = afoot ? "" : this.getsAbout();
     const base = v ? Speeds.FOR_VEHICLE[v] : Speeds.WALK;
     const tired = 0.5 + 0.5 * Math.min(this.meters.energy / TIRED_ENERGY, 1);
-    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus(afoot) / 100) * tired * speedShare(this.sky, v);
+    return base * (1 + SPEED_PER_LEVEL * (this.level - 1) + this.speedBonus(afoot) / 100) * tired * speedShare(this.sky, v) * this.life.info().speed;
   }
 
   /** The next vehicle he saves up for, or null once he has a dragon. */
@@ -340,7 +344,7 @@ export class Stats {
   wageMult(action: Action): number {
     let m = 1 + WAGE_PER_LEVEL * (this.level - 1);
     for (const a of ATTRS) if (action.needs?.[a] !== undefined) m += WAGE_PER_ATTR * this.attr(a);
-    return m * F.mult(this.forecast(), "wage");
+    return m * F.mult(this.forecast(), "wage") * this.life.info().wage;
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -563,6 +567,7 @@ export class Stats {
       energy: (-ENERGY_PER_KM * EFFORT[afoot ? "" : this.getsAbout()] * F.mult(this.forecast(), "effort") * walkedM) / 1000 + sky.energy * h,
     };
     for (const m of ["fullness", "thirst"] as const) if (this.meters[m] <= 0) fx.health = (fx.health ?? 0) - STARVING_PER_H * h;
+    this.age(minutes, t, walkedM, fx.health !== undefined);
     for (const b of this.buffs) {
       const t = Math.min(minutes, b.left) / 60;
       for (const [m, rate] of Object.entries(b.per_h) as [keyof Fx, number][]) fx[m] = (fx[m] ?? 0) + rate * t;
@@ -577,6 +582,54 @@ export class Stats {
     this.castIfNeeded();
     if (walkedM) for (const item of Object.values(this.gear)) if (item?.story) item.story.km += walkedM / 1000;
     this.sayIf(this.records.walked(walkedM, this.cents, t, dayOf(t * 1000)));
+  }
+
+  /** Lets `minutes` of his life pass at `t`: a new stage gets a feed line, a chronicle line and its care nudge; the end of elder, one line that he is ready to retire. */
+  private age(minutes: number, t: number, walkedM: number, starving: boolean): void {
+    const due = this.life.retireDue;
+    for (const stage of this.life.pass(minutes, t, this.where.city, walkedM, starving)) {
+      const st = L.STAGES[stage]!;
+      const nudge = L.TIERS[this.life.tier()].nudge;
+      const title = this.life.title();
+      if (nudge && st.attr) this.attrs[st.attr] = Math.max(this.attrs[st.attr] + nudge, 0);
+      const name = st.attr && Inc.ATTR_NAMES[st.attr];
+      this.say(`${st.icon} Now a ${title}${nudge && name ? ` (${name} ${nudge > 0 ? "+" : "−"}${Math.abs(nudge)})` : ""}`);
+      this.milestone(`stage${stage}`, `Became a ${title}`);
+    }
+    if (this.life.retireDue && !due) this.say(`🌅 Ready to retire in ${this.life.favourite(this.where.city).split(",")[0]}`);
+  }
+
+  /**
+   * He retires (`by` age, or by you from the menu): the family tree keeps him
+   * with his letter and life story, and an heir one generation on starts
+   * with the family perk, his best worn item that isn't a vehicle, the
+   * family's keepsakes (the card binder, Placedex, souvenirs, badges) and
+   * monuments, your clovers and your storyteller. The game starts the heir
+   * in his favourite city (see game.ts retire).
+   */
+  retire(by: L.Ancestor["by"]): { heir: Stats; ancestor: L.Ancestor } {
+    const t = this.now();
+    const home = this.life.favourite(this.where.city);
+    const heirloom = Object.values(this.gear)
+      .filter((it): it is Item => !!it && !it.vehicle)
+      .sort((a, b) => Items.power(b) - Items.power(a))[0];
+    this.milestone("retired", `Retired in ${home.split(",")[0]}`);
+    const me = { gen: this.life.gen, born: this.life.born || t, retired: t, by, title: this.life.title(), level: this.level, km: this.life.km, cities: this.records.cities.length || 1, home, heirloom: heirloom?.name ?? "" };
+    const ancestor: L.Ancestor = { ...me, letter: L.letter(me), chronicle: [...this.chronicle.lines] };
+    const heir = new Stats();
+    heir.now = this.now;
+    heir.onSay = this.onSay;
+    heir.life = this.life.heir(ancestor);
+    heir.life.cityAt = { ...this.life.cityAt };
+    heir.cents = START_CENTS + heir.life.perkCents();
+    if (heirloom) heir.gear[heirloom.slot] = heirloom;
+    heir.keepsakes = this.keepsakes;
+    heir.bricks = this.bricks;
+    heir.care = this.care;
+    heir.story.style = this.story.style;
+    heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
+    heir.say(`🌱 ${L.walkerName(heir.life.gen)} takes over from ${L.walkerName(this.life.gen)}`);
+    return { heir, ancestor };
   }
 
   /** The first minute of local day `date`: maybe news from a friend, and his birthday or a month mark. Own dice, from the date. */
@@ -630,7 +683,7 @@ export class Stats {
   }
 
   xpMult(): number {
-    return this.buffs.reduce((m, b) => m * b.xp_mult, 1);
+    return this.buffs.reduce((m, b) => m * b.xp_mult, 1) * this.life.perkXp() * this.life.info().xp;
   }
 
   /** Sets the city card pool (none when it is empty) and works out his finished sets from it again, as the city list can change between versions. */
@@ -786,7 +839,7 @@ export class Stats {
     const key = visitKey(place);
     const kind = K.kindOf(place);
     if (K.isLandmark(place) && !k.cards.has(key)) {
-      const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now() };
+      const card: K.Card = { name: place.name, kind, city: this.where.city, rarity: K.cardRarity(place.rank), finish: K.rollFinish(rng.randf()), t: this.now(), ...this.finder() };
       k.cards.set(key, card);
       this.say(`New card: ${place.name} (${[card.rarity, K.FINISH_NAME[card.finish]].filter(Boolean).join(", ")})`);
     }
@@ -837,7 +890,7 @@ export class Stats {
       const had = k.cityCards.get(card.key);
       const name = `${card.name} (${[card.rarity, K.FINISH_NAME[finish]].filter(Boolean).join(", ")})`;
       if (!had) {
-        k.cityCards.set(card.key, { finish, t: this.now() });
+        k.cityCards.set(card.key, { finish, t: this.now(), ...this.finder() });
         got.push(name);
         touched.add(card.code);
         continue;
@@ -1037,6 +1090,11 @@ export class Stats {
     this.say(`${s.icon} ${s.say} (Magic −${s.cost})`);
   }
 
+  /** Who of the family found a card, for its entry: nothing for the first walker. */
+  private finder(): { gen?: number } {
+    return this.life.gen > 1 ? { gen: this.life.gen } : {};
+  }
+
   /** Writes milestone `key` in his chronicle, once. */
   milestone(key: string, text: string): void {
     this.chronicle.note(key, text, this.now());
@@ -1093,6 +1151,7 @@ export class Stats {
     const fee = Math.min(HOSPITAL_FEE, Math.floor(this.cents * HOSPITAL_MAX_SHARE));
     this.cents -= fee;
     this.records.fainted(this.now());
+    this.life.faints++;
     this.meters.health = WAKE_HEALTH;
     this.meters.energy = Math.max(this.meters.energy, 30);
     this.meters.fullness = Math.max(this.meters.fullness, 30);
@@ -1119,6 +1178,7 @@ export class Stats {
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
       care: this.care.toJSON(), bond: this.bond.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(),
+      life: this.life.toJSON(),
     };
   }
 
@@ -1168,6 +1228,8 @@ export class Stats {
     s.clubs = Clubs.fromJSON(d.clubs);
     s.townies = Townies.fromJSON(d.townies);
     s.anniversaries = Anniversaries.fromJSON(d.anniversaries, s.chronicle.lines.find((l) => l.text.startsWith("Set out from"))?.t);
+    // A save from before life stages: he was born on his birthday, a backpacker until the stages catch up with him.
+    s.life = L.Life.fromJSON(d.life, s.anniversaries.born);
     return s;
   }
 }

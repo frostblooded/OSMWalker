@@ -37,7 +37,7 @@ If he was on any ride to another city when you left, the ride goes on first. If 
 
 At the end he stands at the last place he visited, on the nearest street corner within {SNAP_M} m, or there on his own until the streets around it load, and picks his next goal. Everything he did is in his History at the time it happened, with a marker for each place but no trail, because he didn't really walk the streets in between.
 
-The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it.
+The card shows how long you were away, how many places he visited and how many were new, how far he walked, the cities he reached, his money and level before and after, and how many things he bought. If the reopen earned a clover (see Clovers and care packages), it says so, and now and then it holds one small choice (see One choice on reopen). Tap "events, newest first" to see everything he did. "Carry on" or ✕ Close closes it. If his elder stage ran out while you were away, he lives only up to then (see Retiring).
 ## His week {recap}
 The game keeps a tally of his week: how far he walked, how many places he stopped at and how many were new, the kind of place he stopped at most, the cities he arrived in, and his money and level when the week began. A week starts on Monday at midnight on your phone's clock.
 
@@ -395,6 +395,31 @@ When he beats a best he may say so in his History ("New record: … in one day!"
 When his health reaches 0 he faints. He wakes up at the nearest hospital the game knows of in the city, or where he is if no hospital has loaded.
 
 Waking up costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. His health is set to {WAKE_HEALTH}, and his energy, fullness and thirst are raised to at least 30 if they were lower. He then stays in the hospital for {STAY_MIN} minute before walking on. You'll see "Fainted! Woke up at …" in his History.
+# 🌱 Life and family
+## Life stages {stages}
+He grows older on the calendar, like a pet: every {STAGE_DAYS} days of real time he moves on to the next stage of his life, whether the game is open or closed. There are {STAGE_COUNT} stages, so a whole life lasts {LIFE_DAYS} days:
+{STAGE_LIST}
+
+The Stats sheet's second card shows his stage, his day of life, how long until the next stage, and how his care is going. A new stage says so in his History and his life story. Time away counts in full, even past the {MAX_AWAY_H} hours the catch-up lives through (see While you were away), so a long absence can move him on more than one stage at once. A game from before life stages counts his life from his birthday (see Anniversaries).
+## Care and his title {care_tiers}
+How well he was kept during a stage names the next one and nudges the attribute that stage brings, like a pet that grows up hearty or sickly:
+- Good: no faint and at most {GOOD_STARVE_H} hour at zero fullness or thirst. He becomes "Hearty" (a Hearty Veteran) and the new stage's attribute gets +{GOOD_NUDGE}.
+- Poor: {POOR_FAINTS} or more faints, or {POOR_STARVE_H} hours or more at zero fullness or thirst. He becomes "Weary" and that attribute loses {POOR_NUDGE_ABS} (never below 0).
+- Anything in between: just the stage's name, and no change.
+
+Each stage starts the count over. You never have to do anything: he looks after himself, and care packages (see Clovers and care packages) only help.
+## Retiring {retire}
+At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
+
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how far he got. His heir then sets out from the favourite city. If the streets there can't load, he tries again {RETIRE_RETRY_MIN} minute later.
+## His heirs and the family {family}
+Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival or quests. What the family keeps:
+- an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
+- the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
+- the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, and golden bricks and monuments,
+- your clovers, care packages and storyteller.
+
+A card found by an heir says which walker of the family found it in the Collection. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
 # 🎒 Items and gear
 ## Gear and items {items}
 He finds items by browsing shops: weapon and hunting shops sell weapons and armour, hardware stores sell tools he can swing, clothes and shoe shops sell clothes, jewellers and gift shops sell trinkets, music shops sell instruments, and bike shops and vehicle dealers sell vehicles (see Speed and vehicles). Now and then a pet, hardware or carpet shop has a fantasy mount, and a castle's stable sells dragons (see Fantasy mounts).
@@ -580,7 +605,7 @@ He saves them for a monument with his name:
 
 With enough bricks he builds it at the next real park he reaches (not a made-up place), and the feed and his life story say so. After the last kind he keeps building that one. A gold 🪧 plaque marks each of his monuments on the map when he is in its city (see Map icons). The Collection sheet shows his bricks, what he saves for, and a tile for each kind of monument with how many he built and where the last one stands. Bricks are optional: you never need to do anything for them.
 ## His life {chronicle}
-History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS} and walking in {COUNTRY_MARKS} countries. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
+History is his day; his life story is his life. It keeps one line for each milestone, the first time it happens, with the date: where he set out from, his first trip and first time abroad, his first wage, fainting for the first time, his first letter to you, his first spell (see Spells), his first portal (see Portals), the first time he sees each giant (see Giants seen from afar), his first nap in a fairy ring (see Fairy rings), every monument he builds, levels {LEVEL_MARKS}, walking in {COUNTRY_MARKS} countries, each new life stage and his retirement (see Life stages, Retiring). An heir's life story starts with whom he took over from. The Collection sheet shows it, oldest first. A game from before the life story skips the firsts (setting out, first trip, abroad, wage, fainting, letter) and only gets levels, countries and monuments from then on.
 ## Item stories {stories}
 Everything he buys remembers its story: the city he bought it in and when, every country he has been to while wearing it, and how far he has walked in it. Tap an item on the Stats sheet to read it.
 

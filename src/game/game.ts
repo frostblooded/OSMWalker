@@ -27,6 +27,7 @@ import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
+import { ELDER, type Ancestor } from "../core/life";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
@@ -71,6 +72,8 @@ export const CATCHUP_SLICE_MS = 8;
 export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
+/** After the heir's streets failed to load, retiring waits this long before trying again. */
+export const RETIRE_RETRY_MS = 60_000;
 
 export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
 export type Alert = { level: "error" | "warning"; text: string };
@@ -149,6 +152,10 @@ export class Game {
   woke = false;
   /** True when this reopen earned a clover, for the summary card. */
   awayClover = false;
+  /** The walker who just retired, for his farewell letter; null once it is closed (the family tree keeps it). */
+  retired: Ancestor | null = null;
+  private retiring = false;
+  private retryRetireAt = 0;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
@@ -264,7 +271,7 @@ export class Game {
    * Starts walking in a city: waits for the streets where he starts, then
    * puts him on the nearest one. Returns an error for the picker, or "".
    */
-  async startCity(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}): Promise<string> {
+  async startCity(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}, stats = new Stats()): Promise<string> {
     const w = new Walker();
     this.loader.setGraph(w.graph);
     const home = cellOf(lat, lon);
@@ -285,7 +292,7 @@ export class Game {
     }
     w.startAt(start);
     w.bounds = cityBounds(lat, lon, bbox);
-    this.stats = new Stats();
+    this.stats = stats;
     this.debugLog = new DebugLog();
     this.attach(w);
     this.city = name;
@@ -320,7 +327,7 @@ export class Game {
   /** Lets `dt` seconds pass. */
   step(dt: number): void {
     const w = this.walker;
-    if (!w || this.waking) return;
+    if (!w || this.waking || this.retiring) return;
     if (!w.isTraveling()) {
       const here = w.position();
       this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
@@ -340,6 +347,7 @@ export class Game {
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
+    if (this.stats.life.retireDue) void this.retire("age");
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
@@ -527,6 +535,14 @@ export class Game {
     this.changed();
   }
 
+  /** Debug button: makes him a stage older at once (as an elder, due to retire). */
+  debugAge(): void {
+    const l = this.stats.life;
+    l.born -= l.leftS(Math.floor(this.now() / 1000));
+    this.stats.passTime(0, 0);
+    this.changed();
+  }
+
   /** Debug button: ends any rest or trip and picks a new goal now, rolling the trip dice again. */
   debugNewGoal(): void {
     if (!this.walker) return;
@@ -564,7 +580,48 @@ export class Game {
     this.stats.contests = this.deps.data.contests ?? [];
     this.stats.friendData = this.deps.data.friends ?? this.stats.friendData;
     this.stats.townNews = this.deps.data.friends?.news ?? [];
+    this.stats.life.mark(this.city, this.origin);
     this.stats.arrive(this.city, this.country, this.trips.cities.find((c) => c.code === this.country)?.country ?? "");
+  }
+
+  /**
+   * He retires (see Stats.retire): by age once his elder stage ran out, or
+   * by you from the menu while he is an elder. His heir sets out from his
+   * favourite city, or where he is when its streets won't load. On a ride he
+   * waits until he lands; if neither loads, he tries again after RETIRE_RETRY_MS.
+   */
+  async retire(by: Ancestor["by"]): Promise<void> {
+    const w = this.walker;
+    if (!w || this.retiring || w.isTraveling() || this.stats.life.stage < ELDER || this.now() < this.retryRetireAt) return;
+    this.retiring = true;
+    try {
+      const { heir, ancestor } = this.stats.retire(by);
+      const home = ancestor.home;
+      const known = this.trips.cities.find((c) => `${c.name}, ${c.country}` === home);
+      const at = this.stats.life.cityAt[home] ?? (known ? [known.lat, known.lon] : this.origin);
+      const here = { city: this.city, origin: this.origin, bounds: w.bounds };
+      // Where the favourite city's streets won't load, the heir sets out from where he is instead.
+      const failed =
+        (await this.startCity(home, at[0], at[1], known?.bounds ?? null, () => {}, heir)) &&
+        (home === here.city || (await this.startCity(here.city, here.origin[0], here.origin[1], here.bounds, () => {}, heir)));
+      if (failed) {
+        // startCity pointed the loader at the heir's streets; he walks on in his own.
+        this.loader.setGraph(w.graph);
+        this.retryRetireAt = this.now() + RETIRE_RETRY_MS;
+        return;
+      }
+      this.doing = null;
+      this.retired = ancestor;
+    } finally {
+      this.retiring = false;
+      this.changed();
+    }
+  }
+
+  /** Closes the farewell letter. */
+  dismissRetired(): void {
+    this.retired = null;
+    this.changed();
   }
 
   /** New city: wipes the save but keeps the settings. */
@@ -670,10 +727,13 @@ export class Game {
       const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
       const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
+      // His elder stage ran out while you were away: the catch-up stopped there, and the heir sets out now.
+      if (this.stats.life.retireDue) await this.retire("age");
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
-      this.dilemma =
-        D?.rollDilemma(awayS, this.rng, (kind) => {
+      this.dilemma = this.retired
+        ? null
+        : D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
           if (w.isTraveling()) return null;
           const here = w.position();

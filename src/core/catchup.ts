@@ -211,6 +211,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His elder stage ran out: the game retires him and his heir lives the rest.
+      if (stats.life.retireDue) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
@@ -283,7 +285,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (leftMin() > 0) pass(leftMin(), 0);
+    if (leftMin() > 0 && !stats.life.retireDue) pass(leftMin(), 0);
   } finally {
     stats.now = clock;
     stats.onSay = heard;
@@ -340,6 +342,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     city = { name: `${dest.name}, ${dest.country}`, code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.life.mark(city.name, city.center);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
     moveTo(null, at);

@@ -1,7 +1,8 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // six meters and Magic as bars, the sky over him, the spells he knows,
 // four attributes with what his gear adds, every gear slot, the bag and his
-// buffs. Items with a story open to show it. His records close it.
+// buffs. Items with a story open to show it. His life stage comes second,
+// and his records and family tree close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -15,6 +16,7 @@ import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dist, speed } from "./format";
+import { FamilyTree, LifeCard } from "./Family";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -171,6 +173,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
       </Card>
+      <LifeCard life={s.life} now={s.now()} />
       <QuestCard q={s.quests} now={s.now()} />
       {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">
@@ -263,6 +266,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <Records stats={s} />
+      <FamilyTree life={s.life} level={s.level} city={s.where.city} />
     </>
   );
 }
