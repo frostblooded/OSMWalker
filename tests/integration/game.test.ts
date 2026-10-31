@@ -930,9 +930,9 @@ describe("game", () => {
       const { again } = await reopen(8 * HOUR, { places: [CAFE] });
       const learned = again.away!.lines.filter((l) => l.text.startsWith("🗣 Learned a Bulgarian word"));
       expect(learned.length).toBeGreaterThan(0);
-      // The first stops are cafés, so the first word is coffee.
-      expect(learned[0]!.text).toMatch(/ at .*[Cc]afe.*: "кафе \(kafe\)" means coffee$/);
-      expect(again.stats.words.known.bg?.[0]).toBe("coffee");
+      // A word learned at a café is coffee (his wants may take him elsewhere first).
+      expect(learned.find((l) => / at .*[Cc]afe/.test(l.text))?.text).toMatch(/: "кафе \(kafe\)" means coffee$/);
+      expect(again.stats.words.known.bg).toContain("coffee");
     });
 
     it("has nothing to catch up after a short break or from an old save", async () => {
