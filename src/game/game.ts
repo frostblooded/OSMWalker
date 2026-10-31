@@ -6,7 +6,7 @@
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
-import { Activities, choose, exploreWeight, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, exploreWeight, minded, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
@@ -307,7 +307,7 @@ export class Game {
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
-    w.need = (p) => skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky);
+    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
       landed: (c, t) => this.onLanded(c, t),

@@ -2,14 +2,15 @@
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
-// buffs, his rival, friends and pet. Items with a story open to show it.
-// His records close it.
+// buffs, his rival, friends and pet, and his mind: wants, fears and what
+// moves his mood. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
+import { noun, wantIcon, wantText } from "../core/mind";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -279,6 +280,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">Empty. Gear he takes off goes here.</p>
         )}
       </Card>
+      <MindCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -402,6 +404,45 @@ function PetCard({ s }: { s: Stats }) {
 const STANDING = { nemesis: "Nemesis", rival: "Rival", friend: "Friendly rival" } as const;
 
 /** Viktor: his level, their record, and what they are to each other. */
+const perH = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${n1(Math.abs(n))}/h`;
+const hoursLeft = (min: number) => (min >= 60 ? `${Math.ceil(min / 60)} h` : `${Math.ceil(min)} min`);
+
+/** His wants and fears, and what moves his mood each hour. */
+function MindCard({ s }: { s: Stats }) {
+  const m = s.mind;
+  const now = s.now();
+  const pieces = s.moodPieces();
+  const total = pieces.reduce((t, p) => t + p.per_h, 0);
+  return (
+    <Card icon="💭" title="Mind">
+      <div class="zebra">
+        {m.wants.map((w) => (
+          <KV key={`${w.kind}${w.place}`} k={`${wantIcon(w)} ${wantText(w)}`} v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""} />
+        ))}
+        {m.fears.map((f) => (
+          <KV key={f} k={`😨 Wary of ${noun(f)}s`} v="" tone="warning" />
+        ))}
+      </div>
+      <Collapsible title="🙂 Mood" right={perH(total)}>
+        <div class="zebra">
+          {pieces.map((p) => (
+            <KV
+              key={p.name}
+              k={`${p.icon} ${p.name}`}
+              v={
+                <span class={p.per_h > 0 ? "tone-ok" : p.per_h < 0 ? "tone-error" : undefined}>
+                  {perH(p.per_h)}
+                  {p.left !== undefined && <span class="dim small"> · {hoursLeft(p.left)}</span>}
+                </span>
+              }
+            />
+          ))}
+        </div>
+      </Collapsible>
+    </Card>
+  );
+}
+
 function RivalCard({ s }: { s: Stats }) {
   const r = s.rival;
   const last = r.memory.at(-1);

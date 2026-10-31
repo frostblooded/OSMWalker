@@ -192,6 +192,19 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.pets).toMatchObject({ pet: null, past: [] });
   });
 
+  it("loads saves from before his mind: no moodlets, wants or fears until the next tick fills his wants", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.mind;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const stats = (f.read() as Saved).stats;
+    expect(stats.mind.toJSON()).toEqual({ moodlets: [], wants: [], fears: [] });
+    stats.passTime(1, 0);
+    expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

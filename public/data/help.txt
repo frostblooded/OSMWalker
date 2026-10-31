@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much.
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear.
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -306,11 +306,21 @@ Under {NEED_AT} he needs a drink more and more (see His needs); under {URGENT_AT
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it more for a day (see Daily forecast).
 
-It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Wet weather takes {WET_MOOD_PER_H} more an hour and sunshine gives {SUNNY_MOOD_PER_H} back (see Weather). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
+It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Wet weather takes {WET_MOOD_PER_H} more an hour and sunshine gives {SUNNY_MOOD_PER_H} back (see Weather). Moodlets add their bit every hour too (see Moodlets). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
 When mood is under {NEED_AT} he needs cheering up more and more (see His needs).
 
 Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
+## Moodlets {moodlets}
+On top of the usual drift, named moodlets nudge his mood a little every hour while they last: "Wish come true", "Rattled", "Scared of the dog park". Each has its own mood an hour and a time left. The same moodlet again starts its time over instead of adding up, and he keeps at most {MAX_MOODLETS}.
+
+The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
+## Wants and fears {wants}
+He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}), and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
+
+A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP for cheering up. Then a new want takes its place.
+
+A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 

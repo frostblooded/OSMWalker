@@ -13,6 +13,7 @@ import { Clubs } from "./clubs";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
+import { Mind, WANT_XP } from "./mind";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
 import * as Po from "./portals";
@@ -222,6 +223,8 @@ export class Stats {
   story = new Storyteller();
   /** His quests, the city's quest board and the world events near him. */
   quests = new Quests();
+  /** His moodlets, wants and fears. */
+  mind = new Mind();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
@@ -585,6 +588,8 @@ export class Stats {
     this.buffs = this.buffs.filter((b) => b.left > 0);
     this.bond.pass(minutes);
     this.story.pass(minutes, this.cents);
+    fx.mood = (fx.mood ?? 0) + this.mind.pass(minutes);
+    this.mind.refill(t, () => new Rng(seedOf(`want${t}`)));
     // Enchanted gear gathers Magic as he walks.
     fx.magic = (fx.magic ?? 0) + (this.gearMagic() * walkedM) / 1000;
     this.applyFx(fx);
@@ -683,6 +688,16 @@ export class Stats {
     this.say(line);
   }
 
+  /** What moves his mood an hour now, by cause: the usual drift, dirt, the weather and each moodlet (with its minutes left). */
+  moodPieces(): { name: string; icon: string; per_h: number; left?: number }[] {
+    const out: { name: string; icon: string; per_h: number; left?: number }[] = [{ name: "Day to day", icon: "📉", per_h: -MOOD_PER_H }];
+    if (this.meters.hygiene < DIRTY_AT) out.push({ name: "Feeling grubby", icon: "🧼", per_h: -DIRTY_MOOD_PER_H });
+    const sky = weatherPerH(this.sky).mood;
+    if (sky) out.push({ name: sky > 0 ? "Sunshine" : "Wet weather", icon: sky > 0 ? "☀" : "🌧", per_h: sky });
+    for (const m of this.mind.moodlets) out.push({ name: m.name, icon: m.icon, per_h: m.per_h, left: m.left });
+    return out;
+  }
+
   /** Counts `minutes` of walking; each full minute Luck may find him money. Returns the feed line, or "". */
   walkFor(minutes: number, rng: Rng): string {
     this.walkMin += minutes;
@@ -766,8 +781,22 @@ export class Stats {
     return best ?? first;
   }
 
-  /** Does `action` at `where`, a place of class `kind`, and returns the feed line it adds. */
+  /** Does `action` at `where`, a place of class `kind`, and returns the feed line it adds. Then wants of that kind may come true, and a mishap rattles him (see mind.ts). */
   do(action: Action, where: string, rng: Rng, kind = ""): string {
+    this.mishap = false;
+    const line = this.act(action, where, rng, kind);
+    if (!kind) return line;
+    // Its own dice, so the walk's stay the same.
+    const { met, lines } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
+    for (const w of met) this.addXp(WANT_XP[w.kind]);
+    for (const l of lines) this.say(l);
+    return line;
+  }
+
+  /** Set by act() when the action's risk went wrong. */
+  private mishap = false;
+
+  private act(action: Action, where: string, rng: Rng, kind: string): string {
     if (action.item) {
       this.applyFx(action.fx ?? {});
       if (Items.RARE_STOCK.has(action.item) && rng.randf() >= Items.MOUNT_STOCK) {
@@ -799,6 +828,7 @@ export class Stats {
       for (const [k, v] of Object.entries(risk.fx ?? {}) as [keyof Fx, number][]) fx[k] = (fx[k] ?? 0) + v;
       text += `, ${risk.text ?? "it went wrong"}`;
       this.records.mishap();
+      this.mishap = true;
     }
     const earn = action.earn ?? 0;
     const listed = Array.isArray(earn) ? rng.randiRange(toCents(earn[0]), toCents(earn[1])) : toCents(earn);
@@ -1226,6 +1256,7 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
+      mind: this.mind.toJSON(),
     };
   }
 
@@ -1271,6 +1302,8 @@ export class Stats {
     s.pets = Pt.Pets.fromJSON(d.pets);
     // A save from before visas: every country starts on Tourist.
     s.visas = V.Visas.fromJSON(d.visas);
+    // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.
+    s.mind = Mind.fromJSON(d.mind);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

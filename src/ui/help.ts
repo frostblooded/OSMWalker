@@ -14,6 +14,7 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Mind from "../core/mind";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -368,6 +369,23 @@ export function values(data: GameData): Record<string, string> {
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     NEED_AT: String(Activities.NEED_AT),
     MOOD_PER_H: num(S.MOOD_PER_H),
+    WANT_PULL: num(Mind.WANT_PULL),
+    FEAR_PULL: num(Mind.FEAR_PULL),
+    SHORT_H: num(Mind.SHORT_H),
+    SHAKE_H: num(Mind.SHAKE_H),
+    FEAR_PCT: pct(Mind.FEAR_CHANCE),
+    MAX_FEARS: String(Mind.MAX_FEARS),
+    MAX_MOODLETS: String(Mind.MAX_MOODLETS),
+    WANT_XP_LONG: String(Mind.WANT_XP.long),
+    WANT_XP_SHORT: String(Mind.WANT_XP.short),
+    WANT_XP_SHAKE: String(Mind.WANT_XP.shake),
+    WANT_XP_FACE: String(Mind.WANT_XP.face),
+    WISH_MOOD_LONG: `+${Mind.WANT_MOOD.long[0]} an hour for ${Mind.WANT_MOOD.long[1]} hours`,
+    WISH_MOOD_SHORT: `+${Mind.WANT_MOOD.short[0]} an hour for ${Mind.WANT_MOOD.short[1]} hours`,
+    RATTLED: `${Mind.RATTLED[0]} an hour for ${Mind.RATTLED[1]} hour`,
+    SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
+    FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
+    LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
