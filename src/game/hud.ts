@@ -1,12 +1,14 @@
 // What the screens show about him, worked out once from the game: his look
 // on the map, the soundscape, the top card (what he is doing, where he goes,
-// how long until he moves again, why he waits) and the facts Debug lists.
+// how long until he moves again, why he waits, the sky) and the facts Debug lists.
 // Plain data, so the screens only lay it out and the numbers are tested
 // without a browser.
 import { distanceM, type BBox } from "../core/geo";
 import * as Looks from "../core/look";
+import type { Season, Sky } from "../core/sky";
 import { soundscape, type Soundscape } from "../core/soundscape";
-import type { LatLon, Mode } from "../core/trips";
+import type { WeatherKind } from "../core/weather";
+import { MODES, type LatLon, type Mode } from "../core/trips";
 import { pathLengthM, tripLimitM } from "../core/walker";
 import type { Game } from "./game";
 
@@ -28,7 +30,19 @@ export type Hud = {
   restShare: number | null;
   /** Why he stands still when it is not a rest. */
   waiting: "" | "streets" | "failing";
+  /** The weather (or the season while it is unknown) as an icon, the temperature, and how dark the map is (0-1). */
+  sky: { icon: string; tempC: number | null; dark: number } | null;
 };
+
+export const SEASON_ICON: Record<Season, string> = { spring: "🌸", summer: "🌻", autumn: "🍂", winter: "❄" };
+export const WEATHER_ICON: Record<WeatherKind, string> = { clear: "☀", cloudy: "☁", fog: "🌫", rain: "🌧", snow: "🌨", storm: "⛈" };
+
+/** The icon for the sky: its weather (a moon on a clear night), else the season. */
+export function skyIcon(sky: Sky): string {
+  const w = sky.weather;
+  if (!w) return SEASON_ICON[sky.season];
+  return w.kind === "clear" && sky.dark > 0.5 ? "🌙" : WEATHER_ICON[w.kind];
+}
 
 export function hud(g: Game): Hud | null {
   const w = g.walker;
@@ -38,13 +52,14 @@ export function hud(g: Game): Hud | null {
   let waiting: Hud["waiting"] = "";
   if (!resting && w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
   return {
-    doing: riding ? "riding" : resting ? "resting" : "walking",
+    doing: riding && riding.mode !== "walk" ? "riding" : resting && !riding ? "resting" : "walking",
     city: g.city.split(",")[0]!,
     ride: riding ? { mode: riding.mode, to: riding.to.name } : null,
     street: w.streetName(),
     goal: goal(g),
     restShare: resting && !riding ? w.restFraction() : null,
     waiting,
+    sky: g.stats.sky ? { icon: skyIcon(g.stats.sky), tempC: g.stats.sky.weather ? Math.round(g.stats.sky.weather.tempC) : null, dark: g.stats.sky.dark } : null,
   };
 }
 
@@ -80,7 +95,7 @@ export function doing(g: Game): string {
   if (!w) return "not started";
   if (w.travel) {
     const t = w.travel;
-    return `travelling to ${t.to.name} by ${t.mode}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
+    return `travelling to ${t.to.name} ${MODES[t.mode].how}, ${((t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(t.path) / 1000).toFixed(0)} km left`;
   }
   if (w.isResting()) return `staying ${w.restLeftS().toFixed(0)} s more at ${w.place?.name ?? "a spot"}`;
   const target = g.goalTarget();

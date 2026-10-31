@@ -1,4 +1,4 @@
-// Packing: as he boards a bus, plane or his car for another city he packs a
+// Packing: as he sets off for another city, by any way, he packs a
 // travel kit on his own, by need: snacks when he is getting hungry, a water
 // bottle when thirsty, a phrasebook when the trip goes abroad. Each is a
 // timed buff that keeps working in the new city. He only packs what leaves

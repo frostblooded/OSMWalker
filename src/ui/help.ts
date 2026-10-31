@@ -10,6 +10,12 @@ import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
 import * as Crawl from "../core/crawl";
+import * as Creatures from "../core/creatures";
+import * as Magic from "../core/magic";
+import * as Midnight from "../core/midnight";
+import * as Portals from "../core/portals";
+import * as Giants from "../core/giants";
+import * as Fairy from "../core/fairy";
 import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
@@ -27,18 +33,27 @@ import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
 import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
+import * as Opening from "../core/opening";
 import * as Gen from "../core/poiGen";
 import * as Postcard from "../core/postcard";
+import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
+import * as Sky from "../core/sky";
 import * as Rec from "../core/records";
 import * as Ruins from "../core/ruins";
 import * as Speeds from "../core/speeds";
 import * as Rival from "../core/rival";
+import * as Anniv from "../core/anniversaries";
+import * as Clubs from "../core/clubs";
+import * as Friends from "../core/friends";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
+import * as Townies from "../core/townies";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Weather from "../core/weather";
+import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -167,6 +182,7 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
   const incidents = data.incidents ?? [];
+  const bank = data.quests ?? { names: [], quests: [], events: [] };
   const sum = (t: Activities.ActionTable) => Object.values(t).reduce((n, l) => n + l.length, 0);
   const v: Record<string, string> = {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
@@ -197,6 +213,46 @@ export function values(data: GameData): Record<string, string> {
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     BRICK_PCT: pct(Bricks.BRICK_CHANCE),
     BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
+    CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
+    RIDDLE_PCT: pct(Creatures.RISK_BASE),
+    RIDDLE_PER_WIT_PCT: pct(Creatures.RISK_PER_POINT),
+    RIDDLE_CAP_PCT: pct(Creatures.RISK_CAP),
+    CREATURE_LIST: (data.creatures ?? []).map((c) => {
+      const said = (o: Creatures.Outcome) => [o.pay ? `pays ${euro(o.pay)}` : "", Gifts.effect(o)].filter(Boolean).join(", ");
+      const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
+      return `- ${c.icon} ${c.name}, ${c.where}: ${opts.join("; ")}. On his own he picks ${c.moment.options.find((o) => o.id === c.moment.default)!.label.toLowerCase()}.`;
+    }).join("\n"),
+    LEY_NEAR_M: num(Magic.LEY_NEAR_M),
+    LEY_PER_KM: num(Magic.LEY_PER_KM),
+    LEY_BURST: num(Magic.LEY_BURST),
+    LEY_CHARM_LUCK: `+${num(Magic.LEY_CHARM.attrs!.luck!)}`,
+    LEY_CHARM_MIN: num(Magic.LEY_CHARM.min),
+    MAGIC_MAX: num(Magic.MAGIC_MAX),
+    LEARN_PCT: pct(Magic.LEARN_CHANCE),
+    SPELL_AT: num(Magic.SPELL_AT),
+    SPARE_MAGIC: num(Magic.SPARE_MAGIC),
+    SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
+    MIDNIGHT_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.midnight))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    ENCHANTED_MODS_MAX: num(Items.ENCHANTED_MODS_MAX),
+    ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
+    ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
+    ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
+    PORTAL_PCT: pct(Portals.PORTAL_CHANCE),
+    PORTAL_GAP_DAYS: num(Portals.PORTAL_GAP_DAYS),
+    GIFT_PCT: pct(Fairy.GIFT_CHANCE),
+    FAIRY_PCT: pct(Fairy.FAIRY_CHANCE),
+    FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
+    NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
+    FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
+    STORY_MAGIC: num(Fairy.STORY_MAGIC),
+    GIANT_PCT: pct(Giants.GIANT_CHANCE),
+    GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
+    GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),
+    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
+    TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
@@ -243,6 +299,8 @@ export function values(data: GameData): Record<string, string> {
     TOWER_APART_KM: num(Gen.TOWER_APART_M / 1000),
     MADE_CITIES: num(G.MADE_CITIES),
     ICON_CAP: num(MapIcons.ICON_CAP.place),
+    QUEST_ICON_CAP: num(MapIcons.ICON_CAP.quest),
+    EVENT_ICON_CAP: num(MapIcons.ICON_CAP.event),
     SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
@@ -394,6 +452,36 @@ export function values(data: GameData): Record<string, string> {
     AIRPORT_KM: km(Trips.AIRPORT_REACH_M),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
+    BIKE_ICON: Trips.MODES.bike.icon,
+    WALK_ICON: Trips.MODES.walk.icon,
+    LONG_WALK_MIN_KM: km(Trips.LONG_WALK_MIN_M),
+    LONG_WALK_MAX_KM: km(Trips.LONG_WALK_MAX_M),
+    LONG_WALK_PCT: pct(Trips.LONG_WALK_CHANCE),
+    LONG_WALK_MAX_H: num(Trips.LONG_WALK_MAX_S / 3600),
+    HOSTEL_KM: km(Trips.HOSTEL_EVERY_M),
+    HOSTEL_PRICE: euro(Trips.HOSTEL_CENTS),
+    LONG_WALK_XP_PER_KM: num(Trips.LONG_WALK_XP_PER_KM),
+    LONG_WALK_MOOD: num(Trips.LONG_WALK_MOOD),
+    FERRY_ICON: Trips.MODES.ferry.icon,
+    TRAIN_ICON: Trips.MODES.train.icon,
+    HITCH_ICON: Trips.MODES.hitch.icon,
+    TRAIN_KMH: kmh(Speeds.TRAIN),
+    FERRY_KMH: kmh(Speeds.FERRY),
+    BIKE_ROAD_KMH: kmh(Speeds.BIKE_ROAD),
+    HITCH_KMH: kmh(Speeds.HITCH),
+    TRAIN_PER_KM: euro(toCents(Trips.TRAIN_PER_KM)),
+    FERRY_PER_KM: euro(toCents(Trips.FERRY_PER_KM)),
+    TRAIN_FROM_KM: km(Trips.TRAIN_FROM_M),
+    SLEEPER_FROM_KM: km(Trips.SLEEPER_FROM_M),
+    FERRY_PCT: pct(Trips.FERRY_CHANCE),
+    FERRY_MAX_KM: km(Trips.FERRY_MAX_M),
+    CYCLE_MAX_KM: km(Trips.CYCLE_MAX_M),
+    BIKE_EFFORT_KM: num(S.ENERGY_PER_KM * S.EFFORT.bike),
+    HITCH_BELOW: euro(Trips.HITCH_BELOW),
+    HITCH_BAD_PCT: pct(Trips.HITCH_BAD),
+    HITCH_GOOD_PCT: pct(Trips.HITCH_GOOD),
+    HITCH_BAD_FX: Gifts.effect({ fx: Trips.HITCH_BAD_FX }),
+    HITCH_GOOD_FX: Gifts.effect({ fx: Trips.HITCH_GOOD_FX }),
     CAR_ROAD_KMH: kmh(Speeds.CAR_ROAD),
     PLANE_KMH: kmh(Speeds.PLANE),
     RIDE_SPEEDUP: String(Trips.RIDE_SPEEDUP),
@@ -430,6 +518,11 @@ export function values(data: GameData): Record<string, string> {
       const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
       return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
     }).join("\n"),
+    DEG_PER_ZONE: num(Trips.DEG_PER_ZONE),
+    JET_LAG_H_PER_ZONE: num(Trips.JET_LAG_H_PER_ZONE),
+    JET_LAG_MAX_H: num(Trips.JET_LAG_MAX_H),
+    JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
+    JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
     BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
@@ -472,6 +565,29 @@ export function values(data: GameData): Record<string, string> {
     CARDS_SHOWN: String(K.CARDS_SHOWN),
     FEAT_LIST: Collection.FEATS.map(featLine).join("\n").replace(/,$/, "."),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
+    SKY_ACTIONS: String(Object.values(data.actions).reduce((n, list) => n + list.filter((a) => a.needs?.season || a.needs?.weather).length, 0)),
+    SUNRISE_AT: `${String(Sky.SUNRISE_H).padStart(2, "0")}:00`,
+    SUNSET_AT: `${String(Sky.SUNSET_H).padStart(2, "0")}:00`,
+    HALF_DAY_H: num(Sky.SUNSET_H - Sky.SUNRISE_H),
+    OPEN_H: `${String(Opening.OPEN_H).padStart(2, "0")}:00`,
+    CLOSE_H: `${String(Opening.CLOSE_H).padStart(2, "0")}:00`,
+    HOT_C: num(Sky.HOT_C),
+    HOT_THIRST: num(Sky.HOT_THIRST),
+    COLD_C: num(Sky.COLD_C),
+    COLD_ENERGY_PER_H: num(Sky.COLD_ENERGY_PER_H),
+    WET_MOOD_PER_H: num(Sky.WET_MOOD_PER_H),
+    SUNNY_MOOD_PER_H: num(Sky.SUNNY_MOOD_PER_H),
+    SUNNY_MIN_C: num(Sky.SUNNY_MIN_C),
+    SNOW_SPEED_PCT: pct(Sky.SNOW_SPEED),
+    WET_OUTDOOR: num(Sky.WET_OUTDOOR),
+    WET_SHELTER: num(Sky.WET_SHELTER),
+    HOT_COOL: num(Sky.HOT_COOL),
+    MIN_DAY_H: num(Sky.MIN_DAY_H),
+    MAX_DAY_H: num(Sky.MAX_DAY_H),
+    TROPICS_LAT: num(Sky.TROPICS_LAT),
+    NIGHT_SHADE_PCT: pct(Sky.NIGHT_SHADE),
+    NIGHT_DEG: num(-Sky.NIGHT_DEG),
+    WEATHER_TTL_MIN: num(Weather.WEATHER_TTL_MS / 60_000),
     TENSION_MAX: num(Story.TENSION_MAX),
     STORY_RATES: Story.STYLES.map((k) => `${Story.STYLE[k].icon} ${Story.STYLE[k].name} ${num(Story.STYLE[k].per_h)}`).join(", "),
     STORY_BAD: Story.STYLES.map((k) => `${Story.STYLE[k].name} ${pct(Story.STYLE[k].bad)}`).join(", "),
@@ -488,6 +604,32 @@ export function values(data: GameData): Record<string, string> {
     ODD_INCIDENTS: String(incidents.filter((c) => c.tone === "odd").length),
     CHOICE_INCIDENTS: String(incidents.filter((c) => c.options).length),
     LOSS_CAP_PCT: pct(Inc.LOSS_CAP_SHARE),
+    BOARD_PLACES: num(Quests.BOARD_PLACES),
+    BOARD_MIN: num(Quests.BOARD_MIN),
+    BOARD_MAX: num(Quests.BOARD_MAX),
+    BOARD_TOWN_POP: num(Quests.BOARD_TOWN_POP),
+    BOARD_BIG_POP: num(Quests.BOARD_BIG_POP),
+    BOARD_MID: num(Quests.boardSize(Quests.BOARD_MID_POP)),
+    BOARD_MID_POP: num(Quests.BOARD_MID_POP),
+    STEPS_MORE_MIN: num(Math.min(...bank.quests.map((q) => q.steps.length)) - 1),
+    STEPS_MORE_MAX: num(Math.max(...bank.quests.map((q) => q.steps.length)) - 1),
+    QUEST_KINDS: String(bank.quests.length),
+    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy).length),
+    FANTASY_PCT: pct(Quests.FANTASY_SHARE),
+    QUEST_VARIANTS: num(Math.floor(bank.quests.reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
+    QUEST_EVERY_MIN: num(Quests.QUEST_EVERY_MIN),
+    QUEST_EVERY_MAX: num(Quests.QUEST_EVERY_MAX),
+    STEP_CHOICES: num(Quests.STEP_CHOICES),
+    STEP_MIN: num(Quests.STEP_MIN),
+    WORSE_PCT: pct(Quests.WORSE_SHARE),
+    LOG_MAX: num(Quests.LOG_MAX),
+    CARD_RECENT: num(Quests.CARD_RECENT),
+    EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
+    EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
+    EVENT_MAX: num(Quests.EVENT_MAX),
+    EVENT_KINDS: String(bank.events.length),
+    FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
+    FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
     LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
     LEGEND_WEIGHT: num(Inc.LEGEND_WEIGHT),
     RIVAL_ICON: Rival.RIVAL_ICON,
@@ -507,6 +649,37 @@ export function values(data: GameData): Record<string, string> {
     FEELING_AT: num(Rival.FEELING_AT),
     FEELING_STEP: num(Rival.FEELING_STEP),
     SEEN_MIN: num(Rival.SEEN_MIN),
+    FRIEND_NEW_PCT: pct(Friends.NEW_CHANCE),
+    FRIEND_SEE_PCT: pct(Friends.SEE_CHANCE),
+    HEARTS_MAX: num(Friends.HEARTS_MAX),
+    MEET_UP_AT: num(Friends.MEET_UP_AT),
+    MEET_UP_PCT: pct(Friends.MEET_UP_CHANCE),
+    FRIENDS_PER_CITY: num(Friends.PER_CITY),
+    COMPANION_PCT: pct(Friends.COMPANION_CHANCE),
+    SPLIT_PCT: pct(Friends.SPLIT),
+    COMPANION_STOPS: num(Friends.COMPANION_STOPS),
+    FRIENDS_SHOWN: num(Friends.SHOWN),
+    WORK_CARD_PCT: pct(Work.CARD_CHANCE),
+    SHIFT_MIN: num(Work.SHIFT_MIN),
+    WORK_WIN_BASE_PCT: pct(Work.WIN_BASE),
+    WORK_WIN_PER_PCT: pct(Work.WIN_PER_POINT),
+    WORK_WIN_MAX_PCT: pct(Work.WIN_MAX),
+    WORK_CARD_LIST: Work.helpList(),
+    CLUB_JOIN_AT: num(Clubs.JOIN_AT),
+    CLUB_INVITE_PCT: pct(Clubs.INVITE_CHANCE),
+    CLUB_MAX: num(Clubs.MAX_CLUBS),
+    CLUB_NIGHT_H: num(Clubs.NIGHT_H),
+    CLUB_LIST: Clubs.helpList(),
+    NEWS_PCT: pct(Townies.NEWS_CHANCE),
+    NEWS_AT: num(Townies.NEWS_AT),
+    PARTY_AT: num(Anniv.PARTY_AT),
+    PARTY_MAX: num(Anniv.PARTY_MAX),
+    PARTY_MOOD: num(Anniv.PARTY_MOOD),
+    GREAT_MIN_PCT: pct(Anniv.GREAT_MIN),
+    GLOW_H: num(Anniv.GLOW_MIN / 60),
+    GLOW_PER_H: num(Anniv.GLOW_PER_H),
+    ALONE_MOOD: num(Anniv.ALONE_MOOD),
+    MONTH_MOOD: num(Anniv.MONTH_MOOD),
     INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
     INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
     GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
@@ -519,5 +692,6 @@ export function values(data: GameData): Record<string, string> {
   Items.RARITY.forEach((_, i) => (v[`MODS${i}_PCT`] = pct(rolls[i + 1]! - rolls[i]!)));
   const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
   for (const [t, [a, b]] of Object.entries(S.TIMES)) v[`TIME_${t.toUpperCase()}`] = `${hh(a)}-${hh(b)}`;
+  v.FAIRY_DAWN = `${hh(Fairy.FAIRY_FROM_H)}-${hh(Fairy.FAIRY_TO_H)}`;
   return v;
 }

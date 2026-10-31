@@ -114,6 +114,14 @@ describe("failures", () => {
     expect(seen).toEqual(["Request to example.org failed: HTTP 503 (server overloaded)"]);
   });
 
+  it("say when the weather answer is not a forecast", async () => {
+    const { api } = fake(() => json({}));
+    const seen: string[] = [];
+    api.onProblem = (t) => seen.push(t);
+    expect(await api.weather("Sofia", 42.7, 23.3, 0)).toBeNull();
+    expect(seen).toEqual(["Request to api.open-meteo.com failed: answer was not a forecast"]);
+  });
+
   it("say when JSON is broken", async () => {
     const { api } = fake(() => new Response("{nope"));
     expect(await api.getJson("https://example.org/x")).toBeNull();

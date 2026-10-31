@@ -1,7 +1,7 @@
-// The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, a guess about his next trip, what he waits for), zoom on
-// the right edge and the main buttons in a bar at the bottom, in reach of the
-// thumb.
+// The game screen: the map with him on it (dimmed at night), a compact card
+// on top (where he is, where he goes, a guess about his next trip, what he
+// waits for, the weather), zoom on the right edge and the main buttons in a
+// bar at the bottom, in reach of the thumb.
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
@@ -11,6 +11,8 @@ import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
 import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
+import { NIGHT_SHADE } from "../core/sky";
+import { MODES } from "../core/trips";
 import { STYLE } from "../core/storyteller";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
@@ -19,13 +21,16 @@ import { DebugSheet } from "./DebugSheet";
 import { countdown, dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
+import { Card, KV } from "./kit";
 import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
+/** The night shade's opacity moves in steps this big, so it is restyled rarely. */
+const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "history" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -36,6 +41,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
+  // The quest or event icon tapped last, for its card.
+  const [story, setStory] = useState("");
   const [mapError, setMapError] = useState("");
 
   useEffect(() => {
@@ -47,6 +54,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       .then((v) => {
         if (gone) return v.destroy();
         view = v;
+        v.onIconTap = (id) => {
+          if (!game.storyCard(id)) return;
+          setStory(id);
+          setSheet("story");
+        };
         const sc = new MapScene(game, v, padding);
         sc.onFollowing = setFollowing;
         scene.current = sc;
@@ -99,6 +111,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
+  useEffect(() => scene.current?.showLeys(sheet === "stats"), [sheet]);
 
   const close = () => setSheet(null);
   const backToHim = () => scene.current?.backToHim();
@@ -111,19 +124,26 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   return (
     <div class="game">
       <div class="map" ref={mapEl} />
+      {h.sky && h.sky.dark > 0 && <div class="night" aria-hidden="true" style={{ opacity: Math.round((h.sky.dark * NIGHT_SHADE) / DARK_STEP) * DARK_STEP }} />}
       <div class="top" ref={topEl}>
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {h.ride ? rideIcon(h.ride.mode) : h.doing === "resting" ? "⏸" : "🚶"}
+              {h.ride ? MODES[h.ride.mode].icon : h.doing === "resting" ? "⏸" : "🚶"}
             </span>
             <div class="grow">
               <div class="city">{h.city} · {h.doing}</div>
-              <div class="street">{h.ride ? `Riding to ${h.ride.to} by ${h.ride.mode}` : streetLine(h.street, h.doing === "resting")}</div>
+              <div class="street">{h.ride ? `${h.ride.mode === "walk" ? "Walking" : "Riding"} to ${h.ride.to} ${MODES[h.ride.mode].how}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
+              {h.sky && (
+                <span class="pill sky">
+                  {h.sky.icon}
+                  {h.sky.tempC !== null && ` ${h.sky.tempC}°`}
+                </span>
+              )}
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
@@ -282,6 +302,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           <DebugSheet game={game} onDone={close} />
         </SheetBox>
       )}
+      {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
@@ -291,6 +312,31 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </SheetBox>
       )}
     </div>
+  );
+}
+
+/** A tapped quest or event: its story so far, and Go help, which sends him there once he is free. */
+function StoryCard({ game, id, onClose }: { game: Game; id: string; onClose: () => void }) {
+  const c = game.storyCard(id);
+  if (!c) return null;
+  return (
+    <SheetBox title={`${c.icon} ${c.title}`} onClose={onClose}>
+      <Card icon={id.startsWith("event:") ? "🌟" : "❗"} title={id.startsWith("event:") ? "Event" : "Quest"}>
+        <p>{c.text}</p>
+        <div class="zebra">
+          {c.rows.map(([k, v]) => (
+            <KV key={k} k={k} v={v} />
+          ))}
+        </div>
+        {c.state === "open" ? (
+          <button class="btn primary" onClick={() => game.nudge(id)}>
+            🙋 Go help
+          </button>
+        ) : (
+          <p class="dim small">{c.state === "on" ? "He's on it." : "He'll head there next, once nothing urgent comes first."}</p>
+        )}
+      </Card>
+    </SheetBox>
   );
 }
 
@@ -310,8 +356,6 @@ function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: strin
 
 /** The phrase box: a new GitHub issue with a form for a line he might say, which ships credited if accepted (see Help). */
 export const PHRASE_URL = `https://github.com/frostblooded/OSMWalker/issues/new?title=${encodeURIComponent("Line: ")}&body=${encodeURIComponent("Kind of place (cafe, park, museum...):\n\nThe line (a dry second sentence after what he did there):\n\nYour name for the credit (or leave empty):\n")}`;
-
-const rideIcon = (mode: string) => (mode === "plane" ? "✈" : mode === "car" ? "🚗" : "🚌");
 
 function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   if (!goal) return null;

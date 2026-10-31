@@ -16,7 +16,10 @@ import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
-import { rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
+import { ROAD_FACTOR, rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
+
+/** A ride's road distance when no trip plan gives it: the straight line times ROAD_FACTOR. */
+const straightRoadM = (a: LatLon, b: LatLon) => distanceM(a[0], a[1], b[0], b[1]) * ROAD_FACTOR;
 
 /** The game clock: time is counted in these meters per second, so rests and trips last the same whatever his speed. */
 export const SPEED_MPS = 200 / 60;
@@ -24,6 +27,8 @@ export const SPEED_MPS = 200 / 60;
 export const REST_M = SPEED_MPS * 60;
 /** Close enough to a destination to call it reached. */
 export const ARRIVE_M = 30;
+/** Why he walks to a random spot when every place near him is closed: normal at night, not a warning. */
+export const ALL_CLOSED = "every place near enough is closed";
 /** Destinations come from the searched place's box, kept between these sizes. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
@@ -40,12 +45,13 @@ export const LAND_SHARE = 0.5;
 export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
 /** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
 export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
-export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number };
+/** A ride to another city; `road_m` is its road distance, from the trip plan when he boards one. */
+export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number; road_m: number };
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
   /** Arrived somewhere new: the trip's destination. */
-  landed?(city: City): void;
+  landed?(city: City, travel: Travel): void;
   /** Reached a place of note. Listeners may change how long he stays with restFor(). */
   arrived?(place: Place): void;
   /** Picked a new goal or trip, and how. */
@@ -123,6 +129,8 @@ export class Walker {
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
+  /** Asked on every destination pick after the trip planner: a quest step or world event to go to (see quests.ts questGoal), or null; set by the game. */
+  questGoal: (() => Place | null) | null = null;
   /** How a place meets his needs (see activities.ts needOf); set by the game. */
   need: ((p: Place) => Need) | null = null;
   /** A pull of one place on its own, on top of its kind's need (an Explore whisper's, see activities.ts exploreWeight); set by the game. */
@@ -173,6 +181,13 @@ export class Walker {
       this.events.picked?.({ trip: `${plan.city.name}, ${plan.city.country}`, by: `${plan.mode} from ${plan.station.name}` });
       return;
     }
+    const story = this.questGoal?.();
+    if (story) {
+      this.setGoal(story.lat, story.lon);
+      this.place = story;
+      this.events.picked?.({ quest: story.name, class: story.class });
+      return;
+    }
     if (!this.bounds && this.here()) {
       const p = this.position();
       this.bounds = cityBounds(p[0], p[1]);
@@ -185,22 +200,24 @@ export class Walker {
       options = options.filter((q) => distanceM(p[0], p[1], q.lat, q.lon) > ARRIVE_M);
     }
     info.too_close = (info.in_box as number) - options.length;
-    if (options.length > 0) {
-      // Need depends only on the kind of place, so it is worked out once per kind.
-      const kinds = new Map<string, Need>();
-      const needs = options.map((q) => {
-        const k = kindOf(q);
-        let v = kinds.get(k);
-        if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
-        return v;
-      });
-      const [keep, r] = urgentRules(needs, this.rng.randf());
-      let pairs = options.map((q, i) => [q, needs[i]!] as const);
-      if (keep) {
-        pairs = pairs.filter(([, v]) => keep(v));
-        info.urgent_fixes = pairs.length;
-      }
-      const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
+    const near = options.length;
+    // Need depends only on the kind of place, so it is worked out once per kind.
+    const kinds = new Map<string, Need>();
+    const needs = options.map((q) => {
+      const k = kindOf(q);
+      let v = kinds.get(k);
+      if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
+      return v;
+    });
+    const [keep, r] = urgentRules(needs, this.rng.randf());
+    let pairs = options.map((q, i) => [q, needs[i]!] as const);
+    if (keep) {
+      pairs = pairs.filter(([, v]) => keep(v));
+      info.urgent_fixes = pairs.length;
+    }
+    const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
+    // Closed places weigh nothing; when every one is closed he walks to a spot.
+    if (parts.some((w) => w.weight > 0)) {
       const weights = parts.map((w) => w.weight);
       const i = pickIndex(weights, r);
       const [pl, need] = pairs[i]!;
@@ -220,8 +237,9 @@ export class Walker {
     const spot = this.randomSpot();
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : `every loaded place is within ${ARRIVE_M} m of him`;
-    this.events.problem?.(`Picked a random spot: ${info.fallback}`);
+    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? ALL_CLOSED : `every loaded place is within ${ARRIVE_M} m of him`;
+    // Night closures are normal, not a problem worth a warning.
+    if (!near) this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);
   }
 
@@ -235,10 +253,11 @@ export class Walker {
     this.pickGoal();
   }
 
-  /** Debug: rides to `city` and lands there at once, ending any rest. */
-  rideNow(city: City): void {
+  /** Rides to `city` by road (or steps through a portal) and lands there at once, ending any rest (a trucker's free lift, a portal, or Debug). */
+  rideNow(city: City, mode: "car" | "portal" = "car"): void {
     this.restM = 0;
-    this.startTravel(city);
+    // By road: a free lift (or a Debug trip) is no flight, so it brings no jet lag.
+    this.startTravel(city, mode);
     this.land();
   }
 
@@ -319,7 +338,7 @@ export class Walker {
     const at: LatLon = arrive ?? [city.lat, city.lon];
     const line = path.length >= 2 ? path : [p, at];
     const m = rideS(mode, pathLengthM(line)) * SPEED_MPS;
-    this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m };
+    this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m, road_m: straightRoadM(p, at) };
     this.flight = null;
     this.departing = null;
     this.place = null;
@@ -351,6 +370,7 @@ export class Walker {
       return;
     }
     this.startTravel(plan.city, plan.mode, plan.path ?? [], plan.arrive);
+    this.travel!.road_m = plan.distance_m;
   }
 
   /** Starts over in the destination with a fresh street graph; he stands on a lone point until its streets load. */
@@ -364,7 +384,7 @@ export class Walker {
     this.bounds = t.to.bounds ?? cityBounds(t.to.lat, t.to.lon);
     this.tripM = 0;
     this.tripStartM = 0;
-    this.events.landed?.(t.to);
+    this.events.landed?.(t.to, t);
   }
 
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
@@ -707,7 +727,8 @@ export class Walker {
     w.place = d.place;
     w.legFrom = d.leg_from;
     w.departing = d.departing;
-    w.travel = d.travel;
+    // Saves from before road_m measured the ride by the straight line.
+    w.travel = d.travel && { ...d.travel, road_m: d.travel.road_m ?? straightRoadM(d.travel.from, d.travel.arrive) };
     w.flight = d.flight ?? null;
     w.afoot = d.afoot ?? false;
     // The corner he lands on, so the walk goes on before the streets there reload.
@@ -741,7 +762,7 @@ export type WalkerSave = {
   place: Place | null;
   leg_from: LatLon | null;
   departing: Plan | null;
-  travel: Travel | null;
+  travel: (Omit<Travel, "road_m"> & { road_m?: number }) | null;
   /** Missing in saves from before flying mounts. */
   flight?: Flight | null;
   afoot?: boolean;

@@ -39,6 +39,13 @@ class FakeMap implements MapPort {
   }
   setTrail() {}
   setRoute() {}
+  leys: [number, number][][] = [];
+  leyKey = "";
+  setLeys(key: string, lines: () => [[number, number], [number, number]][]) {
+    if (key === this.leyKey) return;
+    this.leyKey = key;
+    this.leys = key ? lines() : [];
+  }
   setArea() {}
   setEvents() {
     this.calls.push("events");
@@ -104,6 +111,37 @@ describe("map scene", () => {
     w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
     scene.draw(0.25, 250);
     expect(map.icons).toEqual([]);
+  });
+
+  it("draws the ley lines only while the Stats sheet is open, again when they change, and none on a ride", () => {
+    const [lat, lon] = game.walker!.position();
+    game.leys = [
+      [
+        [lat, lon],
+        [lat + 0.001, lon],
+      ],
+    ];
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
+    scene.showLeys(true);
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual(game.leys);
+    game.leys = [
+      [
+        [lat, lon],
+        [lat, lon + 0.001],
+      ],
+    ];
+    game.leysVersion++;
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual(game.leys);
+    scene.showLeys(false);
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
+    scene.showLeys(true);
+    game.walker!.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
   });
 
   it("leaves room for the panels from the start", () => {

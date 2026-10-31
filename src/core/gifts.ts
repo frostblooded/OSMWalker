@@ -24,11 +24,11 @@ export const GIFTS: Gift[] = [
   { id: "clover", icon: "🍀", name: "Four-leaf clover", cost: 2, buff: { name: "Four-leaf clover", min: 240, attrs: { luck: 2 } } },
 ];
 
-const NAMES: Record<string, string> = { health: "health", energy: "energy", fullness: "fullness", mood: "mood", hygiene: "hygiene", thirst: "thirst", str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck", xp: "XP" };
+const NAMES: Record<string, string> = { health: "health", energy: "energy", fullness: "fullness", mood: "mood", hygiene: "hygiene", thirst: "thirst", str: "Strength", cha: "Charm", wit: "Wits", luck: "Luck", xp: "XP", magic: "Magic" };
 
 const n = (v: number) => (v < 0 ? `${v}` : `+${v}`);
 
-/** What a gift (or anything with fx and a buff) does, in a few words: "+30 fullness, +15 thirst" or "+2 Wits for 4 h". */
+/** What a gift (or anything with fx and a buff) does, in a few words: "+30 fullness, +15 thirst", "+2 Wits for 4 h" or "×1.2 XP for 1 h". */
 export function effect(g: Pick<Gift, "fx" | "buff">): string {
   const parts = Object.entries(g.fx ?? {}).map(([k, v]) => `${n(v)} ${NAMES[k]}`);
   const b = g.buff;
@@ -36,6 +36,7 @@ export function effect(g: Pick<Gift, "fx" | "buff">): string {
     const h = `${b.min / 60} h`;
     for (const [k, v] of Object.entries(b.per_h ?? {})) parts.push(`${n(v)} ${NAMES[k]} an hour for ${h}`);
     for (const [k, v] of Object.entries(b.attrs ?? {})) parts.push(`${n(v)} ${NAMES[k]} for ${h}`);
+    if (b.xp_mult && b.xp_mult !== 1) parts.push(`×${b.xp_mult} XP for ${h}`);
   }
   return parts.join(", ");
 }

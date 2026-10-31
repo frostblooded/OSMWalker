@@ -2,7 +2,7 @@
 // the odds and why a random spot was used.
 import { timeText } from "./history";
 import { CITY_CHANCE, COUNTRY_CHANCE } from "./trips";
-import { ARRIVE_M } from "./walker";
+import { ALL_CLOSED, ARRIVE_M } from "./walker";
 
 export const SIZE = 50;
 const FORCED: Record<string, string> = { goal: "New goal button", city: "New city button", country: "New country button" };
@@ -34,11 +34,15 @@ export class DebugLog {
   }
 }
 
+/** True for a pick worth a warning: a random spot for any reason but closed places. */
+export const isWarning = (e: Entry) => "fallback" in e && e.fallback !== ALL_CLOSED;
+
 /** A short title for one pick, such as "🎯 Chosen: Cafe East". */
 export function title(e: Entry): string {
   const byButton = "forced" in e ? " (button)" : "";
   if ("trip" in e) return `✈ Trip: ${str(e.trip)}${byButton}`;
   if ("place" in e) return `🎯 Chosen: ${str(e.place)}${byButton}`;
+  if (e.fallback === ALL_CLOSED) return `🌙 Random spot: everything near is closed${byButton}`;
   if ("fallback" in e) return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "all places too close"}${byButton}`;
   if (str(e.no_trip) !== "") return `✖ No trip: ${str(e.no_trip)}`;
   return "🎲 Pick";

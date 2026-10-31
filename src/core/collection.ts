@@ -5,10 +5,13 @@
 // sheet, the overall % and Help pick them up. Loaded lazily (sheet, Help, Game).
 import { BRICKS_PER_DAY, MONUMENTS } from "./bricks";
 import { dayOf } from "./gifts";
+import { GIANTS } from "./giants";
+import { STORIES } from "./fairy";
 import type { Rarity } from "./items";
 import * as Items from "./items";
 import * as K from "./keepsakes";
 import { MOUNT_ICON, placeIcon } from "./look";
+import { TRINKETS } from "./midnight";
 import { ODD_KINDS, TOWER_KIND } from "./poiGen";
 import type { Stats } from "./stats";
 
@@ -181,6 +184,68 @@ export const SETS: CSet[] = [
       }),
   },
   {
+    id: "creatures",
+    tab: "places",
+    icon: "🧌",
+    title: "Creatures",
+    entries: (s) =>
+      s.creatureKinds.map((c) => {
+        const n = s.creatures.met[c.id] ?? 0;
+        return { id: c.id, icon: c.icon, name: c.name, got: n > 0, info: n > 0 ? `Met ${n === 1 ? "once" : `${n} times`}` : c.hint };
+      }),
+  },
+  {
+    id: "giants",
+    tab: "places",
+    icon: "🐍",
+    title: "Giants",
+    entries: (s) =>
+      GIANTS.map((g) => {
+        const photo = s.giants.photos[g.id];
+        const n = s.giants.seen[g.id] ?? 0;
+        // Every photo of a giant is a legendary card.
+        return { id: g.id, icon: g.icon, name: g.name, got: !!photo, rarity: "Legendary", info: photo ? `Photo from ${photo.place}${photo.city ? `, ${photo.city}` : ""}${n > 1 ? `; seen ${n} times` : ""}` : `Seen ${g.where}, very rarely` };
+      }),
+  },
+  {
+    id: "fairy",
+    tab: "places",
+    icon: "🍄",
+    title: "Fairy rings",
+    entries: (s) => [
+      ...Items.KINDS.trinkets.map((b) => {
+        const got = s.rings.gifts.includes(b.base);
+        return { id: `gift:${b.base}`, icon: "🎁", name: `Fairy-spun ${b.base}`, got, info: got ? "A fairy gift" : "A gift from a nap in a fairy ring" };
+      }),
+      ...STORIES.map((t) => {
+        const got = s.rings.stories.includes(t.id);
+        return { id: `story:${t.id}`, icon: "✨", name: t.name, got, info: got ? t.say : "A story from a nap in a fairy ring" };
+      }),
+    ],
+    facts: (s) => [["🍄 Naps in fairy rings", String(s.rings.naps)]],
+  },
+  {
+    id: "spells",
+    tab: "gear",
+    icon: "🪄",
+    title: "Spells",
+    entries: (s) =>
+      s.spellKinds.map((k) => {
+        const got = s.lore.known.includes(k.id);
+        return { id: k.id, icon: k.icon, name: k.name, got, info: got ? `Cast ${s.lore.casts[k.id] ?? 0}×` : "Found in an old book at a library or bookshop" };
+      }),
+  },
+  {
+    id: "midnight",
+    tab: "gear",
+    icon: "🌙",
+    title: "Midnight finds",
+    entries: (s) => [
+      ...Items.ENCHANTMENTS.map((e) => ({ id: e.name, icon: "🌙", name: e.name, got: s.finds.got.includes(e.name), info: s.finds.got.includes(e.name) ? "Bought on enchanted gear" : "Enchanted gear from the shop after midnight" })),
+      ...TRINKETS.map((t) => ({ id: t.id, icon: t.icon, name: t.name, got: s.finds.got.includes(t.id), info: s.finds.got.includes(t.id) ? "Bought after midnight" : "A trinket from the shop after midnight" })),
+    ],
+  },
+  {
     id: "crawls",
     tab: "places",
     icon: "🏁",
@@ -297,6 +362,11 @@ export const FEATS: Feat[] = [
   { id: "placedex", tab: "places", icon: "📇", name: "Placedex", what: "{n} place kinds seen", tiers: [25, 100, 250], title: "Placedex Master", count: (s) => s.keepsakes.dex.size },
   { id: "souvenirs", tab: "world", icon: "🧳", name: "Souvenir shelf", what: "{n} souvenirs", tiers: [3, 10, 30], title: "Souvenir Hunter", count: (s) => s.keepsakes.souvenirs.size },
   { id: "odd", tab: "places", icon: "🧙", name: "Off the map", what: "{n} odd places", tiers: [2, 4, ODD_KINDS.length], title: "Mystic", count: (s) => s.keepsakes.odd.length },
+  { id: "creatures", tab: "places", icon: "🧌", name: "Folklore", what: "{n} kinds of creature met", tiers: [1, 2, 3], title: "Myth Seeker", count: (s) => Object.keys(s.creatures.met).length },
+  { id: "spells", tab: "gear", icon: "🪄", name: "Spellbook", what: "{n} spells known", tiers: [1, 3, 7], title: "Hedge Wizard", count: (s) => s.lore.known.length },
+  { id: "giants", tab: "places", icon: "🐍", name: "Giant spotter", what: "{n} kinds of giant seen", tiers: [1, 2, GIANTS.length], title: "Wonder Watcher", count: (s) => Object.keys(s.giants.photos).length },
+  { id: "fairy", tab: "places", icon: "🍄", name: "Fair Folk friend", what: "{n} fairy gifts and stories", tiers: [1, 4, Items.KINDS.trinkets.length + STORIES.length], title: "Changeling", count: (s) => s.rings.gifts.length + s.rings.stories.length },
+  { id: "portals", tab: "world", icon: "🌀", name: "Portal hopper", what: "{n} portals gone through", tiers: [1, 3, 10], title: "Gatewalker", count: (s) => s.portals.went.length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "ruins", tab: "places", icon: "🏰", name: "Delver", what: "{n} ruins crawled", tiers: [1, 5, 20], title: "Delver", count: (s) => s.ruins.count },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },

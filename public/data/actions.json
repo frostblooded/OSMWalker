@@ -127,6 +127,19 @@
     "thirst": 20,
     "xp": 2
    }
+  },
+  {
+   "name": "Hot chocolate while it pours",
+   "min": 15,
+   "cost": 4,
+   "fx": {
+    "mood": 10,
+    "thirst": 15,
+    "xp": 5
+   },
+   "needs": {
+    "weather": "wet"
+   }
   }
  ],
  "restaurant": [
@@ -523,6 +536,19 @@
     "mood": 8,
     "xp": 5
    }
+  },
+  {
+   "name": "Mulled wine by the heater",
+   "min": 20,
+   "cost": 5,
+   "fx": {
+    "mood": 12,
+    "energy": 5,
+    "xp": 5
+   },
+   "needs": {
+    "season": "winter"
+   }
   }
  ],
  "bar/nightclub": [
@@ -792,6 +818,19 @@
     "thirst": 10,
     "xp": 2
    }
+  },
+  {
+   "name": "Double scoop on a hot day",
+   "min": 10,
+   "cost": 4,
+   "fx": {
+    "thirst": 15,
+    "mood": 15,
+    "xp": 5
+   },
+   "needs": {
+    "weather": "hot"
+   }
   }
  ],
  "museum": [
@@ -867,6 +906,18 @@
     "wit": 6
    },
    "deed": 1
+  },
+  {
+   "name": "Wait out the rain in the galleries",
+   "min": 45,
+   "fx": {
+    "wit": 0.2,
+    "mood": 8,
+    "xp": 15
+   },
+   "needs": {
+    "weather": "wet"
+   }
   }
  ],
  "art_gallery": [
@@ -1098,6 +1149,18 @@
     "attrs": {
      "luck": 3
     }
+   }
+  },
+  {
+   "name": "Watch the sunset",
+   "min": 15,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   },
+   "needs": {
+    "time": "evening",
+    "weather": "sunny"
    }
   }
  ],
@@ -1477,6 +1540,92 @@
     "mood": 10,
     "xp": 5
    }
+  },
+  {
+   "name": "Build a snowman",
+   "min": 30,
+   "fx": {
+    "mood": 15,
+    "energy": -5,
+    "xp": 15
+   },
+   "needs": {
+    "weather": "snow"
+   },
+   "risk": {
+    "p": 0.2,
+    "text": "and slipped on the ice",
+    "fx": {
+     "health": -5,
+     "mood": -5
+    }
+   }
+  },
+  {
+   "name": "Kick through the autumn leaves",
+   "min": 10,
+   "fx": {
+    "mood": 8,
+    "xp": 5
+   },
+   "needs": {
+    "season": "autumn"
+   }
+  },
+  {
+   "name": "Picnic under the spring blossom",
+   "min": 30,
+   "cost": 6,
+   "fx": {
+    "fullness": 20,
+    "mood": 10,
+    "xp": 5
+   },
+   "needs": {
+    "season": "spring"
+   }
+  },
+  {
+   "name": "Doze in the summer sun",
+   "min": 30,
+   "fx": {
+    "energy": 15,
+    "mood": 5,
+    "xp": 5
+   },
+   "needs": {
+    "season": "summer",
+    "weather": "sunny"
+   }
+  },
+  {
+   "name": "Tiptoe over the ice",
+   "min": 5,
+   "fx": {
+    "xp": 5
+   },
+   "needs": {
+    "weather": "cold"
+   },
+   "risk": {
+    "p": 0.3,
+    "text": "and slipped",
+    "fx": {
+     "health": -5,
+     "mood": -5
+    }
+   }
+  },
+  {
+   "name": "Stroll under the street lamps",
+   "min": 15,
+   "fx": {
+    "mood": 6,
+    "xp": 5
+   },
+   "needs": {
+    "time": "night"
+   }
   }
  ],
  "garden": [
@@ -1620,6 +1769,18 @@
     }
    },
    "deed": 1
+  },
+  {
+   "name": "Jump in the puddles",
+   "min": 5,
+   "fx": {
+    "mood": 8,
+    "hygiene": -10,
+    "xp": 5
+   },
+   "needs": {
+    "weather": "wet"
+   }
   }
  ],
  "dog_park": [
@@ -1830,6 +1991,19 @@
    "needs": {
     "str": 6
    }
+  },
+  {
+   "name": "Swim on a hot afternoon",
+   "min": 45,
+   "fx": {
+    "mood": 15,
+    "hygiene": 10,
+    "energy": -10,
+    "xp": 10
+   },
+   "needs": {
+    "weather": "hot"
+   }
   }
  ],
  "golf": [
@@ -1912,6 +2086,18 @@
    },
    "needs": {
     "str": 5
+   }
+  },
+  {
+   "name": "Watch the sunset",
+   "min": 15,
+   "fx": {
+    "mood": 10,
+    "xp": 5
+   },
+   "needs": {
+    "time": "evening",
+    "weather": "sunny"
    }
   }
  ],
@@ -2009,6 +2195,18 @@
    "fx": {
     "energy": -30,
     "xp": 25
+   }
+  },
+  {
+   "name": "Warm up by the lobby fire",
+   "min": 30,
+   "fx": {
+    "energy": 10,
+    "mood": 8,
+    "xp": 5
+   },
+   "needs": {
+    "season": "winter"
    }
   }
  ],
@@ -2306,6 +2504,17 @@
     "thirst": 30,
     "xp": 1
    }
+  },
+  {
+   "name": "Gulp cold water in the heat",
+   "min": 2,
+   "fx": {
+    "thirst": 40,
+    "xp": 2
+   },
+   "needs": {
+    "weather": "hot"
+   }
   }
  ],
  "fountain": [
@@ -2330,6 +2539,46 @@
     "attrs": {
      "luck": 3
     }
+   }
+  },
+  {
+   "name": "Cool his feet in the fountain",
+   "min": 15,
+   "fx": {
+    "mood": 10,
+    "hygiene": 5,
+    "xp": 5
+   },
+   "needs": {
+    "weather": "hot"
+   }
+  }
+ ],
+ "bridge": [
+  {
+   "name": "Watch the river from the railing",
+   "min": 10,
+   "fx": {
+    "mood": 6,
+    "energy": 3,
+    "xp": 2
+   }
+  },
+  {
+   "name": "Count the boats going under",
+   "min": 15,
+   "fx": {
+    "mood": 4,
+    "wit": 0.05,
+    "xp": 3
+   }
+  },
+  {
+   "name": "Snap a photo of the view",
+   "min": 5,
+   "fx": {
+    "mood": 5,
+    "xp": 2
    }
   }
  ],
@@ -2695,6 +2944,17 @@
   }
  ],
  "shop/antiques": [
+  {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
   {
    "name": "Browse the weapons and armour",
    "min": 15,
@@ -3085,6 +3345,17 @@
   }
  ],
  "shop/second_hand": [
+  {
+   "name": "Knock at the shop after midnight",
+   "min": 15,
+   "midnight": true,
+   "needs": {
+    "time": "midnight"
+   },
+   "fx": {
+    "xp": 10
+   }
+  },
   {
    "name": "Browse the trinkets",
    "min": 15,
