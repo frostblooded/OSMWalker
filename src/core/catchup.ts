@@ -293,7 +293,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       // Incidents roll on the card dice too, so they leave his walk the same.
-      stats.happen(place, sky.hour, cardRng);
+      stats.happen(city.places ? place : { ...place, made: true }, sky.hour, cardRng);
       s.stops++;
       const story = city.places ? questStop(stats, place, city.places, sky.hour, cardRng) : null;
       if (story !== null) {

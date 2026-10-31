@@ -252,10 +252,23 @@ describe("catch-up", () => {
     expect(went).toContain(false);
   });
 
+  it("someone greets him at real places while he is away, where he is known", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown, A-land", "AAA", "A-land");
+    stats.fame.add(stats.here(), 1000);
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
+    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps());
+    expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(true);
+  });
+
   it("no one greets him at made-up places while he is away, as in the watched game", () => {
     const stats = new Stats();
     stats.arrive("Bigtown, A-land", "AAA", "A-land");
     stats.fame.add(stats.here(), 1000);
+    // A deck that never plays, so a stop gets as far as the greeting.
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
     const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
     expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(false);
   });
