@@ -22,7 +22,7 @@ import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { homeIcons, ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
-import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Moment, type Pick } from "../core/moments";
+import { defaultPick, MOMENT_S, MOMENT_TIMERS, type Ask, type Moment, type Pick } from "../core/moments";
 import * as R from "../core/repute";
 import { Rng, seedOf } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
@@ -440,8 +440,8 @@ export class Game {
       this.changed();
       return;
     }
-    // Incidents roll on the card dice, so they leave his walk the same.
-    this.stats.happen(place, sky.hour, this.cardRng);
+    // Incidents roll on the card dice, so they leave his walk the same; a story choice or a contest with Viktor is asked as a timed moment.
+    this.stats.happen(place, sky.hour, this.cardRng, this.storyAsk);
     // Quests roll on the card dice too; a quest step or event takes the place of an action.
     const story = Q.questStop(this.stats, place, this.storyPlaces(), sky.hour, this.cardRng);
     if (story !== null) {
@@ -462,6 +462,14 @@ export class Game {
     this.askAt(place, restMinutes(action) * 60);
     this.changed();
   }
+
+  /** Asks a moment from inside a story rule (Stats.happen) and saves once it settles. */
+  private storyAsk: Ask = (m, his, settle) =>
+    void this.ask(m, { his }).then((p) => {
+      settle(p);
+      this.save();
+      this.changed();
+    });
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
   private askAt(place: Place, maxS: number): void {

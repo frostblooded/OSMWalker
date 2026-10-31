@@ -198,7 +198,7 @@ Some actions have a risk: a chance that it goes differently, which adds to what 
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
 ## Timed moments {moments}
-When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap.
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way comes too, such as a chatty passenger, a photo out of the window, the snack trolley or a nap. Stories ask too: an incident with a choice (see Incidents) and a contest with Viktor (see Viktor, his rival).
 
 A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
 
@@ -865,7 +865,7 @@ Each one is a line in his History that starts with its icon, and the line over t
 A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one item from his bag, but never his gear or a treasured item. A high enough attribute wards some off:
 {GUARD_LIST}
 
-{CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. He picks by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. Nothing waits for you.
+{CHOICE_INCIDENTS} incidents hold a choice of two, such as a street musician asking him to sing along. It opens as a timed moment (see Timed moments): tap an option, or let him pick by himself, at even odds tilted toward the bolder option by {INC_LEAN_PCT} for each point of its attribute above 1, up to {INC_LEAN_CAP_PCT}. While you are away he always picks himself.
 ## Quests {quests}
 Quests are the heart of his life. Every city has a board of them, rolled the first time {BOARD_PLACES} of its places (not counting bridges) are loaded, with at least one where a quest can start: {BOARD_MIN} in a town of {BOARD_TOWN_POP} people or fewer, {BOARD_MAX} in a city of {BOARD_BIG_POP} or more, and in between on a sliding scale (about {BOARD_MID} in a city of {BOARD_MID_POP}). There are {QUEST_KINDS} kinds of quest, {FANTASY_KINDS} of them with a touch of magic (at most {FANTASY_PCT} of a board), and each one is filled with a local's name, an item, sometimes a twist and the city's real places, so the same kind reads as a new quest: over {QUEST_VARIANTS} in all. A quest he has done never comes back, so when he returns to a city it has new ones. A few kinds are only for the kind (a soup kitchen, a lost wallet to hand in) or only for rascals (a parcel with no questions asked, a rigged card game): they only come up on a board rolled while he leans that way (see Karma), and some quests and events move his karma (see Karma).
 
@@ -888,6 +888,8 @@ At night ({TIME_NIGHT}) at castles, graveyards, memorials, shrines, old wells, w
 {RIVAL_ICON} {RIVAL_NAME} is another traveller. When he reaches a new city, {RIVAL_TOWN_PCT} of the time Viktor is there too. Then each place he reaches has a {RIVAL_MEET_PCT} chance of a meeting, when no incident happens there and it isn't his club night or an invitation to a club (see Clubs). It all happens by itself.
 
 Most meetings are a contest for the same thing, at a place where it fits: the same day's work, the last window table, a chess game, a pub quiz, the last croissant, a photo spot, an arm-wrestle, a race to the corner. Each leans on an attribute. His odds are his attribute plus {HIS_PER_LEVEL} per level of his, against {RIVAL_PER_LEVEL} per level of Viktor's (Viktor starts at level {RIVAL_START_LEVEL}). A win gives {WIN_FX}; a loss {LOSE_FX}, and Viktor goes up a level.
+
+While you watch, a contest opens as a mini-game (see Mini-games): Timing for Charm, Pick a card for Luck, Tap fast for Strength, Odd one out for Wits. A result in its better half wins. Leave it, and he plays it himself at the odds above, the same as while you are away; his History then says "Played by himself".
 
 Some meetings are a friendly chat instead: {FRIENDLY_PCT} of them, plus {FRIENDLY_PER_CHA_PCT} per point of Charm above 1, up to {FRIENDLY_CAP_PCT}, and always where no contest fits. A chat gives {FRIENDLY_FX}.
 

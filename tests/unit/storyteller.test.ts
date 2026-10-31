@@ -5,6 +5,7 @@ import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import * as Inc from "../../src/core/incidents";
 import * as Items from "../../src/core/items";
+import type { Moment, Pick } from "../../src/core/moments";
 import { Rng } from "../../src/core/rng";
 import { skyAt } from "../../src/core/sky";
 import { ATTRS, inTime, Stats, type Place } from "../../src/core/stats";
@@ -189,6 +190,29 @@ describe("incidents in his life", () => {
     const rng = new Rng(5);
     expect(s.happen(cafe, 12, rng)).toBe("");
     expect(rng.randf()).toBe(new Rng(5).randf());
+  });
+
+  it("asks a choice card as a timed moment; untapped, he picks as he would with nobody to ask", () => {
+    const options: Inc.Incident["options"] = [{ id: "sing", label: "Sings", fx: { mood: 10 }, say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    const deal = () => {
+      const s = new Stats();
+      s.now = () => 1000;
+      s.incidents = [card({ say: undefined, lean: "cha", options })];
+      s.story.tension = TENSION_MAX;
+      return s;
+    };
+    const away = deal();
+    const plain = away.happen(cafe, 12, fixed(0, 0));
+    let asked: { m: Moment; his: () => string; settle: (p: Pick) => void } | null = null;
+    const s = deal();
+    expect(s.happen(cafe, 12, fixed(0, 0), (m, his, settle) => (asked = { m, his, settle }))).toBe("");
+    expect(asked!.m).toMatchObject({ id: "incident:t", icon: "🧪", ask: "At Cafe.", lean: "cha", options: [{ id: "0", label: "Sings" }, { id: "1", label: "Listens" }] });
+    asked!.settle({ id: asked!.his(), you: false });
+    expect(s.incidentLine).toBe(plain.replace(". ", ". Decided by himself: "));
+    expect(s.incidentLatest()).toBe(true);
+    const tapped = deal();
+    tapped.happen(cafe, 12, fixed(0, 0), (_m, _his, settle) => settle({ id: "0", you: true }));
+    expect(tapped.incidentLine).toBe("🧪 At Cafe. Sings: coins fly.");
   });
 
   it("happens at a stop when the tension is high, and eases it", () => {

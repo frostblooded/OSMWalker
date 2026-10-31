@@ -1,6 +1,7 @@
 // Viktor, his rival (src/core/rival.ts): who is in town, meetings, memory, grudge or friendship.
 import { describe, expect, it } from "vitest";
 import * as R from "../../src/core/rival";
+import type { Moment, Pick } from "../../src/core/moments";
 import type { Rng } from "../../src/core/rng";
 import { ATTRS, Stats } from "../../src/core/stats";
 import { dataFile } from "../support/data";
@@ -20,6 +21,27 @@ function inSofia(): Stats {
 }
 
 describe("Viktor", () => {
+  it("lets you play a contest as its mini-game; left alone, he plays it with the same roll", () => {
+    const plain = new R.Rival();
+    const line = plain.meet(inSofia(), CONTESTS, "Cafe Roma", "cafe", AT, fixed(0, 0, 0.99, 0));
+    const r = new R.Rival();
+    const s = inSofia();
+    let asked: { m: Moment; his: () => string; settle: (p: Pick) => string } | null = null;
+    const opening = r.meet(s, CONTESTS, "Cafe Roma", "cafe", AT, fixed(0, 0, 0.99, 0), (m, his, settle) => (asked = { m, his, settle }));
+    const c = CONTESTS.find((k) => k.at.includes("cafe"))!;
+    expect(line.startsWith(opening)).toBe(true);
+    expect(asked!.m).toMatchObject({ icon: R.RIVAL_ICON, ask: opening, game: R.CONTEST_GAME[c.attr], options: [{ id: "lost" }, { id: "won" }] });
+    expect(r.wins).toBe(0);
+    expect(asked!.his()).toBe("won");
+    expect(asked!.settle({ id: "lost", you: true })).toBe(`${R.RIVAL_ICON} ${c.lost}`);
+    expect(r).toMatchObject({ wins: 0, losses: 1, level: R.START_LEVEL + 1 });
+    expect(s.history.latest()).toBe(`${R.RIVAL_ICON} ${c.lost}`);
+    const alone = new R.Rival();
+    alone.meet(inSofia(), CONTESTS, "Cafe Roma", "cafe", AT, fixed(0, 0, 0.99, 0), (_m, his, settle) => settle({ id: his(), you: false }));
+    expect(alone.wins).toBe(1);
+    for (const k of CONTESTS) expect(R.CONTEST_GAME[k.attr], k.id).toBeDefined();
+  });
+
   it("has sound contests in data/rival.json", () => {
     const classes = new Set(Object.keys(ACTIONS).map((k) => k.split("/")[0]!));
     expect(CONTESTS.length).toBeGreaterThanOrEqual(6);

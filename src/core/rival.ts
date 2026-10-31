@@ -5,6 +5,7 @@
 // Viktor remembers every meeting, levels up when he wins, and over many
 // meetings a grudge or a friendship forms. All of it plays out by itself.
 // Pure; Stats owns one.
+import type { GameId, Moment, Pick } from "./moments";
 import type { Rng } from "./rng";
 import type { Attr, Fx, Stats } from "./stats";
 
@@ -35,6 +36,11 @@ export const MEMORY = 6;
 /** Something they compete for (data/rival.json): where, on which attribute, and how it starts ({PLACE} is where), is won and is lost. */
 export type Contest = { id: string; at: string[]; attr: Attr; text: string; won: string; lost: string };
 
+
+/** How the game asks a contest as a mini-game: show `m`, then `settle` with your result or his own; settle returns the feed line. */
+export type ContestAsk = (m: Moment, his: () => string, settle: (p: Pick) => string) => void;
+/** The mini-game each contest attribute is played as (moments.ts GAME_ATTR the other way round). */
+export const CONTEST_GAME: Partial<Record<Attr, GameId>> = { cha: "timing", luck: "cards", str: "taps", wit: "odd" };
 
 /** What a win and a loss do. */
 export const WIN_FX: Fx = { mood: 10, xp: 30 };
@@ -71,8 +77,13 @@ export class Rival {
     return his / (his + vik);
   }
 
-  /** Maybe a meeting at a stop at `place` (a place of map class `kind`) at `at`; returns its feed line, or "". */
-  meet(stats: Stats, contests: readonly Contest[], place: string, kind: string, at: [number, number], rng: Rng): string {
+  /**
+   * Maybe a meeting at a stop at `place` (a place of map class `kind`) at
+   * `at`; returns its feed line, or "". With `ask` a contest is a mini-game
+   * you may play: the line says it starts, and the result comes when it
+   * settles (his own roll if you don't play, the same roll as without `ask`).
+   */
+  meet(stats: Stats, contests: readonly Contest[], place: string, kind: string, at: [number, number], rng: Rng, ask?: ContestAsk): string {
     const city = stats.where.city;
     // At his first stop in a new city it is settled whether Viktor is there too.
     if (this.town !== city) {
@@ -94,16 +105,23 @@ export class Rival {
       return stats.say(`${RIVAL_ICON} Ran into ${RIVAL_NAME} at ${place}; they share a coffee and swap stories.${recall}`);
     }
     const c = rng.pick(here);
-    const won = rng.randf() < this.winChance(stats, c.attr);
-    if (won) this.wins++;
-    else {
-      this.losses++;
-      this.level++;
-    }
-    this.feeling = Math.max(this.feeling - FEELING_STEP, -FEELING_MAX);
-    stats.applyFx(won ? WIN_FX : LOSE_FX);
-    this.remember({ t, city, contest: c.id, won });
-    return stats.say(`${RIVAL_ICON} ${RIVAL_NAME} ${c.text.replaceAll("{PLACE}", place)}. ${won ? c.won : c.lost}${recall}`);
+    const his = rng.randf() < this.winChance(stats, c.attr);
+    const opening = `${RIVAL_ICON} ${RIVAL_NAME} ${c.text.replaceAll("{PLACE}", place)}.`;
+    const settle = (won: boolean, you: boolean) => {
+      if (won) this.wins++;
+      else {
+        this.losses++;
+        this.level++;
+      }
+      this.feeling = Math.max(this.feeling - FEELING_STEP, -FEELING_MAX);
+      stats.applyFx(won ? WIN_FX : LOSE_FX);
+      this.remember({ t, city, contest: c.id, won });
+      return `${you ? "" : "Played by himself: "}${won ? c.won : c.lost}${recall}`;
+    };
+    if (!ask) return stats.say(`${opening} ${settle(his, true)}`);
+    const m: Moment = { id: `rival:${c.id}`, icon: RIVAL_ICON, ask: opening, game: CONTEST_GAME[c.attr] ?? "timing", options: [{ id: "lost", label: "Lose" }, { id: "won", label: "Win" }], default: "lost" };
+    ask(m, () => (his ? "won" : "lost"), (p) => stats.say(`${RIVAL_ICON} ${settle(p.id === "won", p.you)}`));
+    return stats.say(opening);
   }
 
   /** Where Viktor shows on the map at unix seconds `t`, or null. */

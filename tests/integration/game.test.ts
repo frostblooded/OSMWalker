@@ -12,6 +12,7 @@ import type { Place } from "../../src/core/stats";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
+import { TENSION_MAX } from "../../src/core/storyteller";
 import { Api } from "../../src/net/api";
 import { dataFile } from "../support/data";
 import { WEST, START, CAFE, BUS, game, run, tick } from "../support/game";
@@ -159,7 +160,24 @@ describe("game", () => {
     const meet = vi.spyOn(g.stats.rival, "meet");
     run(g, 400);
     // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
-    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything(), expect.any(Function));
+  });
+
+  it("asks a story choice as a timed moment, and your tap picks how it goes", async () => {
+    const { g } = game({ places: [CAFE] });
+    const options = [{ id: "sing", label: "Sings", say: "coins fly." }, { id: "listen", label: "Listens", say: "he claps." }];
+    Object.assign(g.data, { incidents: [{ id: "busker", icon: "🎻", tone: "good", text: "A busker at {PLACE}.", lean: "cha", options }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // Full tension at every stop until the card comes (it fires on half of them at most).
+    for (let i = 0; i < 3 * 3600 && !g.moment; i++) {
+      g.stats.story.tension = TENSION_MAX;
+      g.step(1);
+    }
+    expect(g.moment?.m).toMatchObject({ id: "incident:busker", ask: "A busker at Cafe Near." });
+    g.settleMoment("1");
+    await Promise.resolve();
+    expect(g.stats.history.latest()).toBe("🎻 A busker at Cafe Near. Listens: he claps.");
+    expect(g.stats.incidentLatest()).toBe(true);
   });
 
   it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {
