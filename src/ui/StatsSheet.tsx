@@ -424,7 +424,7 @@ function CareersCard({ c }: { c: Careers }) {
     );
   };
   return (
-    <Card icon="🪜" title="Careers" right={list.length ? `Rank ${c.standing(list[0]!).rank} / ${TOP_RANK}` : undefined}>
+    <Card icon="🪜" title="Careers" right={list.length ? `Rank ${c.rank(c.best())} / ${TOP_RANK}` : undefined}>
       {list.length ? <div class="meters">{list.slice(0, SHOWN).map(row)}</div> : <p class="dim small">No shifts yet. He finds work as he goes.</p>}
       {list.length > SHOWN && (
         <Collapsible title="More" right={list.length - SHOWN}>

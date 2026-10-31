@@ -836,7 +836,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -845,6 +845,10 @@ Camera follows him (a switch, on at first and remembered) keeps him in view: the
 Route to goal (a switch, off at first and remembered) draws his planned route in orange: a solid line along the streets he will take, then a dashed straight line for the last part where the streets are not loaded yet.
 
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
+## Diary and dreams {diary}
+📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
+
+When he naps or sleeps at a place (a nap on a bench, in a reading room or under a tree, dozing in the summer sun, a siesta in the shade, falling asleep in a film, a cabin, a hostel bunk or a hotel room for the night; not a fairy ring), {DREAM_PCT} of the time he dreams: an odd mix of the places of his day. The dream shows in History and under that day in his diary.
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
 - Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).

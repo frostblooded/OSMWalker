@@ -1,7 +1,7 @@
 // Careers: shifts rank him up, each rank pays more and brings its own shift, and he leans to his best career.
 import { describe, expect, it } from "vitest";
 import { Activities, weight, type ActionTable } from "../../src/core/activities";
-import { CAREER_PULL, careerAt, careerOf, CAREERS, Careers, isCareerShift, isShift, rankFor, rankShift, SHIFTS_TO, TOP_RANK } from "../../src/core/careers";
+import { CAREER_PULL, careerAt, careerOf, CAREERS, Careers, isCareerShift, isShift, rankFor, RANK_SHIFTS, rankShift, SHIFTS_TO, TOP_RANK } from "../../src/core/careers";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Action } from "../../src/core/stats";
 import { dataFile } from "../support/data";
@@ -46,6 +46,13 @@ describe("ranks", () => {
 });
 
 describe("places", () => {
+  it("of one career share its rank shifts", () => {
+    const a = new Activities({ cafe: [{ name: "Wash cups", min: 60, earn: 25 }], bakery: [{ name: "Knead dough", min: 60, earn: 25 }] });
+    const shared = RANK_SHIFTS.get("cafe")!;
+    expect(a.data.cafe!.slice(1)).toEqual(shared);
+    expect(a.data.cafe![1]).toBe(a.data.bakery![1]);
+  });
+
   it("every career's places have a shift in data/actions.json", () => {
     for (const c of CAREERS) for (const k of c.at) expect(DATA[k]?.some(isCareerShift), `${c.id}: ${k}`).toBe(true);
   });

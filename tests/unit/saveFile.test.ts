@@ -231,6 +231,18 @@ describe("save file", () => {
     expect(stats.spots.toJSON()).toEqual({ cities: {} });
   });
 
+  it("loads saves from before the diary: an empty one, its first day the save's day", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.diary;
+    d.stats.anniversaries = { ...d.stats.anniversaries, day: "2026-10-30" };
+    d.stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
+  });
+
   it("loads saves from before friends: he has met no one", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

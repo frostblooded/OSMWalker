@@ -178,6 +178,11 @@ for (const width of [360, 412]) {
       await check(page, "help-search");
       await help.getByRole("button", { name: /Close/ }).click();
 
+      await openMenuItem(page, /Diary/);
+      await expect(page.getByRole("dialog", { name: /Diary/ })).toBeVisible();
+      await check(page, "diary");
+      await page.getByRole("dialog", { name: /Diary/ }).getByRole("button", { name: /Close/ }).click();
+
       await openMenuItem(page, /Stats/);
       await check(page, "stats");
       const mood = page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /🙂 Mood/ });
