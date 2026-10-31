@@ -468,26 +468,31 @@ describe("game", () => {
     const { g, storage } = game({ api, places: [MUSEUM], clock: () => now });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     const read = () => g.stats.history.entries.filter((e) => e.text.startsWith("📖")).map((e) => e.text);
-    const walk = async (min: number) => {
-      for (let i = 0; i < min; i++) {
+    // Walks a minute at a time until `done`, at most 10 hours.
+    const walk = async (done: () => boolean) => {
+      for (let i = 0; i < 600 && !done(); i++) {
         run(g, 60);
         now += 60_000;
         await tick();
       }
     };
-    // While Wikipedia is down he asks again at later visits.
-    await walk(60);
-    expect(read()).toEqual([]);
+    // While Wikipedia is down he asks again at a later visit.
+    await walk(() => asked.length > 1);
     expect(asked.length).toBeGreaterThan(1);
+    expect(read()).toEqual([]);
     expect(new Set(asked)).toEqual(new Set(["en"]));
     expect(g.stats.sightNotes.knows(visitKey(MUSEUM))).toBe(false);
     down = false;
     // The English article has another name, so the Bulgarian one is read.
-    await walk(60);
+    await walk(() => read().length > 0);
     expect(read()).toEqual(["📖 Read up on Национален исторически музей: Най-големият музей в България."]);
     expect(asked.slice(-2)).toEqual(["en", "bg"]);
+    // Two more visits ask nothing more.
     const n = asked.length;
-    await walk(60);
+    const visits = () => g.stats.history.entries.filter((e) => e.text.startsWith("Reached")).length;
+    const was = visits();
+    await walk(() => visits() >= was + 2);
+    expect(visits()).toBeGreaterThanOrEqual(was + 2);
     expect(asked).toHaveLength(n);
     g.save();
     const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
