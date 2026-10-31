@@ -325,6 +325,10 @@ export class Stats {
   incidentLine = "";
   /** Minutes walked since the last roll for money on the street. */
   walkMin = 0;
+  /** True while the game can ask you a chance card at work (game.ts sets it around its own actions); off, as in the catch-up, he picks by himself. Not saved. */
+  askCards = false;
+  /** A chance card at work waiting for your tap, and its dice, for the game to ask; not saved. */
+  workCard: { d: Work.Drawn; dice: Rng } | null = null;
   /** Unix seconds, for history entries; tests (and the catch-up) replace it. */
   now = () => Math.floor(Date.now() / 1000);
   /** The sky over him (season, sun, weather); the game and the catch-up set it, null when unknown. */
@@ -1189,7 +1193,12 @@ export class Stats {
     const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
-    if (earned && Ca.isShift(action)) this.sayIf(Work.draw(this, earned, new Rng(seedOf(`work${this.now()}${where}`))));
+    if (earned && Ca.isShift(action)) {
+      const dice = new Rng(seedOf(`work${this.now()}${where}`));
+      const d = this.askCards ? Work.drawCard(earned, dice) : null;
+      if (d) this.workCard = { d, dice };
+      else if (!this.askCards) this.sayIf(Work.draw(this, earned, dice));
+    }
     if (action.career && Ca.isShift(action)) this.promote(action.career, where);
     return line;
   }
