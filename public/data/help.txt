@@ -22,7 +22,7 @@ What goes by the calendar still turns over when you come back: a new day (his di
 
 The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device only. Clearing the browser's site data starts you over. If a save can't be read, the game says so and starts over, and keeps a copy of the old save on the device in case it can be fixed.
 ## Welcome back and the boost {away}
-When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), he gets a boost: everything about him runs {BOOST}× as fast for a while, on the map, while you watch. He walks, rides, gets hungry, earns, does his actions, quests and trips {BOOST}× as fast; the sun, the weather and the calendar don't speed up.
+When the game opens again after at least {MIN_AWAY_MIN} minute away (closed, or the tab hidden), he gets a boost: everything about him runs {BOOST}× as fast for a while, on the map, while you watch. He walks, rides, gets hungry, earns, does his actions, quests and trips {BOOST}× as fast; the sun, the weather and the calendar don't speed up, and little moments and his speech bubble keep their own pace in your seconds (see Little moments).
 
 The boost lasts the time you were away divided by {BOOST_DIV}, so by the end he has lived through exactly the time you missed: {EXAMPLE_AWAY_H} hours away give {EXAMPLE_BOOST} of {BOOST}× speed. There is no limit on the time away. If you leave again before a boost is used up, what is left is kept, and the next time away adds to it.
 
