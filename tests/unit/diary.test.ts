@@ -63,6 +63,15 @@ describe("diary", () => {
     expect(d.entries.at(-1)!.lines).toHaveLength(2);
   });
 
+  it("never dreams of a quirk as if it were a place", () => {
+    const d = new D.Diary();
+    d.close("2026-10-29", CITY, DATA, new Rng(1));
+    d.note("quirk", "Night owl");
+    const dreams = Array.from({ length: 50 }, (_, i) => d.dream(DATA, new Rng(i))).filter(Boolean);
+    expect(dreams.length).toBeGreaterThan(0);
+    for (const l of dreams) expect(l).not.toContain("Night owl");
+  });
+
   it("dreams DREAM_CHANCE of the time, of a place from his day", () => {
     const d = new D.Diary();
     d.close("d0", CITY, DATA, new Rng(1));

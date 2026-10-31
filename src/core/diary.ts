@@ -77,7 +77,8 @@ export class Diary {
   /** He naps or sleeps: with DREAM_CHANCE, a dream remixing today's places (or the city). Returns it, or "". */
   dream(data: DiaryData | null, rng: Rng): string {
     if (!data?.dreams.length || rng.randf() >= DREAM_CHANCE) return "";
-    const places = [...new Set(this.today.notes.map((n) => n.place))];
+    // A quirk's note holds its name, not a place.
+    const places = [...new Set(this.today.notes.filter((n) => n.kind !== "quirk").map((n) => n.place))];
     const a = places.length ? rng.pick(places) : this.today.city.split(",")[0] || "the city";
     const line = fill(rng.pick(data.dreams), { A: a, B: rng.pick(data.things) });
     this.today.dreams.push(line);
