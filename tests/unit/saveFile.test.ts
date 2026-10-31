@@ -88,7 +88,7 @@ describe("save file", () => {
     delete d.stats.care;
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "", guess: null });
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "" });
     expect(back.stats.cents).toBe(4321);
   });
 
@@ -115,14 +115,24 @@ describe("save file", () => {
     expect(back.stats.week.pending()).toBeNull();
   });
 
-  it("loads saves with clovers from before guesses with no guess open", () => {
+  it("loads saves with clovers from before guesses", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
     d.stats.care = { clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" };
     kv.setItem(SAVE_KEY, JSON.stringify(d));
     const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "2026-10-30", today: 1, parcel: "snack", guess: null });
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" });
+  });
+
+  it("loads saves with a trip guess, dropping it", () => {
+    const kv = new MemStorage();
+    new SaveFile(kv).write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    d.stats.care = { clovers: 2, day: "", today: 0, parcel: "", guess: { abroad: false, choices: ["Varna"], answer: "Varna", pick: "" } };
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    const back = new SaveFile(kv).read() as Saved;
+    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "", today: 0, parcel: "" });
   });
 
   it("fills in what old saves lack: zoom and the city box", () => {
@@ -554,7 +564,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
     f.write(saved());
-    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems(), postcardName: "", alwaysDilemma: false });
+    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems(), postcardName: "", alwaysDilemma: false, momentS: 5 });
     f.clear();
     expect(f.has()).toBe(false);
     expect(kv.getItem(SETTINGS_KEY)).not.toBeNull();
@@ -567,12 +577,12 @@ describe("save file", () => {
     const problems = new Problems();
     problems.quiet = true;
     problems.warn("kept");
-    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems, postcardName: "Ivan", alwaysDilemma: true });
+    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems, postcardName: "Ivan", alwaysDilemma: true, momentS: 10 });
     const s = f.readSettings() as Exclude<ReturnType<SaveFile["readSettings"]>, string | null>;
-    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, postcardName: "Ivan", alwaysDilemma: true });
+    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, postcardName: "Ivan", alwaysDilemma: true, momentS: 10 });
     expect(s.problems.warnings.map((w) => w.text)).toContain("kept");
     kv.setItem(SETTINGS_KEY, "{}");
-    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false, postcardName: "", alwaysDilemma: false });
+    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false, postcardName: "", alwaysDilemma: false, momentS: 5 });
     kv.setItem(SETTINGS_KEY, "nope");
     expect(f.readSettings()).toBe("Settings were unreadable; using defaults");
   });

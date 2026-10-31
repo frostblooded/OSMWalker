@@ -18,6 +18,7 @@ import { Clubs } from "./clubs";
 import * as Cook from "./cooking";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
+import * as PM from "./placeMoments";
 import * as Mg from "./magic";
 import { Mind, noun, WANT_XP } from "./mind";
 import * as Qk from "./quirks";
@@ -43,7 +44,7 @@ import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import * as Lang from "./languages";
 import * as Lt from "./lottery";
-import { defaultPick } from "./moments";
+import * as M from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import * as R from "./repute";
@@ -255,6 +256,8 @@ export class Stats {
   creatures = new Cr.Creatures();
   /** Who the place creatures are, from data/creatures.json; not saved, the game sets it. */
   creatureKinds: readonly Cr.Creature[] = [];
+  /** The choice or mini-game at each kind of place (data/moments.json). */
+  placeMoments: PM.PlaceMoments = {};
   /** His Magic meter, 0 to Mg.MAGIC_MAX: ley lines fill it, spells spend it (magic.ts). */
   magic = 0;
   /** The spells he knows and the ley places he drew from today. */
@@ -1275,7 +1278,7 @@ export class Stats {
   /** Ends the chase begun at the place named `place` with his own pick by his karma (moments.ts defaultPick), from his money and energy as they are now, not when it began; see chased. Its own dice. */
   runChase(place: string): number {
     const rng = new Rng(seedOf(`chase${this.now()}${place}`));
-    return this.chased(defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick, rng.randf());
+    return this.chased(M.defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick, rng.randf());
   }
 
   /** The chase ends with `pick` and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
@@ -1587,7 +1590,40 @@ export class Stats {
   /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
   meetAt(place: Pick<Place, "class" | "name">): void {
     const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+    if (c) this.meet(c, place.name, M.defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+  }
+
+  /** The moment at `place` when he starts an activity there, or null with none loaded. */
+  momentAt(place: Pick<Place, "class" | "subclass">): PM.PlaceMoment | null {
+    return PM.momentFor(this.placeMoments, place);
+  }
+
+  /**
+   * Applies pick `pick` of moment `m` at the place named `where`, chosen by
+   * you or (`you` false) by himself, on the moment's own `dice` (a risky
+   * option's roll, then a free item). Returns the feed line.
+   */
+  settleMoment(m: PM.PlaceMoment, where: string, pick: string, you: boolean, dice: Rng): string {
+    const o = PM.outcomeOf(m, pick, (a) => this.attr(a), dice.randf());
+    const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
+    const net = (o.gain ?? 0) - paid;
+    this.cents += net;
+    if (o.fx) this.applyFx(o.fx);
+    if (o.buff) this.addBuff(o.buff);
+    let got = "";
+    if (o.item) {
+      const item = Items.make(o.item, this.level, dice, this.attr("luck"));
+      item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
+      if (this.isUpgrade(item)) this.equip(item);
+      else this.bagAdd(item);
+      got = ` and got a free ${item.rarity} ${item.name}`;
+    }
+    return this.say(`${m.icon} ${you ? "" : "Decided by himself: "}${o.say.replaceAll("{PLACE}", where)}${got}${net ? ` (${signed(net)})` : ""}`);
+  }
+
+  /** Moment `m` at `where` with nobody to ask (the catch-up): he takes his own pick, on `dice` (placeMoments.ts momentDice). */
+  byHimself(m: PM.PlaceMoment | null, where: string, dice: Rng): void {
+    if (m) this.settleMoment(m, where, M.defaultPick(m, this, dice), false, dice);
   }
 
   /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */
