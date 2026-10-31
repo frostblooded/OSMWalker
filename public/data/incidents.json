@@ -17,7 +17,8 @@
   { "id": "phone_drop", "icon": "📱", "tone": "bad", "text": "His phone slips out of his hand at {PLACE}.", "eur": -40, "fx": { "mood": -10 }, "say": "A cracked screen, fixed at a kiosk." },
   { "id": "dragon_sneeze", "icon": "🐉", "tone": "bad", "text": "His dragon sneezes outside {PLACE}.", "rides": ["dragon"], "eur": -30, "say": "He pays for a singed awning." },
 
-  { "id": "stray_dog", "icon": "🐕", "tone": "good", "text": "A stray dog follows him from {PLACE}.", "fx": { "mood": 12 }, "buff": { "name": "Dog company", "min": 60, "per_h": { "mood": 4 } }, "say": "It trots along for a while, then wanders home." },
+  { "id": "stray_dog", "icon": "🐕", "tone": "good", "text": "A stray dog follows him from {PLACE}.", "fx": { "mood": 12 }, "buff": { "name": "Dog company", "min": 60, "per_h": { "mood": 4 } }, "say": "It trots along for a while.", "stray": "dog" },
+  { "id": "stray_cat", "icon": "🐈", "tone": "good", "text": "A thin cat winds round his legs outside {PLACE}.", "fx": { "mood": 10 }, "buff": { "name": "Cat company", "min": 60, "per_h": { "mood": 3 } }, "say": "He shares a bit of his lunch with it.", "stray": "cat" },
   { "id": "wedding", "icon": "💒", "tone": "good", "text": "A wedding is spilling out of {PLACE}.", "at": ["place_of_worship", "town_hall"], "fx": { "mood": 15, "fullness": 25, "thirst": 20, "xp": 20 }, "say": "They wave him in for cake and a dance." },
   { "id": "pub_quiz", "icon": "🧠", "tone": "good", "text": "It's quiz night at {PLACE}.", "at": ["beer", "bar"], "time": "evening", "eur": 25, "fx": { "mood": 10, "xp": 25 }, "say": "His team wins by one point." },
   { "id": "found_note", "icon": "💶", "tone": "good", "text": "A note blows across the square by {PLACE}.", "eur": [5, 20], "fx": { "mood": 8 }, "say": "Nobody claims it." },
