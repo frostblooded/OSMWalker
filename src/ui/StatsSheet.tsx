@@ -1,7 +1,9 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// six meters and Magic as bars, the sky over him, the spells he knows,
+// his weekly bills, six meters and Magic as bars, the sky over him, the spells he knows,
+// the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
-// buffs. Items with a story open to show it. His records close it.
+// buffs, his rival, friends and pet. Items with a story open to show it.
+// His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -13,7 +15,10 @@ import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEE
 import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
+import { billsAt } from "../core/bills";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { dayOf } from "../core/gifts";
+import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -130,6 +135,33 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** Languages shown on the Local words card before the rest fold away. */
+const WORD_ROWS = 4;
+
+/** The local words he knows, by language (most first, the rest folded), with the last one learned. */
+function LocalWords({ stats: s }: { stats: Stats }) {
+  const book = s.wordBook;
+  const rows = Object.entries(s.words.known)
+    .filter(([k, l]) => l.length && book?.languages[k])
+    .sort(([, a], [, b]) => b.length - a.length)
+    .map(([k, l]) => {
+      const lang = book!.languages[k]!;
+      const last = lang.words.find(([, m]) => m === l.at(-1));
+      return <KV key={k} k={`${lang.name} ${l.length} / ${lang.words.length}`} v={last ? `${last[0]} = ${last[1]}` : ""} />;
+    });
+  const more = rows.slice(WORD_ROWS);
+  return (
+    <Card icon="🗣" title="Local words" right={s.words.count() || undefined}>
+      {rows.length ? <div class="zebra">{rows.slice(0, WORD_ROWS)}</div> : <KV k="Learned" v="none so far" />}
+      {more.length > 0 && (
+        <Collapsible title="More languages" right={more.length}>
+          <div class="zebra">{more}</div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
@@ -170,6 +202,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         <Bar share={s.xp / need} color="#e8730c" />
         <KV k="Speed" v={speed(s.speedMps(afoot))} />
         <KV k="XP from mood" v={`×${moodXpMult(s.meters.mood).toFixed(2)}`} />
+        <KV k="Weekly bills" v={euro(billsAt(s.level))} />
       </Card>
       <QuestCard q={s.quests} now={s.now()} />
       {(goal || feed > 0 || s.savingFor > 0) && (
@@ -200,6 +233,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
       <Spells stats={s} />
+      <LocalWords stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {
@@ -245,6 +279,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <RivalCard s={s} />
       <FriendsCard s={s} />
+      <PetCard s={s} />
       <Card icon="✨" title="Effects">
         {s.buffs.length ? (
           <div class="zebra">
@@ -281,7 +316,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
       {recent.length > 0 && (
         <div class="zebra">
           {recent.map((e, i) => (
-            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "✖ Failed"}</span>} />
+            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : e.event ? "dim" : "tone-error"}>{e.good ? "✔ Went well" : e.event ? "Went badly" : "✖ Failed"}</span>} />
           ))}
         </div>
       )}
@@ -311,6 +346,37 @@ function FriendsCard({ s }: { s: Stats }) {
         const k = clubKind(c);
         return <KV key={c.city} k={`${k.icon} ${k.name[0]!.toUpperCase()}${k.name.slice(1)}`} v={`${c.city.split(",")[0]} · ${DAYS[c.day]!.slice(0, 3)} ${String(c.hour).padStart(2, "0")}:00`} />;
       })}
+    </Card>
+  );
+}
+
+/** His pet: level, km together and its perk; the pets he had fold away below. */
+function PetCard({ s }: { s: Stats }) {
+  const ps = s.pets;
+  const p = ps.pet;
+  const lvl = ps.level();
+  const days = p ? Math.floor((s.now() - p.since) / 86400) : 0;
+  return (
+    <Card icon={p ? ps.icon() : "🐾"} title={p ? ps.title() : "Pet"} right={p ? `Level ${lvl}` : undefined}>
+      {p ? (
+        <>
+          <KV k="Walked together" v={lvl < PET_MAX_LEVEL ? `${Math.floor(p.km)} / ${kmFor(lvl + 1)} km` : `${Math.floor(p.km)} km`} />
+          <KV k="Perk" v={PET_KINDS[p.kind].perk} />
+          <KV k="With him" v={days === 1 ? "1 day" : `${days} days`} />
+          <KV k="Fed today" v={p.fed === dayOf(s.now() * 1000) ? "Yes" : "No, grumpy"} tone={p.fed === dayOf(s.now() * 1000) ? undefined : "warning"} />
+        </>
+      ) : (
+        <p class="dim small">No pet yet. Now and then a stray follows him, and one may stay.</p>
+      )}
+      {ps.past.length > 0 && (
+        <Collapsible title="Remembered" right={ps.past.length}>
+          <div class="zebra">
+            {ps.past.map((r) => (
+              <KV key={r.since} k={`${r.fairy ? PET_KINDS[r.kind].fairy.icon : PET_KINDS[r.kind].icon} ${r.name}`} v={`${Math.round((r.until - r.since) / 86400)} days`} />
+            ))}
+          </div>
+        </Collapsible>
+      )}
     </Card>
   );
 }

@@ -141,12 +141,19 @@ describe("the capitals' own quests", () => {
   });
 
   it("belong to the listed city only, not to another town near it", () => {
-    const paris = { name: "Paris", country: "France" };
-    expect(Q.listedKey("Paris, Île-de-France, France", paris)).toBe("Paris, France");
-    expect(Q.listedKey("Paris, France", paris)).toBe("Paris, France");
-    expect(Q.listedKey("Bogotá, Bogotá D.C., Colombia", { name: "Bogota", country: "Colombia" })).toBe("Bogota, Colombia");
-    expect(Q.listedKey("Versailles, Île-de-France, France", paris)).toBe("");
-    expect(Q.listedKey("Somewhere", null)).toBe("");
+    const paris = { name: "Paris", country: "France", lat: 48.8566, lon: 2.3522 };
+    const versailles: [number, number] = [48.8049, 2.1204];
+    expect(Q.listedKey("Paris, Île-de-France, France", paris, versailles)).toBe("Paris, France");
+    expect(Q.listedKey("Versailles, Île-de-France, France", paris, versailles)).toBe("");
+    expect(Q.listedKey("Bogotá, Bogotá D.C., Colombia", { name: "Bogota", country: "Colombia", lat: 4.6, lon: -74.08 }, [40, 0])).toBe("Bogota, Colombia");
+    expect(Q.listedKey("Somewhere", null, versailles)).toBe("");
+  });
+
+  it("know a listed city near its centre whatever the search called it: local names, Astana, Washington", () => {
+    const at: [number, number] = [38.9, -77.04];
+    expect(Q.listedKey("Washington, District of Columbia, United States", { name: "Washington,  D.C.", country: "United States of America", lat: 38.9, lon: -77.01 }, at)).toBe("Washington,  D.C., United States of America");
+    expect(Q.listedKey("Astana, Kazakhstan", { name: "Nur-Sultan", country: "Kazakhstan", lat: 51.18, lon: 71.45 }, [51.16, 71.47])).toBe("Nur-Sultan, Kazakhstan");
+    expect(Q.listedKey("София, България", { name: "Sofia", country: "Bulgaria", lat: 42.69, lon: 23.32 }, [42.7, 23.33])).toBe("Sofia, Bulgaria");
   });
 
   it("are kept done for good, however many template quests he finishes after", () => {

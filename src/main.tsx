@@ -44,6 +44,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
       void import("./ui/CareSheet").catch(() => undefined);
       void import("./map/icons").catch(() => undefined);
       void import("./core/poiGen").catch(() => undefined);
+      void import("./core/iso2").catch(() => undefined);
     });
   };
   const later = () => whenIdle(register);

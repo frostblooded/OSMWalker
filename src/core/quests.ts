@@ -7,10 +7,9 @@
 // takes one on and does its steps back to back, stopping only for an urgent
 // need; at its middle step it goes on or fails, ending early with no
 // reward. World events (Guild Wars 2's dynamic events) pop up at real
-// places near him with a timer: he
-// joins one when he is free, it goes well or badly, and either way a
-// follow-up may come next; one he misses plays out without him. Nothing here
-// waits for you. Pure; Stats owns one Quests, and the game and the catch-up
+// places near him with a timer: he joins one when he is free, it goes well
+// or badly, and either way a follow-up may come next; one he misses plays
+// out without him. Nothing here waits for you. Pure; Stats owns one Quests, and the game and the catch-up
 // both call questGoal before a goal and questStop at each stop.
 import { anyUrgent } from "./activities";
 import { distanceM } from "./geo";
@@ -48,7 +47,7 @@ export const EVENT_MAX = 2;
 export const EVENT_NEAR_M = 1200;
 /** Chance a follow-up event comes after one ends. */
 export const FOLLOW_CHANCE = 0.6;
-/** A quest goes well at even odds, plus his leaning attribute's share (see incidents.ts leanShare). */
+/** A quest gets past its middle step at even odds, plus his leaning attribute's share (see incidents.ts leanShare); else it fails there. An event goes well at the same odds. */
 export const GOOD_BASE = 0.5;
 /** Quests he remembers having done, so they don't come back. */
 export const DONE_MAX = 1000;
@@ -73,7 +72,7 @@ export type QuestKind = {
   items: string[];
   /** The first step is where the quest giver is. */
   steps: Step[];
-  /** Halfway through, one of these may turn the story. */
+  /** Halfway through, one of these may turn the story; that middle step is also where the quest goes on or fails. */
   twists: string[];
   /** The attribute that makes it go well. */
   lean: Attr;
@@ -133,9 +132,13 @@ export function stepPlaces(step: Step, places: readonly Place[]): Place[] {
 /** Lower case without accents, so "Bogotá" and "Bogota" match. */
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** The cities.tsv key city quests match for a game city named `city` (however a search spelled it), given the listed `near`est city: "" when the game city is another town nearby. */
-export function listedKey(city: string, near: { name: string; country: string } | null): string {
-  return near && fold(city).startsWith(fold(near.name)) ? `${near.name}, ${near.country}` : "";
+/** A start this close to a listed city's centre is that city, however the search named it. */
+export const LISTED_M = 8000;
+/** The cities.tsv key city quests match for a game city named `city` (however a search spelled it) starting at `at`, given the listed `near`est city: "" when the game city is another town nearby. */
+export function listedKey(city: string, near: { name: string; country: string; lat: number; lon: number } | null, at: LatLon): string {
+  if (!near) return "";
+  const same = fold(city).startsWith(fold(near.name)) || distanceM(at[0], at[1], near.lat, near.lon) < LISTED_M;
+  return same ? `${near.name}, ${near.country}` : "";
 }
 
 /** The done keys kept: every city quest (its key is its id, with no ":"), and the newest DONE_MAX of the rest. */

@@ -253,6 +253,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       stats.meetAt(place);
       // Ley lines and old books are in real churches and libraries only.
       if (city.places) stats.magicAt(place);
+      stats.wordAt(place);
       // Giants show from real waterfronts and viewpoints only.
       if (city.places) stats.giantAt(place);
       const nap = city.places ? stats.fairyAt(place, sky.hour) : 0;
@@ -278,7 +279,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         yield;
         continue;
       }
-      const action = choose([...activities.forPlace(place, city.code), ...facts], stats, sky.hour, rng.randf());
+      const action = choose([...activities.forPlace(place, city.code, sky.holiday), ...facts], stats, sky.hour, rng.randf());
       if (action) stats.do(action, place.name, action.pack ? (deps.cardRng ?? rng) : rng, place.class);
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;

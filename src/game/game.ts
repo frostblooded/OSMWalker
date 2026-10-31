@@ -14,6 +14,7 @@ import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
 import { distanceM, type BBox } from "../core/geo";
+import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
@@ -27,6 +28,7 @@ import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
+import type { WordBook } from "../core/words";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
 import type { Contest } from "../core/rival";
@@ -45,9 +47,13 @@ import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
 import { Journey, type Where } from "./journey";
-import { DEFAULT_ZOOM, SaveFile, type KV } from "./saveFile";
+import { DEFAULT_ZOOM, SaveFile, type HolidayBook, type KV } from "./saveFile";
 
 export { DEFAULT_ZOOM, SAVE_KEY, SETTINGS_KEY } from "./saveFile";
+
+/** core/iso2.ts, loaded once per page on first use so the code table stays out of the startup script. */
+let iso2Load: Promise<typeof import("../core/iso2")> | null = null;
+const iso2Module = () => (iso2Load ??= import("../core/iso2"));
 
 /** Street cells loaded with no places of note before the city counts as having none. */
 export const NO_PLACES_CELLS = 3;
@@ -67,7 +73,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -104,6 +110,13 @@ export class Game {
   zoom = DEFAULT_ZOOM;
   /** Trivia actions for random spots, from Wikidata. */
   cityFacts: Action[] = [];
+  /** Today's public holiday where he is, or null. */
+  holiday: Holidays.Holiday | null = null;
+  /** Holiday lists by "CC:year" (from the device, then Nager.Date), and lists being fetched. */
+  private holidayBook: HolidayBook;
+  private holidayFetches = new Map<string, Promise<void>>();
+  /** Two-letter country codes (see loadIso2). */
+  private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
   showCityArea = false;
@@ -173,6 +186,7 @@ export class Game {
     this.rng = deps.rng ?? new Rng();
     this.cardRng = deps.cardRng ?? new Rng();
     this.file = deps.storage === undefined ? new SaveFile() : new SaveFile(deps.storage);
+    this.holidayBook = this.file.readHolidays();
     this.trips = new Trips(deps.data.cities, deps.data.airports);
     this.journey = new Journey({ trips: this.trips, rng: this.rng, roll: deps.rollSource, route: (a, b) => deps.api.route(a, b), problem: (t) => this.problems.warn(t) });
     this.activities = new Activities(deps.data.actions, deps.data.flavour);
@@ -205,10 +219,12 @@ export class Game {
     return (this.stats.sky ?? this.sky()).hour;
   }
 
-  /** The sky over him now, or at unix ms over a city: weather only where the forecast is for, and none while he rides. */
-  sky(ms = this.now(), city = this.city, at: LatLon = this.origin): Sky {
+  /** The sky over him now, or at unix ms over a city in the country with `code`: weather only where the forecast is for, and none while he rides. */
+  sky(ms = this.now(), city = this.city, at: LatLon = this.origin, code = this.country): Sky {
     const f = this.weather?.city === city ? this.weather : null;
-    const sky = skyAt(ms, at[0], at[1], f?.offsetS ?? offsetFromLon(at[1]), this.walker?.isTraveling() ? null : weatherAt(f, ms));
+    const offsetS = f?.offsetS ?? offsetFromLon(at[1]);
+    const holiday = this.holidayOn(ms, code, offsetS) !== null;
+    const sky = skyAt(ms, at[0], at[1], offsetS, this.walker?.isTraveling() ? null : weatherAt(f, ms), holiday);
     const pinned = this.deps.hour?.();
     return pinned === undefined ? sky : { ...sky, hour: pinned, clock: pinned };
   }
@@ -364,6 +380,7 @@ export class Game {
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
+    this.stats.wordAt(place);
     this.stats.giantAt(place);
     const nap = this.stats.fairyAt(place, this.hour());
     if (nap) {
@@ -390,7 +407,7 @@ export class Game {
       this.changed();
       return;
     }
-    const action = choose([...this.activities.forPlace(place, this.country), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
+    const action = choose([...this.activities.forPlace(place, this.country, sky.holiday), ...this.cityFacts], this.stats, sky.hour, this.rng.randf());
     this.doing = action ?? null;
     if (!action) {
       this.problems.warn(`Nothing to do at ${place.name}`);
@@ -534,12 +551,13 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.borders = this.deps.data.borders ?? null;
+    this.stats.wordBook = this.deps.data.words ?? null;
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
@@ -651,7 +669,9 @@ export class Game {
         this.loader.request(cellsByPriority(here[0], here[1], STREET_RING));
         await new Promise((r) => setTimeout(r, 50));
       }
-      const D = await Promise.race([dilemmas, new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS))]);
+      // The code table comes in the same short wait, so the catch-up knows the holidays kept on the device; it never waits on the network for a list.
+      const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
+      const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
@@ -702,13 +722,13 @@ export class Game {
     const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
     const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: Q.listedKey(this.city, near) };
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: Q.listedKey(this.city, near, this.origin) };
     const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
       rng: this.rng,
       cardRng: this.cardRng,
-      skyAt: (ms, c) => this.sky(ms, c.name, c.center),
+      skyAt: (ms, c) => this.sky(ms, c.name, c.center, c.code),
       roll: this.deps.rollSource,
       facts: this.cityFacts,
       skipRoll: this.skipRoll,
@@ -916,6 +936,48 @@ export class Game {
     this.leyM = 0;
   }
 
+  /** The holiday on the local day of unix ms (`offsetS` ahead of UTC) in the country with `code`, or null; fetches that year's list the first time it is missing. */
+  private holidayOn(ms: number, code: string, offsetS?: number): Holidays.Holiday | null {
+    if (!this.iso2) {
+      void this.loadIso2();
+      return null;
+    }
+    const cc = this.iso2(code);
+    if (!cc) return null;
+    const day = Holidays.dayOf(ms, offsetS);
+    const key = `${cc}:${day.slice(0, 4)}`;
+    const list = this.holidayBook.lists[key];
+    if (list) return Holidays.on(list, ms, offsetS);
+    if (!this.holidayFetches.has(key)) {
+      const fetching = this.deps.api.holidays(Number(day.slice(0, 4)), cc).then((got) => {
+        if (!got) return; // failed: asked again next session
+        this.holidayBook.lists[key] = got;
+        this.file.writeHolidays(this.holidayBook, new Date(this.now()).getFullYear());
+      });
+      this.holidayFetches.set(key, fetching);
+    }
+    return null;
+  }
+
+  private async loadIso2(): Promise<void> {
+    this.iso2 = (await iso2Module()).iso2;
+  }
+
+  /** Once a second: today's holiday where he is, told in the feed once a day. */
+  private checkHoliday(): void {
+    const now = this.now();
+    const offsetS = this.stats.sky?.offsetS;
+    this.holiday = this.country ? this.holidayOn(now, this.country, offsetS) : null;
+    const said = `${this.country}:${Holidays.dayOf(now, offsetS)}`;
+    if (!this.holiday || this.holidayBook.said === said) return;
+    this.holidayBook.said = said;
+    this.file.writeHolidays(this.holidayBook, new Date(now).getFullYear());
+    const h = this.holiday;
+    const local = h.localName && h.localName !== h.name ? ` (${h.localName})` : "";
+    this.stats.say(`It's ${h.name}${local} here, a public holiday`);
+    this.changed();
+  }
+
   /**
    * Once a second: warns (once per city) when enough streets are loaded but
    * no places of note, and once the streets all around him are loaded checks
@@ -923,6 +985,7 @@ export class Game {
    */
   private checkCity(): void {
     this.stats.sky = this.sky();
+    this.checkHoliday();
     void this.refreshWeather();
     const w = this.walker;
     if (!w || w.isTraveling()) {
@@ -1024,7 +1087,7 @@ export class Game {
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
     const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near));
+    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near, this.origin));
     if (q.rev !== rev) this.changed();
   }
 
