@@ -256,7 +256,11 @@ function Streets({ stats: s }: { stats: Stats }) {
       )}
       {names.length > 0 && (
         <Collapsible title={`Streets in ${short(here)}`} right={names.length}>
-          <p class="dim">{names.join(" · ")}</p>
+          <div class="zebra">
+            {names.map((n) => (
+              <KV key={n} k={n} v="" />
+            ))}
+          </div>
         </Collapsible>
       )}
     </Card>

@@ -129,9 +129,9 @@ export class Game {
   private holidayFetches = new Map<string, Promise<void>>();
   /** When he last looked sights up (unix ms, the past hour), and whether a lookup is under way (see readUp). */
   private noteAsks: number[] = [];
+  private noteBusy = false;
   /** The street he walked last (see walkStreet); not saved. */
   private street = "";
-  private noteBusy = false;
   /** Two-letter country codes (see loadIso2). */
   private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
@@ -398,7 +398,6 @@ export class Game {
     }
   }
 
-  /** His spot goes in the history and extends the trail. */
   /** Notes the street he walks for his street collection, once each time he turns into another one. */
   private walkStreet(name: string): void {
     if (name === this.street) return;
@@ -406,6 +405,7 @@ export class Game {
     this.stats.streetAt(name);
   }
 
+  /** His spot goes in the history and extends the trail. */
   private track(): void {
     const p = this.walker!.position();
     this.stats.history.moveTo(p[0], p[1]);
