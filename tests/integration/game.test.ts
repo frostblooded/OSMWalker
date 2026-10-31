@@ -340,26 +340,33 @@ describe("game", () => {
 
   it("an untouched creature goes by his pick and Wits of when it asked, as away", async () => {
     const BRIDGE: Place = { ...CAFE, name: "Old Bridge", class: "bridge", subclass: "bridge" };
-    // Several meeting times, so a pick or riddle worked out later, on his new Wits, would differ for some.
-    for (let n = 0, t = 1_800_000_000; n < 8; t += 60) {
+    // Several meeting times, so a pick or riddle worked out later, on his new Wits or the dice of a later time, would differ for some.
+    const lines: string[] = [];
+    for (let n = 0, t = 1_800_000_000; n < 24; t += 60) {
       if (meetingDice(t, BRIDGE.name).randf() >= CREATURE_CHANCE) continue;
       n++;
       const { g } = game({ places: [BRIDGE], moments: true });
       await g.startCity("Sofia, Bulgaria", ...START, null);
       g.stats.cents = 100_000;
-      g.stats.now = () => t;
+      // Clever enough that he sometimes tries the riddle himself.
+      g.stats.addBuff({ name: "Sharp", min: 600, attrs: { wit: 4 } });
+      let now = t;
+      g.stats.now = () => now;
       for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
       expect(g.moment!.m.id).toBe("troll");
       // Away, he would settle it at once on what he is now.
       const away = Object.assign(Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON()))), { creatureKinds: g.stats.creatureKinds });
       const troll = g.stats.creatureKinds.find((c) => c.id === "troll")!;
       const line = away.meet(troll, BRIDGE.name, away.creaturePick(troll, BRIDGE.name, t), { you: false, t, attr: (a) => away.attr(a) });
-      // Watched, his Wits soar while the sheet is open, then the bar runs out.
-      g.stats.addBuff({ name: "Sudden genius", min: 600, attrs: { wit: 100 } });
+      // Watched, his Wits fall away while the sheet is open (a riddle tried on them works only at the base odds), then the bar runs out.
+      g.stats.addBuff({ name: "Muddled", min: 600, attrs: { wit: -100 } });
+      now += MOMENT_S;
       run(g, MOMENT_S);
       await tick();
       expect(g.stats.history.entries.map((e) => e.text)).toContain(line);
+      lines.push(line);
     }
+    expect(lines.some((l) => l.includes("riddle"))).toBe(true);
   });
 
   it("a police chase that starts at a creature's stop answers the creature himself, so he runs on", async () => {
