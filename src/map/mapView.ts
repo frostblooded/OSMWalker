@@ -67,7 +67,8 @@ export class MapView implements MapPort {
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
-  /** performance.now() when his pose last moved. */
+  /** His pose ("icon motion", "" for none) and performance.now() when it last moved. */
+  private poseKey = "";
   private poseAt = 0;
   private iconKey = "";
   /** The icon pictures and layer, added the first time there is an icon to show. */
@@ -212,13 +213,11 @@ export class MapView implements MapPort {
    */
   setLook(l: Look): void {
     const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
-    const el = this.him.getElement();
-    const bubble = el.querySelector<HTMLElement>(".bubble")!;
-    const now = performance.now();
     if (key === this.lookKey) {
-      if (!l.pose || now - this.poseAt < POSE_EVERY_S * 1000) return;
+      if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
       // Dropping the pose's class and a reflow restart its CSS animation.
-      this.poseAt = now;
+      this.poseAt = performance.now();
+      const bubble = this.him.getElement().querySelector<HTMLElement>(".bubble")!;
       const cls = bubble.className;
       bubble.className = "bubble";
       void bubble.offsetWidth;
@@ -226,11 +225,15 @@ export class MapView implements MapPort {
       return;
     }
     this.lookKey = key;
-    this.poseAt = now;
+    // Only a new pose plays from the start; a new face keeps the pose's minute running.
+    const pose = l.pose ? `${l.pose.icon} ${l.pose.motion}` : "";
+    if (pose !== this.poseKey) [this.poseKey, this.poseAt] = [pose, performance.now()];
+    const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
+    const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
     bubble.hidden = !bubble.textContent;

@@ -39,6 +39,20 @@ describe("MapView.setLook", () => {
     });
   });
 
+  it("a new face mid-pose keeps the pose's minute running", () => {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const { v, bubble } = view();
+    v.setLook(napping);
+    now = 30_000;
+    v.setLook({ ...napping, face: "😩" });
+    const changes: string[] = [];
+    new MutationObserver((ms) => changes.push(...ms.map((m) => m.oldValue ?? ""))).observe(bubble, { attributeFilter: ["class"], attributeOldValue: true });
+    now = POSE_EVERY_S * 1000;
+    v.setLook({ ...napping, face: "😩" });
+    return Promise.resolve().then(() => expect(changes).toEqual(["bubble pose rise", "bubble"]));
+  });
+
   it("leaves a still bubble alone", () => {
     let now = 0;
     vi.spyOn(performance, "now").mockImplementation(() => now);
