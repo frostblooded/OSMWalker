@@ -145,7 +145,8 @@ describe("game", () => {
     Object.assign(g.data, { jokes: { cafe: ["Cafe joke."], _generic: ["Other joke."] }, forecasts });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     expect(g.stats.forecast().id).toBe("cafe");
-    run(g, 3 * 3600);
+    // Long enough for a few dozen stops, as a joke comes on one in eight.
+    run(g, 8 * 3600);
     const texts = g.stats.history.entries.map((e) => e.text);
     expect(texts.some((t) => / at Cafe Near.* Cafe joke\.$/.test(t))).toBe(true);
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);

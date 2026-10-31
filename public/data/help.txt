@@ -357,7 +357,7 @@ Strength unlocks physical actions: for example hauling for the butcher needs 3, 
 
 The number counted for requirements is his own strength plus every strength bonus on his gear.
 ## Charm {cha}
-Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards), and the local language adds {LANG_CHARM} a level, up to {LANG_CHARM_MAX} (see Languages).
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards), and the local language, if he learned it on the road, adds {LANG_CHARM} a level, up to {LANG_CHARM_MAX} (see Languages).
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
@@ -377,7 +377,7 @@ Luck does four things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # 🎓 Skills and languages
 ## Skills {skills}
-Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps, and so is a 45-minute swim), at least one.
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
 
 Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
 
@@ -407,7 +407,7 @@ He has a meter for every language. Each hour in a country fills its language's m
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
 
-Each level adds {LANG_CHARM} Charm while he is in a country that speaks the language, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). At {FLUENT} in a language he learned abroad (not his own, nor English), he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
+A language he learned on the road (not his own, nor English) pays off in two ways. Each level adds {LANG_CHARM} Charm while he is in a country that speaks it, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). And at {FLUENT} he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
 
 The Stats sheet lists the languages he speaks, his best first; past {LANGS_SHOWN} the rest fold into More.
 # ⭐ Progress

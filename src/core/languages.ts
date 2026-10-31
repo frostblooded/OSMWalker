@@ -62,9 +62,14 @@ export class Languages {
     return now > was ? `🗣 ${lang}: now ${LANG_LEVELS[now]}` : "";
   }
 
-  /** Charm he gets in a country that speaks `lang`. */
+  /** True for a language he learned on the road: not his own, nor English. */
+  learned(lang: string): boolean {
+    return !!lang && lang !== this.native && lang !== ENGLISH;
+  }
+
+  /** Charm he gets in a country that speaks `lang`, a language he learned (see learned). */
   charm(lang: string): number {
-    return LANG_CHARM * this.level(lang);
+    return this.learned(lang) ? LANG_CHARM * this.level(lang) : 0;
   }
 
   /** The languages he has some of, his best first. */

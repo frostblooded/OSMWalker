@@ -173,7 +173,10 @@ describe("languages", () => {
     expect(s.languages.native).toBe("Bulgarian");
     expect(s.languages.level("Bulgarian")).toBe(Lang.FLUENT);
     expect(s.languages.level(Lang.ENGLISH)).toBe(Lang.FLUENT);
-    expect(s.attr("cha") - s.attrs.cha).toBeCloseTo(Lang.LANG_CHARM * Lang.FLUENT);
+    // They come for free, so they give no Charm.
+    expect(s.attr("cha")).toBeCloseTo(s.attrs.cha);
+    s.arrive("London", "GBR", "United Kingdom");
+    expect(s.attr("cha")).toBeCloseTo(s.attrs.cha);
   });
 
   it("learns a country's language from time there and chats, with Charm there", () => {
