@@ -3,6 +3,7 @@ import { MAX_CACHED, type Cached, type Store } from "./source";
 
 const DB = "osmwalker";
 const STORE = "cells";
+const BY_TIME = "t";
 
 function req<T>(r: IDBRequest<T>): Promise<T> {
   return new Promise((ok, fail) => {
@@ -16,9 +17,27 @@ export class IdbStore implements Store {
   private puts = 0;
 
   constructor(name = DB) {
-    const open = indexedDB.open(name, 1);
-    open.onupgradeneeded = () => open.result.createObjectStore(STORE);
-    this.db = req(open);
+    // Version 2 adds the index on save time, so pruning never reads the cells.
+    const open = indexedDB.open(name, 2);
+    open.onupgradeneeded = (e) => {
+      const store = e.oldVersion < 1 ? open.result.createObjectStore(STORE) : open.transaction!.objectStore(STORE);
+      store.createIndex(BY_TIME, "t");
+    };
+    // A tab still on version 1 blocks the upgrade until it closes; meanwhile streets come from the network, and the
+    // connection that opens late is closed again. An open one closes when a newer version asks.
+    let gaveUp = false;
+    const blocked = new Promise<never>((_, fail) => {
+      open.onblocked = () => {
+        gaveUp = true;
+        fail(new Error("another tab has the old street cache open"));
+      };
+    });
+    open.addEventListener("success", () => {
+      const db = open.result;
+      if (gaveUp) db.close();
+      else db.onversionchange = () => db.close();
+    });
+    this.db = Promise.race([req(open), blocked]);
   }
 
   private async tx(mode: IDBTransactionMode): Promise<IDBObjectStore> {
@@ -37,22 +56,8 @@ export class IdbStore implements Store {
   /** Keeps only the `keep` most recently saved cells. */
   async prune(keep: number): Promise<void> {
     const store = await this.tx("readwrite");
-    const keys = await req(store.getAllKeys());
-    if (keys.length <= keep) return;
-    const dated: [number, IDBValidKey][] = [];
-    await new Promise<void>((ok, fail) => {
-      const cur = store.openCursor();
-      cur.onerror = () => fail(cur.error);
-      cur.onsuccess = () => {
-        const c = cur.result;
-        if (!c) return ok();
-        dated.push([(c.value as Cached).t, c.key]);
-        c.continue();
-      };
-    });
-    dated.sort((a, b) => b[0] - a[0]);
-    const del = (await this.tx("readwrite"));
-    for (const [, k] of dated.slice(keep)) del.delete(k);
+    const oldestFirst = await req(store.index(BY_TIME).getAllKeys());
+    for (const k of oldestFirst.slice(0, Math.max(oldestFirst.length - keep, 0))) store.delete(k);
   }
 
   async clear(): Promise<void> {

@@ -28,6 +28,7 @@ import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
+import type { WordBook } from "../core/words";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
 import type { Contest } from "../core/rival";
@@ -72,7 +73,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -380,6 +381,7 @@ export class Game {
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
+    this.stats.wordAt(place);
     this.stats.giantAt(place);
     const nap = this.stats.fairyAt(place, this.hour());
     if (nap) {
@@ -550,12 +552,13 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.borders = this.deps.data.borders ?? null;
+    this.stats.wordBook = this.deps.data.words ?? null;
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];

@@ -217,7 +217,7 @@ export class MapView implements MapPort {
    * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}`;
     if (key === this.lookKey) {
       if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
       // Dropping the pose's class and a reflow restart its CSS animation.
@@ -238,6 +238,9 @@ export class MapView implements MapPort {
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
+    const pet = el.querySelector<HTMLElement>(".pet")!;
+    pet.textContent = l.pet;
+    pet.hidden = !l.pet;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
@@ -443,7 +446,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head and his fantasy mount, if any, at his side. */
+/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side and his pet, if any, at the other. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -455,7 +458,10 @@ function himMarker(): HTMLElement {
   const mount = document.createElement("span");
   mount.className = "mount";
   mount.hidden = true;
-  el.append(face, bubble, mount);
+  const pet = document.createElement("span");
+  pet.className = "pet";
+  pet.hidden = true;
+  el.append(face, bubble, mount, pet);
   return el;
 }
 

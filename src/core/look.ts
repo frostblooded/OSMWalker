@@ -16,8 +16,8 @@ export const POSE_EVERY_S = 60;
 
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
-/** `mount`: the fantasy mount he rides, beside his face, or "". */
-export type Look = { face: string; bubble: string; pose: Pose | null; mount: string };
+/** `mount`: the fantasy mount he rides, beside his face, or ""; `pet`: his pet on his other side, or "". */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string };
 type Kind = { class: string; subclass: string };
 
 /** Fantasy mounts show beside his face; everyday vehicles don't. */
@@ -103,8 +103,8 @@ export function pose(a: Action, cls: string): Pose {
   return POSE[best]!;
 }
 
-/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about. */
-export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = ""): Look {
+/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about; `pet`: his pet's icon. */
+export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = "", pet = ""): Look {
   const p = doing ? pose(doing, goal?.class ?? "") : null;
-  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "" };
+  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "", pet };
 }

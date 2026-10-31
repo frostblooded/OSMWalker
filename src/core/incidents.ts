@@ -10,6 +10,7 @@
 import type { Item } from "./items";
 import { isTreasured } from "./items";
 import { signed, toCents } from "./money";
+import type { PetKind } from "./pet";
 import type { Rng } from "./rng";
 import type { Vehicle } from "./speeds";
 import type { Action, Attr, Fx, Stats, TimeOfDay } from "./stats";
@@ -61,6 +62,8 @@ export type Incident = Partial<Outcome> & {
   lean?: Attr;
   /** A night legend: told at night at ruins, castles, graveyards and the like, LEGEND_WEIGHT times likelier there. */
   legend?: boolean;
+  /** A stray that may stay with him for good as his pet (see pet.ts). */
+  stray?: PetKind;
 };
 
 /** Where he is when it happens. */
@@ -131,6 +134,7 @@ export function check(deck: readonly Incident[], classes: Set<string>, attrs: re
     if (c.guard && !attrs.includes(c.guard.attr)) out.push(`${c.id}: guard attribute ${c.guard.attr}`);
     if (c.legend && (c.time !== "night" || !c.at)) out.push(`${c.id}: a legend needs night and places`);
     if (c.guard && /\{PLACE\}| (in|on|near|by|at|outside|over|from)$/.test(bare(c))) out.push(`${c.id}: Help can't leave out its place`);
+    if (c.stray && !["dog", "cat"].includes(c.stray)) out.push(`${c.id}: no pet kind ${c.stray}`);
     if (c.options ? c.options.length !== 2 || !c.lean || !attrs.includes(c.lean) : !c.say) out.push(`${c.id}: needs a say, or two options and a lean`);
   }
   return out;
