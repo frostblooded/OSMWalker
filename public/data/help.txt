@@ -231,7 +231,7 @@ An action can only be picked when he meets all of its requirements:
 - Shopping for an item needs more than {KEEP_CENTS}.
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
-- Skills: some need a level of a skill, such as a street concert at music 4 (see Skills).
+- Skills: some need a level of a skill, such as a street concert at music {CONCERT_AT} (see Skills).
 - Language: guiding and translating need {FLUENT} in the local language, learned abroad: not his own, nor English (see Languages).
 - Cooking needs ingredients for a recipe he knows, and buying them room in his pantry (see Cooking).
 - Level: some need a minimum level.
@@ -377,20 +377,20 @@ Luck does four things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # 🎓 Skills and languages
 ## Skills {skills}
-Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as (a 60-minute busk is two steps), at least one.
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
 
 Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
 
 A higher skill does three things:
 - Bigger gains: each level makes what its actions give (meters, attributes, Magic, XP) and what they pay {SKILL_FX_PCT} bigger, so {SKILL_FX_MAX_PCT} at level {SKILL_MAX}.
-- New actions: some need a level of the skill, such as a street concert at music 4.
+- New actions: some need a level of the skill, such as a street concert at music {CONCERT_AT}.
 - He leans to it: an action of a skill weighs up to {SKILL_LEAN_MAX} times as much at level {SKILL_MAX}, so a walker good at chess plays a lot of chess.
 Photography also makes his landmark cards shinier: each level makes a Gold or Foil finish {PHOTO_SHINE_PCT} likelier (see Landmark cards).
 
 What trains each skill, and what each level opens:
 {SKILL_LIST}
 
-The Stats sheet shows each skill's level and how far he is to the next.
+The Stats sheet shows his {SKILLS_SHOWN} best skills with their level and how far he is to the next; the rest fold into More.
 ## Cooking {cooking}
 Bakeries (bread), butchers (meat), supermarkets and corner shops (the rest) sell him ingredients, and each buy puts one in his pantry, a corner of his bag that holds {PANTRY_MAX}. He only buys what a recipe he knows still lacks, and nothing while he can already cook something. Buying weighs {GROCERIES_WEIGHT} more than other actions there, so he does it often.
 
@@ -770,7 +770,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
-- Skills: each of his six skills with its level and a bar towards the next (see Skills).
+- Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
 - Languages: the languages he speaks with their level, his best first, the one spoken where he is marked 📍 (see Languages).
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}, and the ingredients in his pantry, out of {PANTRY_MAX} (see Cooking). Tap the Items heading to hide or show the list, and an item to see its story.

@@ -2925,7 +2925,8 @@
    "fx": {
     "mood": 5,
     "xp": 2
-   }
+   },
+   "skill": "photo"
   }
  ],
  "information": [
@@ -2975,7 +2976,8 @@
    },
    "needs": {
     "cha": 2
-   }
+   },
+   "skill": "music"
   }
  ],
  "bus": [
@@ -4723,7 +4725,8 @@
     "hygiene": 40,
     "energy": -20,
     "xp": 15
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Sunbathe",

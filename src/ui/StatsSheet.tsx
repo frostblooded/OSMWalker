@@ -17,7 +17,7 @@ import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
 import { LANG_LEVELS } from "../core/languages";
-import { SKILL, SKILL_MAX, SKILLS } from "../core/skills";
+import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
 
@@ -134,22 +134,25 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** His six skills, each with its level and a bar towards the next. */
+/** His skills, best first, each with its level and a bar towards the next; past SKILLS_SHOWN the rest fold away. */
 function SkillsCard({ stats: s }: { stats: Stats }) {
+  const ranked = [...SKILLS].sort((a, b) => s.skills.steps[b] - s.skills.steps[a]);
+  const row = (k: Skill) => {
+    const [icon, name] = SKILL[k];
+    const l = s.skills.level(k);
+    return (
+      <div key={k} class="meter">
+        <KV k={`${icon} ${name}`} v={l >= SKILL_MAX ? `${l} (top)` : l} />
+        <Bar share={s.skills.progress(k)} color="var(--lilac)" />
+      </div>
+    );
+  };
   return (
     <Card icon="🎓" title="Skills">
-      <div class="meters">
-        {SKILLS.map((k) => {
-          const [icon, name] = SKILL[k];
-          const l = s.skills.level(k);
-          return (
-            <div key={k} class="meter">
-              <KV k={`${icon} ${name}`} v={l >= SKILL_MAX ? `${l} (top)` : l} />
-              <Bar share={s.skills.progress(k)} color="var(--lilac)" />
-            </div>
-          );
-        })}
-      </div>
+      <div class="meters">{ranked.slice(0, SKILLS_SHOWN).map(row)}</div>
+      <Collapsible title="More" right={ranked.length - SKILLS_SHOWN}>
+        <div class="meters">{ranked.slice(SKILLS_SHOWN).map(row)}</div>
+      </Collapsible>
     </Card>
   );
 }

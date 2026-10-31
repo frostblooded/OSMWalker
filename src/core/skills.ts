@@ -22,6 +22,9 @@ export const PHOTO_SHINE = 0.08;
 /** Actions that train a skill weigh up to 1 + SKILL_LEAN at SKILL_MAX, so he leans to what he is good at. */
 export const SKILL_LEAN = 1;
 
+/** Skills the Stats sheet shows open, his best first; the rest fold away. */
+export const SKILLS_SHOWN = 4;
+
 /** Icon and name for each skill. */
 export const SKILL: Record<Skill, [icon: string, name: string]> = {
   cooking: ["🍳", "Cooking"],
