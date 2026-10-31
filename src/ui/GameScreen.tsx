@@ -32,7 +32,7 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "explored" | "diary" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
+type Sheet = "menu" | "history" | "explored" | "diary" | "stats" | "records" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -212,6 +212,9 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
             </button>
+            <button class="btn" onClick={() => setSheet("records")}>
+              🏆 Records
+            </button>
             <button class="btn" onClick={() => setSheet("collection")}>
               🗂 Collection
             </button>
@@ -286,6 +289,13 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         <SheetBox title="🧍 Stats" onClose={close} full>
           <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
             {(m) => <m.StatsSheet stats={game.stats} afoot={game.walker?.afoot} />}
+          </Lazy>
+        </SheetBox>
+      )}
+      {sheet === "records" && (
+        <SheetBox title="🏆 Records" onClose={close}>
+          <Lazy load={() => import("./RecordsSheet")} what="the Records">
+            {(m) => <m.RecordsSheet stats={game.stats} />}
           </Lazy>
         </SheetBox>
       )}

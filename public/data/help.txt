@@ -516,13 +516,13 @@ He keeps a bucket list of {BUCKET_SIZE} dreams, picked at random, a mix of thing
 - Sights: {SIGHT_COUNT} famous places, such as the Eiffel Tower in Paris or the Taj Mahal in Agra. He ticks one off when he arrives in its city.
 Each dream ticked off gives him {DREAM_XP} XP and {DREAM_MOOD} mood, goes in his life story (see His life), and makes room for a new one that he hasn't done yet, which goes on the next morning. His first dreams go on his list as soon as he sets out (for an older walker, on his next morning). Game goals are checked each morning and when he reaches a new city, and one he has already done never goes on the list. A city with a sight on his list weighs {DREAM_PULL} times as much when he picks where to travel, and never less than {DREAM_SHARE_PCT} of all the cities he could go to, so even a small one comes up now and then (see Trips). He drifts toward it without making a beeline. The Bucket list card on the Stats sheet shows each dream, how near he is to each game goal and which city each sight is in. Every dream is in the Collection (World tab), and the Dreamer badge counts the ones he ticked off. It all works the same while you're away.
 ## Records {records}
-Near the end of the Stats sheet are his records over his whole life. Each best only goes up:
+🏆 Records in the menu opens his records over his whole life. Each best only goes up:
 - Longest walk without a stop: distance between two places he stopped at (a faint starts it over too)
 - Most walked, and most places stopped at, in one day
 - Most money he has held at once
 - Longest he has gone without fainting
 
-It also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
+Under Totals it also counts the countries and cities he has been to, his mishaps (an action that went wrong) and his faints. The time away counts the same as time watched.
 
 When he beats a best he may say so in his History ("New record: … in one day!"), at most once a day, and only once that best is worth it: at least {REC_STRETCH_KM} km without a stop, {REC_DAY_KM} km in a day, {REC_STOPS} places in a day, {REC_CENTS} held, or {REC_NOFAINT} without fainting.
 ## Fainting and hospital {fainting}
@@ -555,9 +555,9 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 - his home, rented or his own, with the things he put up (see His home),
 - your clovers, care packages and storyteller.
 
-Once there is an heir, every card in the Collection says which walker of the family found it. Near the end of the Stats sheet is the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. Below it, the hall of walkers compares them (see Hall of walkers).
+Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired. The Records sheet's hall of walkers compares them (see Hall of walkers).
 ## Hall of walkers {hall}
-Once there is an heir, the Stats sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
+Once there is an heir, the Records sheet ends with the hall of walkers: the family's records, each with the walker who holds it and his own in green. The heading counts how many he holds. His whole life's records come first, and the bests from Records fold under Bests. The records are:
 {HALL_LIST}
 
 He counts as he is now, so he can take a record from an ancestor while you watch; on a tie the walker who got there first keeps it, and a record no walker has above 0 says nobody yet. For each walker it counts the km he walked in his life, his level and his Records (see Records). A walker who retired before the hall only counts for distance, level and cities. Each record he takes from the walkers before him counts for the 🏛 Pride of the family badge (see Badges and titles). The hall is only for looking: nothing changes how he lives.
@@ -944,7 +944,7 @@ What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Explored, Diary, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Explored, Diary, Stats, Records, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), 🌅 Retire him now (only while he is an elder, see Retiring), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 
@@ -991,9 +991,9 @@ When he naps or sleeps at a place (a nap on a bench, in a reading room or under 
 - His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Mailbox: the newest letters from his friends, each opening on a tap, and where a gift waits at his spot (see Letters and gifts).
 - Effects: his buffs with the minutes they have left.
-- Records: his bests and totals (see Records).
 - Family: the family tree, oldest at the top; tap a walker to read his letter (see His heirs and the family).
-- Hall of walkers, once there is an heir: the family's records and who holds each (see Hall of walkers).
+
+His records and the hall of walkers have their own sheet, 🏆 Records in the menu (see Records, Hall of walkers).
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
 
