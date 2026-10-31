@@ -269,8 +269,10 @@ describe("catch-up", () => {
     // A deck that never plays, so a stop gets as far as the greeting.
     stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
     stats.story.tension = 0;
-    const s = catchUp(stats, { ...HOME, places: null }, [0, 0], 24 * 3600, START_MS, deps());
-    expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(false);
+    for (const places of [null, []]) {
+      const s = catchUp(stats, { ...HOME, places }, [0, 0], 24 * 3600, START_MS, deps());
+      expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(false);
+    }
   });
 
   it("packs a travel kit as he boards, as in a watched trip", () => {

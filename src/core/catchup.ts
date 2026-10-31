@@ -412,7 +412,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     for (let i = 0; i < MADE_UP_TRIES; i++) {
       const k = MADE_UP_KINDS[pickIndex(MADE_UP_KINDS.map((x) => x.weight), rng.randf())]!;
       const [lat, lon] = randomSpot(rng, city.bounds, here, heading);
-      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon });
+      // Marked made-up, so he never collects, greets or adopts there, even in a city whose (empty) places list is loaded.
+      out.push({ name: `${/^[aeiou]/.test(k.label) ? "an" : "a"} ${k.label} in ${town}`, class: k.class, subclass: k.subclass, rank: 1, lat, lon, made: true });
     }
     return out;
   }
