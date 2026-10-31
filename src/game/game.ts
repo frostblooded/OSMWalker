@@ -1089,14 +1089,14 @@ export class Game {
   /**
    * Shows timed moment `m` and resolves with the option you tap, or with his
    * own pick (`his`, by default defaultPick) once momentS seconds pass, or
-   * `maxS` if that is sooner, or the page is left. Off (momentS 0), or with
-   * another moment already open, he picks at once. He stands still while it
-   * is open.
+   * `maxS` if that is sooner, or the page is left. Off (momentS 0), with
+   * another moment already open, or while the away card is up, he picks at
+   * once. He stands still while it is open.
    */
   ask(m: Moment, opts: { maxS?: number; his?: () => string } = {}): Promise<Pick> {
     const his = opts.his ?? (() => defaultPick(m, this.stats, new Rng(seedOf(`ask${this.now()}${m.id}`))));
     const wait = Math.min(this.momentS, opts.maxS ?? Infinity);
-    if (wait <= 0 || this.moment) return Promise.resolve({ id: his(), you: false });
+    if (wait <= 0 || this.moment || this.away) return Promise.resolve({ id: his(), you: false });
     return new Promise((done) => {
       this.moment = { m, left: wait, total: wait, done, his };
       this.changed();
