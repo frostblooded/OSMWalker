@@ -81,7 +81,8 @@ const results = Object.fromEntries(Object.keys(runs[0]).map((k) => [k, median(k)
 await browser.close();
 server.close();
 
-const rows = Object.entries(budgets).map(([k, limit]) => ({ metric: k, value: results[k], budget: limit, ok: results[k] <= limit }));
+// Both key sets, so a budget without a number or a number without a budget fails.
+const rows = [...new Set([...Object.keys(results), ...Object.keys(budgets)])].map((k) => ({ metric: k, value: results[k], budget: budgets[k], ok: results[k] <= budgets[k] }));
 const md = [`### Perf budgets (${profile})`, "", "| Metric | Value | Budget | |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.metric} | ${r.value} | ${r.budget} | ${r.ok ? "✅" : "❌"} |`)].join("\n");
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, "perf.json"), JSON.stringify(results, null, 2));
