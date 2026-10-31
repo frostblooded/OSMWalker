@@ -1,7 +1,7 @@
 // Careers: shifts rank him up, each rank pays more and brings its own shift, and he leans to his best career.
 import { describe, expect, it } from "vitest";
 import { Activities, weight, type ActionTable } from "../../src/core/activities";
-import { CAREER_PULL, careerAt, careerOf, CAREERS, Careers, isShift, rankFor, rankShift, SHIFTS_TO, TOP_RANK } from "../../src/core/careers";
+import { CAREER_PULL, careerAt, careerOf, CAREERS, Careers, isCareerShift, isShift, rankFor, rankShift, SHIFTS_TO, TOP_RANK } from "../../src/core/careers";
 import { Rng } from "../../src/core/rng";
 import { Stats, type Action } from "../../src/core/stats";
 import { dataFile } from "../support/data";
@@ -47,12 +47,22 @@ describe("ranks", () => {
 
 describe("places", () => {
   it("every career's places have a shift in data/actions.json", () => {
-    for (const c of CAREERS) for (const k of c.at) expect(DATA[k]?.some(isShift), `${c.id}: ${k}`).toBe(true);
+    for (const c of CAREERS) for (const k of c.at) expect(DATA[k]?.some(isCareerShift), `${c.id}: ${k}`).toBe(true);
   });
 
-  it("every kind of place with a shift belongs to a career, but for the fantasy places and skill or language jobs", () => {
-    const loose = Object.entries(DATA).filter(([k, l]) => l.some(isShift) && !careerAt(k)).map(([k]) => k);
-    expect(loose.sort()).toEqual(["_spot", "guild_hall", "information", "place_of_worship", "wizard_tower"]);
+  it("every kind of place with a career shift belongs to a career, but for the fantasy places", () => {
+    const loose = Object.entries(DATA).filter(([k, l]) => l.some(isCareerShift) && !careerAt(k)).map(([k]) => k);
+    expect(loose).toEqual(["guild_hall", "wizard_tower"]);
+  });
+
+  it("skill and language jobs don't count for a career, though they are shifts", () => {
+    const park = acts().forPlace({ ...cafe, class: "park", subclass: "park" });
+    expect(park.find((a) => a.name === "Busk")!.career).toBeUndefined();
+    const hotel = acts().forPlace({ ...cafe, class: "lodging", subclass: "hotel" });
+    const translate = hotel.find((a) => a.needs?.lang)!;
+    expect(isShift(translate)).toBe(true);
+    expect(translate.career).toBeUndefined();
+    expect(hotel.find((a) => a.name === "Night receptionist shift")!.career).toBe("hotel");
   });
 
   it("tags the shifts of a career's places, not bets, and adds its rank shifts", () => {

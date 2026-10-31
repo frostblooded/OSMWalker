@@ -20,6 +20,8 @@ export const RANK_PAY = [1.25, 1.5, 1.8, 2.2] as const;
 
 /** A paid action long enough to count as a shift: not a bet, a gamble or a lucky find. */
 export const isShift = (a: Action) => a.earn !== undefined && a.min >= SHIFT_MIN && !a.risk;
+/** A shift that counts for a career: not a skill's or a language's job, which grow with those instead (see skills.ts, languages.ts). */
+export const isCareerShift = (a: Action) => isShift(a) && !a.skill && !a.needs?.lang;
 
 /**
  * A career: the action keys of the places it covers (as in data/actions.json),
@@ -56,8 +58,8 @@ export const CAREERS: readonly Career[] = [
     shifts: ["Work the till", "Lead the late shift", "Manage the store for the day", "Visit the stores as area manager"],
   },
   {
-    id: "culture", name: "Culture", icon: "🎭", at: ["museum", "art_gallery", "attraction", "theatre", "park", "garden", "railway"], base: 30,
-    ranks: ["Busker", "Stagehand", "Tour guide", "Curator", "Artistic director"],
+    id: "culture", name: "Culture", icon: "🎭", at: ["museum", "art_gallery", "attraction", "theatre"], base: 30,
+    ranks: ["Usher", "Stagehand", "Tour guide", "Curator", "Artistic director"],
     shifts: ["Set up the stage for a show", "Lead a tour for visitors", "Curate a small exhibition", "Plan the season's programme"],
   },
   {
@@ -93,8 +95,7 @@ export function rankFor(shifts: number): number {
 
 /** The shift of rank `rank` (2 or more) in career `c`: paid RANK_PAY of its base wage, done only at that rank. */
 export function rankShift(c: Career, rank: number): Action {
-  const pay = Math.round(c.base * RANK_PAY[rank - 2]!);
-  return { name: c.shifts[rank - 2]!, min: 120, earn: pay, fx: { energy: -20, xp: 20 + 5 * rank }, needs: { rank }, career: c.id };
+  return { name: c.shifts[rank - 2]!, min: 120, earn: c.base * RANK_PAY[rank - 2]!, fx: { energy: -20, xp: 20 + 5 * rank }, needs: { rank }, career: c.id };
 }
 
 /** His shifts in each career he has worked in, by career id. */

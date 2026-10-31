@@ -261,9 +261,9 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 - up to {VISA_PAY_MAX} more with a better visa in the country (see Visas),
 - {SKILL_FX_PCT} more for every level of the job's skill, such as music for a street concert, on top of the rest (see Skills).
 
-For example a café job with no attribute need and no skill pays {WAGE_RANK3} its listed wage at rank 3, and {WAGE_RANK5} at the top rank. His level doesn't raise pay; only working does. Only pay grows: prices stay the same. Bets, gigs and lucky finds (such as the coin by the ATM) and jobs at places with no career get no rank pay. Selling items and money found while walking don't grow.
+For example a café job with no attribute need and no skill pays {WAGE_RANK3} its listed wage at rank 3, and {WAGE_RANK5} at the top rank. His level doesn't raise pay; only working does. Only pay grows: prices stay the same. Bets, lucky finds (such as the coin by the ATM), skill and language jobs (see Skills and Languages) and jobs at places with no career get no rank pay. Selling items and money found while walking don't grow.
 ## Careers {careers}
-His paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds) count toward the career of the place. He climbs by himself, and you never have to do anything. There are {CAREER_COUNT} careers, each with {TOP_RANK} ranks:
+His paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds) count toward the career of the place, except skill and language jobs, such as a street concert or translating, which grow with that skill or language instead. He climbs by himself, and you never have to do anything. There are {CAREER_COUNT} careers, each with {TOP_RANK} ranks:
 {CAREER_LIST}
 
 He is promoted to rank 2 after {SHIFTS_R2} shift in a career, rank 3 after {SHIFTS_R3} shifts, rank 4 after {SHIFTS_R4} and the top rank after {SHIFTS_R5}. The feed says each promotion ("Promoted to Barista in his Café career!"), and his life story notes his first promotion and every top rank he reaches.
