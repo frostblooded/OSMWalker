@@ -6,7 +6,9 @@ import { FEATS, SETS } from "../../src/core/collection";
 import { Quests, type Bank } from "../../src/core/quests";
 import { DEED_STEP, LEAN_AT, LEAN_MAX } from "../../src/core/bond";
 import { catchUp, type AwayCity } from "../../src/core/catchup";
+import * as CC from "../../src/core/cityCards";
 import * as Fm from "../../src/core/fame";
+import * as MIDNIGHT from "../../src/core/midnight";
 import { bboxAround } from "../../src/core/geo";
 import { aura } from "../../src/core/look";
 import { defaultPick, RASCAL_BASE, RASCAL_MAX, RASCAL_MIN, rascalOdds, type Moment } from "../../src/core/moments";
@@ -142,6 +144,27 @@ describe("perks", () => {
     const before = s.cents;
     s.do(espresso, "Cafe", new Rng(1), "cafe");
     expect(before - s.cents).toBe(s.priced(300));
+  });
+
+  it("card packs follow his prices too", () => {
+    const s = at();
+    s.setCityPool(CC.pool(parseCities("Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNexttown\tAAA\tA-land\t1.0\t0.0\t500000\n")));
+    s.bond.lean = LEAN_AT;
+    const cents = s.cents;
+    s.do({ name: "Pack", min: 3, cost: 5, pack: true }, "Kiosk", new Rng(1), "shop");
+    expect(cents - s.cents).toBe(s.priced(500));
+    expect(s.priced(500)).toBeLessThan(500);
+  });
+
+  it("the shop after midnight follows his prices too", () => {
+    const s = at();
+    s.bond.lean = -LEAN_AT;
+    s.magic = 100;
+    const rng = Object.assign(new Rng(1), { randf: () => 0.99, pick: <T>(l: readonly T[]) => l.find((t) => (t as { cents: number }).cents > 0)! });
+    const cents = s.cents;
+    s.do({ name: "Knock", min: 15, midnight: true }, "Antiques", rng, "shop");
+    const t = MIDNIGHT.TRINKETS.find((x) => x.cents > 0)!;
+    expect(cents - s.cents).toBe(s.priced(t.cents));
   });
 
   it("he saves up for his next vehicle at the price he will pay", () => {

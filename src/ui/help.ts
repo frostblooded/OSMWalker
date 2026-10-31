@@ -315,6 +315,7 @@ export function values(data: GameData): Record<string, string> {
     RASCAL_PER_KARMA_PCT: pct(Moments.RASCAL_PER_KARMA),
     RASCAL_MIN_PCT: pct(Moments.RASCAL_MIN),
     RASCAL_MAX_PCT: pct(Moments.RASCAL_MAX),
+    RASCAL_HALF: num(-(0.5 - Moments.RASCAL_BASE) / Moments.RASCAL_PER_KARMA),
     FAME_PER_H: num(Fame.FAME_PER_H),
     FAME_LIST: Fame.FAME_NAMES.map((n, i) => `- ${n}: from ${num(Fame.FAME_TIERS[i]!)} points, ${Fame.FAME_DISCOUNT[i] ? `${pct(Fame.FAME_DISCOUNT[i]!)} off` : "no discount"}.`).join("\n") + `\nA city's fame stops at ${num(Fame.FAME_MAX)}.`,
     HEAT_MAX: num(Rep.HEAT_MAX),

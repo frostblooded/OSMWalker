@@ -679,7 +679,7 @@ When the police spot him the feed says "🚨 The police spotted him", he skips w
 - 💶 Bribe, only if he has {BRIBE_PER_HEAT} for each point of heat: the officer takes it {BRIBE_BASE_PCT} of the time, plus {PER_POINT_PCT} for each point of Charm above 1. Taken, the heat is gone, for −{BRIBE_KARMA} karma.
 None of them gets away more than {ESCAPE_CAP_PCT} of the time. Getting away by running or hiding adds {ESCAPE_HEAT} heat.
 
-He picks by himself: a kind or middling walker usually gives himself up, a rascal usually takes the way out with his best odds (see Karma).
+He picks by himself, by his karma (see Karma): he takes the way out with his best odds as often as he would take a rascal's option, so past {RASCAL_HALF} karma more often than not, and otherwise he gives himself up.
 
 Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped.
 # 📖 Stories

@@ -774,9 +774,10 @@ export class Stats {
       return this.say(`🚓 Paid off what the police want him for${where ? ` at ${where}` : ""} (${signed(-n)})`);
     }
     if (action.pack) {
-      this.cents -= toCents(action.cost ?? 0);
+      const price = this.priced(toCents(action.cost ?? 0));
+      this.cents -= price;
       this.applyFx(action.fx ?? {});
-      return this.openPack(rng, `Bought a card pack${where ? ` at ${where}` : ""} (${signed(-toCents(action.cost ?? 0))})`);
+      return this.openPack(rng, `Bought a card pack${where ? ` at ${where}` : ""} (${signed(-price)})`);
     }
     let spent = this.priced(toCents(action.cost ?? 0));
     const fx: Fx = { ...action.fx };
@@ -1210,7 +1211,7 @@ export class Stats {
     const at = `${where ? ` at ${where}` : ""} after midnight`;
     if (rng.randf() < Mn.ENCHANTED_CHANCE) {
       const item = Items.makeEnchanted(rng.pick(Mn.ENCHANTED_KINDS), this.level, rng, this.attr("luck"));
-      item.price = Math.round(item.price * Mn.ENCHANTED_PRICE);
+      item.price = this.priced(Math.round(item.price * Mn.ENCHANTED_PRICE));
       if (this.magic < Mn.ENCHANTED_MAGIC) return this.say(`🌙 Saw a ${item.rarity} ${item.name}${at}, but hadn't the Magic for it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
       if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS) return this.say(`🌙 Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
       this.cents -= item.price;
@@ -1221,13 +1222,14 @@ export class Stats {
       return this.say(`🌙 Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)}, Magic −${Mn.ENCHANTED_MAGIC})`);
     }
     const t = rng.pick(Mn.TRINKETS);
-    if (this.magic < t.magic || this.cents - t.cents < KEEP_CENTS) return this.say(`🌙 Saw a ${t.name}${at}, but couldn't pay for it (${euro(t.cents)}${t.magic ? ` and ${t.magic} Magic` : ""})`);
-    this.cents -= t.cents;
+    const cost = this.priced(t.cents);
+    if (this.magic < t.magic || this.cents - cost < KEEP_CENTS) return this.say(`🌙 Saw a ${t.name}${at}, but couldn't pay for it (${euro(cost)}${t.magic ? ` and ${t.magic} Magic` : ""})`);
+    this.cents -= cost;
     this.magic -= t.magic;
     if (t.fx) this.applyFx(t.fx);
     if (t.buff) this.addBuff(t.buff);
     this.finds.note(t.id);
-    return this.say(`${t.icon} Bought a ${t.name}${at} and ${t.say} (${signed(-t.cents)}${t.magic ? `, Magic −${t.magic}` : ""})`);
+    return this.say(`${t.icon} Bought a ${t.name}${at} and ${t.say} (${signed(-cost)}${t.magic ? `, Magic −${t.magic}` : ""})`);
   }
 
   /** Casts the spell that helps now, if he has the Magic (magic.ts toCast). */
