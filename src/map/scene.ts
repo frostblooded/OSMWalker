@@ -99,7 +99,7 @@ export class MapScene {
     v.setRoute(routeOn ? `${w.goal}:${w.toNode}:${w.route.length}:${Math.floor(performance.now() / 1000)}` : "", () => w.routeLine());
     v.setArea(g.showCityArea && !w.travel ? w.bounds : null, g.cityOutline);
     // Icons change with the city's places, his monuments, his quests and events, and as he moves about 500 m (the nearest ones show).
-    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${g.stats.quests.rev}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
+    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${g.stats.spots.spot(g.stats.where.city)?.name ?? ""}:${g.stats.quests.rev}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
     v.setLeys(this.leys && !w.travel ? String(g.leysVersion) : "", () => g.leys);
     this.keepView();
     this.drawEvents();

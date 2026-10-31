@@ -1,10 +1,9 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
-// four attributes with what his gear adds, his karma, fame and the
-// police, every gear slot, the bag and his
-// buffs, his rival, friends and pet, and his mind: wants, fears and what
-// moves his mood. Items with a story open to show it. His records close it.
+// four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
+// buffs, his rival, friends and pet, his mind (wants, fears and what
+// moves his mood), his quirks and his spot. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -15,6 +14,8 @@ import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
 import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
 import { noun, wantIcon, wantText } from "../core/mind";
+import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
+import { SPOT_DISCOUNT } from "../core/spot";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -23,6 +24,9 @@ import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
 import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
+import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
+import { LANG_LEVELS, LANGS_SHOWN } from "../core/languages";
+import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
 import { dist, speed } from "./format";
@@ -136,6 +140,46 @@ function Spells({ stats: s }: { stats: Stats }) {
         </div>
       ) : (
         <KV k="Known" v="none yet" />
+      )}
+    </Card>
+  );
+}
+
+/** His skills, best first, each with its level and a bar towards the next; past SKILLS_SHOWN the rest fold away. */
+function SkillsCard({ stats: s }: { stats: Stats }) {
+  const ranked = [...SKILLS].sort((a, b) => s.skills.steps[b] - s.skills.steps[a]);
+  const row = (k: Skill) => {
+    const [icon, name] = SKILL[k];
+    const l = s.skills.level(k);
+    return (
+      <div key={k} class="meter">
+        <KV k={`${icon} ${name}`} v={l >= SKILL_MAX ? `${l} (top)` : l} />
+        <Bar share={s.skills.progress(k)} color="var(--lilac)" />
+      </div>
+    );
+  };
+  return (
+    <Card icon="🎓" title="Skills">
+      <div class="meters">{ranked.slice(0, SKILLS_SHOWN).map(row)}</div>
+      <Collapsible title="More" right={ranked.length - SKILLS_SHOWN}>
+        <div class="meters">{ranked.slice(SKILLS_SHOWN).map(row)}</div>
+      </Collapsible>
+    </Card>
+  );
+}
+
+/** The languages he speaks, his best first; "here" marks the one spoken where he is. Past LANGS_SHOWN the rest fold away. */
+function LanguagesCard({ stats: s }: { stats: Stats }) {
+  const here = s.lang();
+  const list = s.languages.list();
+  const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang}${lang === here ? " · here" : ""}`} v={LANG_LEVELS[level]} />;
+  return (
+    <Card icon="🗣" title="Languages" right={list.length}>
+      <div class="zebra">{list.slice(0, LANGS_SHOWN).map(row)}</div>
+      {list.length > LANGS_SHOWN && (
+        <Collapsible title="More" right={list.length - LANGS_SHOWN}>
+          <div class="zebra">{list.slice(LANGS_SHOWN).map(row)}</div>
+        </Collapsible>
       )}
     </Card>
   );
@@ -290,6 +334,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
         {s.meters.hygiene < DIRTY_AT && <p class="small tone-warning">🧼 Dirty: Charm counts less and mood drains.</p>}
       </Card>
+      <SkillsCard stats={s} />
+      <LanguagesCard stats={s} />
       <Repute stats={s} />
       <Card icon="🛡" title="Gear">
         <div class="zebra">
@@ -301,6 +347,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
       </Card>
       <Card icon="🎒" title="Bag">
+        <KV k="🧺 Pantry" v={`${s.pantry.items.map((i) => INGREDIENT[i][0]).join("") || "empty"} · ${s.pantry.items.length} / ${PANTRY_MAX}`} />
         {bag.length ? (
           <Collapsible title="Items" right={`${bag.length} / ${BAG_SIZE}`}>
             <div class="zebra">
@@ -314,6 +361,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <MindCard s={s} />
+      <QuirksCard s={s} />
+      <SpotCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -474,6 +523,36 @@ function MindCard({ s }: { s: Stats }) {
           ))}
         </div>
       </Collapsible>
+    </Card>
+  );
+}
+
+/** The quirks his habits gave him. */
+function QuirksCard({ s }: { s: Stats }) {
+  const have = s.quirks.have.map(quirk).filter((q) => !!q);
+  return (
+    <Card icon="🌟" title="Quirks" right={`${have.length} / ${MAX_QUIRKS}`}>
+      {have.length ? (
+        <div class="zebra">
+          {have.map((q) => (
+            <KV key={q.id} k={`${q.icon} ${q.name}`} v={<span class="dim">×{QUIRK_PULL} pull</span>} />
+          ))}
+        </div>
+      ) : (
+        <p class="dim small">None yet. What he does often turns into a quirk.</p>
+      )}
+    </Card>
+  );
+}
+
+/** His spot in this city, once he has one. */
+function SpotCard({ s }: { s: Stats }) {
+  const spot = s.spots.spot(s.where.city);
+  if (!spot) return null;
+  return (
+    <Card icon="🏠" title="His spot" right={spot.name}>
+      <KV k="Visits" v={spot.n} />
+      <KV k="Regular's discount" v={<span class="tone-ok">−{Math.round(SPOT_DISCOUNT * 100)}%</span>} />
     </Card>
   );
 }

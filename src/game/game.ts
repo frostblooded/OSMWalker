@@ -6,7 +6,7 @@
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
-import { Activities, choose, exploreWeight, minded, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
@@ -21,7 +21,7 @@ import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
-import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
+import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import type { Moment } from "../core/moments";
 import { Problems } from "../core/problems";
 import * as R from "../core/repute";
@@ -312,7 +312,7 @@ export class Game {
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
     w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky), p, this.stats);
-    w.placePull = (p) => exploreWeight(p, this.stats);
+    w.placePull = (p) => placePull(p, this.stats, this.hour());
     w.events = {
       landed: (c, t) => this.onLanded(c, t),
       arrived: (p) => this.onArrived(p),
@@ -1204,7 +1204,7 @@ export class Game {
     if (!w?.bounds || w.isTraveling()) return [];
     const here = w.position();
     const air = this.trips.nearestAirport(here[0], here[1]);
-    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...this.questIcons()];
+    return [...placeIcons(w.graph.placesIn(w.bounds), air ? [...this.trips.airports, air] : this.trips.airports, w.bounds, here), ...monumentIcons(this.stats.bricks.built, this.city), ...spotIcons(this.stats.spots.spot(this.stats.where.city)), ...this.questIcons()];
   }
 
   /** What looks wrong with the city right now, most serious first, for Debug. */

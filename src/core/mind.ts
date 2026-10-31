@@ -32,7 +32,7 @@ export const LONG_KINDS = ["castle", "museum", "zoo", "aquarium", "lookout", "th
 export const SHORT_KINDS = ["cafe", "bakery", "ice_cream", "restaurant", "park", "bar", "cinema", "library", "fast_food", "beer", "art_gallery", "swimming_pool"];
 export const SHAKE_KINDS = ["cafe", "ice_cream", "bar", "park", "bakery"];
 /** Classes whose name reads badly as a noun. */
-const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence" };
+const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence", ice_cream: "ice cream parlour" };
 export const noun = (kind: string) => NOUNS[kind] ?? kind.replace(/_/g, " ");
 
 export type WantKind = "long" | "short" | "shake" | "face";

@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear. While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear, ×{QUIRK_PULL} for each of his quirks there (see Quirks). His spot weighs ×{SPOT_PULL} in the morning (see His spot). While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -227,13 +227,16 @@ The feed says when a strong need picks his goal, for example "Hungry, heading fo
 
 Drain: an action that lowers a meter he needs weighs (1 - that meter's urge) as much, at least {HARM_FLOOR_PCT}, so he doesn't go jogging when he is worn out.
 
-His strengths: an action that trains or needs one of his attributes weighs (that attribute / his average attribute) as much, from 1 up to {STRENGTH_MAX} times, so a strong walker leans to the gym and a charming one to people. A place weighs as much as its best-suited action.
+His strengths: an action that trains or needs one of his attributes weighs (that attribute / his average attribute) as much, from 1 up to {STRENGTH_MAX} times, so a strong walker leans to the gym and a charming one to people. An action of a skill he has weighs more too, up to {SKILL_LEAN_MAX} times (see Skills). A place weighs as much as its best-suited action.
 ## Requirements {needs}
 An action can only be picked when he meets all of its requirements:
 - Money: he needs at least the action's price.
 - Shopping for an item needs more than {KEEP_CENTS}.
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
+- Skills: some need a level of a skill, such as a street concert at music {CONCERT_AT} (see Skills).
+- Language: guiding and translating need {GUIDE_LEVEL} in the local language, learned abroad: not his own, nor English (see Languages).
+- Cooking needs ingredients for a recipe he knows, and buying them room in his pantry (see Cooking).
 - Level: some need a minimum level.
 - Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
 - Season: some only happen in one season, such as mulled wine in winter (see Seasons).
@@ -253,12 +256,13 @@ At the start of each week (Monday at midnight by your phone's clock), his bills 
 
 At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
 ## Wages {wages}
-Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
+Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need and no skill pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
-- up to {VISA_PAY_MAX} more with a better visa in the country (see Visas).
+- up to {VISA_PAY_MAX} more with a better visa in the country (see Visas),
+- {SKILL_FX_PCT} more for every level of the job's skill, such as music for a street concert, on top of the rest (see Skills).
 
-For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
+For example a job with no attribute need and no skill pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
 After {WORK_CARD_PCT} of his paid shifts (jobs of {SHIFT_MIN} minutes or more, not bets or lucky finds), a chance card comes up: a small dilemma at work. He picks by himself and you never have to. A higher attribute makes him lean to the bold choice ({INC_LEAN_PCT} for each point above 1, up to {INC_LEAN_CAP_PCT} past even). The bold choice works out {WORK_WIN_BASE_PCT} of the time, plus {WORK_WIN_PER_PCT} for each point of the same attribute, up to {WORK_WIN_MAX_PCT}; otherwise it goes wrong. Pay is a share of the wage he just earned, and he is never docked more than he has. The feed shows what he chose and how it went:
 {WORK_CARD_LIST}
@@ -324,6 +328,15 @@ He always has two wants, each for a kind of place: a long one, a sight he dreams
 A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
 
 A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
+## Quirks {quirks}
+What he does often turns into a quirk. Each counts the things he does at some kinds of places, in all his cities:
+{QUIRK_LIST}
+
+A quirk makes its kinds of places pull his goal ×{QUIRK_PULL} (see Picking the next goal), and each time he does something there it cheers him a little ({QUIRK_MOOD}, see Moodlets). He has at most {MAX_QUIRKS}: a new one pushes out the oldest, which never comes back. The Quirks card on the Stats sheet lists them.
+## His spot {spot}
+The real place he has reached most in a city becomes his spot once he has been there {SPOT_MIN} times. A house marks it on the map, and the His spot card on the Stats sheet shows it. Each city remembers {SPOT_KEEP} places; a new one pushes out the least recently reached of the least visited (never his spot), so another place can take over.
+
+From {SPOT_FROM} to {SPOT_TO} his spot pulls his goal ×{SPOT_PULL}, so he drifts back there in the mornings. As a regular he pays {SPOT_DISCOUNT} less for what he does there (not for shopping or card packs).
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -373,7 +386,7 @@ Strength unlocks physical actions: for example hauling for the butcher needs 3, 
 
 The number counted for requirements is his own strength plus every strength bonus on his gear.
 ## Charm {cha}
-Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards).
+Charm starts at 1. It grows from social actions (chatting, performing, parties), from levelling up, and from gear such as clothes, bracelets, earrings and instruments. A finished city card set adds {SET_CHARM} while he is in that country (see City cards), and the local language, if he learned it on the road, adds {LANG_CHARM} a level, up to {LANG_CHARM_MAX} (see Languages).
 
 Charm unlocks more actions than any other attribute: chatting with the barista needs 3, auditioning at the theatre needs 6, and many social and selling actions need some.
 
@@ -391,6 +404,41 @@ Luck does four things:
 - Rarer items: each point lifts the shop's rarity roll (see Modifiers and rarity).
 - Money on the street: every minute he walks there is a {FIND_PER_LUCK_PCT} chance per point of luck (at most {FIND_CAP_PCT}, more on a leaky-pockets day: see Daily forecast) that he finds {FIND_MIN} to {FIND_MAX}. It shows in his History as "Found €0.50 on the street".
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
+# 🎓 Skills and languages
+## Skills {skills}
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
+
+Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
+
+A higher skill does three things:
+- Bigger gains: each level makes what its actions give (meters, attributes, Magic, XP) and what they pay {SKILL_FX_PCT} bigger, so {SKILL_FX_MAX_PCT} at level {SKILL_MAX}.
+- New actions: some need a level of the skill, such as a street concert at music {CONCERT_AT}.
+- He leans to it: an action of a skill weighs up to {SKILL_LEAN_MAX} times as much at level {SKILL_MAX}, so a walker good at chess plays a lot of chess.
+Photography also makes his landmark cards shinier: each level makes a Gold or Foil finish {PHOTO_SHINE_PCT} likelier (see Landmark cards).
+
+What trains each skill, and what each level opens:
+{SKILL_LIST}
+
+The Stats sheet shows his {SKILLS_SHOWN} best skills with their level and how far he is to the next; the rest fold into More.
+## Cooking {cooking}
+Some shops sell him ingredients, and each buy puts one in his pantry, a corner of his bag that holds {PANTRY_MAX}:
+{GROCERY_LIST}
+
+He only buys what a recipe he knows still lacks, and nothing while he can already cook something. Buying weighs {GROCERIES_WEIGHT} more than other actions there, so he does it often.
+
+At a hotel or hostel, a park, a garden, a campsite or a picnic site he cooks: he makes the most filling recipe his cooking level knows and his pantry holds. A meal made from ingredients fills more than its parts eaten alone, and cooking makes it bigger still (see Skills). All by himself:
+{RECIPE_LIST}
+
+A high cooking level also opens kitchen jobs (see Skills).
+## Languages {languages}
+He has a meter for every language. Each hour in a country fills its language's meter by an hour, while you watch and while you are away, and each "Chat with the locals" at a cafe, bar or park counts {LANG_CHAT_H} hours more. The levels, by hours:
+{LANG_LIST}.
+
+The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
+
+A language he learned on the road (not his own, nor English) pays off in two ways. Each level adds {LANG_CHARM} Charm while he is in a country that speaks it, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). And at {GUIDE_LEVEL} he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
+
+The Stats sheet lists the languages he speaks, his best first; past {LANGS_SHOWN} the rest fold into More.
 # ⭐ Progress
 ## XP and levels {xp}
 He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
@@ -571,7 +619,7 @@ A card's rarity comes from the place's rank on the map (see Places of note):
 - rank {CARD_UNCOMMON_RANK}: Uncommon,
 - any other: Common.
 
-On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil. Each landmark has one card, given on his first visit; going back gives nothing more, and a card's finish never changes. The feed says "New card", and the Collection sheet shows them all.
+On top of its rarity a card can have a finish: {GOLD_PCT} of cards are Gold and {FOIL_PCT} are Foil, more with photography (see Skills). Each landmark has one card, given on his first visit; going back gives nothing more, and a card's finish never changes. The feed says "New card", and the Collection sheet shows them all.
 ## City cards {citycards}
 City cards are trading cards of the world's cities: the {CITY_CARDS_PER_COUNTRY} biggest cities of every country, {CITY_CARD_TOTAL} cards in all. A card's rarity is fixed by how big its city is in its country:
 - the biggest: Rare,
@@ -816,14 +864,19 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
-- Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
+- Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
+- Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
+- Languages: the languages he speaks with their level, his best first, the one spoken where he is marked "here"; past {LANGS_SHOWN} the rest fold into More (see Languages).
 - Reputation: his karma with a bar (green when good, red when bad), his fame in this city and what that does to his prices (see Karma and Fame).
-- The police, once they want him or have chased him: his wanted stars, what paying it off would cost, and his chases so far (see The police).
+- The police, once they want him or have chased him: his wanted stars, what paying it off would cost (or from how many stars he can), his chases so far and what he has paid in fines and pay-offs (see The police).
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
-- Bag: what he carries, out of {BAG_SIZE}. Tap the Bag heading to hide or show the list, and an item to see its story.
+- Bag: what he carries, out of {BAG_SIZE}, and the ingredients in his pantry, out of {PANTRY_MAX} (see Cooking). Tap the Items heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
 - Friends: any fellow traveller with him, then his partner, then his friends by hearts, each with their hearts and city; past {FRIENDS_SHOWN} the rest fold into More, which opens on a tap (see Friends and a partner). Under them, his clubs with their city and night (see Clubs).
 - Pet: his pet's level, the km they walked together towards the next level, its perk, how long it has been with him and whether it ate today; the pets he had fold into Remembered (see His pet).
+- Mind: his wants, with each fear as its want to face it again, and a Mood list of everything that moves his mood each hour (see Wants and fears, Moodlets).
+- Quirks: the quirks his habits gave him, out of {MAX_QUIRKS} (see Quirks).
+- His spot: his spot in this city, his visits there and his regular's discount, once he has one (see His spot).
 - Effects: his buffs with the minutes they have left.
 ## The Collection sheet {collection}
 🗂 Collection (in the menu) shows everything he collects. You never have to open it: he collects on his own.
