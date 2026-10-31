@@ -1,9 +1,11 @@
 // Quests and world events, the story at the heart of his life. Each city has
 // a board of quests (from 2 in a town to 30 in a capital), drawn from a bank
 // of quest kinds in data/quests.json, each filled with a named local, an item,
-// a twist and the city's real places, so the same kind reads as a new quest.
-// Every QUEST_EVERY_MIN to QUEST_EVERY_MAX stops he takes one on and does its
-// steps back to back, stopping only for an urgent need. World events (Guild
+// a twist and the city's real places, so the same kind reads as a new quest;
+// capitals also have their own quests (data/city-quests.json) about named
+// landmarks, dealt first. Every QUEST_EVERY_MIN to QUEST_EVERY_MAX stops he
+// takes one on and does its steps back to back, stopping only for an urgent
+// need; at its middle step it goes on or fails, ending early with no reward. World events (Guild
 // Wars 2's dynamic events) pop up at real places near him with a timer: he
 // joins one when he is free, it goes well or badly, and either way a
 // follow-up may come next; one he misses plays out without him. Nothing here
@@ -33,7 +35,7 @@ export const BOARD_MID_POP = 300_000;
 /** A board is rolled once this many places of the city (bridges aside) are loaded, one of them where a quest can start. */
 export const BOARD_PLACES = 20;
 /** Share of the board that may be light-fantasy quests. */
-export const FANTASY_SHARE = 0.1;
+export const FANTASY_SHARE = 0.25;
 /** Minutes a quest step or an event takes him. */
 export const STEP_MIN = 5;
 /** A step's place is picked among the nearest this many that fit, so it is never across town. */
@@ -47,8 +49,6 @@ export const EVENT_NEAR_M = 1200;
 export const FOLLOW_CHANCE = 0.6;
 /** A quest goes well at even odds, plus his leaning attribute's share (see incidents.ts leanShare). */
 export const GOOD_BASE = 0.5;
-/** A quest that ends worse pays this share of its reward. */
-export const WORSE_SHARE = 0.4;
 /** Quests he remembers having done, so they don't come back. */
 export const DONE_MAX = 1000;
 /** Quests and events kept in his log. */
@@ -58,13 +58,16 @@ export const CARD_RECENT = 2;
 
 export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind };
 /** One step: where (actions.json keys, class or class/subclass) and what he does, one line picked from `say`. */
-export type Step = { at: string[]; say: string[] };
+/** Where a step happens: one of the named landmarks in `name` when one is loaded (a city's own quests), else a place of the kinds in `at`. */
+export type Step = { at: string[]; name?: string[]; say: string[] };
 export type QuestKind = {
   id: string;
   icon: string;
   title: string;
   /** Light fantasy: rarer, see FANTASY_SHARE. */
   fantasy?: boolean;
+  /** A city's own quest ("Paris, France"): only on that city's board, dealt before the others, and done once for good. */
+  city?: string;
   time?: TimeOfDay;
   /** {ITEM} in the lines is one of these. */
   items: string[];
@@ -97,6 +100,8 @@ export type EventKind = {
   next?: { win?: string; lose?: string };
   /** Comes only as a follow-up. */
   follow?: boolean;
+  /** A touch of magic (about one event in four). */
+  fantasy?: boolean;
 };
 export type Bank = { names: string[]; quests: QuestKind[]; events: EventKind[] };
 
@@ -116,6 +121,13 @@ export const isAt = (p: Pick<Place, "name" | "lat" | "lon">, s: Spot) => p.name 
 const placeOf = (s: Spot, places: readonly Place[]): Place => places.find((p) => isAt(p, s)) ?? { ...s, rank: 1, made: true };
 /** False while `s` is shut by the sky he lives under (opening.ts); true with no sky. */
 const openNow = (stats: Stats, s: Pick<Place, "class" | "subclass">) => !stats.sky || isOpen(s, stats.sky.clock, stats.sky.holiday);
+
+/** The places that suit `step`: its named landmarks when any is loaded, else places of its kinds. */
+export function stepPlaces(step: Step, places: readonly Place[]): Place[] {
+  const names = step.name?.map((n) => n.toLowerCase());
+  const named = names ? places.filter((p) => names.some((n) => p.name.toLowerCase().includes(n))) : [];
+  return named.length ? named : places.filter((p) => isKind(p, step.at));
+}
 
 /** How many quests a city of `pop` people has on its board. */
 export function boardSize(pop: number): number {
@@ -188,13 +200,23 @@ export class Quests {
     this.rolled = true;
     this.rev++;
     const done = new Set(this.done);
-    const byKind = indexKinds(places);
     const n = boardSize(pop);
+    // The city's own quests come first; each is done once for good, so its key is its id.
+    for (const k of this.bank.quests) {
+      if (k.city !== city || done.has(k.id) || this.board.length >= n) continue;
+      const at = stepPlaces(k.steps[0]!, places);
+      if (!at.length) continue;
+      const twist = k.twists.length && rng.randf() < 0.5 ? rng.randiRange(0, k.twists.length - 1) : -1;
+      this.board.push({ key: k.id, kind: k.id, giver: rng.pick(this.bank.names), item: rng.randiRange(0, k.items.length - 1), twist, at: spotOf(rng.pick(at)) });
+    }
+    const kinds = this.bank.quests.filter((k) => !k.city);
+    if (!kinds.length) return;
+    const byKind = indexKinds(places);
     const used = new Set<string>();
     let fantasy = 0;
     for (let tries = 0; this.board.length < n && tries < n * 6; tries++) {
-      const k = rng.pick(this.bank.quests);
-      if (used.has(k.id) && used.size < this.bank.quests.length) continue;
+      const k = rng.pick(kinds);
+      if (used.has(k.id) && used.size < kinds.length) continue;
       if (k.fantasy && fantasy >= Math.floor(n * FANTASY_SHARE)) continue;
       const givers = k.steps[0]!.at.flatMap((key) => byKind.get(key) ?? []);
       if (!givers.length) continue;
@@ -348,19 +370,25 @@ function playStep(stats: Stats, a: Active, rng: Rng): void {
   }
   const words = { giver: a.giver, item: k.items[a.item], place: a.target!.name, town: town(stats) };
   const step = k.steps[a.step]!;
-  const twist = a.twist >= 0 && a.step === Math.floor(k.steps.length / 2) ? ` ${fill(k.twists[a.twist]!, words)}` : "";
+  // The middle step is where it turns: a twist may come, and it goes on or fails there.
+  const middle = a.step === Math.floor(k.steps.length / 2);
+  const twist = a.twist >= 0 && middle ? ` ${fill(k.twists[a.twist]!, words)}` : "";
   stats.say(`${k.icon} ${fill(rng.pick(step.say), words)}${twist}`);
   a.step++;
   a.target = null;
   q.rev++;
-  if (a.step < k.steps.length) return;
-  const good = rng.randf() < GOOD_BASE + leanShare(stats, k.lean);
-  const money = pay(stats, k.reward, good ? 1 : WORSE_SHARE, rng);
-  const item = good && k.reward.item ? gift(stats, k.reward.item, rng) : "";
-  stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(good ? k.good : k.worse), words)}${money}${item}`);
-  log(stats, { icon: k.icon, title: k.title, good });
+  const failed = middle && rng.randf() >= GOOD_BASE + leanShare(stats, k.lean);
+  if (!failed && a.step < k.steps.length) return;
+  if (failed) {
+    stats.say(`${k.icon} ${k.title} fails: ${fill(rng.pick(k.worse), words)}`);
+  } else {
+    const money = pay(stats, k.reward, 1, rng);
+    const item = k.reward.item ? gift(stats, k.reward.item, rng) : "";
+    stats.say(`${k.icon} ${k.title}: ${fill(rng.pick(k.good), words)}${money}${item}`);
+    q.finished++;
+  }
+  log(stats, { icon: k.icon, title: k.title, good: !failed });
   q.done = [...q.done, a.key].slice(-DONE_MAX);
-  q.finished++;
   q.active = null;
   q.since = 0;
   q.wait = rng.randiRange(QUEST_EVERY_MIN, QUEST_EVERY_MAX);
@@ -371,7 +399,7 @@ function stepTarget(stats: Stats, a: Active, places: readonly Place[], here: Lat
   const k = stats.quests.kind(a.kind);
   const step = k?.steps[a.step];
   if (!step) return a.at;
-  const kind = places.filter((p) => isKind(p, step.at) && distanceM(here[0], here[1], p.lat, p.lon) > 30);
+  const kind = stepPlaces(step, places).filter((p) => distanceM(here[0], here[1], p.lat, p.lon) > 30);
   const open = kind.filter((p) => openNow(stats, p));
   const fit = (open.length ? open : kind)
     .map((p) => [p, distanceM(here[0], here[1], p.lat, p.lon)] as const)
@@ -448,6 +476,8 @@ export function check(bank: Bank, keys: Set<string>, attrs: readonly string[]): 
       if (!s.say.length) out.push(`${q.id}: a step with nothing to say`);
     }
     if (!attrs.includes(q.lean)) out.push(`${q.id}: lean ${q.lean}`);
+    if (q.city !== undefined && !/^.+, [^,]+$/.test(q.city)) out.push(`${q.id}: city ${q.city} isn't "Name, Country"`);
+    if (q.steps.some((s) => s.name && (!s.name.length || s.name.some((n) => n.trim().length < 2)))) out.push(`${q.id}: a landmark name too short`);
     if (q.reward.item && !(q.reward.item in Items.KINDS)) out.push(`${q.id}: item kind ${q.reward.item}`);
   }
   const events = new Set(bank.events.map((e) => e.id));

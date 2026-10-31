@@ -281,7 +281,7 @@ function QuestCard({ q, now }: { q: Quests; now: number }) {
       {recent.length > 0 && (
         <div class="zebra">
           {recent.map((e, i) => (
-            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "Went so-so"}</span>} />
+            <KV key={i} k={`${e.icon} ${e.title}`} v={<span class={e.good ? "tone-ok" : "dim"}>{e.good ? "✔ Went well" : "✖ Failed"}</span>} />
           ))}
         </div>
       )}
