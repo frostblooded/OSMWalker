@@ -204,7 +204,8 @@ test("History lists what he did and shows it on the map", async ({ page }) => {
   await expect(sheet.locator("li").first()).toBeVisible({ timeout: 10000 });
   await expect(sheet.locator(".num").first()).toHaveText("1");
   expect(await smallButtons(page)).toEqual([]);
-  await sheet.locator("li button").first().click();
+  // Where he set off from, away from him: the arrival line (if he got there already) or a sky event's line sits where he is.
+  await sheet.locator("li button", { hasText: /Set off for/ }).click();
   await expect(page.getByRole("button", { name: /Back to him/ })).toBeVisible();
 });
 
