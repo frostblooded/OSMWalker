@@ -25,25 +25,32 @@ describe("mail data", () => {
 describe("mailbox", () => {
   it("a friend elsewhere with LETTER_AT hearts may write about where they met", () => {
     const m = new M.Mailbox();
-    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT - 1)], [], DATA, fixed(0))).toEqual([]);
-    expect(m.day(T0, PORTO, [friend("Ana", PORTO, M.LETTER_AT)], [], DATA, fixed(0))).toEqual([]); // she is right there
-    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], [], DATA, fixed(M.LETTER_CHANCE))).toEqual([]);
-    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], [], DATA, fixed(0))).toEqual(["📬 A letter from Ana in Porto"]);
+    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT - 1)], "", [], DATA, fixed(0))).toEqual([]);
+    expect(m.day(T0, PORTO, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(0))).toEqual([]); // she is right there
+    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(M.LETTER_CHANCE))).toEqual([]);
+    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(0))).toEqual(["📬 A letter from Ana in Porto"]);
     expect(m.letters[0]!.text).toContain("Cafe Luz");
+  });
+
+  it("never from his partner, who is with him", () => {
+    const m = new M.Mailbox();
+    const her = friend("Ana", PORTO, 10);
+    expect(m.day(T0, SOFIA, [her], her.id, [PORTO], DATA, fixed(0))).toEqual([]);
+    expect(m.waiting).toEqual([]);
   });
 
   it("keeps KEEP_LETTERS letters", () => {
     const m = new M.Mailbox();
-    for (let i = 0; i < M.KEEP_LETTERS + 3; i++) m.day(T0 + i, SOFIA, [friend("Ana", PORTO, 5)], [], DATA, fixed(0));
+    for (let i = 0; i < M.KEEP_LETTERS + 3; i++) m.day(T0 + i, SOFIA, [friend("Ana", PORTO, 5)], "", [], DATA, fixed(0));
     expect(m.letters).toHaveLength(M.KEEP_LETTERS);
   });
 
   it("a friend with GIFT_AT hearts in a city with his spot may leave one gift there, picked up once", () => {
     const m = new M.Mailbox();
-    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], [], DATA, fixed(0));
+    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], "", [], DATA, fixed(0));
     expect(m.waiting).toEqual([]);
-    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], [PORTO], DATA, fixed(0));
-    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], [PORTO], DATA, fixed(0));
+    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], "", [PORTO], DATA, fixed(0));
+    m.day(T0, SOFIA, [friend("Ana", PORTO, M.GIFT_AT)], "", [PORTO], DATA, fixed(0));
     expect(m.waiting).toEqual([{ from: "Ana", city: PORTO, gift: DATA.gifts[0] }]);
     expect(m.pickUp(SOFIA)).toBeNull();
     expect(m.pickUp(PORTO)?.from).toBe("Ana");
@@ -52,7 +59,7 @@ describe("mailbox", () => {
 
   it("survives a save", () => {
     const m = new M.Mailbox();
-    m.day(T0, SOFIA, [friend("Ana", PORTO, 5)], [PORTO], DATA, fixed(0));
+    m.day(T0, SOFIA, [friend("Ana", PORTO, 5)], "", [PORTO], DATA, fixed(0));
     expect(M.Mailbox.fromJSON(JSON.parse(JSON.stringify(m))).toJSON()).toEqual(m.toJSON());
   });
 });

@@ -653,7 +653,7 @@ export class Stats {
   private newDay(date: string, t: number): void {
     if (this.diary.close(date, this.where.city, this.diaryData, new Rng(seedOf(`diary${date}`)))) this.say("📔 He wrote in his diary");
     const spots = Object.keys(this.spots.cities).filter((c) => this.spots.spot(c));
-    for (const line of this.mail.day(t, this.where.city, this.friends.list, spots, this.mailData, new Rng(seedOf(`mail${date}`)))) this.say(line);
+    for (const line of this.mail.day(t, this.where.city, this.friends.list, this.friends.partner, spots, this.mailData, new Rng(seedOf(`mail${date}`)))) this.say(line);
     this.petDay(date, t);
     this.visaDay();
     const f = this.friends;

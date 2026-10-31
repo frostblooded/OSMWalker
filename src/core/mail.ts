@@ -3,7 +3,8 @@
 // city (LETTER_AT hearts or more) may write to him about the place where they
 // met; the letter waits in his mailbox, so after a long time away you find
 // it there. A friend in a city where he has a spot (GIFT_AT hearts or more)
-// may leave a gift at his spot; he finds it the next time he gets there.
+// may leave a gift at his spot; he finds it the next time he gets there. His
+// partner is with him, so never writes or leaves one.
 // Lines and gifts live in data/mail.json. Pure; Stats owns one.
 import type { Friend } from "./friends";
 import type { Fx } from "./stats";
@@ -34,12 +35,13 @@ export class Mailbox {
   /**
    * A new local day at unix seconds `t`, in `here`: maybe a letter from a
    * friend elsewhere, and maybe a gift at one of `spots` (cities where he has
-   * one) from a friend there. Returns the feed lines.
+   * one) from a friend there, never `partner` (an id, "" for none). Returns the feed lines.
    */
-  day(t: number, here: string, friends: Friend[], spots: string[], data: MailData | null, rng: Rng): string[] {
+  day(t: number, here: string, friends: Friend[], partner: string, spots: string[], data: MailData | null, rng: Rng): string[] {
     if (!data) return [];
     const out: string[] = [];
-    const far = friends.filter((f) => f.hearts >= LETTER_AT && f.city !== here);
+    // His partner is always with him, so never writes or leaves a gift.
+    const far = friends.filter((f) => f.id !== partner && f.hearts >= LETTER_AT && f.city !== here);
     if (far.length && data.letters.length && rng.randf() < LETTER_CHANCE) {
       const f = rng.pick(far);
       const town = f.city.split(",")[0]!;
@@ -47,7 +49,7 @@ export class Mailbox {
       if (this.letters.length > KEEP_LETTERS) this.letters.shift();
       out.push(`📬 A letter from ${f.name} in ${town}`);
     }
-    const givers = friends.filter((f) => f.hearts >= GIFT_AT && spots.includes(f.city) && !this.waiting.some((w) => w.city === f.city));
+    const givers = friends.filter((f) => f.id !== partner && f.hearts >= GIFT_AT && spots.includes(f.city) && !this.waiting.some((w) => w.city === f.city));
     if (givers.length && data.gifts.length && rng.randf() < GIFT_CHANCE) {
       const f = rng.pick(givers);
       this.waiting.push({ from: f.name, city: f.city, gift: rng.pick(data.gifts) });

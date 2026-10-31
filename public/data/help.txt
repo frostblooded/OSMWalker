@@ -831,7 +831,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 ## Letters and gifts {mail}
 His friends (see Friends and a partner) remember him. On the first minute of each local day there is a {FRIEND_LETTER_PCT} chance that a friend in another city with {FRIEND_LETTER_AT} or more hearts writes to him, often about the place where they met. Letters also come while you are away, so you may find some when you come back. The Mailbox card on the Stats sheet shows the newest; tap one to read it. It keeps the last {KEEP_LETTERS}.
 
-Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there: a flower, cake, a lucky coin, a book. It waits, one per city, until he next reaches his spot, and then he gets its boost.
+Each day there is also a {SPOT_GIFT_PCT} chance that a friend with {SPOT_GIFT_AT} or more hearts, in a city where he has a spot (see His spot), leaves him a gift there: a flower, cake, a lucky coin, a book. It waits, one per city, until he next reaches his spot, and then he gets its boost. His partner is always with him, so never writes to him or leaves a gift.
 ## Diary and dreams {diary}
 📔 Diary in the menu opens his diary. On the first minute of each local day he writes the day that ended, in his own words: the city and how many days he has spent there, then up to {DIARY_LINES} lines about what stood out (a faint, a new city, a fear faced or found, a new quirk or spot, a wish come true, a new place, a mishap, a shift at work), or a line about a quiet day. Days written while you were away are there too. Tap a day to read it. The diary keeps the last {DIARY_DAYS} days.
 
