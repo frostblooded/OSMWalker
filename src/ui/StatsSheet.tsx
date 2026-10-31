@@ -4,11 +4,10 @@
 // four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
 // moves his mood), his character (emotion, tastes found and perks), his quirks, his home, his spot and his mailbox. Items with a story open to show it. His life stage comes
-// second, and his records, family tree and the hall of walkers close it.
+// second, and his family tree closes it; his records have their own sheet (RecordsSheet.tsx).
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
-import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { INFO as EMO } from "../core/emotion";
@@ -36,8 +35,8 @@ import { LANG_LEVELS, LANGS_SHOWN } from "../core/languages";
 import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
-import { dist, speed } from "./format";
-import { FamilyTree, Hall, LifeCard } from "./Family";
+import { speed } from "./format";
+import { FamilyTree, LifeCard } from "./Family";
 import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
 const METER: Record<Meter, [string, string, string]> = {
@@ -266,30 +265,6 @@ function LocalWords({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** His bests and lifetime totals. */
-function Records({ stats: s }: { stats: Stats }) {
-  const r = s.records;
-  return (
-    <Card icon="🏆" title="Records">
-      <div class="zebra">
-        <KV k="🚶 Longest walk without a stop" v={dist(r.best.stretchM)} />
-        <KV k="📏 Most walked in a day" v={dist(r.best.dayM)} />
-        <KV k="📍 Most places in a day" v={r.best.dayStops} />
-        <KV k="💰 Most money held" v={euro(r.best.cents)} />
-        <KV k="❤ Longest without fainting" v={span(r.best.noFaintS)} />
-      </div>
-      <Collapsible title="Totals" right={`${r.countries.length} countries`}>
-        <div class="zebra">
-          <KV k="🌍 Countries" v={r.countries.length} />
-          <KV k="🏙 Cities" v={r.cities.length} />
-          <KV k="💥 Mishaps" v={r.mishaps} />
-          <KV k="🏥 Faints" v={r.faints} />
-        </div>
-      </Collapsible>
-    </Card>
-  );
-}
-
 const LEAN_WORD = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
 
 /** His karma, how well this city knows him and what it does to prices; then the police, once they want him or have chased him. */
@@ -444,9 +419,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
           <p class="dim small">None right now.</p>
         )}
       </Card>
-      <Records stats={s} />
       <FamilyTree life={s.life} level={s.level} city={s.where.city} />
-      <Hall stats={s} />
     </>
   );
 }
