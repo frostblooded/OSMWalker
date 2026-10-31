@@ -303,7 +303,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     }
     if (anyUrgent(stats) || stats.quests.active) return false;
     const places = city.places ?? [];
-    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST);
+    const kind = roll(deps.roll?.() ?? rng.randf(), places.length ? 1 : NO_PLACES_BOOST, stats.visas.urge());
     if (kind === "stay") return false;
     const found = trips.pick(kind, city.code, here[0], here[1], rng);
     if (!found) return false;

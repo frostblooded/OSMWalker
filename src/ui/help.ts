@@ -4,6 +4,7 @@
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
 import * as Bills from "../core/bills";
+import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
 import * as Chron from "../core/chronicle";
@@ -212,6 +213,10 @@ export function values(data: GameData): Record<string, string> {
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
     BILL_LIST: Bills.BILLS.map((b) => `- ${b.icon} ${b.name[0]!.toUpperCase()}${b.name.slice(1)}: ${euro(b.cents)}, plus ${euro(b.perLevel)} for each level above 1`).join("\n"),
+    VISA_LIST: Visas.VISAS.map((v) => `- ${v.name}${v.from ? ` (after ${v.from} days)` : " (at first)"}: ${v.stay === Infinity ? "stays as long as he likes" : `stays of up to ${v.stay} days`}, ${v.pay ? `+${pct(v.pay)}` : "no extra"} pay`).join("\n"),
+    VISA_URGE: num(Visas.VISA_URGE),
+    VISA_PAY_MAX: pct(Visas.VISAS.at(-1)!.pay),
+    VISA_PUSH: num(Visas.VISA_PUSH),
     BILLS_L1: euro(Bills.billsAt(1)),
     BILLS_L10: euro(Bills.billsAt(10)),
     BILLS_L30: euro(Bills.billsAt(30)),
