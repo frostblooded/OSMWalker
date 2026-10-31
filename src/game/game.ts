@@ -411,8 +411,8 @@ export class Game {
     this.stats.care.open(this.stats);
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
-    // Until the timed choices can ask you, he takes his own pick.
-    this.stats.meetAt(place);
+    // A creature that shows up takes this stop's one timed moment.
+    const met = this.askCreature(place);
     this.stats.magicAt(place);
     this.stats.wordAt(place);
     this.stats.giantAt(place);
@@ -459,8 +459,20 @@ export class Game {
     // Card pulls roll on the card dice, so buying a pack leaves his walk the same.
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.walker!.restFor(restMinutes(action));
-    this.askAt(place, restMinutes(action) * 60);
+    if (!met) this.askAt(place, restMinutes(action) * 60);
     this.changed();
+  }
+
+  /** The creature at `place`, if one shows up: asked as a timed moment and settled on the dice of now, so it goes as in the catch-up (Stats.meetAt). True when one came. */
+  private askCreature(place: Place): boolean {
+    const c = this.stats.creatureAt(place);
+    if (!c) return false;
+    const t = this.stats.now();
+    void this.ask({ ...c.moment, ask: c.moment.ask.replaceAll("{PLACE}", place.name) }, { his: () => this.stats.creaturePick(c, place.name, t) }).then((p) => {
+      this.stats.meet(c, place.name, p.id, p.you, t);
+      this.save();
+    });
+    return true;
   }
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */

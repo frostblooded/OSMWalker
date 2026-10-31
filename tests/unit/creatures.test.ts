@@ -98,6 +98,19 @@ describe("place creatures", () => {
     expect(s.history.entries.at(-1)?.text).toBe(line);
   });
 
+  it("says when he picked himself, and rolls the dice of the time he was asked", () => {
+    const s = stats();
+    s.now = () => T0;
+    expect(s.meet(kind("dryad"), "Park", "listen", false)).toBe("🌳 Decided by himself: Listened to a dryad's stories in Park");
+    // A tap a few seconds later rolls the troll's riddle on the dice of when it asked (the dice of later times give both results).
+    const lines = Array.from({ length: 20 }, (_, late) => {
+      const x = Object.assign(stats(), { cents: 10_000 });
+      x.now = () => T0 + late;
+      return x.meet(kind("troll"), "Old Bridge", "riddle", true, T0);
+    });
+    expect(new Set(lines).size).toBe(1);
+  });
+
   it("he pays only what he has", () => {
     const s = stats();
     s.cents = 100;

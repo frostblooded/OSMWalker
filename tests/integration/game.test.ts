@@ -303,8 +303,32 @@ describe("game", () => {
     while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
     g.stats.now = () => t;
     run(g, 400);
+    await tick();
     expect(g.stats.creatures.met).toEqual({ dryad: 1 });
-    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
+    // Untouched, the timed choice runs out and he takes her stories himself.
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
+  });
+
+  it("asks you about a creature as a timed choice, and that stop asks nothing else", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+    expect(g.moment!.m.id).toBe("dryad");
+    expect(g.moment!.m.ask).not.toContain("{PLACE}");
+    g.settleMoment("acorn");
+    await tick();
+    expect(g.stats.history.entries.at(-1)!.text).toBe("🌳 Got an acorn from a dryad in Park Near");
+    // The park's own moment skips this visit, so he walks on without another question.
+    const opened: string[] = [];
+    for (let i = 0; i < 400 && g.walker!.isResting(); i++) {
+      g.step(1);
+      if (g.moment) opened.push(g.moment.m.id);
+    }
+    expect(opened).toEqual([]);
   });
 
   it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {

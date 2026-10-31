@@ -1572,20 +1572,25 @@ export class Stats {
     return this.creatures.roll(this.creatureKinds, place.class, dayOf(t * 1000), Cr.meetingDice(t, place.name).randf());
   }
 
-  /** The meeting with `c` at the place named `where`, with option `pick` chosen. Returns the feed line. */
-  meet(c: Cr.Creature, where: string, pick: string): string {
-    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(this.now(), `${where}${pick}`).randf());
+  /** The meeting with `c` at the place named `where`, with option `pick` chosen by you or (`you` false) by himself, on the dice of time `t` when it asked. Returns the feed line. */
+  meet(c: Cr.Creature, where: string, pick: string, you = true, t = this.now()): string {
+    const o = this.creatures.outcome(c, pick, (a) => this.attr(a), Cr.meetingDice(t, `${where}${pick}`).randf());
     const paid = Math.min(o.pay ?? 0, Math.max(this.cents, 0));
     this.cents -= paid;
     if (o.fx) this.applyFx(o.fx);
     if (o.buff) this.addBuff(o.buff);
-    return this.say(`${c.icon} ${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
+    return this.say(`${c.icon} ${you ? "" : "Decided by himself: "}${o.say.replace("{PLACE}", where)}${paid ? ` (${signed(-paid)})` : ""}`);
   }
 
-  /** Right after reaching `place`: meets its creature if one shows up, taking his own pick (moments.ts defaultPick). */
+  /** His own pick at a meeting with `c` at `where`, asked at time `t` (moments.ts defaultPick, on the meeting's own dice). */
+  creaturePick(c: Cr.Creature, where: string, t = this.now()): string {
+    return M.defaultPick(c.moment, this, Cr.meetingDice(t, `${where}pick`));
+  }
+
+  /** Right after reaching `place` with nobody to ask (the catch-up): meets its creature if one shows up, taking his own pick. */
   meetAt(place: Pick<Place, "class" | "name">): void {
     const c = this.creatureAt(place);
-    if (c) this.meet(c, place.name, M.defaultPick(c.moment, this, Cr.meetingDice(this.now(), `${place.name}pick`)));
+    if (c) this.meet(c, place.name, this.creaturePick(c, place.name), false);
   }
 
   /** The moment at `place` when he starts an activity there, or null with none loaded. */
