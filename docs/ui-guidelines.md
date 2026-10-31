@@ -132,7 +132,7 @@ things at a time. A block full of lines is the most common mistake here.
    `:root` tokens?
 4. Are all tap targets at least 48 px (the e2e `smallButtons` check)?
 5. Have you looked at the new screen at 360 and 412 px? `tests/e2e/layout.spec.ts`
-   shoots every screen into `screens/` (the `screens` CI artifact) and fails
+   shoots every screen into `screens/` (left there by `npm run verify`) and fails
    on overlap or sideways scroll; add a step there for a new screen.
 6. Did you measure the performance cost (`npm run perf`)?
 

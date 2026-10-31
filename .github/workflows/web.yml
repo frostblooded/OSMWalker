@@ -1,130 +1,35 @@
 name: Web (TypeScript)
 
-# Docs-only changes (CLAUDE.md, docs/) never reach the game, so they run nothing.
+# Build and deploy only. Every check runs on the machine that pushes: npm run verify,
+# enforced by the pre-push hook (.githooks/pre-push, tools/verify.ts). Docs-only
+# changes (CLAUDE.md, docs/) never reach the game, so they deploy nothing.
 on:
-  pull_request:
-    paths-ignore: ["**.md", "docs/**"]
   push:
     branches: [master]
     paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
 
 concurrency:
-  group: web-${{ github.ref }}
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
-# check, e2e and perf run in parallel. The build takes ~2 s, so e2e and perf
-# each build for themselves instead of waiting on a Build job and an artifact
-# hop (~15 s). master pushes deploy the build e2e played to GitHub Pages once
-# everything passes, then live-check plays the deployed site to prove it loads.
 jobs:
-  check:
-    name: Typecheck + unit/integration tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-
-  e2e:
-    name: Browser e2e
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: npm run build
-      - name: Play the game (runner's Chrome, no browser download)
-        env:
-          CI: "true"
-        run: npm run e2e
-      - uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
-        with:
-          name: web-dist
-          path: dist
-          retention-days: 7
-      # Phone-size shots of every screen (tests/e2e/layout.spec.ts), to eyeball a UI change.
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: screens
-          path: screens
-          retention-days: 14
-          if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: e2e-report
-          path: |
-            playwright-report
-            test-results
-          if-no-files-found: ignore
-
-  perf:
-    name: Perf budgets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: npm run build
-      - name: Check budgets on a mid-range phone profile
-        env:
-          CI: "true"
-        run: npm run perf
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: perf-results
-          path: perf-results
-          if-no-files-found: ignore
-
   deploy:
     name: Deploy to GitHub Pages
-    needs: [check, e2e, perf]
-    # Pushes to master, or a manual run on master to redeploy.
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
-    outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
-
-  live-check:
-    name: Play the live site
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - name: Play the deployed game with the real map services
-        env:
-          CI: "true"
-          LIVE_URL: ${{ needs.deploy.outputs.page_url }}
-        run: |
-          # Pages can take a moment to serve the new build.
-          for i in $(seq 1 12); do curl -sfo /dev/null "$LIVE_URL" && break; sleep 5; done
-          npx playwright test boot live
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: live-report
-          path: |
-            playwright-report
-            test-results
-          if-no-files-found: ignore
