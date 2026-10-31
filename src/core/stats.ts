@@ -335,7 +335,7 @@ export class Stats {
   /** Cents he saves up for his vehicle: the next one plus his reserve (and a dragon's first day of gold), or while his dragon is unfed today, its gold plus his reserve. */
   vehicleSaving(): number {
     const goal = this.vehicleGoal();
-    if (goal) return goal.cents + KEEP_CENTS + (goal.kind === "dragons" ? DRAGON_UPKEEP : 0);
+    if (goal) return this.priced(goal.cents) + KEEP_CENTS + (goal.kind === "dragons" ? DRAGON_UPKEEP : 0);
     return this.sulking() ? DRAGON_UPKEEP + KEEP_CENTS : 0;
   }
 
@@ -743,7 +743,7 @@ export class Stats {
     let best: Item | null = null;
     for (let i = 0; i < DEALER_OFFERS; i++) {
       const item = i ? Items.make(kind, this.level, rng, this.attr("luck")) : first;
-      if (this.cents - item.price >= KEEP_CENTS && (!best || Items.power(item) > Items.power(best))) best = item;
+      if (this.cents - this.priced(item.price) >= KEEP_CENTS && (!best || Items.power(item) > Items.power(best))) best = item;
     }
     return best ?? first;
   }

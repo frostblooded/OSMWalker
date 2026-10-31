@@ -140,6 +140,14 @@ describe("perks", () => {
     expect(before - s.cents).toBe(s.priced(300));
   });
 
+  it("he saves up for his next vehicle at the price he will pay", () => {
+    const s = at();
+    const list = s.vehicleSaving();
+    s.bond.lean = -LEAN_AT;
+    expect(s.vehicleSaving() - KEEP_CENTS).toBe(s.priced(list - KEEP_CENTS));
+    expect(s.vehicleSaving()).toBeGreaterThan(list);
+  });
+
   it("a kind walker may get a free bus ride and gifts from locals", () => {
     let t = T0;
     while (new Rng(seedOf(`freeStation${t}`)).randf() >= R.FREE_RIDE_CHANCE) t++;

@@ -258,9 +258,15 @@ describe("game", () => {
       now += 1000;
       g.step(1);
     }
+    // The car drives his own trail: it set off where he was spotted and is now between his last two spots.
+    const trail = g.chase!.trail;
+    expect(start).toEqual(trail[0]);
     const near = g.policeAt()!;
-    const him = g.walker!.position();
-    expect(Math.hypot(near[0] - him[0], near[1] - him[1])).toBeLessThan(Math.hypot(start[0] - him[0], start[1] - him[1]) + 1e-9);
+    const [a, b] = [trail.at(-2)!, trail.at(-1)!];
+    for (const k of [0, 1]) {
+      expect(near[k]!).toBeGreaterThanOrEqual(Math.min(a[k]!, b[k]!) - 1e-9);
+      expect(near[k]!).toBeLessThanOrEqual(Math.max(a[k]!, b[k]!) + 1e-9);
+    }
     now += 2000;
     g.step(1);
     expect(g.chase).toBeNull();
