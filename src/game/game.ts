@@ -349,8 +349,8 @@ export class Game {
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
-    if (this.stats.life.asked) void this.retire("you");
-    else if (this.stats.life.retireDue) void this.retire("age");
+    const leaving = this.stats.life.leaving;
+    if (leaving) void this.retire(leaving);
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
@@ -766,12 +766,11 @@ export class Game {
       // Aged to now first, since time past the catch-up's limit counts towards his life too.
       this.stats.passTime(0, 0);
       const old = this.stats;
-      if (old.life.retireDue || old.life.asked) await this.retire(old.life.asked ? "you" : "age", true);
-      const retired = this.stats !== old;
-      const due = !retired && (old.life.retireDue || old.life.asked);
-      if (this.away && (retired || due)) this.away.retire = retired ? "done" : "soon";
+      const leaving = old.life.leaving;
+      if (leaving) await this.retire(leaving, true);
+      if (leaving && this.away) this.away.retire = this.stats !== old ? "done" : "soon";
       // A reopen on which he retires, or will once streets load, brings no dilemma.
-      this.dilemma = retired || due
+      this.dilemma = leaving
         ? null
         : D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
