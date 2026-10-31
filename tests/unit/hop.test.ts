@@ -35,7 +35,7 @@ describe("the ride to the station", () => {
     expect(s.cents).toBe(1200);
     expect(s.hop("metro", 10_000, "Central Station", 0)).toBe("🚇 Took the metro to Central Station (-€2)");
     expect(s.hop("car", 10_000, "Shell", 0)).toBe("🚗 Drove to Shell");
-    expect(s.hop("broom", 10_000, "Sofia Airport", 0)).toBe("Flew his broom to Sofia Airport");
-    expect(s.hop("bike", 10_000, "Sofia Airport", 0)).toBe("Rode his bike to Sofia Airport");
+    expect(s.hop("broom", 10_000, "Sofia Airport", 0)).toBe("🧹 Flew his broom to Sofia Airport");
+    expect(s.hop("bike", 10_000, "Sofia Airport", 0)).toBe("🚲 Rode his bike to Sofia Airport");
   });
 });

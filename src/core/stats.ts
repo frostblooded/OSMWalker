@@ -198,6 +198,12 @@ export type Place = { name: string; class: string; subclass: string; rank: numbe
 
 export const xpToNext = (lvl: number) => 100 * lvl;
 
+/** How each way across town to a station reads in History (see Stats.hop). */
+const HOP_HOW: Record<T.HopBy, string> = {
+  metro: "🚇 Took the metro", taxi: "🚕 Took a taxi", car: "🚗 Drove", bike: "🚲 Rode his bike", motorcycle: "🏍 Rode his motorbike",
+  tortoise: "🐢 Rode his tortoise", broom: "🧹 Flew his broom", carpet: "🪄 Flew his carpet", dragon: "🐉 Flew his dragon",
+};
+
 export class Stats {
   meters: Record<Meter, number> = { health: 100, energy: 100, fullness: 80, mood: 70, hygiene: 100, thirst: 80 };
   attrs: Record<Attr, number> = { str: 1, cha: 1, wit: 1, luck: 1 };
@@ -555,8 +561,7 @@ export class Stats {
     const fare = T.hopFare(by, roadM);
     if (this.cents - fare < keep) return "";
     this.cents -= fare;
-    const how = by === "metro" ? "🚇 Took the metro" : by === "taxi" ? "🚕 Took a taxi" : by === "car" ? "🚗 Drove" : Speeds.FLYERS.has(by as Speeds.Vehicle) ? `Flew his ${by}` : `Rode his ${by}`;
-    return this.say(`${how} to ${station}${fare ? ` (${signed(-fare)})` : ""}`);
+    return this.say(`${HOP_HOW[by]} to ${station}${fare ? ` (${signed(-fare)})` : ""}`);
   }
 
   /**

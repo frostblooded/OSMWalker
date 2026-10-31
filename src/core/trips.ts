@@ -15,7 +15,7 @@ import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from ".
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
-import { BIKE_ROAD, BUS, CAR, CAR_ROAD, FERRY, FOR_VEHICLE, HITCH, METRO, PLANE, TRAIN, WALK, type Vehicle } from "./speeds";
+import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, FOR_VEHICLE, HITCH, METRO, PLANE, TRAIN, WALK, type Vehicle } from "./speeds";
 import type { Action, Fx, Place } from "./stats";
 
 export const COUNTRY_CHANCE = 0.025;
@@ -170,8 +170,7 @@ export function hopBy(vehicle: Vehicle, cityPop: number): HopBy {
 
 /** Seconds a ride of `roadM` across town by `by` takes, at most HOP_MAX_S. */
 export function hopS(by: HopBy, roadM: number): number {
-  const mps = by === "metro" ? METRO : by === "taxi" ? CAR : FOR_VEHICLE[by];
-  return Math.min(roadM / mps, HOP_MAX_S);
+  return Math.min(roadM / (by === "metro" ? METRO : FOR_VEHICLE[by === "taxi" ? "car" : by]), HOP_MAX_S);
 }
 
 /** Cents a ride of `roadM` across town by `by` costs: nothing on his own vehicle. */

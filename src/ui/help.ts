@@ -88,6 +88,8 @@ import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
 
+/** The taxi ride Help prices as an example. */
+const TAXI_EG_M = 10_000;
 export type Page = { id: string; title: string; body: string };
 export type Section = { title: string; pages: Page[] };
 export type Block = { text: string; items: string[] };
@@ -713,8 +715,9 @@ export function values(data: GameData): Record<string, string> {
     TAXI_BASE: euro(toCents(Trips.TAXI_BASE)),
     TAXI_PER_KM: euro(toCents(Trips.TAXI_PER_KM)),
     TAXI_KMH: kmh(Speeds.CAR),
-    TAXI_10KM: euro(Trips.hopFare("taxi", 10_000)),
-    TAXI_10KM_MIN: num(Math.round(Trips.hopS("taxi", 10_000) / 60)),
+    TAXI_EG_KM: km(TAXI_EG_M),
+    TAXI_EG: euro(Trips.hopFare("taxi", TAXI_EG_M)),
+    TAXI_EG_MIN: num(Math.round(Trips.hopS("taxi", TAXI_EG_M) / 60)),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
     BIKE_ICON: Trips.MODES.bike.icon,

@@ -740,6 +740,39 @@ describe("trips", () => {
       expect(walker.flight).toBeNull();
     });
 
+    const hopping = () => {
+      walker.hopper = () => 300;
+      walker.tripPlanner = () => far();
+      walker.startAt(n(2));
+      walker.advance(1);
+      walker.tripPlanner = () => null;
+      walker.advance(30 * SPEED_MPS);
+      expect(walker.flight!.mps).toBeGreaterThan(0);
+    };
+
+    it("keeps riding there on a flyer whose mount stops flying", () => {
+      hopping();
+      walker.flies = false;
+      walker.advance(1);
+      expect(walker.flight).not.toBeNull();
+    });
+
+    it("fainting on the way, he comes down near where he was, not at the station", () => {
+      hopping();
+      const p = walker.position();
+      expect(walker.wakeAt(null, null)).toBe(true);
+      expect(walker.flight).toBeNull();
+      const at = walker.position();
+      expect(distanceM(p[0], p[1], at[0], at[1])).toBeLessThan(distanceM(at[0], at[1], 42.05, 23));
+    });
+
+    it("a free ride on the way ends the ride to the station", () => {
+      hopping();
+      walker.rideNow(TRIP);
+      expect(walker.flight).toBeNull();
+      expect(walker.isDeparting()).toBe(false);
+    });
+
     it("keeps riding there after a save and reload", () => {
       walker.hopper = () => 300;
       walker.tripPlanner = () => far();

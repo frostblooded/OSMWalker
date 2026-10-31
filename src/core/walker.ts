@@ -270,8 +270,11 @@ export class Walker {
 
   /** After fainting: stands at `node` (null: where he is) and rests a minute at `place`. Says whether he moved. */
   wakeAt(node: number | null, place: Place | null): boolean {
+    // Fainting on a ride to the station: he comes down where he is, not at the station.
+    const hopping = !this.travel && !!this.flight?.mps && node === null;
+    if (hopping) node = this.cornerOrLone(this.position());
     const moved = node !== null && !this.travel;
-    if (moved) this.startAt(node);
+    if (moved) this.startAt(node!);
     else if (this.flight) this.startAt(this.flight.node);
     this.restFor(1);
     this.place = place;
@@ -299,11 +302,33 @@ export class Walker {
     this.tripStartM = 0;
     this.bounds = bounds;
     if (newCity) this.graph = new StreetGraph();
+    this.startAt(this.cornerOrLone(at));
+  }
+
+  /** The nearest loaded corner within SNAP_M of `at`, or null. */
+  private cornerAt(at: LatLon): number | null {
     const near = this.graph.nearestNode(at[0], at[1]);
-    const p = near === null ? null : this.graph.nodes.get(near)!;
-    if (near !== null && p && distanceM(at[0], at[1], p[0], p[1]) <= SNAP_M) return this.startAt(near);
+    const p = near === null ? null : this.graph.nodes.get(near);
+    return near !== null && p && distanceM(at[0], at[1], p[0], p[1]) <= SNAP_M ? near : null;
+  }
+
+  /** cornerAt `at`, else a lone point there until the streets load. */
+  private cornerOrLone(at: LatLon): number {
+    const near = this.cornerAt(at);
+    if (near !== null) return near;
     this.graph.nodes.set(ARRIVAL_NODE, [at[0], at[1]]);
-    this.startAt(ARRIVAL_NODE);
+    return ARRIVAL_NODE;
+  }
+
+  /** Sets off over the city from where he is to corner `node`, at his own speed or (a ride to a station) taking `seconds`. */
+  private fly(node: number, seconds?: number): void {
+    const from = this.position();
+    const at = this.graph.nodes.get(node)!;
+    const m = distanceM(from[0], from[1], at[0], at[1]);
+    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m, ...(seconds ? { mps: Math.max(m, 1) / seconds } : {}) };
+    this.legFrom = from;
+    this.route = [];
+    this.routeArrives = false;
   }
 
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
@@ -522,19 +547,7 @@ export class Walker {
     const roadM = distanceM(from[0], from[1], st.lat, st.lon) * ROAD_FACTOR;
     if (roadM < HOP_MIN_M) return;
     const s = this.hopper(plan, roadM);
-    if (s <= 0) return;
-    let node = this.graph.nearestNode(st.lat, st.lon);
-    let at = node === null ? null : this.graph.nodes.get(node)!;
-    if (node === null || !at || distanceM(at[0], at[1], st.lat, st.lon) > SNAP_M) {
-      node = ARRIVAL_NODE;
-      at = [st.lat, st.lon];
-      this.graph.nodes.set(node, at);
-    }
-    const m = distanceM(from[0], from[1], at[0], at[1]);
-    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m, mps: m / s };
-    this.legFrom = from;
-    this.route = [];
-    this.routeArrives = false;
+    if (s > 0) this.fly(this.cornerOrLone([st.lat, st.lon]), s);
   }
 
   /** On a flying mount, at the start of the way to a far goal: flies to a park or garden near it, if one is loaded. */
@@ -552,14 +565,9 @@ export class Walker {
       if (m < padM) [pad, padM] = [q, m];
     }
     if (!pad) return false;
-    const node = this.graph.nearestNode(pad.lat, pad.lon);
-    const at = node === null ? null : this.graph.nodes.get(node)!;
-    if (node === null || !at || distanceM(at[0], at[1], pad.lat, pad.lon) > SNAP_M) return false;
-    const m = distanceM(from[0], from[1], at[0], at[1]);
-    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m };
-    this.legFrom = from;
-    this.route = [];
-    this.routeArrives = false;
+    const node = this.cornerAt([pad.lat, pad.lon]);
+    if (node === null) return false;
+    this.fly(node);
     return true;
   }
 
