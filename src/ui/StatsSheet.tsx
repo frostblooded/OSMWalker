@@ -1,5 +1,5 @@
 // His character sheet: level and XP, his quests, what he saves up for,
-// his weekly bills, six meters and Magic as bars, the sky over him, the spells he knows,
+// his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
 // buffs, his rival, friends and pet. Items with a story open to show it.
@@ -16,6 +16,7 @@ import type { Vehicle } from "../core/speeds";
 import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { billsAt } from "../core/bills";
+import { VISAS } from "../core/visas";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { dayOf } from "../core/gifts";
 import { KINDS as PET_KINDS, kmFor, PET_MAX_LEVEL } from "../core/pet";
@@ -232,6 +233,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         </div>
       </Card>
       {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
+      {s.where.code && <VisaCard s={s} />}
       <Spells stats={s} />
       <LocalWords stats={s} />
       <Card icon="💪" title="Attributes">
@@ -346,6 +348,22 @@ function FriendsCard({ s }: { s: Stats }) {
         const k = clubKind(c);
         return <KV key={c.city} k={`${k.icon} ${k.name[0]!.toUpperCase()}${k.name.slice(1)}`} v={`${c.city.split(",")[0]} · ${DAYS[c.day]!.slice(0, 3)} ${String(c.hour).padStart(2, "0")}:00`} />;
       })}
+    </Card>
+  );
+}
+
+/** His visa in the country he is in: its level, this stay against its limit, and the extra pay at work. */
+function VisaCard({ s }: { s: Stats }) {
+  const v = s.visas;
+  const visa = v.visa(s.where.code);
+  const left = v.left();
+  const next = VISAS[VISAS.indexOf(visa) + 1];
+  return (
+    <Card icon="🛂" title="Visa" right={visa.name}>
+      <KV k="Country" v={s.where.country || s.where.code} />
+      <KV k="This stay" v={visa.stay === Infinity ? `${v.stay} days, no limit` : `${v.stay} of ${visa.stay} days`} tone={left <= 0 ? "warning" : undefined} />
+      <KV k="Pay at work" v={`+${Math.round(visa.pay * 100)}%`} />
+      {next && <KV k={`Next: ${next.name}`} v={`${v.days[s.where.code] ?? 0} / ${next.from} days`} />}
     </Card>
   );
 }

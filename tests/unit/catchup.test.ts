@@ -201,6 +201,19 @@ describe("catch-up", () => {
     expect(s.lines.some((l) => l.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
   });
 
+  it("leans abroad on the last day of his visa, as in a watched trip", () => {
+    const away = (lastDay: boolean) => {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      stats.visas.enter("AAA");
+      if (lastDay) stats.visas.stay = 3;
+      let rolls = 0;
+      return catchUp(stats, HOME, [0, 0], 3600, START_MS, deps({ roll: () => (rolls++ ? 0.99 : 0.05) })).lines.map((l) => l.text);
+    };
+    expect(away(false).some((t) => t.startsWith("Took the bus to Nexttown"))).toBe(true);
+    expect(away(true).some((t) => t.startsWith("Took the plane to Farcity"))).toBe(true);
+  });
+
   it("packs a travel kit as he boards, as in a watched trip", () => {
     const stats = new Stats();
     stats.cents = 500_000;

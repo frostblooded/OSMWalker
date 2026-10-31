@@ -46,8 +46,9 @@ export class Journey {
     }
     const r = this.deps.roll?.() ?? this.deps.rng.randf();
     const boost = at.noPlaces ? NO_PLACES_BOOST : 1;
-    const kind = roll(r, boost);
-    this.log = { roll: r, boost, outcome: kind };
+    const abroad = stats.visas.urge();
+    const kind = roll(r, boost, abroad);
+    this.log = { roll: r, boost, ...(abroad > 1 ? { abroad } : {}), outcome: kind };
     if (kind === "stay") return null;
     const found = this.destination(kind, at);
     if (!found) return null;

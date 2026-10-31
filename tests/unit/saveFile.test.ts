@@ -172,6 +172,16 @@ describe("save file", () => {
     expect((f.read() as Saved).stats.rival).toMatchObject({ level: 2, wins: 0, losses: 0, memory: [], inTown: false });
   });
 
+  it("loads saves from before visas: every country starts on Tourist", () => {
+    const kv = new MemStorage();
+    const f = new SaveFile(kv);
+    f.write(saved());
+    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
+    delete d.stats.visas;
+    kv.setItem(SAVE_KEY, JSON.stringify(d));
+    expect((f.read() as Saved).stats.visas).toMatchObject({ days: {}, code: "", stay: 0 });
+  });
+
   it("loads saves from before pets: he has none", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);

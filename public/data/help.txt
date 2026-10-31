@@ -253,6 +253,7 @@ At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
+- up to {VISA_PAY_MAX} more with a better visa in the country (see Visas).
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
@@ -463,7 +464,7 @@ Every time he picks a new goal he rolls the trip dice, unless a need is urgent (
 
 Apart from the dice, an old monument or castle ruin very rarely opens as a portal and takes him to a new city for free (see Portals).
 
-While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots.
+While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas).
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
@@ -472,6 +473,11 @@ While he walks to the station, where he is going stays a surprise: the History s
 He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
+## Visas {visas}
+Each country he spends days in gives him a better visa there. A day counts at the first minute of each day, by your phone's clock, in the country he is in, also while you're away:
+{VISA_LIST}
+
+A visa limits how long one stay in the country lasts; a stay starts when he enters it. Nothing makes him leave: on the last day of the stay, a trip abroad is {VISA_URGE} times likelier when he rolls the trip dice (see Trips to other cities), and past it {VISA_PUSH} times, so he moves on by himself. He says so in the feed on that last day, and when his visa gets better. A better visa pays more at any paid work in that country (see Wages). The Stats sheet shows his visa in the country he is in, this stay against its limit, and the days to the next one.
 ## Stations and getting there {stations}
 How he goes depends on the distance in a straight line:
 - under {PLANE_FROM_KM} km he always goes by road,
@@ -757,6 +763,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
+- Visa: his visa in the country he is in, this stay against its limit, the extra pay at work and the days to the next visa (see Visas).
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
