@@ -78,6 +78,18 @@ describe("journey", () => {
     expect(went).toContain("Nexttown");
   });
 
+  it("says a trip home is abroad or not by where home is, not by the dice", () => {
+    const { j, stats } = journey(0); // the dice say abroad
+    stats.cents = 1e7;
+    stats.home.rent("Nexttown, A-land", "AAA", [1, 0], 0);
+    for (let t = 0; t < 40 && !stats.history.entries.some((e) => e.text.includes("A-land")); t++) {
+      stats.now = () => t;
+      j.consider(where(), stats);
+    }
+    const home = stats.history.entries.find((e) => e.text.includes("somewhere in A-land"));
+    expect(home).toBeDefined();
+  });
+
   it("plans a bus to another city of the country and says so", () => {
     const { j, stats } = journey(0.1);
     const plan = j.consider(where(), stats)!;

@@ -9,7 +9,7 @@ import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
-import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
+import { ATTRS, BAG_SIZE, DIRTY_AT, KEEP_CENTS, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
@@ -618,7 +618,7 @@ function HomeCard({ s }: { s: Stats }) {
   return (
     <Card icon="🏡" title="Home" right={h.city.split(",")[0]}>
       <KV k={h.bought ? "His own" : "Rent"} v={h.bought ? "no rent" : `${euro(h.rentAt(s.level))} a week`} />
-      {!h.bought && <KV k="To buy it" v={`${euro(s.cents)} / ${euro(HOME_PRICE)}`} />}
+      {!h.bought && <KV k="To buy it" v={`${euro(s.cents)} / ${euro(HOME_PRICE + Math.max(s.savingTarget(), KEEP_CENTS))}`} />}
       {h.bought > 0 && <KV k="Things up" v={`${h.things.length} / ${HOME_THINGS}`} />}
       {h.things.length > 0 && <p class="dim">{h.things.map((i) => i.name).join(", ")}</p>}
       <KV k="A night there" v={`free, mood +${h.mood()}`} tone="ok" />

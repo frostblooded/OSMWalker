@@ -12,7 +12,7 @@ import { PANTRY_MAX } from "../../src/core/cooking";
 import { stepsTo } from "../../src/core/skills";
 import { BUSINESSES } from "../../src/core/business";
 import { billsAt } from "../../src/core/bills";
-import { RENT_CENTS as HOME_RENT } from "../../src/core/home";
+import { HOME_PRICE, RENT_CENTS as HOME_RENT } from "../../src/core/home";
 import { speed } from "../../src/ui/format";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 import { DiarySheet } from "../../src/ui/DiarySheet";
@@ -98,6 +98,9 @@ describe("Stats sheet", () => {
     expect(shown(stats)).not.toContain("A night there");
     stats.home.rent("Sofia, Bulgaria", "BG", [0, 0], 0);
     expect(shown(stats)).toContain(`Rent${euro(HOME_RENT)} a week`);
+    // What it takes is the price on top of what he keeps back, as Stats.settle buys.
+    stats.cents = HOME_PRICE + 1000;
+    expect(shown(stats)).toContain(`To buy it${euro(stats.cents)} / ${euro(HOME_PRICE + Math.max(stats.savingTarget(), KEEP_CENTS))}`);
     expect(shown(stats)).toContain(`Weekly bills${euro(billsAt(1) + HOME_RENT)}`);
     stats.home.bought = 1;
     stats.home.things = [{ name: "Silk Shawl", slot: "trinket", stats: {}, rarity: "Common", price: 1 }];

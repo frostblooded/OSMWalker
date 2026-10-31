@@ -526,6 +526,7 @@ Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 
 - the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
 - the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, the creatures, giants, fairy gifts, midnight finds and portals in the Collection, and golden bricks and monuments,
 - his pet, if he has one (see His pet),
+- his home, rented or his own, with the things he put up (see His home),
 - your clovers, care packages and storyteller.
 
 Once there is an heir, every card in the Collection says which walker of the family found it. The Stats sheet ends with the family tree, oldest at the top: tap a walker to read his letter and when he lived, how far he walked and how he retired.
