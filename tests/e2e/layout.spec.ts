@@ -13,7 +13,7 @@ test.beforeEach(async ({ context }) => {
 const FAMILY = `const ago = (d) => Math.floor(Date.now() / 1000) - d * 86400;
 const letter = "Dear heir,\\nI walked 812 km through 14 cities and reached level 23. Sofia felt most like home.\\nTake my Mighty Bronze Sword of the Fox.\\n— Walker I, Hearty Elder";
 const a = (gen, title) => ({ gen, born: ago(200 - gen * 56), retired: ago(144 - gen * 56), by: "age", title, level: 23, km: 812, cities: 14, home: "Villeneuve-lès-Avignon, France", heirloom: "Mighty Bronze Sword of the Fox", letter, chronicle: [] });
-d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), a(2, "Weary Elder")] };`;
+d.stats.life = { born: ago(50), stage: 3, gen: 3, tiers: ["fine", "poor", "good", "fine"], cityMin: { "Sofia, Bulgaria": 600 }, cityAt: { "Sofia, Bulgaria": [42.687, 23.319] }, family: [a(1, "Hearty Elder"), { ...a(2, "Weary Elder"), countries: 3, best: { stretchM: 9000, dayM: 31000, dayStops: 24, cents: 1234500, noFaintS: 900000 } }] };`;
 
 /** Drags a sheet's title bar down by dy px. */
 async function dragTitle(page: Page, sheet: Locator, dy: number) {
@@ -171,6 +171,12 @@ for (const width of [360, 412]) {
       await family.getByRole("button", { name: /Walker II ·/ }).click();
       await family.locator(".tree").scrollIntoViewIfNeeded();
       await check(page, "stats-family");
+      const hall = family.locator(".card", { hasText: "Hall of walkers" });
+      await hall.scrollIntoViewIfNeeded();
+      await hall.getByRole("button", { name: /Bests/ }).click();
+      await expect(hall).toContainText("Most money held");
+      await expect(hall).toContainText("€12,345 · Walker II");
+      await check(page, "stats-hall");
       await family.getByRole("button", { name: /Close/ }).click();
 
     });
