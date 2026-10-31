@@ -4,7 +4,7 @@ import { MOMENT_S, MOMENT_TIMERS } from "../../src/core/moments";
 import { momentDice } from "../../src/core/placeMoments";
 import { Stats } from "../../src/core/stats";
 import { DEBUG_MOMENTS, type Game } from "../../src/game/game";
-import { CAFE, game, run, START, tick } from "../support/game";
+import { CAFE, game, HOUR, reopen, run, START, tick } from "../support/game";
 
 describe("timed moments", () => {
   const withMoments = () => game({ places: [CAFE], moments: true });
@@ -107,6 +107,17 @@ describe("timed moments", () => {
       g.settleMoment(null);
     }
     expect(kinds).toEqual([...DEBUG_MOMENTS, ""]);
+  });
+
+  it("takes his own pick at once while the away card is open, so nothing covers it", async () => {
+    const { again } = await reopen(2 * HOUR, { moments: true } as Parameters<typeof game>[0]);
+    expect(again.away).not.toBeNull();
+    const m = { id: "x", icon: "", ask: "", options: [{ id: "a", label: "A" }, { id: "b", label: "B" }], default: "b" };
+    expect(await again.ask(m)).toEqual({ id: "b", you: false });
+    expect(again.moment).toBeNull();
+    again.dismissAway();
+    void again.ask(m);
+    expect(again.moment).not.toBeNull();
   });
 
   it("lets another moment that comes while one is open take his own pick at once", async () => {

@@ -294,6 +294,11 @@ for (const width of [360, 412]) {
       await check(page, "history");
       await page.getByRole("dialog", { name: /History/ }).getByRole("button", { name: /Close/ }).click();
 
+      // The timer at 20 s, so neither the reopen's choice nor a moment closes mid-shot on a busy machine.
+      await openMenuItem(page, /Choice timer/);
+      await page.getByRole("button", { name: /Choice timer/ }).click();
+      await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
+      await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
       await reopenAfter(page, 5);
       const away = page.getByRole("dialog", { name: /While you were away/ });
       await expect(away).toContainText("One choice", { timeout: 20000 });
@@ -315,11 +320,7 @@ for (const width of [360, 412]) {
       await check(page, "care-sent");
       await care.getByRole("button", { name: /Close/ }).click();
 
-      // The timed moments: a plain choice, then each mini-game, with the timer at 20 s so none closes mid-shot.
-      await openMenuItem(page, /Choice timer/);
-      await page.getByRole("button", { name: /Choice timer/ }).click();
-      await expect(page.getByRole("button", { name: /Choice timer/ })).toContainText("20 s");
-      await page.getByRole("dialog", { name: /Menu/ }).getByRole("button", { name: /Close/ }).click();
+      // The timed moments: a plain choice, then each mini-game (the timer is at 20 s, set before the reopen).
       for (const kind of ["choice", "timing", "cards", "taps", "odd"]) {
         await openMenuItem(page, /Debug/);
         await page.getByRole("dialog", { name: /Debug/ }).getByRole("button", { name: /Try a moment/ }).click();
