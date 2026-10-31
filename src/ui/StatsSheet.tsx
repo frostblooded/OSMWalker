@@ -191,6 +191,21 @@ function LanguagesCard({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** His bucket list: the dreams on it, with how near he is to each game goal or which city a sight is in, and how many he ticked off. */
+function BucketCard({ stats: s }: { stats: Stats }) {
+  const f = s.facts();
+  const done = s.bucket.done.length;
+  return (
+    <Card icon="📝" title="Bucket list" right={done ? `${done} ticked off` : undefined}>
+      <div class="zebra">
+        {s.bucket.dreams().map((d) => (
+          <KV key={d.id} k={`${d.icon} ${d.text}`} v={d.city ? `in ${d.city.split(",")[0]}` : `${Math.min(f[d.fact!], d.n!)} / ${d.n}`} />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 /** His side income: the businesses and shares he owns (listed under Owned), what they have brought in, the next business he would buy, and his lottery ticket and wins. */
 function SideIncomeCard({ stats: s }: { stats: Stats }) {
   const b = s.business;
@@ -319,6 +334,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <LifeCard life={s.life} now={s.now()} />
       <QuestCard q={s.quests} now={s.now()} />
+      {s.bucket.list.length > 0 && <BucketCard stats={s} />}
       <CareersCard c={s.careers} />
       {(goal || feed > 0 || s.savingFor > 0) && (
         <Card icon="💰" title="Saving for">

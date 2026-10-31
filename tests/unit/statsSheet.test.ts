@@ -216,6 +216,20 @@ describe("Stats sheet", () => {
     expect(text).toContain("🎟 Lotterya ticket for the next draw");
     expect(text).toContain("Owned ▸2");
   });
+
+  it("shows his bucket list, with how near each game goal is and each sight's city", () => {
+    const stats = new Stats();
+    expect(shown(stats)).not.toContain("Bucket list");
+    stats.bucket.list = ["level10", "eiffel"];
+    stats.level = 4;
+    let text = shown(stats);
+    expect(text).toContain("📝Bucket list");
+    expect(text).toContain("⭐ Reach level 104 / 10");
+    expect(text).toContain("🗼 See the Eiffel Towerin Paris");
+    stats.bucket.done.push({ id: "dragon", t: 0, city: "" });
+    text = shown(stats);
+    expect(text).toContain("1 ticked off");
+  });
 });
 
 describe("Diary sheet", () => {

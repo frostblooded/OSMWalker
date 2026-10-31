@@ -833,7 +833,7 @@ export class Game {
           // No free ride while he is on a paid one.
           if (w.isTraveling()) return null;
           const here = w.position();
-          return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
+          return this.trips.pick(kind, this.country, here[0], here[1], this.rng, (c) => this.stats.bucket.pull(cityKey(c)));
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
     } finally {
       this.waking = false;
