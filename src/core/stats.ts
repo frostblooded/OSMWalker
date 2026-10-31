@@ -16,6 +16,8 @@ import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
 import * as Cr from "./creatures";
 import * as Mg from "./magic";
 import { Mind, WANT_XP } from "./mind";
+import * as Qk from "./quirks";
+import { SPOT_DISCOUNT, Spots } from "./spot";
 import * as Mn from "./midnight";
 import * as Pt from "./pet";
 import * as Po from "./portals";
@@ -237,6 +239,9 @@ export class Stats {
   quests = new Quests();
   /** His moodlets, wants and fears. */
   mind = new Mind();
+  /** His quirks from habits, and his spot in each city. */
+  quirks = new Qk.Quirks();
+  spots = new Spots();
   /** Viktor, his rival. */
   rival = new Rival();
   /** What he and Viktor compete for, from data/rival.json; not saved, the game sets it. */
@@ -827,8 +832,20 @@ export class Stats {
     const { met, lines } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
     for (const w of met) this.addXp(WANT_XP[w.kind]);
     for (const l of lines) this.say(l);
+    this.habit(kind);
     return line;
   }
+
+  /** One more time at a place of map class `kind`: his quirks there cheer him, and he may gain a quirk (and lose the oldest). */
+  private habit(kind: string): void {
+    const { here, gained, lost } = this.quirks.count(kind);
+    for (const q of here) this.mind.feel(q.treat, q.icon, ...Qk.QUIRK_MOOD);
+    if (gained) this.say(`${gained.icon} He has become a ${gained.name}`);
+    if (lost) this.say(`${lost.icon} He is no longer a ${lost.name}`);
+  }
+
+  /** Set by stop(): he is at his spot in this city (the same name and spot on the map). */
+  private atSpot = false;
 
   /** Set by act() when the action's risk went wrong. */
   private mishap = false;
@@ -857,7 +874,9 @@ export class Stats {
     }
     if (action.groceries) return this.buyGroceries(action, where);
     if (action.cook) return this.cook(action, where);
-    let spent = toCents(action.cost ?? 0);
+    // A regular's discount at his spot.
+    const regular = !!where && this.atSpot;
+    let spent = Math.round(toCents(action.cost ?? 0) * (regular ? 1 - SPOT_DISCOUNT : 1));
     const fx: Fx = { ...action.fx };
     if (action.skill) skilled(fx, this.skills.mult(action.skill));
     if (fx.mood !== undefined && fx.mood > 0) fx.mood *= F.mult(this.forecast(), "mood", kind);
@@ -917,7 +936,9 @@ export class Stats {
   }
 
   /** First visit to a named place gives bonus XP; returns the XP given. */
-  visit(place: Pick<Place, "name" | "lat" | "lon">): number {
+  visit(place: Pick<Place, "name" | "lat" | "lon"> & { class?: string; made?: unknown }): number {
+    // Only a real place can be his spot.
+    if (!place.made) this.sayIf(this.spots.visit(this.where.city, place));
     const key = visitKey(place);
     if (this.visited.has(key)) return 0;
     this.visited.add(key);
@@ -1282,7 +1303,8 @@ export class Stats {
   }
 
   /** Notes a stop at a place, for the weekly recap. */
-  stop(place: { class: string; subclass: string }): void {
+  stop(place: { class: string; subclass: string } & Partial<Pick<Place, "name" | "lat" | "lon">> & { made?: unknown }): void {
+    this.atSpot = !place.made && place.name !== undefined && this.spots.isSpot(this.where.city, place as Pick<Place, "name" | "lat" | "lon">);
     this.week.stop(place.class);
     this.sayIf(this.records.stopped(dayOf(this.now() * 1000)));
   }
@@ -1301,7 +1323,9 @@ export class Stats {
     this.meters.fullness = Math.max(this.meters.fullness, 30);
     this.meters.thirst = Math.max(this.meters.thirst, 30);
     this.milestone("faint", `Fainted for the first time and woke up at ${hospital || "the hospital"}`);
-    return this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
+    const line = this.say(`Fainted! Woke up at ${hospital || "the hospital"} (${signed(-fee)})`);
+    this.habit(Qk.FAINT);
+    return line;
   }
 
   say(line: string): string {
@@ -1324,7 +1348,7 @@ export class Stats {
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(),
       pets: this.pets.toJSON(),
       visas: this.visas.toJSON(),
-      mind: this.mind.toJSON(),
+      mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
     };
   }
@@ -1373,6 +1397,9 @@ export class Stats {
     s.visas = V.Visas.fromJSON(d.visas);
     // A save from before his mind: no moodlets or fears yet, and fresh wants on the next tick.
     s.mind = Mind.fromJSON(d.mind);
+    // A save from before quirks and spots: no habits counted yet.
+    s.quirks = Qk.Quirks.fromJSON(d.quirks);
+    s.spots = Spots.fromJSON(d.spots);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.
