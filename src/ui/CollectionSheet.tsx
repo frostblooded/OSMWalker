@@ -8,6 +8,7 @@ import { useState } from "preact/hooks";
 import * as C from "../core/collection";
 import { dayOf } from "../core/gifts";
 import * as K from "../core/keepsakes";
+import * as Sc from "../core/sketches";
 import type { Stats } from "../core/stats";
 import { Bar, Card, Collapsible, Entry, KV, RARITY_COLOR } from "./kit";
 
@@ -159,6 +160,7 @@ export function CollectionSheet({ stats: s }: { stats: Stats }) {
         C.SETS.filter((x) => x.tab === tab).map((x) => <SetCard key={x.id} set={x} entries={all.entries.get(x.id)!} stats={s} />)
       )}
       {tab === "places" && <Ruins stats={s} />}
+      {tab === "places" && <Sketchbook stats={s} />}
     </>
   );
 }
@@ -180,6 +182,26 @@ function Ruins({ stats: s }: { stats: Stats }) {
         </div>
       ) : (
         <p class="dim small">None yet. He crawls a castle or ruin when he reaches one (see Ruin crawls in Help).</p>
+      )}
+    </Card>
+  );
+}
+
+/** The sketches he kept (core/sketches.ts), best first, each with its quality and day. */
+function Sketchbook({ stats: s }: { stats: Stats }) {
+  const kept = s.sketches.best();
+  return (
+    <Card icon="🎨" title="Sketchbook" right={s.sketches.made}>
+      {kept.length ? (
+        <ol class="zebra">
+          {kept.map((k, i) => (
+            <li key={i}>
+              {Sc.GRADE[k.q][0]} <b>{k.q}</b> "{k.of}" <span class="dim small">{dayOf(k.t * 1000)}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p class="dim small">None yet. He sketches when he does something artistic (see Sketches in Help).</p>
       )}
     </Card>
   );

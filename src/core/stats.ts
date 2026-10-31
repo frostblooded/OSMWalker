@@ -38,6 +38,7 @@ import * as Po from "./portals";
 import * as Gi from "./giants";
 import * as Fa from "./fairy";
 import * as Sk from "./skyEvents";
+import * as Sc from "./sketches";
 import * as F from "./forecast";
 import { Fame, cityKey, greeting, tierOf, FAME_NAMES, FAME_PER_H, PAPER } from "./fame";
 import { Care, dayOf } from "./gifts";
@@ -301,6 +302,8 @@ export class Stats {
   rings = new Fa.Rings();
   /** The sky events he looked up at (see skyEvents.ts). */
   stars = new Sk.Stargazing();
+  /** His sketchbook: the best sketches he kept (see sketches.ts). */
+  sketches = new Sc.Sketchbook();
   /** This week in numbers, and last week's recap. */
   week = new Week();
   /** His bests and lifetime totals. */
@@ -888,6 +891,7 @@ export class Stats {
     heir.giants = this.giants;
     heir.rings = this.rings;
     heir.stars = this.stars;
+    heir.sketches = this.sketches;
     heir.finds = this.finds;
     heir.portals = this.portals;
     // The squares walked are the family's map of the world.
@@ -1363,6 +1367,7 @@ export class Stats {
     const joke = jokes.length && rng.randf() < JOKE_CHANCE ? ` ${rng.pick(jokes)}` : "";
     const line = this.say(text + (where && !home ? ` at ${where}` : "") + money + joke);
     for (const l of learned) this.sayIf(l);
+    if (action.skill === "art") this.sketch(this.history.entries.slice(0, -1).map((e) => e.text));
     // Maybe a chance card at work; its own dice, so the walk's stay the same.
     if (earned && Ca.isShift(action)) {
       const dice = new Rng(seedOf(`work${this.now()}${where}`));
@@ -1875,6 +1880,22 @@ export class Stats {
     if (this.giants.note(g, place.name, this.where.city, t)) this.milestone(`giant_${g.id}`, `Saw a ${g.name.toLowerCase()} from ${place.name}${this.where.city ? `, ${this.where.city}` : ""}`);
   }
 
+  /** A sketch of one of his recent History `lines` (see sketches.ts), after an art action or quest, on its own dice so the walk's stay the same: kept, or sold at once. */
+  sketch(lines = this.history.entries.map((e) => e.text)): void {
+    const t = this.now();
+    const rng = new Rng(seedOf(`sketch${t}`));
+    const of = Sc.subject(lines, rng);
+    if (!of) return;
+    const q = Sc.quality(this.skills.level("art"), this.emotion() === "inspired", rng.randf());
+    const made = { of, q, t };
+    const sold = this.sketches.add(made);
+    const price = sold ? Sc.GRADE[sold.q][1] : 0;
+    this.cents += price;
+    const what = `${Sc.ICON} Sketched "${of}": ${q}`;
+    this.say(!sold ? `${what}, kept it` : sold === made ? `${what}, sold it (${signed(price)})` : `${what}, kept it and sold ${sold.q === "awful" ? "an" : "a"} ${sold.q} one (${signed(price)})`);
+    if (q === "masterwork") this.milestone("masterwork", `Drew his first masterwork: "${of}"`);
+  }
+
   /** The first dark moment of a night with a sky event (see skyEvents.ts): a line and a moodlet. */
   private lookUp(t: number): void {
     const ev = this.stars.look(t, this.sky, this.where.city);
@@ -2090,7 +2111,7 @@ export class Stats {
     return {
       meters: this.meters, attrs: this.attrs, cents: this.cents, savingFor: this.savingFor, dragonFed: this.dragonFed, dragonSulked: this.dragonSulked, xp: this.xp, level: this.level,
       buffs: this.buffs, walkMin: this.walkMin, history: this.history.toJSON(), explored: this.explored.toJSON(), visited: [...this.visited], gear: this.gear, bag: this.bag,
-      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), stars: this.stars.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
+      care: this.care.toJSON(), bond: this.bond.toJSON(), fame: this.fame.toJSON(), law: this.law.toJSON(), bricks: this.bricks.toJSON(), chronicle: this.chronicle.toJSON(), keepsakes: this.keepsakes.toJSON(), where: this.where, week: this.week.toJSON(), records: this.records.toJSON(), ruins: this.ruins.toJSON(), creatures: this.creatures.toJSON(), magic: this.magic, lore: this.lore.toJSON(), finds: this.finds.toJSON(), portals: this.portals.toJSON(), giants: this.giants.toJSON(), rings: this.rings.toJSON(), stars: this.stars.toJSON(), sketches: this.sketches.toJSON(), story: this.story.toJSON(), rival: this.rival.toJSON(), friends: this.friends.toJSON(),
       clubs: this.clubs.toJSON(), townies: this.townies.toJSON(), anniversaries: this.anniversaries.toJSON(), quests: this.quests.toJSON(), words: this.words.toJSON(), sightNotes: this.sightNotes.toJSON(), streets: this.streets.toJSON(),
       pets: this.pets.toJSON(),
       home: this.home.toJSON(),
@@ -2144,6 +2165,7 @@ export class Stats {
     s.giants = Gi.Sightings.fromJSON(d.giants);
     s.rings = Fa.Rings.fromJSON(d.rings);
     s.stars = Sk.Stargazing.fromJSON(d.stars);
+    s.sketches = Sc.Sketchbook.fromJSON(d.sketches);
     s.records = Records.fromJSON(d.records);
     s.ruins = Ruins.fromJSON(d.ruins);
     // A save from before the storyteller starts calm, on Classic.

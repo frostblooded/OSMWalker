@@ -447,9 +447,10 @@ function pay(stats: Stats, r: Reward | Outcome, share: number, rng: Rng): string
   return parts.length ? ` (${parts.join(", ")})` : "";
 }
 
-/** The practice `r` gives: its skill trained as by a QUEST_PRACTICE_MIN action, and its hours in the local language; says any new level. */
+/** The practice `r` gives: its skill trained as by a QUEST_PRACTICE_MIN action (art leaves a sketch too, see sketches.ts), and its hours in the local language; says any new level. */
 function learn(stats: Stats, r: Reward | Outcome): void {
   if (r.skill) stats.sayIf(stats.skills.train(r.skill, QUEST_PRACTICE_MIN));
+  if (r.skill === "art") stats.sketch();
   if (r.lang) stats.sayIf(stats.languages.add(stats.lang(), r.lang));
 }
 

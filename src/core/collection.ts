@@ -509,6 +509,7 @@ export const FEATS: Feat[] = [
   { id: "heir", tab: "world", icon: "🏛", name: "Pride of the family", what: "{n} family records held over the walkers before him", tiers: [1, 3, HALL.length], title: "Family Legend", count: (s) => heldBy(s).length },
   { id: "builder", tab: "world", icon: "🧱", name: "Builder", what: "{n} monuments built", tiers: [1, 2, MONUMENTS.length], title: "Patron", count: (s) => s.bricks.built.length },
   { id: "stars", tab: "places", icon: "🌌", name: "Stargazer", what: "{n} sky events seen", tiers: [1, 10, 30], title: "Stargazer", count: (s) => s.stars.count() },
+  { id: "sketches", tab: "places", icon: "🎨", name: "Sketcher", what: "{n} sketches drawn", tiers: [1, 25, 100], title: "Sketcher", count: (s) => s.sketches.made },
   { id: "ruins", tab: "places", icon: "🏰", name: "Delver", what: "{n} ruins crawled", tiers: [1, 5, 20], title: "Delver", count: (s) => s.ruins.count },
   { id: "crawls", tab: "places", icon: "🏁", name: "Crawler", what: "{n} crawls done", tiers: [3, 6, K.CRAWLS.length], title: "Crawl Legend", count: (s) => s.keepsakes.done.size },
   { id: "gear", tab: "gear", icon: "👕", name: "Wardrobe", what: "{n} item bases owned", tiers: [10, 25, GEAR.length], title: "Outfitter", count: (s) => ownedOf(s, GEAR) },
