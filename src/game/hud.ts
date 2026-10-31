@@ -82,7 +82,7 @@ function goal(g: Game): Goal | null {
   const name = w.place?.name ?? "";
   if (w.isResting()) return { kind: "resting", name, leftS: w.restLeftS() };
   const here = w.position();
-  return { kind: "going", name, departing: w.isDeparting(), distM: distanceM(here[0], here[1], target[0], target[1]), walkLeftM: w.walkLeftM(), mps: w.speedMps };
+  return { kind: "going", name, departing: w.isDeparting(), distM: distanceM(here[0], here[1], target[0], target[1]), walkLeftM: w.walkLeftM(), mps: w.flight?.mps ?? w.speedMps };
 }
 
 /** What Debug lists about where he is. */

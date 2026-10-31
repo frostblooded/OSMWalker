@@ -92,6 +92,8 @@ import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
 
+/** The taxi ride Help prices as an example. */
+const TAXI_EG_M = 10_000;
 export type Page = { id: string; title: string; body: string };
 export type Section = { title: string; pages: Page[] };
 export type Block = { text: string; items: string[] };
@@ -759,6 +761,17 @@ export function values(data: GameData): Record<string, string> {
     PLANE_ALWAYS_KM: km(Trips.PLANE_ALWAYS_M),
     MAX_ROAD_KM: km(Trips.MAX_ROAD_M),
     AIRPORT_KM: km(Trips.AIRPORT_REACH_M),
+    HOP_MIN_M: num(Trips.HOP_MIN_M),
+    HOP_MAX_MIN: num(Trips.HOP_MAX_S / 60),
+    METRO_POP: num(Trips.METRO_POP),
+    METRO_FARE: euro(toCents(Trips.METRO_FARE)),
+    METRO_KMH: kmh(Speeds.METRO),
+    TAXI_BASE: euro(toCents(Trips.TAXI_BASE)),
+    TAXI_PER_KM: euro(toCents(Trips.TAXI_PER_KM)),
+    TAXI_KMH: kmh(Speeds.CAR),
+    TAXI_EG_KM: km(TAXI_EG_M),
+    TAXI_EG: euro(Trips.hopFare("taxi", TAXI_EG_M)),
+    TAXI_EG_MIN: num(Math.round(Trips.hopS("taxi", TAXI_EG_M) / 60)),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
     BIKE_ICON: Trips.MODES.bike.icon,
@@ -766,7 +779,7 @@ export function values(data: GameData): Record<string, string> {
     LONG_WALK_MIN_KM: km(Trips.LONG_WALK_MIN_M),
     LONG_WALK_MAX_KM: km(Trips.LONG_WALK_MAX_M),
     LONG_WALK_PCT: pct(Trips.LONG_WALK_CHANCE),
-    LONG_WALK_MAX_H: num(Trips.LONG_WALK_MAX_S / 3600),
+    LONG_WALK_MAX_MIN: num(Trips.LONG_WALK_MAX_S / 60),
     HOSTEL_KM: km(Trips.HOSTEL_EVERY_M),
     HOSTEL_PRICE: euro(Trips.HOSTEL_CENTS),
     LONG_WALK_XP_PER_KM: num(Trips.LONG_WALK_XP_PER_KM),
@@ -919,7 +932,8 @@ export function values(data: GameData): Record<string, string> {
     WEALTH_CAP: num(Story.WEALTH_CAP),
     FIRE_AT: num(Story.FIRE_AT),
     FIRE_MAX_PCT: pct(Story.FIRE_MAX),
-    LUCKY_H: num(Story.LUCKY_H),
+    LUCKY_MIN: num(Story.LUCKY_MIN),
+    WEALTH_PER_H: num(Story.WEALTH_PER_H),
     KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
     RECENT_INCIDENTS: num(Story.RECENT),
     INCIDENT_COUNT: String(incidents.length),

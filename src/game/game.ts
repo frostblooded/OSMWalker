@@ -49,7 +49,7 @@ import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
 import { Stats, visitKey, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, cityKey, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, cityKey, hopBy, hopS, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
@@ -345,6 +345,7 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
+    w.hopper = (plan, roadM) => this.hop(plan, roadM);
     w.questGoal = () => this.questGoal();
     w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour(), p.class), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => placePull(p, this.stats, this.hour());
@@ -680,6 +681,14 @@ export class Game {
     // He finishes the quest he is on before he leaves the city.
     if (this.stats.quests.active) return null;
     return this.journey.consider(this.where(), this.stats);
+  }
+
+  /** A trip's station is far: he rides there (paid now, see Stats.hop) and it takes this many seconds, or 0 when he can't afford it and walks. */
+  private hop(plan: Plan, roadM: number): number {
+    const by = hopBy(this.stats.getsAbout(), this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0);
+    if (!this.stats.hop(by, roadM, plan.station.name, plan.fare)) return 0;
+    this.changed();
+    return hopS(by, roadM);
   }
 
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */

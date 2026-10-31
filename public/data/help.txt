@@ -677,7 +677,7 @@ The first goal after you choose a city never rolls the dice. The country he is i
 
 As he boards, a moment on the way comes (see Timed moments).
 
-He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
+He first goes to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). If it is more than {HOP_MIN_M} m away he rides there across town (see Stations and getting there). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
 ## Visas {visas}
@@ -691,9 +691,11 @@ How he goes depends on the distance in a straight line:
 - from {PLANE_FROM_KM} to {PLANE_ALWAYS_KM} km the chance of flying grows steadily,
 - over {PLANE_ALWAYS_KM} km he always flies.
 
-By road he takes the bus from the nearest bus station among the places loaded around him, or the train or a ferry instead (see Other ways to travel). If he owns a car, he walks to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
+By road he takes the bus from the nearest bus station among the places loaded around him, or the train or a ferry instead (see Other ways to travel). If he owns a car, he goes to the nearest gas station instead (EV chargers don't count), fills up and drives. Roads longer than {MAX_ROAD_KM} km don't count: buses and cars don't cross oceans.
 
-To fly he walks to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide, plus the made-up ones of big cities, see Made-up places), and lands at the airport nearest the new city. If there is no airport at either end, or he can't pay the flight, he goes by road, and the other way round.
+To fly he goes to the nearest airport with scheduled flights within {AIRPORT_KM} km ({AIRPORT_COUNT} airports worldwide, plus the made-up ones of big cities, see Made-up places), and lands at the airport nearest the new city. If there is no airport at either end, or he can't pay the flight, he goes by road, and the other way round.
+
+Getting there: a station more than {HOP_MIN_M} m away by road ({ROAD_FACTOR} times the straight line) he doesn't walk to. On his own vehicle or mount he rides or flies there at its speed, for free. Without one he takes the metro in a city of {METRO_POP} people or more ({METRO_FARE}, at {METRO_KMH} km/h counting the walk to it and the wait), and a taxi anywhere else ({TAXI_BASE} plus {TAXI_PER_KM} a km, at {TAXI_KMH} km/h): {TAXI_EG_KM} km by taxi costs {TAXI_EG} and takes about {TAXI_EG_MIN} minutes. A ride across town never takes longer than {HOP_MAX_MIN} minutes. He pays it as he sets off, but only if he can still pay the ticket at the station; otherwise he walks. What he paid stays paid even if the trip then falls through.
 
 The bus and the car follow the real road route (from the OSRM route planner) at {BUS_KMH} km/h and {CAR_ROAD_KMH} km/h, and so do the train, the bike and a hitched lift at their own speeds (see Other ways to travel); a ferry sails straight. A plane flies straight at {PLANE_KMH} km/h. These are real speeds, but rides go {RIDE_SPEEDUP} times faster and never take longer than {RIDE_MAX_MIN} minutes of the game being open (a long walk is slower: see Long walks). So 100 km by bus takes about {BUS_100_MIN} minutes, and 300 km by bus about {BUS_300_MIN}. While he rides, the map zooms out and a red line marks the way. Every ride but the plane arrives in the new city's centre; a plane at its airport. Then the new city's streets load and he walks on.
 ## Fares {fares}
@@ -720,7 +722,7 @@ A car owner drives rather than taking the train or a ferry, unless he can't pay 
 ## Long walks {walks}
 Now and then, when he has no vehicle, a trip to a town {LONG_WALK_MIN_KM} to {LONG_WALK_MAX_KM} km away (in a straight line) becomes a long walk instead: {LONG_WALK_PCT} of the time, if he can pay the hostels. {WALK_ICON} He sets off on foot from where he stands, along the road the bus would take.
 
-A walk is far slower than any ride: it lasts {LONG_WALK_MAX_H} hours, and time away counts towards it (if you leave mid-walk he keeps walking, and is still on his way if you come back before it ends). The map stays zoomed out with the red line, as on a ride, and no streets download on the way, so it costs the phone no more than a ride.
+A walk always lasts {LONG_WALK_MAX_MIN} minutes, and time away counts towards it (if you leave mid-walk he keeps walking, and is still on his way if you come back before it ends). The map stays zoomed out with the red line, as on a ride, and no streets download on the way, so it costs the phone no more than a ride.
 
 He sleeps in a hostel every {HOSTEL_KM} km of road, at {HOSTEL_PRICE} a night, paid as he sets off. The hostels' meals and showers keep his food, drink and hygiene where they were while he walks (the On the trail buff). At the end he gets {LONG_WALK_XP_PER_KM} XP per km and +{LONG_WALK_MOOD} mood. While you are away he walks too, if the walk fits in the time you were gone; otherwise he doesn't set off this time. The hostel beds keep his energy up too, and a long walk, like any trip, doesn't count towards his walking records or the km in his week.
 ## Packing for a trip {packing}
@@ -911,11 +913,11 @@ Left to himself, he picks by his karma (see Karma), and his History says "Decide
 Caught, he pays a fine of {FINE_PER_HEAT} for each point of heat (so {FINE_FULL} at {HEAT_MAX}). If he can't pay it, he sits in jail for {JAIL_MIN_PER_STAR_H} hour for each star instead (at least one). Either way the heat is gone, and the police take back everything he stole, from his gear and bag. While you're away jail takes those hours of his day; while you watch it is a stop like any other (see Staying somewhere). It all works the same while you're away. A chase that is under way when you close the game is dropped; once the car has caught up, closing the game leaves the choice to him.
 # 📖 Stories
 ## The storyteller {storyteller}
-A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.
+A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds {WEALTH_PER_H} more an hour, up to {WEALTH_CAP}.
 
 Below {FIRE_AT} nothing happens. Above it, each place he reaches may bring an incident (see Incidents), likelier the higher the tension: none at {FIRE_AT}, {FIRE_MAX_PCT} of stops at {TENSION_MAX}.
 
-An incident is good, bad or odd. The share of bad ones depends on the storyteller: {STORY_BAD}. Luck makes bad ones rarer, the same way it makes mishaps rarer (see Luck). After a bad one the tension drops to 0, and for {LUCKY_H} hours only good or odd things happen. A good or odd one leaves {KEEP_AFTER_GOOD_PCT} of the tension. The last {RECENT_INCIDENTS} incidents don't come again while another one fits.
+An incident is good, bad or odd. The share of bad ones depends on the storyteller: {STORY_BAD}. Luck makes bad ones rarer, the same way it makes mishaps rarer (see Luck). After a bad one the tension drops to 0, and for {LUCKY_MIN} minutes only good or odd things happen. A good or odd one leaves {KEEP_AFTER_GOOD_PCT} of the tension. The last {RECENT_INCIDENTS} incidents don't come again while another one fits.
 
 Pick the storyteller in ☰ Menu → Storyteller: each tap switches between Calm, Classic and Chaotic. It starts on Classic, is kept with his game, and counts from his next stop. It runs while you are away too.
 ## Incidents {incidents}
