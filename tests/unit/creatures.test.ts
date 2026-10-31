@@ -1,5 +1,5 @@
 // Place creatures: who lives where, how often they show up, and what each pick does.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FEATS, SETS } from "../../src/core/collection";
 import { CREATURE_CHANCE, Creatures, creatureOf as kindAt, type Creature } from "../../src/core/creatures";
 import { RISK_CAP, riskOdds } from "../../src/core/moments";
@@ -63,11 +63,15 @@ describe("place creatures", () => {
     }
   });
 
-  it("shows up with CREATURE_CHANCE, at most once a day", () => {
+  it("shows up with CREATURE_CHANCE, at most once a day: the meeting marks the day", () => {
     const cr = new Creatures();
     expect(cr.roll(CREATURES, "park", "d1", CREATURE_CHANCE)).toBeNull();
     expect(cr.roll(CREATURES, "cafe", "d1", 0)).toBeNull();
-    expect(cr.roll(CREATURES, "park", "d1", 0)?.id).toBe("dryad");
+    const dryad = cr.roll(CREATURES, "park", "d1", 0)!;
+    expect(dryad.id).toBe("dryad");
+    // Shown but not yet answered (a save while you are asked), the day is still free.
+    expect(cr.day).toBe("");
+    cr.outcome(dryad, "listen", () => 1, 0, "d1");
     expect(cr.roll(CREATURES, "bridge", "d1", 0)).toBeNull();
     expect(cr.roll(CREATURES, "bridge", "d2", 0)?.id).toBe("troll");
   });
@@ -78,12 +82,12 @@ describe("place creatures", () => {
     expect(riskOdds(50)).toBe(RISK_CAP);
     const cr = new Creatures();
     const troll = kind("troll");
-    expect(cr.outcome(troll, "riddle", () => 1, 0.49).say).toMatch(/^Answered/);
-    const miss = cr.outcome(troll, "riddle", () => 1, 0.5);
+    expect(cr.outcome(troll, "riddle", () => 1, 0.49, "d1").say).toMatch(/^Answered/);
+    const miss = cr.outcome(troll, "riddle", () => 1, 0.5, "d1");
     expect(miss.pay).toBe(2 * TOLL);
-    expect(cr.outcome(troll, "pay", () => 1, 0.99).pay).toBe(TOLL);
+    expect(cr.outcome(troll, "pay", () => 1, 0.99, "d1").pay).toBe(TOLL);
     expect(cr.met.troll).toBe(3);
-    expect(() => cr.outcome(troll, "dance", () => 1, 0)).toThrow();
+    expect(() => cr.outcome(troll, "dance", () => 1, 0, "d1")).toThrow();
   });
 
   it("a meeting pays, buffs and says what happened, with the creature's icon", () => {
@@ -96,6 +100,23 @@ describe("place creatures", () => {
     expect(s.buffNames()).toContain("Sprite's luck");
     expect(s.attr("luck")).toBe(3);
     expect(s.history.entries.at(-1)?.text).toBe(line);
+  });
+
+  it("says when he picked himself, and rolls the dice of the time he was asked", () => {
+    const s = stats();
+    s.now = () => T0;
+    expect(s.meet(kind("dryad"), "Park", "listen", { you: false, t: T0, attr: () => 1 })).toBe("🌳 Decided by himself: Listened to a dryad's stories in Park");
+    // A tap a few seconds later rolls the troll's riddle on the dice of when it asked (the dice of later times give both results).
+    const lines = Array.from({ length: 20 }, (_, late) => {
+      const x = Object.assign(stats(), { cents: 10_000 });
+      x.now = () => T0 + late;
+      return x.meet(kind("troll"), "Old Bridge", "riddle", { you: true, t: T0, attr: () => 1 });
+    });
+    expect(new Set(lines).size).toBe(1);
+    // And on the Wits he had then, which the caller passes.
+    const then = vi.fn(() => 1);
+    stats().meet(kind("troll"), "Old Bridge", "riddle", { you: true, t: T0, attr: then });
+    expect(then).toHaveBeenCalledWith("wit");
   });
 
   it("he pays only what he has", () => {

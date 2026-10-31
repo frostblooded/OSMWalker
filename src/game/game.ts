@@ -419,8 +419,8 @@ export class Game {
     this.stats.bricksAt(place);
     this.stats.collect(place, this.cardRng);
     void this.readUp(place);
-    // Until the timed choices can ask you, he takes his own pick.
-    this.stats.meetAt(place);
+    // A creature that shows up takes this stop's one timed moment.
+    const met = this.askCreature(place);
     this.stats.magicAt(place);
     this.stats.wordAt(place);
     this.stats.giantAt(place);
@@ -440,6 +440,8 @@ export class Game {
     }
     // The police roll their own dice; a chase takes the place of an action, and he runs on.
     if (!this.chase && this.stats.reputeAt(place)) {
+      // He runs on, so a creature still asking gets his own pick.
+      if (met && this.moment?.m.id === met.moment.id) this.settleMoment(null);
       const at = this.walker!.position();
       this.chase = { place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
       this.doing = null;
@@ -469,10 +471,30 @@ export class Game {
     this.stats.do(action, place.name, action.pack ? this.cardRng : this.rng, place.class);
     this.stats.askCards = false;
     this.walker!.restFor(restMinutes(action));
-    // A chance card at work takes the place of the place's own moment.
+    // A chance card at work takes the place of the place's own moment (with a creature still asking, he plays it himself); so does a creature.
     if (this.stats.workCard) this.askCard(restMinutes(action) * 60);
-    else this.askAt(place, restMinutes(action) * 60);
+    else if (!met) this.askAt(place, restMinutes(action) * 60);
     this.changed();
+  }
+
+  /**
+   * The creature at `place`, if one shows up, asked as a timed moment. His own
+   * pick, the dice and the attribute a risky pick leans on are those of the
+   * moment it asks, as when Stats.meetAt settles it at once in the catch-up;
+   * like the place moments, its effect lands once it is answered, after the
+   * stop's activity started. Returns the creature, or null.
+   */
+  private askCreature(place: Place): Creature | null {
+    const c = this.stats.creatureAt(place);
+    if (!c) return null;
+    const t = this.stats.now();
+    const his = this.stats.creaturePick(c, place.name, t);
+    const lean = c.risky ? this.stats.attr(c.risky.attr) : 0;
+    void this.ask({ ...c.moment, ask: c.moment.ask.replaceAll("{PLACE}", place.name) }, { his: () => his }).then((p) => {
+      this.stats.meet(c, place.name, p.id, { you: p.you, t, attr: () => lean });
+      this.save();
+    });
+    return c;
   }
 
   /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
