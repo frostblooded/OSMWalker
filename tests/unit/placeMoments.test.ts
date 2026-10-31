@@ -111,7 +111,16 @@ describe("the bundled moments", () => {
     }
   });
 
-  it("never cost karma on a pick he makes himself: default, lean, or a mini-game's best", () => {
+  it("tempt him only through `rascal`: a choice's one shady option is its rascal, never his default or lean", () => {
+    for (const [k, m] of Object.entries(moments)) {
+      if (m.game) continue;
+      const shady = m.options.filter((o) => (m.outcomes[o.id]!.fx?.karma ?? 0) < 0).map((o) => o.id);
+      expect(shady, k).toEqual(m.rascal ? [m.rascal] : []);
+      if (m.rascal) expect([m.default, m.options[0]!.id], k).not.toContain(m.rascal);
+    }
+  });
+
+  it("never cost karma on his usual picks: default, lean, or a mini-game's best (only `rascal` does, by his karma)", () => {
     for (const [k, m] of Object.entries(moments)) {
       const his = [m.default, m.lean ? m.options[0]!.id : m.default, m.game ? m.options.at(-1)!.id : m.default];
       for (const id of his) expect(m.outcomes[id]!.fx?.karma ?? 0, `${k}.${id}`).toBeGreaterThanOrEqual(0);

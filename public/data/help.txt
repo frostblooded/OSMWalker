@@ -776,7 +776,7 @@ At chess he wins {CHESS_BASE_PCT} of the time, plus {CHESS_PER_WIT_PCT} for each
 A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for.
 # ⚖ Reputation
 ## Karma {karma}
-His karma is his lean, from {LEAN_MIN} (a rascal) to +{LEAN_MAX} (kind), starting at 0 (see Kind or rascal). Praise and scold move it, and so do his deeds: kind and rascal actions, choices at work, some quests and events, shoplifting (−{STEAL_KARMA}), bribing the police (−{BRIBE_KARMA}) and giving himself up to them (+{SURRENDER_KARMA}).
+His karma is his lean, from {LEAN_MIN} (a rascal) to +{LEAN_MAX} (kind), starting at 0 (see Kind or rascal). Praise and scold move it, and so do his deeds: kind and rascal actions, choices at work, picks at timed moments (see Timed moments), some quests and events, shoplifting (−{STEAL_KARMA}), bribing the police (−{BRIBE_KARMA}) and giving himself up to them (+{SURRENDER_KARMA}).
 
 From {LEAN_AT} either way:
 - Kind: prices at places and shops (not fares) are {KIND_DISCOUNT_PCT} lower, on top of his fame's discount (see Fame). On a bus or train the driver or conductor waves him on for free {FREE_RIDE_PCT} of the time. At each stop a local may give him something for being so kind: {GIFT_PCT_KARMA} of the time, times 1 + his fame tier in that city. Quests only for the kind can come up on a city's board (see Quests).
