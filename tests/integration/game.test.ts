@@ -15,12 +15,14 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import { NO_NEED } from "../../src/core/goals";
 import * as Items from "../../src/core/items";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
+import { ELDER, LIFE_S, PERK_CENTS } from "../../src/core/life";
+import { TRUST_START } from "../../src/core/bond";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
 import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
 import { EXTRAS } from "../../src/core/poiGen";
-import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MADE_CITIES, RETIRE_RETRY_MS, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { HOLIDAYS_KEY } from "../../src/game/saveFile";
 import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
@@ -897,6 +899,189 @@ describe("game", () => {
     expect(doing(g)).toMatch(/^travelling to Plovdiv by bus, \d+ km left$/);
   });
 
+  describe("retiring", () => {
+    /** A game in Sofia with him an elder who spent most time in Sofia, wearing a sword. */
+    async function elder(dueInS: number, o: Partial<GameDeps> = {}) {
+      const { g, storage } = game(o);
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      const l = g.stats.life;
+      l.stage = ELDER;
+      l.cityMin = { "Plovdiv, Bulgaria": 5, "Sofia, Bulgaria": 500 };
+      l.born = Math.floor(Date.now() / 1000) - LIFE_S + dueInS;
+      g.stats.level = 9;
+      g.stats.equip({ name: "Bronze Sword", slot: "weapon", stats: { str: 2 }, rarity: "Common", price: 4000 });
+      return { g, storage };
+    }
+    const settled = async (g: Game) => {
+      for (let i = 0; i < 100 && !g.retired; i++) await new Promise((r) => setTimeout(r, 20));
+    };
+
+    it("at the end of elder he retires by himself and his heir sets out from his favourite city", async () => {
+      const { g, storage } = await elder(-1);
+      run(g, 1);
+      await settled(g);
+      expect(g.retired).toMatchObject({ gen: 1, by: "age", home: "Sofia, Bulgaria", heirloom: "Bronze Sword", level: 9 });
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.stats.level).toBe(1);
+      expect(g.stats.cents).toBe(20000 + PERK_CENTS);
+      expect(g.stats.gear.weapon?.name).toBe("Bronze Sword");
+      expect(g.city).toBe("Sofia, Bulgaria");
+      expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
+      expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.life.gen).toBe(2);
+      run(g, 30);
+      expect(g.walker!.totalM).toBeGreaterThan(0);
+      g.dismissRetired();
+      expect(g.retired).toBeNull();
+    });
+
+    it("where his favourite city has no streets, the heir sets out where he is", async () => {
+      const { g } = await elder(-1);
+      g.stats.life.cityMin = { "Paris, France": 900 };
+      g.stats.life.cityAt["Paris, France"] = [48.85, 2.35];
+      run(g, 1);
+      await settled(g);
+      expect(g.retired?.home).toBe("Sofia, Bulgaria");
+      expect(g.retired?.letter).toContain("Sofia felt most like home");
+      expect(g.retired?.chronicle.at(-1)?.text).toBe("Retired in Sofia");
+      expect(g.city).toBe("Sofia, Bulgaria");
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.stats.history.entries.filter((l) => l.text.includes("takes over"))).toHaveLength(1);
+      // The fallback worked, so no street warning for Paris.
+      expect(g.problems.warnings.filter((w) => w.text.includes("streets"))).toEqual([]);
+    });
+
+    it("when no streets load, he walks on and tries again later", async () => {
+      const ok = streets().load;
+      let down = false;
+      let now = Date.now();
+      const { g } = await elder(-1, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)), clock: () => now });
+      g.stats.life.cityMin = { "Paris, France": 900 };
+      g.stats.life.cityAt["Paris, France"] = [48.85, 2.35];
+      // His own streets are loaded; nothing new comes in.
+      down = true;
+      const before = g.walker;
+      run(g, 1);
+      for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 20));
+      expect(g.retired).toBeNull();
+      expect(g.walker).toBe(before);
+      expect(g.stats.life.gen).toBe(1);
+      expect(g.stats.history.entries.filter((l) => l.text === "🌅 Retiring in Paris…")).toHaveLength(1);
+      expect(g.problems.warnings.map((w) => w.text).filter((t) => t.includes("heir"))).toEqual(["Couldn't load the streets for his heir; he tries again every 1 min"]);
+      run(g, 5);
+      expect(g.walker!.totalM).toBeGreaterThan(0);
+      down = false;
+      now += RETIRE_RETRY_MS;
+      run(g, 1);
+      await settled(g);
+      expect(g.stats.life.gen).toBe(2);
+    });
+
+    it("a reopen while he is retiring waits for the heir, so the old walker's catch-up never lands on him", async () => {
+      const ok = streets().load;
+      let open: () => void = () => {};
+      let gate: Promise<void> | null = null;
+      let now = Date.now();
+      const { g } = await elder(-1, { load: (t, o) => (gate ? gate.then(() => ok(t, o)) : ok(t, o)), clock: () => now });
+      g.save();
+      gate = new Promise((r) => (open = r));
+      run(g, 1);
+      expect(g.stats.life.gen).toBe(1);
+      now += 2 * 3600 * 1000;
+      await g.wake();
+      expect(g.away).toBeNull();
+      open();
+      await settled(g);
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.away).toBeNull();
+    });
+
+    it("a later reopen still rolls a dilemma while the farewell letter waits to be read", async () => {
+      let now = Date.now();
+      const { g } = await elder(-1, { clock: () => now });
+      run(g, 1);
+      await settled(g);
+      expect(g.retired).not.toBeNull();
+      g.setAlwaysDilemma(true);
+      g.save();
+      now += 5 * 3600 * 1000;
+      await g.wake();
+      expect(g.dilemma).not.toBeNull();
+    });
+
+    it("a choice still open on the away card is decided before the heir takes over", async () => {
+      let now = Date.now();
+      const { g } = await elder(86400, { clock: () => now });
+      g.setAlwaysDilemma(true);
+      g.save();
+      now += 5 * 3600 * 1000;
+      await g.wake();
+      expect(g.dilemma).not.toBeNull();
+      const old = g.stats;
+      await g.retire("you");
+      expect(g.stats.life.gen).toBe(2);
+      expect(old.history.entries.some((l) => l.text.includes("Decided by himself"))).toBe(true);
+      expect(g.stats.history.entries.some((l) => l.text.includes("Decided by himself"))).toBe(false);
+    });
+
+    it("a Retire from the menu that can't load streets is kept and done on a later try", async () => {
+      const ok = streets().load;
+      let down = false;
+      let now = Date.now();
+      const { g } = await elder(3600, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)), clock: () => now });
+      g.stats.life.cityMin = { "Paris, France": 900 };
+      g.stats.life.cityAt["Paris, France"] = [48.85, 2.35];
+      down = true;
+      await g.retire("you");
+      expect(g.stats.life.gen).toBe(1);
+      expect(g.stats.life.asked).toBe(true);
+      expect(g.stats.history.entries.some((l) => l.text.includes("takes over"))).toBe(false);
+      down = false;
+      now += RETIRE_RETRY_MS;
+      run(g, 1);
+      await settled(g);
+      expect(g.stats.life.gen).toBe(2);
+      expect(g.retired?.by).toBe("you");
+    });
+
+    it("the debug button makes him a stage older, and an elder due to retire", async () => {
+      const { g } = game();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.debugAge();
+      expect(g.stats.life.title()).toContain("Settled");
+      g.debugAge();
+      g.debugAge();
+      expect(g.stats.life.stage).toBe(ELDER);
+      expect(g.stats.life.retireDue).toBe(false);
+      g.debugAge();
+      expect(g.stats.life.retireDue).toBe(true);
+    });
+
+    it("you can retire him from the menu only once he is an elder", async () => {
+      const { g } = await elder(3600);
+      g.stats.life.stage = ELDER - 1;
+      await g.retire("you");
+      expect(g.retired).toBeNull();
+      g.stats.life.stage = ELDER;
+      await g.retire("you");
+      expect(g.retired?.by).toBe("you");
+      expect(g.stats.life.gen).toBe(2);
+    });
+
+    it("asked to retire on a ride, he says he will and retires once he lands", async () => {
+      const { g } = await elder(3600);
+      const riding = vi.spyOn(g.walker!, "isTraveling").mockReturnValue(true);
+      await g.retire("you");
+      expect(g.retired).toBeNull();
+      expect(g.stats.life.asked).toBe(true);
+      expect(g.stats.history.latest()).toContain("Will retire");
+      riding.mockRestore();
+      g.step(1);
+      await settled(g);
+      expect(g.retired?.by).toBe("you");
+      expect(g.stats.life.gen).toBe(2);
+    });
+  });
+
   describe("catch-up", () => {
     const HOUR = 3600_000;
     /** A game saved `agoMs` before a reopen, and the reopened game. */
@@ -928,6 +1113,89 @@ describe("game", () => {
       expect(again.walker!.goal).toBeNull();
       run(again, 30);
       expect(again.walker!.totalM).toBeGreaterThan(0);
+    });
+
+    it("when his elder stage runs out while away, the catch-up stops there and the heir carries on", async () => {
+      const { again } = await reopen(6 * HOUR, {}, (g) => {
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 2 * 3600;
+      });
+      const lines = again.away!.lines;
+      const ready = lines.findIndex((l) => l.text.startsWith("🌅 Ready to retire"));
+      expect(ready).toBeGreaterThan(-1);
+      expect(lines[ready]!.t).toBeLessThan(Date.UTC(2026, 9, 29, 8) / 1000 + 2 * 3600 + 15 * 60);
+      expect(lines.at(-1)!.t).toBeLessThan(Date.UTC(2026, 9, 29, 8) / 1000 + 3 * 3600);
+      expect(again.retired?.by).toBe("age");
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.dilemma).toBeNull();
+      // The card says he lived only until then, and that he retired.
+      expect(again.away!.retire).toBe("done");
+      expect(again.away!.coveredS).toBeLessThan(3 * 3600);
+    });
+
+    it("asked to retire on a ride and closed, he retires on reopen without living the time away", async () => {
+      const { again } = await reopen(6 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 10 * 86400;
+        g.stats.life.asked = true;
+      });
+      expect(again.retired?.by).toBe("you");
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.away!.retire).toBe("done");
+      expect(again.away!.coveredS).toBe(0);
+      expect(again.away!.stops).toBe(0);
+      expect(again.dilemma).toBeNull();
+    });
+
+    it("when he is due to retire but no streets load, the card says so and he retires later, with no dilemma", async () => {
+      let down = false;
+      const ok = streets().load;
+      const { again } = await reopen(6 * HOUR, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)) }, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 2 * 3600;
+        down = true;
+      });
+      expect(again.retired).toBeNull();
+      expect(again.stats.life.gen).toBe(1);
+      expect(again.away!.retire).toBe("soon");
+      expect(again.away!.coveredS).toBeLessThan(3 * 3600);
+      expect(again.dilemma).toBeNull();
+    });
+
+    it("the heir's bond with you doesn't fade for days away before he set out", async () => {
+      const { again } = await reopen(96 * HOUR, {}, (g) => {
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 2 * 3600;
+      });
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.stats.bond.trust).toBe(TRUST_START);
+    });
+
+    it("due to retire only past the catch-up's limit, with no streets, the card still says he stopped to retire and brings no dilemma", async () => {
+      let down = false;
+      const ok = streets().load;
+      const { again } = await reopen(30 * HOUR, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)) }, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 26 * 3600;
+        down = true;
+      });
+      expect(again.stats.life.gen).toBe(1);
+      expect(again.away!.retire).toBe("soon");
+      expect(again.dilemma).toBeNull();
+    });
+
+    it("when his elder stage runs out past the catch-up's limit, he still retires on reopen, with no dilemma", async () => {
+      const { again } = await reopen(30 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 26 * 3600;
+      });
+      expect(again.retired?.by).toBe("age");
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.dilemma).toBeNull();
     });
 
     it("knows the holiday kept on the device on reopen, so time away on a holiday has holiday actions", async () => {
