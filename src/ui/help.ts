@@ -7,6 +7,7 @@ import * as Bills from "../core/bills";
 import * as Visas from "../core/visas";
 import * as Bond from "../core/bond";
 import * as Bricks from "../core/bricks";
+import * as Careers from "../core/careers";
 import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
@@ -519,11 +520,21 @@ export function values(data: GameData): Record<string, string> {
     GOAL_SHOP_PULL: num(Activities.GOAL_SHOP_PULL),
     DEALER_OFFERS: String(S.DEALER_OFFERS),
     HOSPITAL_MAX_PCT: pct(S.HOSPITAL_MAX_SHARE),
-    WAGE_LEVEL_PCT: pct(S.WAGE_PER_LEVEL),
+    WAGE_RANK_PCT: pct(Careers.WAGE_PER_RANK),
     WAGE_ATTR_PCT: pct(S.WAGE_PER_ATTR),
     WAGE_ATTR_X10: pct(10 * S.WAGE_PER_ATTR),
-    WAGE_LV11: `${num(1 + 10 * S.WAGE_PER_LEVEL)} times`,
-    WAGE_LV30: `${num(1 + 29 * S.WAGE_PER_LEVEL)} times`,
+    WAGE_RANK3: `${num(1 + 2 * Careers.WAGE_PER_RANK)} times`,
+    WAGE_RANK5: `${num(1 + (Careers.TOP_RANK - 1) * Careers.WAGE_PER_RANK)} times`,
+    CAREER_COUNT: num(Careers.CAREERS.length),
+    TOP_RANK: num(Careers.TOP_RANK),
+    CAREER_LIST: Careers.helpList(),
+    SHIFTS_R2: num(Careers.SHIFTS_TO[1]),
+    SHIFTS_R3: num(Careers.SHIFTS_TO[2]),
+    SHIFTS_R4: num(Careers.SHIFTS_TO[3]),
+    SHIFTS_R5: num(Careers.SHIFTS_TO[4]),
+    RANK_PAY_LIST: Careers.RANK_PAY.map((m) => `${num(m)}x`).join(", "),
+    CAREER_PULL: num(Careers.CAREER_PULL),
+    CAREER_EXAMPLE: `"${Careers.careerOf("cafe")!.shifts[1]}" for a ${Careers.careerOf("cafe")!.ranks[2]}`,
     BRONZE_SWORD: euro(Items.build(Items.KINDS.weapons[0]!, Items.MATERIALS[2]!, []).price),
     XP_LV1: String(S.xpToNext(1)),
     XP_LV2: String(S.xpToNext(2)),
@@ -599,7 +610,8 @@ export function values(data: GameData): Record<string, string> {
     MOD_PRICE_PCT: pct(Items.MOD_PRICE),
     POWER_TO_STAT: num(Items.POWER_TO_STAT),
     PLACE_KINDS: String(Object.keys(data.actions).filter((k) => !k.startsWith("_")).length),
-    ACTION_COUNT: String(sum(data.actions)),
+    // Each career's rank shifts count once, though its places all offer them.
+    ACTION_COUNT: String(sum(data.actions) + Careers.CAREERS.length * (Careers.TOP_RANK - 1)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
     KIT_LIST: Kit.KIT.map((k) => {
