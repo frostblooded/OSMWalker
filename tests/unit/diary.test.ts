@@ -72,15 +72,21 @@ describe("diary", () => {
     for (const l of dreams) expect(l).not.toContain("Night owl");
   });
 
-  it("dreams DREAM_CHANCE of the time, of a place from his day", () => {
+  it("dreams DREAM_CHANCE of the time, of a place from his day, at most MAX_DREAMS a day", () => {
     const d = new D.Diary();
     d.close("d0", CITY, DATA, new Rng(1));
     d.note("first", "Cafe East");
-    const dreams = Array.from({ length: 200 }, (_, i) => d.dream(DATA, new Rng(i))).filter(Boolean);
+    // A fresh day for each nap, so the cap doesn't count.
+    const dreams = Array.from({ length: 200 }, (_, i) => {
+      d.today.dreams = [];
+      return d.dream(DATA, new Rng(i));
+    }).filter(Boolean);
     expect(dreams.length / 200).toBeGreaterThan(D.DREAM_CHANCE - 0.15);
     expect(dreams.length / 200).toBeLessThan(D.DREAM_CHANCE + 0.15);
     expect(dreams.every((x) => x.includes("Cafe East"))).toBe(true);
-    expect(d.close("d1", CITY, DATA, new Rng(1))!.dreams).toHaveLength(dreams.length);
+    d.today.dreams = [];
+    for (let i = 0; i < 50; i++) d.dream(DATA, new Rng(i));
+    expect(d.close("d1", CITY, DATA, new Rng(1))!.dreams).toHaveLength(D.MAX_DREAMS);
   });
 
   it("survives a save", () => {

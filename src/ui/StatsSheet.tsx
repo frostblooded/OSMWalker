@@ -14,7 +14,7 @@ import { MAGIC_MAX } from "../core/magic";
 import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
 import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
-import { noun, wantIcon, wantText } from "../core/mind";
+import { noun, plural, wantIcon, wantText } from "../core/mind";
 import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
 import { SPOT_DISCOUNT } from "../core/spot";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
@@ -565,7 +565,7 @@ function MindCard({ s }: { s: Stats }) {
         {m.wants.map((w) => (
           <KV
             key={`${w.kind}${w.place}`}
-            k={w.kind === "face" ? `😨 Wary of ${noun(w.place)}s: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
+            k={w.kind === "face" ? `😨 Wary of ${plural(noun(w.place))}: ${wantText(w).toLowerCase()}` : `${wantIcon(w)} ${wantText(w)}`}
             v={w.until ? <span class="dim">{hoursLeft((w.until - now) / 60)}</span> : ""}
             tone={w.kind === "face" ? "warning" : undefined}
           />

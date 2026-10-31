@@ -14,6 +14,8 @@ export const DAY_LINES = 3;
 export const MAX_NOTES = 12;
 /** Odds a nap or a night's sleep brings a dream he remembers. */
 export const DREAM_CHANCE = 0.5;
+/** Dreams a day at most, so the diary stays a diary. */
+export const MAX_DREAMS = 2;
 
 /** What he may note in a day, most worth writing first. */
 export const NOTE_KINDS = ["faint", "arrive", "brave", "fear", "quirk", "spot", "wish", "first", "mishap", "work"] as const;
@@ -25,7 +27,8 @@ export type DiaryData = { open: string[]; notes: Record<NoteKind, string[]>; qui
 export type Note = { kind: NoteKind; place: string };
 export type DiaryEntry = { date: string; city: string; day: number; lines: string[]; dreams: string[] };
 
-const fill = (line: string, v: Record<string, string>) => line.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);
+/** Fills the {BLANKS} of a data line (diary.json, mail.json). */
+export const fill = (line: string, v: Record<string, string>) => line.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);
 
 export class Diary {
   /** Written days, oldest first. */
@@ -76,7 +79,7 @@ export class Diary {
 
   /** He naps or sleeps: with DREAM_CHANCE, a dream remixing today's places (or the city). Returns it, or "". */
   dream(data: DiaryData | null, rng: Rng): string {
-    if (!data?.dreams.length || rng.randf() >= DREAM_CHANCE) return "";
+    if (!data?.dreams.length || this.today.dreams.length >= MAX_DREAMS || rng.randf() >= DREAM_CHANCE) return "";
     // A quirk's note holds its name, not a place.
     const places = [...new Set(this.today.notes.filter((n) => n.kind !== "quirk").map((n) => n.place))];
     const a = places.length ? rng.pick(places) : this.today.city.split(",")[0] || "the city";

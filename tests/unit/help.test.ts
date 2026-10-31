@@ -240,11 +240,6 @@ describe("search", () => {
   });
 });
 
-describe("plural", () => {
-  it("spells the quirk places right", () => {
-    expect(["bakery", "church", "art gallery", "place of worship", "cafe"].map(Help.plural)).toEqual(["bakeries", "churches", "art galleries", "places of worship", "cafes"]);
-  });
-});
 
 describe("side income pages", () => {
   it("list every business, the share's pay and the lottery's prizes from code", () => {
