@@ -27,7 +27,7 @@ describe("city check", () => {
   });
 
   it("counts each kind", () => {
-    expect(C.summary([BUS, BUS, AIRPORT, GAS, DEALER, CAFE, STOP], acts())).toEqual({ bus: 2, airport: 1, gas: 1, dealer: 1, earn: 1 });
+    expect(C.summary([BUS, BUS, AIRPORT, GAS, DEALER, CAFE, STOP], acts())).toEqual({ bus: 2, airport: 1, gas: 1, dealer: 1, earn: 1, food: 0, bed: 0 });
   });
 
   it("finds no problems in a city with everything", () => {
@@ -40,5 +40,22 @@ describe("city check", () => {
 
   it("counts a bus station as a way out even without gas", () => {
     expect(titles([BUS, CAFE])).toEqual(["No gas station in Sofia"]);
+  });
+});
+
+describe("must-haves", () => {
+  const table = new Activities({
+    restaurant: [{ name: "Lunch", min: 40, fx: { fullness: 50 } }],
+    lodging: [{ name: "Sleep", min: 480, fx: { energy: 100 } }],
+    cafe: [{ name: "Wait tables", min: 5, earn: 20 }],
+  });
+  const FOOD = { name: "Diner", class: "restaurant", subclass: "restaurant" };
+  const BED = { name: "Inn", class: "lodging", subclass: "hotel" };
+  it("counts meals and beds", () => {
+    expect(C.summary([FOOD, BED, CAFE], table)).toMatchObject({ food: 1, bed: 1, earn: 1 });
+  });
+  it("names what a city lacks", () => {
+    expect(C.missing(C.summary([], table))).toEqual(["bus", "gas", "food", "bed", "earn"]);
+    expect(C.missing(C.summary([BUS, GAS, FOOD, BED, CAFE], table))).toEqual([]);
   });
 });

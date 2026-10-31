@@ -2,6 +2,7 @@
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { BBox } from "../../src/core/geo";
+import type { MapIcon } from "../../src/core/mapIcons";
 import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
@@ -31,15 +32,30 @@ class FakeMap implements MapPort {
     this.looks++;
   }
   setGoal() {}
+  setRival() {}
   setTrip() {}
   showTrail(on: boolean) {
     this.calls.push(`trail:${on}`);
   }
   setTrail() {}
   setRoute() {}
+  leys: [number, number][][] = [];
+  leyKey = "";
+  setLeys(key: string, lines: () => [[number, number], [number, number]][]) {
+    if (key === this.leyKey) return;
+    this.leyKey = key;
+    this.leys = key ? lines() : [];
+  }
   setArea() {}
   setEvents() {
     this.calls.push("events");
+  }
+  icons: MapIcon[] = [];
+  iconKey = "";
+  setMapIcons(key: string, icons: () => MapIcon[]) {
+    if (key === this.iconKey) return;
+    this.iconKey = key;
+    this.icons = icons();
   }
   follow(zoom?: number) {
     this.calls.push(`follow:${zoom}`);
@@ -84,6 +100,50 @@ beforeEach(() => {
 });
 
 describe("map scene", () => {
+  it("shows made-up places and travel hubs as game icons, none on a ride", () => {
+    const w = game.walker!;
+    w.bounds = PLUS_BBOX;
+    const [lat, lon] = w.position();
+    w.graph.made = [{ name: "Notice board", class: "notice_board", subclass: "notice_board", rank: 2, lat, lon, id: "x:notice_board:0", made: true }];
+    scene.draw(0.25, 250);
+    expect(map.icons.map((i) => i.icon)).toEqual(["board"]);
+    expect(map.icons[0]!.id).toBe("x:notice_board:0");
+    w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
+    scene.draw(0.25, 250);
+    expect(map.icons).toEqual([]);
+  });
+
+  it("draws the ley lines only while the Stats sheet is open, again when they change, and none on a ride", () => {
+    const [lat, lon] = game.walker!.position();
+    game.leys = [
+      [
+        [lat, lon],
+        [lat + 0.001, lon],
+      ],
+    ];
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
+    scene.showLeys(true);
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual(game.leys);
+    game.leys = [
+      [
+        [lat, lon],
+        [lat, lon + 0.001],
+      ],
+    ];
+    game.leysVersion++;
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual(game.leys);
+    scene.showLeys(false);
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
+    scene.showLeys(true);
+    game.walker!.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
+    scene.draw(0.25, 250);
+    expect(map.leys).toEqual([]);
+  });
+
   it("leaves room for the panels from the start", () => {
     expect(map.calls).toEqual(["padding:80"]);
   });
@@ -97,7 +157,7 @@ describe("map scene", () => {
 
   it("shows his face, with his most pressing need over his head", () => {
     scene.draw(0.25, 250);
-    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null });
+    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null, mount: "", pet: "" });
     game.stats.meters.fullness = 10;
     scene.draw(0.25, 250);
     expect(map.look!.bubble).toBe("🍔");

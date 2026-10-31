@@ -1,10 +1,20 @@
 // His week in numbers: what the weekly recap sums up, when a week turns over, and how it is saved.
 import { describe, expect, it } from "vitest";
 import { Stats } from "../../src/core/stats";
-import { Week, WEEK_S, weekStart } from "../../src/core/week";
+import { dayStart, Week, WEEK_S, weekStart } from "../../src/core/week";
 
 /** Monday 2026-10-26 00:00 UTC. */
 const MONDAY = 1792972800;
+
+describe("dayStart", () => {
+  it("is the last midnight in the given time zone", () => {
+    const midnight = MONDAY + 4 * 86400;
+    expect(dayStart(midnight + 3600, 0)).toBe(midnight);
+    expect(dayStart(midnight - 1, 0)).toBe(midnight - 86400);
+    // UTC+2: local midnight is 22:00 UTC the day before.
+    expect(dayStart(midnight + 3600, 120)).toBe(midnight - 7200);
+  });
+});
 
 describe("weekStart", () => {
   it("is the last Monday midnight in the given time zone", () => {

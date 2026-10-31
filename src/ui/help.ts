@@ -3,28 +3,56 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as Activities from "../core/activities";
+import * as Bond from "../core/bond";
+import * as Bricks from "../core/bricks";
+import * as Chron from "../core/chronicle";
 import * as CatchUp from "../core/catchup";
+import * as CityCheck from "../core/cityCheck";
 import * as CityFacts from "../core/cityFacts";
+import * as Creatures from "../core/creatures";
+import * as Magic from "../core/magic";
+import * as Midnight from "../core/midnight";
+import * as Portals from "../core/portals";
+import * as Giants from "../core/giants";
+import * as Fairy from "../core/fairy";
+import * as Collection from "../core/collection";
 import * as DebugLog from "../core/debugLog";
 import * as Dilemmas from "../core/dilemmas";
 import * as Forecast from "../core/forecast";
 import * as Gifts from "../core/gifts";
+import * as Inc from "../core/incidents";
 import * as Goals from "../core/goals";
 import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Jokes from "../core/jokes";
-import * as Day from "../core/day";
+import * as Snap from "./snap";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
 import * as Looks from "../core/look";
+import * as MapIcons from "../core/mapIcons";
 import { euro, toCents } from "../core/money";
+import * as Opening from "../core/opening";
+import * as Gen from "../core/poiGen";
+import * as Pet from "../core/pet";
 import * as Postcard from "../core/postcard";
+import * as Quests from "../core/quests";
 import * as Problems from "../core/problems";
+import * as Sky from "../core/sky";
+import * as Rec from "../core/records";
 import * as Speeds from "../core/speeds";
+import * as Rival from "../core/rival";
+import * as Anniv from "../core/anniversaries";
+import * as Clubs from "../core/clubs";
+import * as Friends from "../core/friends";
+import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
+import * as Kit from "../core/travelKit";
+import * as Townies from "../core/townies";
 import * as Trips from "../core/trips";
 import * as W from "../core/walker";
+import * as Weather from "../core/weather";
+import * as Work from "../core/workCards";
 import type { GameData } from "../game/game";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -135,22 +163,25 @@ const cheapest = (kind: Items.Kind) => Items.cheapest(kind).price;
 const kmh = (mps: number) => String(Math.round(mps * 3.6));
 const km = (m: number) => num(m / 1000);
 
-/** "cafes or coffee shops" for a crawl's kinds. */
-export const CRAWL_KINDS: Record<string, string> = {
-  coffee: "cafes or coffee shops",
-  pub: "bars, pubs, clubs or beer gardens",
-  sweet: "ice cream parlours, bakeries or sweet shops",
-  parks: "parks or gardens",
-  shops: "shops or clothing stores",
-  museums: "museums",
-  pilgrim: "places of worship",
-  culture: "museums, galleries or theatres",
-  sights: "landmarks (see Landmark cards)",
+/** A crawl's kinds; the landmarks one points at their page. */
+const crawlKinds = (c: K.Crawl) => {
+  const words = Collection.CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
+  return c.id === "sights" ? `${words} (see Landmark cards)` : words;
 };
-const crawlKinds = (c: K.Crawl) => CRAWL_KINDS[c.id] ?? c.kinds.join(", ");
+/** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
+const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
+
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+function deeds(actions: GameData["actions"], sign: 1 | -1): string {
+  const names = new Set<string>();
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  return [...names].join(", ");
+}
 
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
+  const incidents = data.incidents ?? [];
+  const bank = data.quests ?? { names: [], quests: [], events: [] };
   const sum = (t: Activities.ActionTable) => Object.values(t).reduce((n, l) => n + l.length, 0);
   const v: Record<string, string> = {
     SEARCH_MIN_CHARS: String(MIN_CHARS),
@@ -179,14 +210,136 @@ export function values(data: GameData): Record<string, string> {
       .join(", "),
     JOKE_PCT: pct(Jokes.JOKE_CHANCE),
     SELL_RUN_LEFT: num(S.SELL_RUN_LEFT),
+    ADOPT_PCT: pct(Pet.ADOPT_CHANCE),
+    PET_FOOD: euro(Pet.PET_FOOD),
+    PET_MOOD_PER_H: num(Pet.PET_MOOD_PER_H),
+    PET_MOOD_PER_LEVEL: num(Pet.PET_MOOD_PER_LEVEL),
+    PET_KM_2: num(Pet.kmFor(2)),
+    PET_KM_3: num(Pet.kmFor(3)),
+    PET_MAX_LEVEL: num(Pet.PET_MAX_LEVEL),
+    PET_KM_MAX: num(Pet.kmFor(Pet.PET_MAX_LEVEL)),
+    DOG_FIND_PCT: pct(Pet.DOG_FIND_PER_LEVEL),
+    CAT_RISK_PCT: pct(Pet.CAT_RISK_PER_LEVEL),
+    PET_FAIRY_LEVEL: num(Pet.FAIRY_LEVEL),
+    PET_FAIRY_PCT: pct(Pet.FAIRY_CHANCE),
+    PET_FAIRY_MULT: num(Pet.FAIRY_PERK_MULT),
+    PET_LIFE_MIN: num(Pet.LIFE_DAYS[0]),
+    PET_LIFE_MAX: num(Pet.LIFE_DAYS[1]),
+    MISSING_MOOD_PER_H: num(Pet.MISSING_MOOD_PER_H),
+    PET_MISSING_H: num(Pet.MISSING_MIN / 60),
+    BRICK_PCT: pct(Bricks.BRICK_CHANCE),
+    BRICKS_PER_DAY: num(Bricks.BRICKS_PER_DAY),
+    CREATURE_PCT: pct(Creatures.CREATURE_CHANCE),
+    RIDDLE_PCT: pct(Creatures.RISK_BASE),
+    RIDDLE_PER_WIT_PCT: pct(Creatures.RISK_PER_POINT),
+    RIDDLE_CAP_PCT: pct(Creatures.RISK_CAP),
+    CREATURE_LIST: (data.creatures ?? []).map((c) => {
+      const said = (o: Creatures.Outcome) => [o.pay ? `pays ${euro(o.pay)}` : "", Gifts.effect(o)].filter(Boolean).join(", ");
+      const opts = c.moment.options.map((o) => `${o.label} (${said(c.outcomes[o.id]!)}${c.risky?.option === o.id ? `; if it fails, ${said(c.risky.miss)}` : ""})`);
+      return `- ${c.icon} ${c.name}, ${c.where}: ${opts.join("; ")}. On his own he picks ${c.moment.options.find((o) => o.id === c.moment.default)!.label.toLowerCase()}.`;
+    }).join("\n"),
+    LEY_NEAR_M: num(Magic.LEY_NEAR_M),
+    LEY_PER_KM: num(Magic.LEY_PER_KM),
+    LEY_BURST: num(Magic.LEY_BURST),
+    LEY_CHARM_LUCK: `+${num(Magic.LEY_CHARM.attrs!.luck!)}`,
+    LEY_CHARM_MIN: num(Magic.LEY_CHARM.min),
+    MAGIC_MAX: num(Magic.MAGIC_MAX),
+    LEARN_PCT: pct(Magic.LEARN_CHANCE),
+    SPELL_AT: num(Magic.SPELL_AT),
+    SPARE_MAGIC: num(Magic.SPARE_MAGIC),
+    SPELL_LIST: (data.spells ?? []).map((k) => `- ${k.icon} ${k.name}, ${num(k.cost)} Magic: ${Gifts.effect(k)}`).join("\n"),
+    MIDNIGHT_SHOPS: Object.entries(data.actions)
+      .filter(([, list]) => Array.isArray(list) && list.some((a) => a.midnight))
+      .map(([k]) => K.kindLabel(k).split(" · ")[0]!.toLowerCase())
+      .join(", "),
+    ENCHANTED_MODS_MAX: num(Items.ENCHANTED_MODS_MAX),
+    ENCHANTED_PCT: pct(Midnight.ENCHANTED_CHANCE),
+    ENCHANTED_PRICE: num(Midnight.ENCHANTED_PRICE),
+    ENCHANTED_MAGIC: num(Midnight.ENCHANTED_MAGIC),
+    PORTAL_PCT: pct(Portals.PORTAL_CHANCE),
+    PORTAL_GAP_DAYS: num(Portals.PORTAL_GAP_DAYS),
+    GIFT_PCT: pct(Fairy.GIFT_CHANCE),
+    FAIRY_PCT: pct(Fairy.FAIRY_CHANCE),
+    FAIRY_GAP_DAYS: num(Fairy.FAIRY_GAP_DAYS),
+    NAP_HOURS: `${num(Fairy.NAP_MIN_MIN / 60)} to ${num(Fairy.NAP_MAX_MIN / 60)}`,
+    FAIRY_MOD: Object.entries(Fairy.FAIRY_MOD.stats).map(([k, v]) => (k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`)).join(", "),
+    STORY_MAGIC: num(Fairy.STORY_MAGIC),
+    GIANT_PCT: pct(Giants.GIANT_CHANCE),
+    GIANT_FX: Gifts.effect({ fx: Giants.GIANT_FX }),
+    GIANT_LIST: Giants.GIANTS.map((g) => `- ${g.icon} ${g.name}: seen ${g.where}.`).join("\n"),
+    ENCHANT_LIST: Items.ENCHANTMENTS.map((e) => `${e.name} (${Object.entries(e.stats).map(([k, v]) => k === "magic" ? `Magic +${v} a km` : `${Inc.ATTR_NAMES[k as S.Attr]} +${v}`).join(", ")})`).join(", "),
+    TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
+    MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
+    LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
+    COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
+    TRUST_MAX: num(Bond.TRUST_MAX),
+    TRUST_START: num(Bond.TRUST_START),
+    KIND_DEEDS: deeds(data.actions, 1),
+    RASCAL_DEEDS: deeds(data.actions, -1),
+    TRUST_PER_CHECKIN: num(Bond.TRUST_PER_CHECKIN),
+    TRUST_PER_GIFT: num(Bond.TRUST_PER_GIFT),
+    TRUST_FADE_PER_DAY: num(Bond.TRUST_FADE_PER_DAY),
+    TRUST_FADE_MAX: num(Bond.TRUST_FADE_MAX),
+    LETTER_AT: Bond.LETTER_AT.join(", "),
+    THANKS_PCT: pct(Bond.THANKS_CHANCE),
+    WHISPERS_PER_DAY: num(Bond.WHISPERS_PER_DAY),
+    HEED_MIN_PCT: pct(Bond.HEED_MIN),
+    HEED_PER_TRUST_PCT: pct(Bond.HEED_PER_TRUST),
+    HEED_FULL_PCT: pct(Bond.HEED_MIN + Bond.TRUST_MAX * Bond.HEED_PER_TRUST),
+    NUDGE_MIN: num(Bond.NUDGE_MIN),
+    EXPLORE_PULL: num(Activities.EXPLORE_PULL),
+    LEAN_MIN: num(-Bond.LEAN_MAX),
+    LEAN_MAX: num(Bond.LEAN_MAX),
+    LEAN_AT: num(Bond.LEAN_AT),
+    JUDGE_STEP: num(Bond.JUDGE_STEP),
+    DEED_STEP: num(Bond.DEED_STEP),
+    KIND_DEED_WEIGHT: num(Bond.KIND_DEED_WEIGHT),
+    RASCAL_SELL_PCT: pct(Bond.RASCAL_SELL - 1),
+    DODGE_PCT: pct(Bond.DODGE_CHANCE),
+    CAUGHT_PCT: pct(Bond.CAUGHT_CHANCE),
+    FINE_MULT: num(Bond.FINE_MULT),
     GIFT_LIST: Gifts.GIFTS.map((g) => `- ${g.icon} ${g.name}, ${g.cost} ☘: ${Gifts.effect(g)}`).join("\n"),
     CATCHUP_WAIT_S: num(G.CATCHUP_WAIT_MS / 1000),
+    MEAL_FULLNESS: num(CityCheck.MEAL_FULLNESS),
+    BED_ENERGY: num(CityCheck.BED_ENERGY),
+    AIRPORT_POP: num(Trips.AIRPORT_POP),
+    TOWN_POP: num(Gen.TOWN_POP),
+    CITY_POP: num(Gen.CITY_POP),
+    MEGA_POP: num(Gen.MEGA_POP),
+    EXTRAS_TOWN: num(Gen.EXTRAS.town),
+    EXTRAS_CITY: num(Gen.EXTRAS.city),
+    EXTRAS_CAPITAL: num(Gen.EXTRAS.capital),
+    TOWERS_CITY: num(Gen.TOWERS.city),
+    TOWERS_CAPITAL: num(Gen.TOWERS.capital),
+    TOWERS_MEGA: num(Gen.TOWERS_MEGA),
+    TOWER_APART_KM: num(Gen.TOWER_APART_M / 1000),
+    MADE_CITIES: num(G.MADE_CITIES),
+    ICON_CAP: num(MapIcons.ICON_CAP.place),
+    QUEST_ICON_CAP: num(MapIcons.ICON_CAP.quest),
+    EVENT_ICON_CAP: num(MapIcons.ICON_CAP.event),
     SNAP_M: num(W.SNAP_M),
     WALK_KMH: kmh(Speeds.WALK),
     WALK_M_PER_MIN: String(Math.round(Speeds.WALK * 60)),
     BIKE_KMH: kmh(Speeds.BIKE),
     MOTORCYCLE_KMH: kmh(Speeds.MOTORCYCLE),
     CITY_CAR_KMH: kmh(Speeds.CAR),
+    TORTOISE_KMH: kmh(Speeds.TORTOISE),
+    BROOM_KMH: kmh(Speeds.BROOM),
+    CARPET_KMH: kmh(Speeds.CARPET),
+    DRAGON_KMH: kmh(Speeds.DRAGON),
+    MOUNT_STOCK_PCT: pct(Items.MOUNT_STOCK),
+    CHEAP_DRAGON: euro(cheapest("dragons")),
+    GOAL_DRAGON: Items.nextVehicle("car")!.name,
+    FLY_MIN_M: String(W.FLY_MIN_M),
+    LAND_MAX_M: String(W.LAND_MAX_M),
+    DRAGON_UPKEEP: euro(S.DRAGON_UPKEEP),
+    DRAGON_TREASURE_PCT: pct(S.DRAGON_TREASURE_CHANCE),
+    DRAGON_TREASURE_MIN: euro(S.DRAGON_TREASURE_MIN),
+    DRAGON_TREASURE_MAX: euro(S.DRAGON_TREASURE_MAX),
+    BROOM_EFFORT_PCT: pct(S.EFFORT.broom),
+    CARPET_EFFORT_PCT: pct(S.EFFORT.carpet),
+    DRAGON_EFFORT_PCT: pct(S.EFFORT.dragon),
+    LAND_SHARE_PCT: pct(W.LAND_SHARE),
     SPEED_PER_POWER: num(Items.SPEED_PER_POWER),
     SPEED_PER_LEVEL_PCT: pct(S.SPEED_PER_LEVEL),
     TIRED_ENERGY: num(S.TIRED_ENERGY),
@@ -237,9 +390,10 @@ export function values(data: GameData): Record<string, string> {
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     MIDDLE_PCT: String(Math.round(MIDDLE * 100)),
     SICK_AT: String(Looks.SICK_AT),
-    RIBBON: String(Day.RIBBON),
-    MAX_STOPS: String(Day.MAX_STOPS),
+    SHEET_TALL_PCT: String(Math.round(Snap.TALL * 100)),
+    SHEET_CLOSE_PCT: String(Math.round(Snap.CLOSE_AT * 100)),
     HAPPY_MOOD: String(Looks.HAPPY_MOOD),
+    POSE_EVERY_S: String(Looks.POSE_EVERY_S),
     LOW_MOOD: String(Looks.LOW_MOOD),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),
@@ -255,6 +409,11 @@ export function values(data: GameData): Record<string, string> {
     ENERGY_PER_KM: num(S.ENERGY_PER_KM),
     STARVING_PER_H: num(S.STARVING_PER_H),
     FIRST_VISIT_XP: String(S.FIRST_VISIT_XP),
+    REC_STRETCH_KM: km(Rec.BRAG_FROM.stretchM),
+    REC_DAY_KM: km(Rec.BRAG_FROM.dayM),
+    REC_STOPS: String(Rec.BRAG_FROM.dayStops),
+    REC_CENTS: euro(Rec.BRAG_FROM.cents),
+    REC_NOFAINT: Rec.span(Rec.BRAG_FROM.noFaintS),
     HOSPITAL_FEE: euro(S.HOSPITAL_FEE),
     WAKE_HEALTH: num(S.WAKE_HEALTH),
     BAG_SIZE: String(S.BAG_SIZE),
@@ -297,6 +456,36 @@ export function values(data: GameData): Record<string, string> {
     AIRPORT_KM: km(Trips.AIRPORT_REACH_M),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
+    BIKE_ICON: Trips.MODES.bike.icon,
+    WALK_ICON: Trips.MODES.walk.icon,
+    LONG_WALK_MIN_KM: km(Trips.LONG_WALK_MIN_M),
+    LONG_WALK_MAX_KM: km(Trips.LONG_WALK_MAX_M),
+    LONG_WALK_PCT: pct(Trips.LONG_WALK_CHANCE),
+    LONG_WALK_MAX_H: num(Trips.LONG_WALK_MAX_S / 3600),
+    HOSTEL_KM: km(Trips.HOSTEL_EVERY_M),
+    HOSTEL_PRICE: euro(Trips.HOSTEL_CENTS),
+    LONG_WALK_XP_PER_KM: num(Trips.LONG_WALK_XP_PER_KM),
+    LONG_WALK_MOOD: num(Trips.LONG_WALK_MOOD),
+    FERRY_ICON: Trips.MODES.ferry.icon,
+    TRAIN_ICON: Trips.MODES.train.icon,
+    HITCH_ICON: Trips.MODES.hitch.icon,
+    TRAIN_KMH: kmh(Speeds.TRAIN),
+    FERRY_KMH: kmh(Speeds.FERRY),
+    BIKE_ROAD_KMH: kmh(Speeds.BIKE_ROAD),
+    HITCH_KMH: kmh(Speeds.HITCH),
+    TRAIN_PER_KM: euro(toCents(Trips.TRAIN_PER_KM)),
+    FERRY_PER_KM: euro(toCents(Trips.FERRY_PER_KM)),
+    TRAIN_FROM_KM: km(Trips.TRAIN_FROM_M),
+    SLEEPER_FROM_KM: km(Trips.SLEEPER_FROM_M),
+    FERRY_PCT: pct(Trips.FERRY_CHANCE),
+    FERRY_MAX_KM: km(Trips.FERRY_MAX_M),
+    CYCLE_MAX_KM: km(Trips.CYCLE_MAX_M),
+    BIKE_EFFORT_KM: num(S.ENERGY_PER_KM * S.EFFORT.bike),
+    HITCH_BELOW: euro(Trips.HITCH_BELOW),
+    HITCH_BAD_PCT: pct(Trips.HITCH_BAD),
+    HITCH_GOOD_PCT: pct(Trips.HITCH_GOOD),
+    HITCH_BAD_FX: Gifts.effect({ fx: Trips.HITCH_BAD_FX }),
+    HITCH_GOOD_FX: Gifts.effect({ fx: Trips.HITCH_GOOD_FX }),
     CAR_ROAD_KMH: kmh(Speeds.CAR_ROAD),
     PLANE_KMH: kmh(Speeds.PLANE),
     RIDE_SPEEDUP: String(Trips.RIDE_SPEEDUP),
@@ -328,6 +517,17 @@ export function values(data: GameData): Record<string, string> {
     ACTION_COUNT: String(sum(data.actions)),
     NAP_BELOW: String(data.actions.park?.find((a) => a.name === "Nap under a tree")?.needs?.below?.energy ?? ""),
     FLAVOUR_COUNTRIES: String(Object.keys(data.flavour).length),
+    KIT_LIST: Kit.KIT.map((k) => {
+      const fx = [...Object.entries(k.buff.per_h ?? {}).map(([m, v]) => `${m} +${v} an hour`), ...Object.entries(k.buff.attrs ?? {}).map(([a, v]) => `${Inc.ATTR_NAMES[a as S.Attr]} +${v}`)];
+      const when = k.meter ? `when his ${k.meter} is under ${Kit.PACK_BELOW}` : "when the trip goes abroad";
+      return `- ${k.name} (${euro(k.cents)}), ${when}: ${fx.join(", ")} for ${k.buff.min / 60} hours`;
+    }).join("\n"),
+    DEG_PER_ZONE: num(Trips.DEG_PER_ZONE),
+    JET_LAG_H_PER_ZONE: num(Trips.JET_LAG_H_PER_ZONE),
+    JET_LAG_MAX_H: num(Trips.JET_LAG_MAX_H),
+    JET_LAG_ENERGY_PER_H: num(Trips.JET_LAG_ENERGY_PER_H),
+    JET_LAG_XP_PCT: pct(1 - Trips.JET_LAG_XP),
+    BORDER_COUNTRIES: String(Object.keys(data.borders?.words ?? {}).length),
     CITY_CARDS_PER_COUNTRY: String(CC.CARDS_PER_COUNTRY),
     CITY_CARD_TOTAL: CC.pool(data.cities).cards.length.toLocaleString("en-GB"),
     UNCOMMON_CITY_COUNT: String(CC.UNCOMMON_UP_TO - CC.RARE_UP_TO),
@@ -367,12 +567,135 @@ export function values(data: GameData): Record<string, string> {
     TREASURED_COUNTRIES: String(Items.TREASURED_COUNTRIES),
     TREASURED_KEEP: String(S.TREASURED_KEEP),
     CARDS_SHOWN: String(K.CARDS_SHOWN),
+    FEAT_LIST: Collection.FEATS.map(featLine).join("\n").replace(/,$/, "."),
     FLAVOUR_ACTIONS: String(Object.values(data.flavour).reduce((n, t) => n + sum(t), 0)),
+    SKY_ACTIONS: String(Object.values(data.actions).reduce((n, list) => n + list.filter((a) => a.needs?.season || a.needs?.weather).length, 0)),
+    SUNRISE_AT: `${String(Sky.SUNRISE_H).padStart(2, "0")}:00`,
+    SUNSET_AT: `${String(Sky.SUNSET_H).padStart(2, "0")}:00`,
+    HALF_DAY_H: num(Sky.SUNSET_H - Sky.SUNRISE_H),
+    OPEN_H: `${String(Opening.OPEN_H).padStart(2, "0")}:00`,
+    CLOSE_H: `${String(Opening.CLOSE_H).padStart(2, "0")}:00`,
+    HOT_C: num(Sky.HOT_C),
+    HOT_THIRST: num(Sky.HOT_THIRST),
+    COLD_C: num(Sky.COLD_C),
+    COLD_ENERGY_PER_H: num(Sky.COLD_ENERGY_PER_H),
+    WET_MOOD_PER_H: num(Sky.WET_MOOD_PER_H),
+    SUNNY_MOOD_PER_H: num(Sky.SUNNY_MOOD_PER_H),
+    SUNNY_MIN_C: num(Sky.SUNNY_MIN_C),
+    SNOW_SPEED_PCT: pct(Sky.SNOW_SPEED),
+    WET_OUTDOOR: num(Sky.WET_OUTDOOR),
+    WET_SHELTER: num(Sky.WET_SHELTER),
+    HOT_COOL: num(Sky.HOT_COOL),
+    MIN_DAY_H: num(Sky.MIN_DAY_H),
+    MAX_DAY_H: num(Sky.MAX_DAY_H),
+    TROPICS_LAT: num(Sky.TROPICS_LAT),
+    NIGHT_SHADE_PCT: pct(Sky.NIGHT_SHADE),
+    NIGHT_DEG: num(-Sky.NIGHT_DEG),
+    WEATHER_TTL_MIN: num(Weather.WEATHER_TTL_MS / 60_000),
+    TENSION_MAX: num(Story.TENSION_MAX),
+    STORY_RATES: Story.STYLES.map((k) => `${Story.STYLE[k].icon} ${Story.STYLE[k].name} ${num(Story.STYLE[k].per_h)}`).join(", "),
+    STORY_BAD: Story.STYLES.map((k) => `${Story.STYLE[k].name} ${pct(Story.STYLE[k].bad)}`).join(", "),
+    WEALTH_STEP: euro(Story.WEALTH_STEP),
+    WEALTH_CAP: num(Story.WEALTH_CAP),
+    FIRE_AT: num(Story.FIRE_AT),
+    FIRE_MAX_PCT: pct(Story.FIRE_MAX),
+    LUCKY_H: num(Story.LUCKY_H),
+    KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
+    RECENT_INCIDENTS: num(Story.RECENT),
+    INCIDENT_COUNT: String(incidents.length),
+    GOOD_INCIDENTS: String(incidents.filter((c) => c.tone === "good").length),
+    BAD_INCIDENTS: String(incidents.filter((c) => c.tone === "bad").length),
+    ODD_INCIDENTS: String(incidents.filter((c) => c.tone === "odd").length),
+    CHOICE_INCIDENTS: String(incidents.filter((c) => c.options).length),
+    LOSS_CAP_PCT: pct(Inc.LOSS_CAP_SHARE),
+    BOARD_PLACES: num(Quests.BOARD_PLACES),
+    BOARD_MIN: num(Quests.BOARD_MIN),
+    BOARD_MAX: num(Quests.BOARD_MAX),
+    BOARD_TOWN_POP: num(Quests.BOARD_TOWN_POP),
+    BOARD_BIG_POP: num(Quests.BOARD_BIG_POP),
+    BOARD_MID: num(Quests.boardSize(Quests.BOARD_MID_POP)),
+    BOARD_MID_POP: num(Quests.BOARD_MID_POP),
+    STEPS_MORE_MIN: num(Math.min(...bank.quests.map((q) => q.steps.length)) - 1),
+    STEPS_MORE_MAX: num(Math.max(...bank.quests.map((q) => q.steps.length)) - 1),
+    QUEST_KINDS: String(bank.quests.length),
+    FANTASY_KINDS: String(bank.quests.filter((q) => q.fantasy).length),
+    FANTASY_PCT: pct(Quests.FANTASY_SHARE),
+    QUEST_VARIANTS: num(Math.floor(bank.quests.reduce((n, q) => n + q.items.length * bank.names.length * (q.twists.length + 1), 0) / 1000) * 1000),
+    QUEST_EVERY_MIN: num(Quests.QUEST_EVERY_MIN),
+    QUEST_EVERY_MAX: num(Quests.QUEST_EVERY_MAX),
+    STEP_CHOICES: num(Quests.STEP_CHOICES),
+    STEP_MIN: num(Quests.STEP_MIN),
+    WORSE_PCT: pct(Quests.WORSE_SHARE),
+    LOG_MAX: num(Quests.LOG_MAX),
+    CARD_RECENT: num(Quests.CARD_RECENT),
+    EVENT_CHANCE_PCT: pct(Quests.EVENT_CHANCE),
+    EVENT_NEAR_KM: num(Quests.EVENT_NEAR_M / 1000),
+    EVENT_MAX: num(Quests.EVENT_MAX),
+    EVENT_KINDS: String(bank.events.length),
+    FOLLOW_KINDS: String(bank.events.filter((e) => e.follow).length),
+    FOLLOW_PCT: pct(Quests.FOLLOW_CHANCE),
+    LEGEND_COUNT: String(incidents.filter((c) => c.legend).length),
+    LEGEND_WEIGHT: num(Inc.LEGEND_WEIGHT),
+    RIVAL_ICON: Rival.RIVAL_ICON,
+    RIVAL_NAME: Rival.RIVAL_NAME,
+    RIVAL_TOWN_PCT: pct(Rival.IN_TOWN_CHANCE),
+    RIVAL_MEET_PCT: pct(Rival.MEET_CHANCE),
+    HIS_PER_LEVEL: num(Rival.HIS_PER_LEVEL),
+    RIVAL_PER_LEVEL: num(Rival.RIVAL_PER_LEVEL),
+    RIVAL_START_LEVEL: num(Rival.START_LEVEL),
+    WIN_FX: Gifts.effect({ fx: Rival.WIN_FX }),
+    LOSE_FX: Gifts.effect({ fx: Rival.LOSE_FX }),
+    FRIENDLY_FX: Gifts.effect({ fx: Rival.FRIENDLY_FX }),
+    FRIENDLY_PCT: pct(Rival.FRIENDLY_BASE),
+    FRIENDLY_PER_CHA_PCT: pct(Rival.FRIENDLY_PER_CHA),
+    FRIENDLY_CAP_PCT: pct(Rival.FRIENDLY_CAP),
+    FEELING_MAX: num(Rival.FEELING_MAX),
+    FEELING_AT: num(Rival.FEELING_AT),
+    FEELING_STEP: num(Rival.FEELING_STEP),
+    SEEN_MIN: num(Rival.SEEN_MIN),
+    FRIEND_NEW_PCT: pct(Friends.NEW_CHANCE),
+    FRIEND_SEE_PCT: pct(Friends.SEE_CHANCE),
+    HEARTS_MAX: num(Friends.HEARTS_MAX),
+    MEET_UP_AT: num(Friends.MEET_UP_AT),
+    MEET_UP_PCT: pct(Friends.MEET_UP_CHANCE),
+    FRIENDS_PER_CITY: num(Friends.PER_CITY),
+    COMPANION_PCT: pct(Friends.COMPANION_CHANCE),
+    SPLIT_PCT: pct(Friends.SPLIT),
+    COMPANION_STOPS: num(Friends.COMPANION_STOPS),
+    FRIENDS_SHOWN: num(Friends.SHOWN),
+    WORK_CARD_PCT: pct(Work.CARD_CHANCE),
+    SHIFT_MIN: num(Work.SHIFT_MIN),
+    WORK_WIN_BASE_PCT: pct(Work.WIN_BASE),
+    WORK_WIN_PER_PCT: pct(Work.WIN_PER_POINT),
+    WORK_WIN_MAX_PCT: pct(Work.WIN_MAX),
+    WORK_CARD_LIST: Work.helpList(),
+    CLUB_JOIN_AT: num(Clubs.JOIN_AT),
+    CLUB_INVITE_PCT: pct(Clubs.INVITE_CHANCE),
+    CLUB_MAX: num(Clubs.MAX_CLUBS),
+    CLUB_NIGHT_H: num(Clubs.NIGHT_H),
+    CLUB_LIST: Clubs.helpList(),
+    NEWS_PCT: pct(Townies.NEWS_CHANCE),
+    NEWS_AT: num(Townies.NEWS_AT),
+    PARTY_AT: num(Anniv.PARTY_AT),
+    PARTY_MAX: num(Anniv.PARTY_MAX),
+    PARTY_MOOD: num(Anniv.PARTY_MOOD),
+    GREAT_MIN_PCT: pct(Anniv.GREAT_MIN),
+    GLOW_H: num(Anniv.GLOW_MIN / 60),
+    GLOW_PER_H: num(Anniv.GLOW_PER_H),
+    ALONE_MOOD: num(Anniv.ALONE_MOOD),
+    MONTH_MOOD: num(Anniv.MONTH_MOOD),
+    INC_LEAN_PCT: pct(Inc.LEAN_PER_POINT),
+    INC_LEAN_CAP_PCT: pct(Inc.LEAN_CAP),
+    GUARD_LIST: S.ATTRS.map((a) => [a, incidents.filter((c) => c.guard?.attr === a)] as const)
+      .filter(([, cs]) => cs.length)
+      .map(([a, cs]) => `- ${Inc.ATTR_NAMES[a]}: ${cs.map((c) => `${c.icon} ${Inc.bare(c)} (at ${num(c.guard!.at)})`).join("; ")}`)
+      .join("\n"),
   };
   for (const m of S.METERS) v[`START_${m.toUpperCase()}`] = String(s.meters[m]);
   const rolls = [0, ...Items.MOD_ROLLS, 1];
   Items.RARITY.forEach((_, i) => (v[`MODS${i}_PCT`] = pct(rolls[i + 1]! - rolls[i]!)));
   const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
   for (const [t, [a, b]] of Object.entries(S.TIMES)) v[`TIME_${t.toUpperCase()}`] = `${hh(a)}-${hh(b)}`;
+  v.FAIRY_DAWN = `${hh(Fairy.FAIRY_FROM_H)}-${hh(Fairy.FAIRY_TO_H)}`;
   return v;
 }

@@ -113,6 +113,14 @@ export class Keepsakes {
   freePacks = 0;
   /** Cities ("code:name") and countries ("code") he has been to, for the free packs. */
   seen: string[] = [];
+  /** Kinds of made-up place he has been to (poiGen.ODD_KINDS). */
+  odd: string[] = [];
+  /** Item bases ("b:Sword") and materials ("m:Bronze") he has owned; collection.award notes them from his gear and bag. */
+  owned: string[] = [];
+  /** The badge tier (1 Bronze, 2 Silver, 3 Gold) he has for each feat (see collection.ts). */
+  badges: Record<string, number> = {};
+  /** His title, from his newest Gold badge; "" for none. */
+  title = "";
   /** Countries whose whole city card set he has; not saved, worked out again from his cards when the game sets the pool. */
   sets: string[] = [];
 
@@ -138,6 +146,10 @@ export class Keepsakes {
       spares: this.spares,
       freePacks: this.freePacks,
       seen: this.seen,
+      odd: this.odd,
+      owned: this.owned,
+      badges: this.badges,
+      title: this.title,
     };
   }
 
@@ -155,6 +167,10 @@ export class Keepsakes {
     k.spares = d.spares ?? [];
     k.freePacks = d.freePacks ?? 0;
     k.seen = d.seen ?? [];
+    k.odd = d.odd ?? [];
+    k.owned = d.owned ?? [];
+    k.badges = d.badges ?? {};
+    k.title = d.title ?? "";
     return k;
   }
 }

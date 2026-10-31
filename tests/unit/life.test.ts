@@ -9,12 +9,13 @@ import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
 import * as S from "../../src/core/stats";
+import { dayOf } from "../../src/core/gifts";
 import { euro } from "../../src/core/money";
 import { dataFile } from "../support/data";
 
 const cafe = () => ({ name: "Old Cafe", class: "cafe", subclass: "cafe", rank: 1, lat: 42, lon: 23 });
 const sword = (power: number, price = 40): Item => ({ name: "Bronze Sword", slot: "weapon", stats: { str: power }, rarity: "Common", price });
-const vehicle = (kind: "bike" | "motorcycle" | "car", speed = 0, price = 100): Item => ({ name: `Plain ${kind}`, slot: "vehicle", vehicle: kind, stats: { speed }, rarity: "Common", price });
+const vehicle = (kind: Exclude<Speeds.Vehicle, "">, speed = 0, price = 100): Item => ({ name: `Plain ${kind}`, slot: "vehicle", vehicle: kind, stats: { speed }, rarity: "Common", price });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
 
 let stats: Stats;
@@ -102,9 +103,14 @@ describe("stats", () => {
   });
 
   it("jobs earn euros in a range, to the cent", () => {
+    let card = false;
+    stats.onSay = (l) => (card ||= l.includes(" At work: "));
     for (let s = 0; s < 20; s++) {
       const before = stats.cents;
+      card = false;
       stats.do({ name: "Busk", min: 15, earn: [5, 30] }, "Park", new Rng(s));
+      // A chance card at work (workCards.ts) may change the pay; those don't count here.
+      if (card) continue;
       expect(stats.cents - before).toBeGreaterThanOrEqual(500);
       expect(stats.cents - before).toBeLessThanOrEqual(3000);
     }
@@ -146,8 +152,11 @@ describe("stats", () => {
     expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 5), 9);
     expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1.3, 9);
     const before = stats.cents;
+    // His money as the job's line is said, before any chance card at work (workCards.ts).
+    let paid: number | null = null;
+    stats.onSay = () => (paid ??= stats.cents);
     const line = stats.do(job, "Bar", rng);
-    expect(stats.cents - before).toBe(Math.round(10000 * stats.wageMult(job)));
+    expect(paid! - before).toBe(Math.round(10000 * stats.wageMult(job)));
     expect(line).toContain(euro(Math.round(10000 * stats.wageMult(job))));
   });
 
@@ -365,6 +374,8 @@ describe("gear", () => {
     stats.gear.vehicle = vehicle("motorcycle");
     expect(stats.vehicleGoal()).toMatchObject({ name: "Hatchback", kind: "cars", cents: 750000 });
     stats.gear.vehicle = vehicle("car");
+    expect(stats.vehicleGoal()).toMatchObject({ name: "Dragon", kind: "dragons", cents: 4000000 });
+    stats.gear.vehicle = vehicle("dragon");
     expect(stats.vehicleGoal()).toBeNull();
   });
 
@@ -378,9 +389,16 @@ describe("gear", () => {
     expect(stats.saving()).toBe(false);
     stats.savingFor = goal + 5;
     expect(stats.saving()).toBe(true);
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
     stats.savingFor = 0;
-    expect(stats.saving()).toBe(false);
+    stats.cents = S.DRAGON_UPKEEP + KEEP_CENTS - 1;
+    expect(stats.saving()).toBe(true);
+    stats.feedDragon(rng);
+    stats.cents = 0;
+    stats.savingFor = 0;
+    expect(stats.savingTarget()).toBe(0);
+    stats.gear.vehicle = vehicle("car");
+    expect(stats.savingTarget()).toBe(stats.vehicleGoal()!.cents + KEEP_CENTS + S.DRAGON_UPKEEP);
   });
 
   it("a car beats any bike", () => {
@@ -433,6 +451,61 @@ describe("speed", () => {
     expect(stats.speedMps()).toBeCloseTo(Speeds.WALK * 0.75);
     stats.meters.energy = 0;
     expect(stats.speedMps()).toBeCloseTo(Speeds.WALK * 0.5);
+  });
+
+  it("a dragon eats its gold once a day, and sulks on foot when he can't pay", () => {
+    let t = Date.UTC(2026, 9, 30, 9) / 1000;
+    stats.now = () => t;
+    stats.equip(vehicle("dragon"));
+    stats.cents = S.DRAGON_UPKEEP;
+    expect(stats.getsAbout()).toBe("");
+    expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
+    const never = { randf: () => 0.99, randiRange: (a: number) => a } as unknown as Rng;
+    expect(stats.feedDragon(never)).toMatch(/^Fed his dragon/);
+    expect(stats.cents).toBe(0);
+    expect(stats.getsAbout()).toBe("dragon");
+    expect(stats.speedMps()).toBeCloseTo(Speeds.DRAGON);
+    expect(stats.feedDragon(never)).toBe("");
+    t += 24 * 3600;
+    expect(stats.feedDragon(never)).toMatch(/sulks/);
+    expect(stats.feedDragon(never)).toBe("");
+    expect(stats.getsAbout()).toBe("");
+    stats.gear.vehicle!.stats.speed = 50;
+    expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
+    stats.cents = S.DRAGON_UPKEEP;
+    stats.feedDragon(never);
+    expect(stats.getsAbout()).toBe("dragon");
+    expect(roundTrip(stats).dragonFed).toBe(stats.dragonFed);
+  });
+
+  it("a fed dragon now and then brings back treasure", () => {
+    stats.equip(vehicle("dragon"));
+    stats.cents = S.DRAGON_UPKEEP;
+    const lucky = { randf: () => 0, randiRange: (a: number) => a } as unknown as Rng;
+    expect(stats.feedDragon(lucky)).toMatch(/treasure/);
+    expect(stats.cents).toBe(S.DRAGON_TREASURE_MIN);
+  });
+
+  it("after a flyer lands he walks: walking speed and effort", () => {
+    stats.equip(vehicle("broom", 50));
+    expect(stats.speedMps(true)).toBeCloseTo(Speeds.WALK);
+    const walker = new Stats();
+    walker.passTime(0, 1000);
+    stats.passTime(0, 1000, true);
+    expect(stats.meters.energy).toBeCloseTo(walker.meters.energy);
+  });
+
+  it("a giant tortoise never tires him", () => {
+    stats.equip(vehicle("tortoise"));
+    stats.passTime(0, 5000);
+    expect(stats.meters.energy).toBe(100);
+  });
+
+  it("a shop only now and then has a fantasy mount in", () => {
+    stats.cents = 100_000_00;
+    const ask: Action = { name: "Ask after a broomstick", min: 10, item: "brooms" };
+    expect(stats.do(ask, "Hardware", { randf: () => Items.MOUNT_STOCK } as unknown as Rng)).toBe("Asked after a Broomstick at Hardware, but there were none in today");
+    expect(stats.do(ask, "Hardware", new Rng(3))).toMatch(/Broomstick/);
   });
 
   it("riding tires him less than walking", () => {
@@ -570,7 +643,8 @@ describe("need-driven goals", () => {
     expect(needOf([eat], stats, 12).bottom).toBe(true);
   });
   it("send him to paid work when he is broke or saving up", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 0;
     expect(pull([work])).toBeCloseTo(1 + NEED_BOOST, 6);
     expect(needOf([work], stats, 12).why).toBe("money");
@@ -633,6 +707,14 @@ describe("activities", () => {
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "BGR")[1]!.flavour).toBe(true);
   });
 
+  it("holiday actions join every place's on a public holiday", () => {
+    const acts = new Activities({ cafe: [{ name: "Coffee", min: 1 }], _spot: [{ name: "Sit", min: 1 }], _holiday: [{ name: "Parade", min: 1 }] });
+    expect(acts.forPlace({ class: "cafe", subclass: "cafe" }).map((a) => a.name)).toEqual(["Coffee"]);
+    expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "", true).map((a) => a.name)).toEqual(["Coffee", "Parade"]);
+    expect(acts.peek(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
+    expect(bundled().data._holiday?.length).toBeGreaterThan(2);
+  });
+
   it("needs steer the choice", () => {
     const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
     const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
@@ -680,7 +762,8 @@ describe("activities", () => {
   });
 
   it("saving for a trip favours paid work and cuts spending", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 100;
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };
@@ -701,7 +784,7 @@ describe("activities", () => {
   });
 
   it("saving for a vehicle favours paid work too", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const jobW = weight(job, stats);
     stats.gear.vehicle = vehicle("bike");

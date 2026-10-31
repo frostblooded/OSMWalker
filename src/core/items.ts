@@ -22,22 +22,29 @@ export const MOD_PRICE = 0.6;
 export const POWER_TO_STAT = 0.5;
 /** Speed percent per point of material power on a vehicle. */
 export const SPEED_PER_POWER = 2;
-/** Ranks vehicles by kind first, so any car beats any bike. */
-const VEHICLE_POWER: Record<string, number> = { bike: 100, motorcycle: 200, car: 300 };
+/** Ranks vehicles by kind first, so any car beats any bike. A fantasy mount ranks with its tier (see TIER). */
+const VEHICLE_POWER: Record<string, number> = { bike: 100, motorcycle: 200, car: 300, tortoise: 100, broom: 200, carpet: 300, dragon: 400 };
+/** The everyday vehicle each fantasy mount stands beside: a side choice, swapped only for a stronger one of the same tier. */
+export const TIER: Partial<Record<Vehicle, Vehicle>> = { tortoise: "bike", broom: "motorcycle", carpet: "car" };
+/** Shops of these kinds only now and then have one in, this often. */
+export const MOUNT_STOCK = 0.1;
+export const RARE_STOCK: ReadonlySet<string> = new Set(["tortoises", "brooms", "carpets"]);
 
-export type Stats = Partial<Record<"str" | "cha" | "wit" | "luck" | "speed", number>>;
+/** What an item adds: attributes, speed in percent, and Magic per km he walks (enchanted items, see ENCHANTMENTS). */
+export type Stats = Partial<Record<"str" | "cha" | "wit" | "luck" | "speed" | "magic", number>>;
 /** Where an item came from and what it has been through with him. */
 export type Story = { from: string; t: number; countries: string[]; km: number };
 export type Item = { name: string; slot: Slot; stats: Stats; rarity: Rarity; price: number; vehicle?: Exclude<Vehicle, "">; story?: Story };
 /** An item worn through this many countries is treasured: he keeps it instead of selling it. */
 export const TREASURED_COUNTRIES = 3;
 export const isTreasured = (item: Item) => (item.story?.countries.length ?? 0) >= TREASURED_COUNTRIES;
-export type Base = { base: string; slot: Slot; stat: keyof Stats; price: number; cloth?: boolean; vehicle?: Exclude<Vehicle, ""> };
+export type Base = { base: string; slot: Slot; stat: keyof Stats; price: number; cloth?: boolean; plain?: boolean; vehicle?: Exclude<Vehicle, ""> };
 export type Material = { metal: string; cloth: string; level: number; power: number; price: number };
 export type Modifier = { name: string; stats: Stats };
 
 const b = (base: string, slot: Slot, stat: keyof Stats, price: number, extra: Partial<Base> = {}): Base => ({ base, slot, stat, price, ...extra });
 const cloth = { cloth: true };
+const mount = (vehicle: Exclude<Vehicle, "">, extra: Partial<Base> = {}): Partial<Base> => ({ vehicle, ...extra });
 
 /** Bases by the kind of shop that sells them, with the real price in euros of a typical (Bronze/Linen) one. Vehicles raise his speed by a percentage. */
 export const KINDS = {
@@ -68,6 +75,11 @@ export const KINDS = {
   bicycles: [b("Bike", "vehicle", "speed", 300, { vehicle: "bike" }), b("Racing Bike", "vehicle", "speed", 900, { vehicle: "bike" })],
   motorcycles: [b("Scooter", "vehicle", "speed", 2500, { vehicle: "motorcycle" }), b("Motorbike", "vehicle", "speed", 6000, { vehicle: "motorcycle" })],
   cars: [b("Hatchback", "vehicle", "speed", 15000, { vehicle: "car" }), b("Saloon", "vehicle", "speed", 25000, { vehicle: "car" })],
+  // Fantasy mounts: a living mount has no material in its name ("Lucky Dragon"), but its material still sets its power and price.
+  tortoises: [b("Giant Tortoise", "vehicle", "speed", 500, mount("tortoise", { plain: true }))],
+  brooms: [b("Broomstick", "vehicle", "speed", 4000, mount("broom"))],
+  carpets: [b("Flying Carpet", "vehicle", "speed", 20000, mount("carpet", cloth))],
+  dragons: [b("Dragon", "vehicle", "speed", 80000, mount("dragon", { plain: true }))],
 } satisfies Record<string, Base[]>;
 export type Kind = keyof typeof KINDS;
 
@@ -92,6 +104,14 @@ export const SUFFIXES: Modifier[] = [
   { name: "of Fortune", stats: { luck: 2 } }, { name: "of the Owl", stats: { wit: 1, luck: 1 } }, { name: "of the Hare", stats: { speed: 4 } },
 ];
 
+/** Enchantments, sold only by the shop after midnight (midnight.ts): one goes on top of an item's other modifiers. */
+export const ENCHANTMENTS: Modifier[] = [
+  { name: "Moonlit", stats: { magic: 2 } }, { name: "Starlit", stats: { magic: 1, luck: 1 } },
+  { name: "of the Moon", stats: { magic: 2 } }, { name: "of the Ley", stats: { magic: 1, wit: 1 } },
+];
+/** An enchanted item has at most this many other modifiers, so with its enchantment it is at most Legendary. */
+export const ENCHANTED_MODS_MAX = RARITY.length - 2;
+
 /** How many modifiers a roll r in [0, 1) gives. */
 export function modifierCount(r: number): number {
   return MOD_ROLLS.filter((t) => r >= t).length;
@@ -99,15 +119,30 @@ export function modifierCount(r: number): number {
 
 /** A random item from a shop of `kind` for a walker of `level`; `luck` lifts the rarity roll (see stats.rarityBoost). */
 export function make(kind: Kind, level: number, rng: Rng, luck = 0): Item {
+  const [base, mat, mods] = roll(kind, level, rng, luck, MOD_ROLLS.length);
+  return build(base, mat, mods);
+}
+
+/** Like make, plus an enchantment: a prefix, or the suffix when the item has none (see ENCHANTMENTS). */
+export function makeEnchanted(kind: Kind, level: number, rng: Rng, luck = 0): Item {
+  const [base, mat, mods] = roll(kind, level, rng, luck, ENCHANTED_MODS_MAX);
+  const hasSuffix = mods.some((m) => m.name.startsWith("of "));
+  const fits = ENCHANTMENTS.filter((e) => e.name.startsWith("of ") !== hasSuffix);
+  mods.push(rng.pick(fits));
+  return build(base, mat, mods);
+}
+
+/** A base, a material and up to `most` modifiers for a shop of `kind`. */
+function roll(kind: Kind, level: number, rng: Rng, luck: number, most: number): [Base, Material, Modifier[]] {
   const base = rng.pick(KINDS[kind]);
   const mat = rng.pick(MATERIALS.filter((m) => m.level <= level));
-  const n = modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999));
+  const n = Math.min(modifierCount(Math.min(rng.randf() + rarityBoost(luck), 0.999999)), most);
   const mods: Modifier[] = [];
   // At most one suffix; the rest are prefixes, never the same one twice.
   if (n > 0) mods.push(rng.pick(SUFFIXES));
   const prefixes = [...PREFIXES];
   for (let i = 0; i < n - 1; i++) mods.unshift(prefixes.splice(rng.randiRange(0, prefixes.length - 1), 1)[0]!);
-  return build(base, mat, mods);
+  return [base, mat, mods];
 }
 
 /** The item made of `base`, material `mat` and modifiers `mods` (prefixes first, then the suffix). */
@@ -120,7 +155,7 @@ export function build(base: Base, mat: Material, mods: Modifier[]): Item {
     for (const [k, v] of Object.entries(m.stats) as [keyof Stats, number][]) stats[k] = (stats[k] ?? 0) + v;
   }
   const item: Item = {
-    name: [...before, base.cloth ? mat.cloth : mat.metal, base.base, ...after].join(" "),
+    name: [...before, ...(base.plain ? [] : [base.cloth ? mat.cloth : mat.metal]), base.base, ...after].join(" "),
     slot: base.slot,
     stats,
     rarity: RARITY[mods.length]!,
@@ -136,13 +171,14 @@ export function cheapest(kind: Kind): Item {
   return all.reduce((a, b) => (b.price < a.price ? b : a));
 }
 
-/** Vehicle shops, slowest vehicle first. */
-export const VEHICLE_SHOPS = [["bike", "bicycles"], ["motorcycle", "motorcycles"], ["car", "cars"]] as const;
+/** Vehicle shops, slowest vehicle first; the dragon stable at a castle is the last. */
+export const VEHICLE_SHOPS = [["bike", "bicycles"], ["motorcycle", "motorcycles"], ["car", "cars"], ["dragon", "dragons"]] as const;
 export type VehicleGoal = { name: string; kind: Kind; cents: number };
 
-/** The cheapest vehicle a step above `has` (a bike on foot, a scooter on a bike...), or null in a car. */
+/** The cheapest vehicle a step above `has` (a bike on foot, a scooter on a bike or a broomstick...), or null with a dragon. */
 export function nextVehicle(has: Vehicle): VehicleGoal | null {
-  const at = VEHICLE_SHOPS.findIndex(([v]) => v === has);
+  const tier = TIER[has] ?? has;
+  const at = VEHICLE_SHOPS.findIndex(([v]) => v === tier);
   const next = VEHICLE_SHOPS[at + 1];
   if (!next) return null;
   const kind = next[1];

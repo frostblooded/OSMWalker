@@ -73,6 +73,8 @@ things at a time. A block full of lines is the most common mistake here.
   - green `--ok` / `--fu`: OK, good, gains, fullness
   - orange `--accent`: him, his route, the main button
   - gold `--coin`: money; lilac `--lilac`: level
+  - indigo `--magic`: Magic, ley lines and other magic (also the magic map
+    icons, `map/icons.ts`, and the ley line layer, `map/mapView.ts`)
 - Rarity follows the colours players know from other games: grey common,
   green uncommon, blue rare, orange legendary (`RARITY_COLOR`).
 - Colour is never the only signal. Pair it with an icon or a word (⚠
@@ -113,6 +115,10 @@ things at a time. A block full of lines is the most common mistake here.
   50 % longer) and let lines wrap rather than clip.
 - Panels over the map leave what you need to see uncovered. History takes
   the bottom 60 %, so you can still see him above.
+- Every sheet can be dragged smaller by its title bar (`SheetBox`): it
+  stays where the finger lets go, up to its tallest, and closes when let
+  go below 30 % of the screen. Keep the title bar free of anything else
+  that drags.
 - Every screen works at 360 px wide with no sideways scroll.
 
 ## 7. Checklist for every UI change

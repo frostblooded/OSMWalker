@@ -3,6 +3,7 @@
 // and while he stays somewhere a pose for what he does there (zZz, steam, a
 // note).
 import { NEED_AT } from "./activities";
+import type { Vehicle } from "./speeds";
 import { ATTRS, DIRTY_AT, TIRED_ENERGY, type Action, type Attr, type Meter } from "./stats";
 
 /** Below this much health he looks sick. */
@@ -10,11 +11,17 @@ export const SICK_AT = 30;
 /** Mood at or above this makes him beam; below LOW_MOOD he looks down. */
 export const HAPPY_MOOD = 75;
 export const LOW_MOOD = 30;
+/** While he stays, his pose moves again this often, and holds still in between. */
+export const POSE_EVERY_S = 60;
 
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
-export type Look = { face: string; bubble: string; pose: Pose | null };
+/** `mount`: the fantasy mount he rides, beside his face, or ""; `pet`: his pet on his other side, or "". */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string };
 type Kind = { class: string; subclass: string };
+
+/** Fantasy mounts show beside his face; everyday vehicles don't. */
+export const MOUNT_ICON: Partial<Record<Vehicle, string>> = { tortoise: "🐢", broom: "🧹", carpet: "🪄", dragon: "🐉" };
 
 /** What he needs when a meter runs low. */
 const NEED_ICON: Record<Meter, string> = { health: "💊", energy: "🛏", fullness: "🍔", mood: "🎈", hygiene: "🚿", thirst: "🥤" };
@@ -26,7 +33,7 @@ const PLACE_ICON: Record<string, string> = {
   "shop/kiosk": "🗞", "shop/newsagent": "🗞", "shop/convenience": "🏪", alcohol_shop: "🍷", "shop/tobacco": "🚬",
   museum: "🏛", art_gallery: "🖼", attraction: "📸", castle: "🏰", monument: "🗿", memorial: "🕯", place_of_worship: "⛪",
   theatre: "🎭", cinema: "🎬", zoo: "🦁", aquarium: "🐠", library: "📚", music: "🎵", theme_park: "🎢", water_park: "🌊",
-  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", campsite: "⛺", cemetery: "🪦", shelter: "🛖", fountain: "⛲",
+  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", campsite: "⛺", cemetery: "🪦", shelter: "🛖", fountain: "⛲", bridge: "🌉",
   pitch: "⚽", sports_centre: "🏟", stadium: "🏟", fitness_centre: "🏋", swimming: "🏊", swimming_pool: "🏊", golf: "⛳",
   yoga: "🧘", climbing: "🧗", boxing: "🥊", billiards: "🎱", ice_rink: "⛸", tennis: "🎾", karting: "🏎", escape_game: "🔐", chess: "♟",
   harbor: "⚓", ferry_terminal: "⛴", railway: "🚉", bus: "🚌", aerialway: "🚡", bicycle_rental: "🚲", bicycle: "🚲", parking: "🅿",
@@ -38,9 +45,10 @@ const PLACE_ICON: Record<string, string> = {
   laundry: "🧺", "shop/beauty": "💅", hairdresser: "💇", "shop/massage": "💆", "shop/tattoo": "🖋", "shop/optician": "👓",
   toilets: "🚻", drinking_water: "🚰", information: "ℹ", recycling: "♻",
   clothing_store: "👕", "shop/shoes": "👟", "shop/sports": "🎽", "shop/outdoor": "🥾", "shop/jewelry": "💍", "shop/watches": "⌚",
-  "shop/gift": "🎁", "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺",
+  "shop/gift": "🎁", "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺", "shop/carpet": "🧶",
   "shop/hardware": "🔨", "shop/doityourself": "🔨", "shop/weapons": "🗡", "shop/hunting": "🏹", "shop/knives": "🔪",
   "shop/florist": "💐", "shop/pet": "🐾", "shop/tailor": "🧵", "shop/mobile_phone": "📱", shop: "🛍",
+  notice_board: "📜", guild_hall: "🛡", old_well: "🪣", lookout: "🔭", shrine: "⛩", storyteller: "📖", wizard_tower: "🧙",
 };
 
 /** His face: the worst of sick, tired, dirty and down, else how happy he is. */
@@ -95,8 +103,8 @@ export function pose(a: Action, cls: string): Pose {
   return POSE[best]!;
 }
 
-/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays. */
-export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null): Look {
+/** `goal`: the place he heads for or stays at, null for a random spot; `doing`: the action while he stays; `ride`: how he gets about; `pet`: his pet's icon. */
+export function look(m: Record<Meter, number>, goal: Kind | null, doing: Action | null, ride: Vehicle = "", pet = ""): Look {
   const p = doing ? pose(doing, goal?.class ?? "") : null;
-  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p };
+  return { face: face(m), bubble: p ? "" : need(m) || (goal ? placeIcon(goal) : ""), pose: p, mount: MOUNT_ICON[ride] ?? "", pet };
 }

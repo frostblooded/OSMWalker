@@ -114,6 +114,14 @@ describe("failures", () => {
     expect(seen).toEqual(["Request to example.org failed: HTTP 503 (server overloaded)"]);
   });
 
+  it("say when the weather answer is not a forecast", async () => {
+    const { api } = fake(() => json({}));
+    const seen: string[] = [];
+    api.onProblem = (t) => seen.push(t);
+    expect(await api.weather("Sofia", 42.7, 23.3, 0)).toBeNull();
+    expect(seen).toEqual(["Request to api.open-meteo.com failed: answer was not a forecast"]);
+  });
+
   it("say when JSON is broken", async () => {
     const { api } = fake(() => new Response("{nope"));
     expect(await api.getJson("https://example.org/x")).toBeNull();
@@ -216,5 +224,14 @@ describe("routes and outlines", () => {
   it("read city facts rows", async () => {
     const { api } = fake(() => json({ results: { bindings: [{ cityLabel: { value: "Sofia" } }] } }));
     expect(await api.cityFacts(42, 23)).toEqual([{ cityLabel: { value: "Sofia" } }]);
+  });
+
+  it("read public holidays: none for an unknown country, null on failure", async () => {
+    const day = { date: "2026-03-03", name: "Liberation Day", localName: "Освобождение", global: true, types: ["Public"] };
+    const { api, asked } = fake(() => json([day]));
+    expect(await api.holidays(2026, "BG")).toEqual([{ date: "2026-03-03", name: "Liberation Day", localName: "Освобождение" }]);
+    expect(asked).toEqual(["https://date.nager.at/api/v3/PublicHolidays/2026/BG"]);
+    expect(await fake(() => new Response(null, { status: 204 })).api.holidays(2026, "AQ")).toEqual([]);
+    expect(await fake(() => new Response("", { status: 503 })).api.holidays(2026, "BG")).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ import { fromPbf } from "../core/ofm";
 import type { Api } from "../net/api";
 
 /** Bump when the cell format or node ids change, so old entries are not mixed in. */
-export const CACHE_VERSION = "v1";
+export const CACHE_VERSION = "v2";
 /** Cached cells older than this are used, then fetched again for next time. */
 export const MAX_AGE_S = 30 * 86400;
 /** Most cells kept on the device (about 100 KB each). */

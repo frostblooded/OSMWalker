@@ -121,7 +121,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
           {picks.length ? (
             <div class="zebra">
               {picks.map((e, i) => (
-                <Entry key={i} tone={"fallback" in e ? "warning" : undefined} title={DebugLog.title(e)} lines={DebugLog.lines(e, bias)} />
+                <Entry key={i} tone={DebugLog.isWarning(e) ? "warning" : undefined} title={DebugLog.title(e)} lines={DebugLog.lines(e, bias)} />
               ))}
             </div>
           ) : (

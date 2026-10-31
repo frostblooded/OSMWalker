@@ -2,18 +2,27 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import * as DebugLog from "../../src/core/debugLog";
 // Loaded up front, so the game's own import() of it is instant and never runs past DILEMMA_WAIT_MS on a slow machine.
 import "../../src/core/dilemmas";
 import { distanceM, type Tile } from "../../src/core/geo";
 import { cellKey, type Cell } from "../../src/core/graph";
+import { CREATURE_CHANCE, meetingDice } from "../../src/core/creatures";
 import { fromPbf } from "../../src/core/ofm";
 import { decode, encode } from "../../src/core/postcard";
 import type { Forecast } from "../../src/core/forecast";
-import { Rng } from "../../src/core/rng";
-import type { Place } from "../../src/core/stats";
-import { cityBounds, parseAirports, parseCities, type City } from "../../src/core/trips";
-import { Game, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { doing, facts, hud, look, ribbon } from "../../src/game/hud";
+import { EXPLORE_PULL } from "../../src/core/activities";
+import { NO_NEED } from "../../src/core/goals";
+import * as Items from "../../src/core/items";
+import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
+import { PORTAL_CHANCE } from "../../src/core/portals";
+import { Rng, seedOf } from "../../src/core/rng";
+import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
+import { cityBounds, HITCH_BELOW, LONG_WALK_MAX_S, SLEEPER_FROM_M, parseAirports, parseCities, type City } from "../../src/core/trips";
+import { EXTRAS } from "../../src/core/poiGen";
+import { Game, MADE_CITIES, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { HOLIDAYS_KEY } from "../../src/game/saveFile";
+import { doing, facts, hud, look } from "../../src/game/hud";
 import { Api } from "../../src/net/api";
 import type { LoadFn } from "../../src/streets/client";
 import { dataFile } from "../support/data";
@@ -62,8 +71,10 @@ function game(opts: Partial<GameDeps> & { places?: Place[]; fail?: boolean; roll
     flavour: {},
     cities: parseCities(CITIES),
     airports: parseAirports("Sofia Airport\tSOF\tBG\t42.6967\t23.4114\nParis Airport\tCDG\tFR\t49.0097\t2.5479\n"),
+    creatures: JSON.parse(dataFile("creatures.json")),
+    spells: JSON.parse(dataFile("spells.json")),
   };
-  const storage = new MemStorage();
+  const storage = (opts.storage as MemStorage | undefined) ?? new MemStorage();
   const g = new Game({ api, load: streets(opts.places, opts.fail).load, data, storage, rng: new Rng(3), cardRng: new Rng(4), rollSource: () => opts.roll ?? 0.99, hour: () => 12, ...opts });
   g.problems.quiet = true;
   return { g, storage };
@@ -140,6 +151,227 @@ describe("game", () => {
     expect(texts.some((t) => / at Cafe Near.* Other joke\.$/.test(t))).toBe(false);
   });
 
+  it("hands his stats the incident deck, and the storyteller brings one at a place he reaches, on its own dice", async () => {
+    const plain = game({ places: [CAFE] }).g;
+    await plain.startCity("Sofia, Bulgaria", ...START, null);
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }, { id: "mime", icon: "🤡", tone: "odd", text: "A mime at {PLACE}.", say: "He copies him." }] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.incidents).toHaveLength(2);
+    plain.stats.story.tension = g.stats.story.tension = 100;
+    run(plain, 3 * 3600);
+    run(g, 3 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts.some((t) => /^(🐕 A dog|🤡 A mime) at Cafe Near/.test(t))).toBe(true);
+    // His walk is the same as without incidents.
+    expect(g.walker!.totalM).toBeCloseTo(plain.walker!.totalM, 6);
+  });
+
+  it("rolls the city's quest board, shows it on the map, takes a quest on and walks its steps", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g, storage } = game({ places: [...cafes, BUS] });
+    const quest = { id: "q", icon: "🧪", title: "Test quest", items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: { eur: 10 }, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["He takes {ITEM} to {PLACE}."] }] };
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [quest], events: [] } });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 2 * 3600);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts).toContain("❗ New quest: Test quest, for Ana at " + texts.find((t) => t.startsWith("❗ New quest"))!.split(" at ").at(-1));
+    expect(texts.some((t) => t === "🧪 He takes a box to Central Bus.")).toBe(true);
+    expect(g.stats.quests.log.at(-1)?.title).toBe("Test quest");
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.quests.done).toContain("q:Ana:0");
+  });
+
+  it("a tapped quest icon tells its story, and Go help sends him to it next", async () => {
+    const cafes = Array.from({ length: 20 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: CAFE.lat + (i % 5) * 0.0004, lon: CAFE.lon - Math.floor(i / 5) * 0.0005 }));
+    const { g } = game({ places: [...cafes, BUS] });
+    const q = (id: string) => ({ id, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit", twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["{GIVER} at {PLACE} has {ITEM}."] }, { at: ["bus"], say: ["At {PLACE}."] }] });
+    Object.assign(g.data, { quests: { names: ["Ana"], quests: [q("a"), q("b")], events: [] } });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 60);
+    g.walker!.forceNewGoal();
+    expect(g.stats.quests.board.length).toBe(2);
+    const icon = g.questIcons().find((i) => i.icon === "quest")!;
+    expect(g.placeIcons()).toContainEqual(icon);
+    const card = g.storyCard(icon.id)!;
+    expect(card.text).toMatch(/^Ana at Cafe \d+ has a box\.$/);
+    expect(card.state).toBe("open");
+    g.nudge(icon.id);
+    expect(g.storyCard(icon.id)!.state).toBe("nudged");
+    g.walker!.forceNewGoal();
+    expect(`quest:${g.stats.quests.active?.key}`).toBe(icon.id);
+    expect(g.questIcons().some((i) => i.pulse)).toBe(true);
+    const on = g.storyCard(icon.id)!;
+    expect(on.state).toBe("on");
+    expect(on.rows[0]).toEqual(["👣 Step", `1 / 2`]);
+  });
+
+  it("hands his stats the contests, and gives Viktor his chance at each stop with no incident", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], contests: JSON.parse(dataFile("rival.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.contests.length).toBeGreaterThan(0);
+    const meet = vi.spyOn(g.stats.rival, "meet");
+    run(g, 400);
+    // He reached the cafe with no incident (no tension yet), so Viktor got his chance there, with the contests.
+    expect(meet).toHaveBeenCalledWith(g.stats, g.stats.contests, "Cafe Near", "cafe", [CAFE.lat, CAFE.lon], expect.anything());
+  });
+
+  it("hands his stats the friends data and their news, and gives a friend a chance at each stop with no incident or Viktor", async () => {
+    const { g } = game({ places: [CAFE] });
+    Object.assign(g.data, { incidents: [{ id: "dog", icon: "🐕", tone: "good", text: "A dog at {PLACE}.", say: "It wags." }], friends: JSON.parse(dataFile("friends.json")) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.friendData.names.length).toBeGreaterThan(0);
+    expect(g.stats.townNews).toEqual(g.stats.friendData.news);
+    expect(g.stats.townNews.length).toBeGreaterThan(0);
+    const stop = vi.spyOn(g.stats.friends, "stop");
+    run(g, 400);
+    expect(stop).toHaveBeenCalledWith(expect.objectContaining({ city: g.stats.where.city, place: "Cafe Near", kind: "cafe" }), g.stats.friendData, expect.anything());
+  });
+
+  it("shows Viktor beside him for a while after they meet, only in that city", async () => {
+    const { g } = game({ places: [CAFE], clock: () => 2_000_000_000_000 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.rivalAt()).toBeNull();
+    const r = g.stats.rival;
+    Object.assign(r, { town: g.stats.where.city, inTown: true, seenUntil: 2_000_000_000 + 60, seenAt: [42.7, 23.3] });
+    expect(g.rivalAt()).toEqual([42.7, 23.3 + RIVAL_OFFSET_DEG]);
+    r.seenUntil = 2_000_000_000;
+    expect(g.rivalAt()).toBeNull();
+  });
+
+  it("switches the storyteller from the menu and keeps it in the save", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    expect(g.stats.story.style).toBe("classic");
+    g.nextStoryteller();
+    expect(g.stats.story.style).toBe("chaotic");
+    g.nextStoryteller();
+    expect(g.stats.story.style).toBe("calm");
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.story.style).toBe("calm");
+  });
+
+  it("an Explore whisper pulls each place he has never been to, not its whole kind", async () => {
+    const OLD: Place = { ...CAFE, name: "Cafe Old", lat: 42.6875, lon: 23.3205 };
+    const { g } = game({ places: [OLD, CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.visit(OLD);
+    const w = g.walker!;
+    const ratio = () => w.weigh(CAFE).weight / w.weigh(OLD).weight;
+    const before = ratio();
+    [g.stats.bond.nudge, g.stats.bond.nudgeLeft] = ["explore", 600];
+    expect(ratio()).toBeCloseTo(before * EXPLORE_PULL);
+  });
+
+  it("builds his bench at the park he reaches with enough golden bricks, and marks it on the map", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.bricks.count = 100;
+    run(g, 400);
+    expect(g.stats.bricks.built).toMatchObject([{ kind: 0, park: "Park Near", city: "Sofia, Bulgaria" }]);
+    expect(g.stats.chronicle.lines.map((l) => l.text)).toContain("Built a bench with his name in Park Near, Sofia, Bulgaria");
+    expect(g.placeIcons().some((i) => i.icon === "plaque")).toBe(true);
+  });
+
+  it("meets the dryad at a park he reaches, once that day, and the feed says what he picked", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the dryad's own dice say she shows up at this park.
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    run(g, 400);
+    expect(g.stats.creatures.met).toEqual({ dryad: 1 });
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
+  });
+
+  it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {
+    const CHURCH: Place = { ...CAFE, name: "Church Near", class: "place_of_worship", subclass: "christian" };
+    const STONE: Place = { ...BUS, name: "Old Monument", class: "monument", subclass: "monument" };
+    const { g } = game({ places: [CHURCH, STONE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // The monument stays a monument: no portal so soon after one.
+    g.stats.portals.last = g.stats.now();
+    const walked: number[] = [];
+    const leyWalk = g.stats.leyWalk.bind(g.stats);
+    g.stats.leyWalk = (m) => {
+      walked.push(m);
+      leyWalk(m);
+    };
+    run(g, 1200);
+    expect(g.leys).toEqual([
+      [
+        [STONE.lat, STONE.lon],
+        [CHURCH.lat, CHURCH.lon],
+      ],
+    ]);
+    expect(walked.length).toBeGreaterThan(0);
+    expect(walked.every((m) => m > 0 && m < 10)).toBe(true);
+    expect(g.stats.magic).toBeGreaterThan(0);
+    expect(g.stats.buffNames()).toContain("Ley-charmed");
+    // Reaching them gives the burst too.
+    expect(g.stats.lore.tapped.length).toBeGreaterThan(0);
+  });
+
+  it("a portal at a monument he reaches takes him at once to a city he has never been to, and the streets there load", async () => {
+    const STONE: Place = { ...CAFE, name: "Old Monument", class: "monument", subclass: "monument" };
+    const { g } = game({ places: [STONE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the monument's own dice open a portal.
+    let t = 1_800_000_000;
+    while (new Rng(seedOf(`portal${t}${STONE.name}`)).randf() >= PORTAL_CHANCE) t += 60;
+    g.stats.now = () => t;
+    run(g, 400);
+    expect(g.stats.portals.went).toHaveLength(1);
+    const to = g.stats.portals.went[0]!;
+    expect(to).not.toBe("Sofia, Bulgaria");
+    expect(g.city).toBe(to);
+    const texts = g.stats.history.entries.map((e) => e.text);
+    expect(texts).toContain("🌀 The old stones of Old Monument shimmered like a door, and he stepped through");
+    expect(texts).toContain(`🌀 Stepped out in ${to}, blinking. Nobody saw him arrive`);
+    expect(g.walker!.isTraveling()).toBe(false);
+  });
+
+  it("at dawn a fairy ring in a park he reaches may take him for a nap in place of an action, and he wakes with a gift or a story", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], hour: () => FAIRY_FROM_H });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // A time at which the park's own dice take him.
+    let t = 1_800_000_000;
+    while (new Rng(seedOf(`fairy${t}${PARK.name}`)).randf() >= FAIRY_CHANCE) t += 60;
+    g.stats.now = () => t;
+    const napped: string[] = [];
+    const doIt = g.stats.do.bind(g.stats);
+    g.stats.do = (...a) => {
+      napped.push(a[0].name);
+      return doIt(...a);
+    };
+    for (let i = 0; i < 400 && !g.stats.rings.naps; i++) g.step(1);
+    expect(g.stats.rings.naps).toBe(1);
+    expect(g.doing?.name).toBe("Asleep in a fairy ring");
+    expect(napped).toEqual([]);
+    expect(g.stats.rings.gifts.length + g.stats.rings.stories.length).toBe(1);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("🍄 Lay down in a ring of mushrooms in Park Near at dawn"))).toBe(true);
+  });
+
+  it("takes whispers and praise from you without touching his walk dice", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 400);
+    expect(g.lastDeed()).not.toBeNull();
+    const walkDice = (g as unknown as { rng: Rng }).rng;
+    const next = new Rng(0);
+    Object.assign(next, walkDice);
+    for (let i = 0; i < 4; i++) g.whisper("eat");
+    const whispers = g.stats.history.entries.filter((e) => e.text.startsWith("Heard a whisper"));
+    expect(whispers).toHaveLength(3);
+    expect(walkDice.randf()).toBe(next.randf());
+    g.judge(1);
+    g.judge(1);
+    expect(g.stats.bond.lean).toBe(10);
+  });
+
   it("walks to a place, does something there and rests", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -166,7 +398,38 @@ describe("game", () => {
     expect(g.walker!.isResting()).toBe(true);
     expect(g.doing).not.toBeNull();
     expect(look(g).pose).not.toBeNull();
-    expect(ribbon(g, 0).icons).toEqual(["☕"]);
+  });
+
+  it("notices a public holiday once, closes day businesses, fetches each country's list once a year, and keeps it on the device", async () => {
+    const asked: string[] = [];
+    const day = Date.UTC(2026, 2, 3, 10); // Liberation Day in Bulgaria
+    const api = new Api(async (url) => {
+      if (!url.includes("nager")) return new Response("", { status: 503 });
+      asked.push(url);
+      return new Response(JSON.stringify([{ date: "2026-03-03", name: "Liberation Day", localName: "Освобождение", global: true, types: ["Public"] }]));
+    });
+    const { g, storage } = game({ api, places: [CAFE], clock: () => day });
+    // The code table and the list both arrive in the background.
+    const settle = async (x: Game) => {
+      for (let i = 0; i < 100 && !x.holiday; i++) {
+        run(x, 1);
+        await new Promise((r) => setTimeout(r, 5));
+      }
+    };
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await settle(g);
+    expect(g.holiday?.name).toBe("Liberation Day");
+    expect(g.stats.sky?.holiday).toBe(true);
+    const said = () => g.stats.history.entries.filter((e) => e.text.includes("Liberation Day")).map((e) => e.text);
+    expect(said()).toEqual(["It's Liberation Day (Освобождение) here, a public holiday"]);
+    run(g, 400);
+    expect(said()).toHaveLength(1);
+    expect(asked).toEqual(["https://date.nager.at/api/v3/PublicHolidays/2026/BG"]);
+    const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    again.load();
+    await settle(again);
+    expect(again.holiday?.name).toBe("Liberation Day");
+    expect(asked).toHaveLength(1);
   });
 
   it("keeps the walk across a save", async () => {
@@ -221,10 +484,82 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ roll: 0.99, outcome: "stay", forced: "goal" });
   });
 
+  it("lands jet-lagged after a flight across time zones", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "plane");
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text === "Jet-lagged after flying across 1 time zone")).toBe(true);
+    expect(g.stats.buffNames()).toContain("Jet-lagged");
+  });
+
+  it("rides a night train with a berth and lands rested, shown as a train ride", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.meters.energy = 20;
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "train");
+    g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "riding", ride: { mode: "train", to: "Paris" } });
+    expect(doing(g)).toMatch(/^travelling to Paris by train, \d+ km left$/);
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
+    expect(g.stats.meters.energy).toBeGreaterThan(99);
+  });
+
+  it("walks to a near town on the zoomed-out map, fed by hostels, with no street downloads, and lands with the walk's reward", async () => {
+    const sofia = streets();
+    let asked = 0;
+    const { g } = game({ load: (t, o) => (asked++, sofia.load(t, o)) });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+    g.stats.cents = 10_000;
+    g.stats.ride(4000, "walk", "the road out of town", "Vidin, Bulgaria");
+    expect(g.stats.cents).toBe(6000);
+    expect(g.stats.buffNames()).toContain(ON_THE_TRAIL);
+    g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
+    g.step(1);
+    expect(hud(g)).toMatchObject({ doing: "walking", ride: { mode: "walk", to: "Vidin" } });
+    expect(doing(g)).toMatch(/^travelling to Vidin on foot, \d+ km left$/);
+    const askedBefore = asked;
+    for (let i = 0; i < LONG_WALK_MAX_S - 60 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(asked).toBe(askedBefore);
+    g.stats.meters.mood = 50;
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
+    expect(g.stats.buffNames()).not.toContain(ON_THE_TRAIL);
+    expect(g.stats.meters.mood).toBeGreaterThan(50);
+  });
+
+  it("lands fresh after a bus across the same time zones", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const paris = g.trips.cities.find((c) => c.name === "Paris")!;
+    g.walker!.startTravel({ ...paris, bounds: cityBounds(paris) }, "bus");
+    for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+    expect(g.stats.where.city).toBe("Paris, France");
+    expect(g.stats.buffNames()).not.toContain("Jet-lagged");
+  });
+
+  it("doesn't set off on a trip while he is on a quest", async () => {
+    const { g } = game({ roll: 0.1 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    const at = { name: "Cafe Near", class: "cafe", subclass: "cafe", lat: CAFE.lat, lon: CAFE.lon };
+    g.stats.quests.active = { key: "q:Ana:0", kind: "q", giver: "Ana", item: 0, twist: -1, at, step: 0, target: at };
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
+  });
+
   it("walks to the bus station for a trip, pays and rides", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 50_000;
+    // Full, so he packs nothing and pays only the fare.
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
     g.skipRoll = false;
     g.debugNewGoal();
     const w = g.walker!;
@@ -277,8 +612,10 @@ describe("game", () => {
     g.pickGuess("Plovdiv");
     expect(g.stats.care.guess!.pick).toBe("Plovdiv");
     g.stats.cents = 0;
-    for (let i = 0; i < 600 && g.walker!.isDeparting(); i++) g.step(1);
-    expect(g.walker!.isTraveling()).toBe(false);
+    // Stops at the station: broke, his next pick may send him hitchhiking instead.
+    const stuck = () => g.stats.history.entries.some((e) => e.text.startsWith("Can't afford"));
+    for (let i = 0; i < 600 && !stuck(); i++) g.step(1);
+    expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus"))).toBe(false);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
     expect(g.stats.care.guess).toBeNull();
     expect(g.stats.care.clovers).toBe(0);
@@ -286,14 +623,29 @@ describe("game", () => {
   });
 
   it("saves up when he can't afford a trip", async () => {
+    const { g } = game({ roll: 0 });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = HITCH_BELOW;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    expect(g.walker!.isDeparting()).toBe(false);
+    expect(g.stats.savingFor).toBeGreaterThan(HITCH_BELOW);
+    expect(g.debugLog.entries.at(-1)!.no_trip).toContain("can't afford the plane to Paris");
+  });
+
+  it("hitchhikes for free when broke, and lands with a story", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.cents = 1;
     g.skipRoll = false;
     g.debugNewGoal();
-    expect(g.walker!.isDeparting()).toBe(false);
-    expect(g.stats.savingFor).toBeGreaterThan(1);
-    expect(g.debugLog.entries.at(-1)!.no_trip).toContain("can't afford the bus to Plovdiv");
+    expect(g.walker!.departing!.mode).toBe("hitch");
+    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to somewhere in Bulgaria");
+    for (let i = 0; i < 3600 && !g.stats.where.city.startsWith("Plovdiv"); i++) g.step(1);
+    const lines = g.stats.history.entries.map((e) => e.text);
+    expect(lines).toContain("Hitchhiked to Plovdiv, Bulgaria");
+    expect(lines.some((l) => /driver|lift/.test(l))).toBe(true);
+    expect(g.stats.cents).toBe(1);
   });
 
   it("lands in another country on the debug button, with a fresh graph", async () => {
@@ -335,6 +687,40 @@ describe("game", () => {
     expect(look(g).pose).toBeNull();
   });
 
+  it("on a broomstick he flies to a park near a far goal, then walks the rest at walking pace", async () => {
+    const far: Place = { ...CAFE, name: "Far Cafe", lat: 42.687, lon: 23.33 };
+    const park: Place = { name: "Little Park", class: "park", subclass: "park", rank: 1, lat: 42.687, lon: 23.3292 };
+    const { g } = game({ places: [far, park] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.equip(Items.build(Items.KINDS.brooms[0]!, Items.MATERIALS[0]!, []));
+    await tick();
+    const w = g.walker!;
+    for (let i = 0; i < 60 && !w.flight; i++) run(g, 1);
+    expect(w.flight).not.toBeNull();
+    expect(w.flies).toBe(true);
+    for (let i = 0; i < 600 && w.flight; i++) run(g, 1);
+    expect(w.flight).toBeNull();
+    expect(w.afoot).toBe(true);
+    run(g, 1);
+    expect(w.speedMps).toBeCloseTo(g.stats.speedMps(true), 6);
+    expect(w.speedMps).toBeLessThan(g.stats.speedMps() / 2);
+  });
+
+  it("a dragon he can't feed sulks: it doesn't show at his side and he walks", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.equip(Items.build(Items.KINDS.dragons[0]!, Items.MATERIALS[0]!, []));
+    g.stats.cents = 0;
+    await tick();
+    run(g, 1);
+    expect(look(g).mount).toBe("");
+    expect(g.walker!.flies).toBe(false);
+    g.stats.cents = 100_000;
+    run(g, 1);
+    expect(look(g).mount).toBe("🐉");
+    expect(g.walker!.flies).toBe(true);
+  });
+
   it("once he has saved up, he heads for a bike shop over nearer places and rides off on a bike", async () => {
     const shop: Place = { name: "Velo", class: "bicycle", subclass: "bicycle", rank: 1, lat: 42.6875, lon: 23.3135 };
     const near = Array.from({ length: 10 }, (_, i): Place => ({ ...CAFE, name: `Cafe ${i}`, lat: 42.687 + i * 0.0003, lon: 23.3195 }));
@@ -349,8 +735,66 @@ describe("game", () => {
     expect(g.stats.vehicleGoal()!.name).toBe("Scooter");
   });
 
+  it("makes up the must-haves a city lacks once the area is loaded, and keeps them in the save", async () => {
+    const { g, storage } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    await tick();
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.severeNow).toEqual([]);
+    expect(g.problems.severe).toEqual([]);
+    const made = g.walker!.graph.placesIn(g.walker!.bounds!).filter((p) => p.made);
+    // The cafe feeds him and pays; Sofia is capital-sized, so it gets the most extras.
+    expect(made.filter((p) => p.must).map((p) => p.subclass)).toEqual(["bus_station", "fuel", "guest_house"]);
+    expect(made.filter((p) => p.extra)).toHaveLength(EXTRAS.capital);
+    g.save();
+    const back = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+    back.problems.quiet = true;
+    expect(back.load()).toBe(true);
+    expect(back.made["Sofia, Bulgaria"]).toEqual(g.made["Sofia, Bulgaria"]);
+  });
+
+  it("keeps the made-up places of the cities he was in most recently", async () => {
+    for (const before of [["Sofia, Bulgaria"], []]) {
+      const { g } = game({ places: [CAFE] });
+      for (const c of before) g.made[c] = [];
+      for (let i = 1; Object.keys(g.made).length < MADE_CITIES; i++) g.made[`Town ${i}`] = [];
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 5; i++) {
+        run(g, 1);
+        await tick();
+      }
+      // A city he is back in moves to the end; a new one pushes out the one he left longest ago.
+      expect(Object.keys(g.made).at(-1)).toBe("Sofia, Bulgaria");
+      expect(Object.keys(g.made)).toHaveLength(MADE_CITIES);
+      expect("Town 1" in g.made).toBe(before.length > 0);
+    }
+  });
+
+  it("still checks the city when its made-up places can't load", async () => {
+    vi.resetModules();
+    vi.doMock("../../src/core/poiGen", () => {
+      throw new Error("offline");
+    });
+    try {
+      const { g } = game({ places: [CAFE] });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      for (let i = 0; i < 30 && !g.severeNow.length; i++) {
+        run(g, 1);
+        await tick();
+      }
+      expect(g.made).toEqual({});
+      expect(g.severeNow.map((p) => p.title)).toContain("Can't leave Sofia, Bulgaria");
+    } finally {
+      vi.doUnmock("../../src/core/poiGen");
+    }
+  });
+
   it("flags a city with no way out once the area is loaded", async () => {
     const { g } = game({ places: [CAFE] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     await tick();
     for (let i = 0; i < 5; i++) {
@@ -364,6 +808,7 @@ describe("game", () => {
 
   it("lists what looks wrong with the city for Debug", async () => {
     const { g } = game({ places: [] });
+    g.made["Sofia, Bulgaria"] = [];
     await g.startCity("Sofia, Bulgaria", ...START, null);
     for (let i = 0; i < 5; i++) {
       run(g, 1);
@@ -437,7 +882,7 @@ describe("game", () => {
   describe("catch-up", () => {
     const HOUR = 3600_000;
     /** A game saved `agoMs` before a reopen, and the reopened game. */
-    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}) {
+    async function reopen(agoMs: number, o: Partial<GameDeps> & { places?: Place[]; roll?: number } = {}, before: (g: Game) => void = () => {}, loaded: (g: Game) => void = () => {}) {
       let now = Date.UTC(2026, 9, 29, 8);
       const { g, storage } = game({ ...o, clock: () => now });
       await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -447,6 +892,7 @@ describe("game", () => {
       const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
       again.problems.quiet = true;
       again.load();
+      loaded(again);
       await again.wake();
       return { g, again, setNow: (t: number) => (now = t), now: () => now };
     }
@@ -464,6 +910,17 @@ describe("game", () => {
       expect(again.walker!.goal).toBeNull();
       run(again, 30);
       expect(again.walker!.totalM).toBeGreaterThan(0);
+    });
+
+    it("knows the holiday kept on the device on reopen, so time away on a holiday has holiday actions", async () => {
+      // The list was fetched on an earlier day; Nager.Date is down now.
+      const storage = new MemStorage();
+      storage.setItem(HOLIDAYS_KEY, JSON.stringify({ lists: { "BG:2026": [{ date: "2026-10-29", name: "Test Day", localName: "" }] }, said: "" }));
+      // A park stays open on a holiday, so he has somewhere to celebrate.
+      const park: Place = { name: "Holiday Park", class: "park", subclass: "park", rank: 1, lat: CAFE.lat, lon: CAFE.lon };
+      const { again } = await reopen(6 * HOUR, { storage, places: [park] });
+      const names: string[] = JSON.parse(dataFile("actions.json"))._holiday.map((a: { name: string }) => a.name);
+      expect(again.away!.lines.some((l) => names.some((n) => l.text.includes(n)))).toBe(true);
     });
 
     it("has nothing to catch up after a short break or from an old save", async () => {
@@ -508,6 +965,44 @@ describe("game", () => {
       expect(again.walker!.isTraveling()).toBe(false);
       expect(again.loader.graph).toBe(again.walker!.graph);
       expect(again.city).toBe(s.end.city.name);
+    });
+
+    it("a long walk that outlasts the time away goes on when you are back, and lands with its reward", async () => {
+      const walk = (g: Game) => {
+        const vidin = g.trips.cities.find((c) => c.name === "Vidin")!;
+        g.stats.meters.fullness = 100;
+        g.stats.ride(0, "walk", "the road out of town", "Vidin, Bulgaria");
+        g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
+      };
+      const { again } = await reopen(HOUR, {}, walk);
+      expect(again.away!.coveredS).toBe(HOUR / 1000);
+      expect(again.walker!.isTraveling()).toBe(true);
+      expect(again.walker!.travel!.mode).toBe("walk");
+      expect(again.city).toBe("Sofia, Bulgaria");
+      again.dismissAway();
+      for (let i = 0; i < LONG_WALK_MAX_S && again.walker!.isTraveling(); i++) again.step(1);
+      expect(again.city).toBe("Vidin, Bulgaria");
+      expect(again.stats.history.entries.some((e) => /^Walked \d+ km to Vidin, Bulgaria/.test(e.text))).toBe(true);
+
+      // Away for longer than the walk: he lands first, then lives in the new town.
+      const long = (await reopen(LONG_WALK_MAX_S * 1000 + 60_000, {}, walk)).again;
+      expect(long.walker!.isTraveling()).toBe(false);
+      // Fed by the hostels the whole way: only the minute after landing drains him.
+      expect(long.stats.meters.fullness).toBeGreaterThan(100 - FULLNESS_PER_H / 10);
+      expect(long.away!.cities[0]).toBe("Vidin, Bulgaria");
+      expect(long.away!.lines.some((l) => /^Walked \d+ km to Vidin, Bulgaria/.test(l.text))).toBe(true);
+    });
+
+    it("a reopen that earns a clover adds trust, and he writes when it passes a letter step", async () => {
+      const { again } = await reopen(
+        2 * HOUR,
+        {},
+        (g) => (g.stats.bond.trust = 28),
+        (a) => (a.stats.letters = { tiers: [["First letter."]], thanks: {} }),
+      );
+      expect(again.stats.bond.trust).toBe(32);
+      expect(again.stats.history.entries.some((e) => e.text === "✉ First letter.")).toBe(true);
+      expect(again.lastDeed()!.text).not.toMatch(/^✉/);
     });
 
     it("earns a clover for a reopen after an hour, and he opens a care package sent before you left", async () => {
@@ -574,6 +1069,25 @@ describe("game", () => {
       expect(again.stats.history.entries.some((e) => e.text === "Hopped on a trucker's free ride to Plovdiv")).toBe(true);
     });
 
+    it("a free ride is by road, so even a long one brings no jet lag", async () => {
+      const { again } = await reopenDilemma("trucker");
+      again.dilemma!.city = again.trips.cities.find((c) => c.name === "Paris")!;
+      again.chooseDilemma(0);
+      expect(again.city).toBe("Paris, France");
+      expect(again.stats.buffNames()).not.toContain("Jet-lagged");
+    });
+
+    it("lands by the trip plan's road distance: a night train counted from where he planned it", async () => {
+      const { g } = game();
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.stats.meters.energy = 20;
+      const plovdiv = g.trips.cities.find((c) => c.name === "Plovdiv")!;
+      g.walker!.startTravel({ ...plovdiv, bounds: cityBounds(plovdiv) }, "train");
+      g.walker!.travel!.road_m = SLEEPER_FROM_M;
+      for (let i = 0; i < 3600 && g.walker!.isTraveling(); i++) g.step(1);
+      expect(g.stats.history.entries.some((e) => e.text === "Slept in a berth on the night train and woke up rested")).toBe(true);
+    });
+
     it("turns a free ride down while he is on a paid one", async () => {
       const { again } = await reopenDilemma("trucker");
       const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
@@ -617,16 +1131,26 @@ describe("game", () => {
     });
 
     it("still finishes a reopen when the dilemma code can't load", async () => {
-      vi.doMock("../../src/core/dilemmas", () => {
-        throw new Error("offline");
-      });
+      // Mocked once the game's other lazy code is in, so only the dilemma code fails to load.
+      const offline = () =>
+        vi.doMock("../../src/core/dilemmas", () => {
+          throw new Error("offline");
+        });
       try {
-        const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true));
+        const { again } = await reopen(5 * HOUR, {}, (g) => g.setAlwaysDilemma(true), offline);
         expect(again.away).not.toBeNull();
         expect(again.dilemma).toBeNull();
       } finally {
         vi.doUnmock("../../src/core/dilemmas");
       }
+    });
+
+    it("hands out badges at saves once he is awake", async () => {
+      const { again } = await reopen(2 * HOUR, {}, (g) => (g.stats.level = 5));
+      await vi.waitFor(() => {
+        again.save();
+        expect(again.stats.history.entries.some((e) => e.text === "🥉 Bronze badge: Growing up (level 5)")).toBe(true);
+      });
     });
 
     it("goes on trips while away and lands him in the new city", async () => {
@@ -642,6 +1166,180 @@ describe("game", () => {
       const [lat, lon] = again.walker!.position();
       expect(distanceM(lat, lon, s.end.at[0], s.end.at[1])).toBeLessThan(100);
       expect(again.loader.graph).toBe(again.walker!.graph);
+    });
+  });
+
+  describe("the sky", () => {
+    const NOW = Date.UTC(2026, 9, 29, 10);
+    const SHOP: Place = { name: "Shoe Shop", class: "shop", subclass: "shoes", rank: 1, lat: 42.6885, lon: 23.3215 };
+    /** An Open-Meteo answer with `code` weather at `tempC` around NOW, counting the requests. */
+    function weatherApi(code: number, tempC: number) {
+      const calls: string[] = [];
+      const hours = Array.from({ length: 72 }, (_, i) => Math.floor(NOW / 1000) - 24 * 3600 + i * 3600);
+      const api = new Api(async (url) => {
+        calls.push(url);
+        if (!url.startsWith("https://api.open-meteo.com/")) return new Response("", { status: 503 });
+        return Response.json({ utc_offset_seconds: 7200, hourly: { time: hours, temperature_2m: hours.map(() => tempC), weather_code: hours.map(() => code) } });
+      });
+      return { api, weatherCalls: () => calls.filter((u) => u.includes("open-meteo")).length };
+    }
+
+    it("fetches the city's weather once an hour, keeps it on the device and lives by it", async () => {
+      let now = NOW;
+      const { api, weatherCalls } = weatherApi(63, 9);
+      const { g, storage } = game({ api, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 3);
+      await tick();
+      run(g, 3);
+      expect(weatherCalls()).toBe(1);
+      expect(g.stats.sky).toMatchObject({ offsetS: 7200, weather: { kind: "rain", tempC: 9 }, season: "autumn" });
+      expect(JSON.parse(storage.getItem("osmwalker.weather")!).city).toBe("Sofia, Bulgaria");
+      now += 30 * 60_000;
+      run(g, 2);
+      expect(weatherCalls()).toBe(1);
+      now += 31 * 60_000;
+      run(g, 2);
+      await tick();
+      expect(weatherCalls()).toBe(2);
+    });
+
+    it("doesn't wait for the weather on reopen, and the catch-up lives without it", async () => {
+      let now = NOW;
+      const { weatherCalls, api } = weatherApi(71, -2);
+      // A slow answer, which the reopen must not wait for.
+      const fetchFn = (api as unknown as { fetchFn: (u: string) => Promise<Response> }).fetchFn;
+      const slow = new Api((u) => new Promise((ok) => setTimeout(() => ok(fetchFn(u)), 600)));
+      const { g, storage } = game({ api: slow, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await new Promise((r) => setTimeout(r, 700));
+      expect(g.weather?.city).toBe("Sofia, Bulgaria");
+      g.save();
+      now += 2 * 3600_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      const weather: boolean[] = [];
+      const pass = again.stats.passTime.bind(again.stats);
+      again.stats.passTime = (m, w, a) => (weather.push(!!again.stats.sky?.weather), pass(m, w, a));
+      const t0 = performance.now();
+      await again.wake();
+      expect(performance.now() - t0).toBeLessThan(600);
+      expect(again.away).not.toBeNull();
+      // He had a kept forecast with snow, but none of it reached the catch-up.
+      expect(weather.length).toBeGreaterThan(0);
+      expect(weather.filter(Boolean)).toEqual([]);
+      expect(weatherCalls()).toBeGreaterThanOrEqual(1);
+    });
+
+    it("keeps the weather off him while he rides", async () => {
+      const { api } = weatherApi(63, 35);
+      const { g } = game({ api, clock: () => NOW, roll: 0.1 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      run(g, 2);
+      expect(g.stats.sky?.weather?.kind).toBe("rain");
+      g.stats.cents = 50_000;
+      g.skipRoll = false;
+      g.debugNewGoal();
+      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      run(g, 2);
+      expect(g.walker!.isTraveling()).toBe(true);
+      expect(g.stats.sky?.weather).toBeNull();
+    });
+
+    it("keeps the weather off the rest of a ride on reopen", async () => {
+      let now = NOW;
+      const { api } = weatherApi(0, 35);
+      const { g, storage } = game({ api, clock: () => now, roll: 0.1 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      await tick();
+      g.stats.cents = 50_000;
+      g.skipRoll = false;
+      g.debugNewGoal();
+      for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
+      expect(g.walker!.isTraveling()).toBe(true);
+      g.save();
+      now += 3 * 60_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      const weather: unknown[] = [];
+      const pass = again.stats.passTime.bind(again.stats);
+      again.stats.passTime = (m, w) => (weather.push(again.stats.sky?.weather ?? null), pass(m, w));
+      await again.wake();
+      expect(weather[0]).toBeNull();
+    });
+
+    it("goes on by the forecast kept on the device, and retries a failed fetch later", async () => {
+      let now = NOW;
+      const { api, weatherCalls } = weatherApi(71, -2);
+      const first = game({ api, clock: () => now });
+      await first.g.startCity("Sofia, Bulgaria", ...START, null);
+      run(first.g, 2);
+      await tick();
+      expect(weatherCalls()).toBe(1);
+      // The network is gone: a new game reads the kept forecast and keeps using it.
+      let down = 0;
+      const offline = new Api(async (u) => (u.includes("open-meteo") && down++, new Response("", { status: 503 })));
+      now += 2 * 3600_000;
+      const again = new Game({ ...(first.g as unknown as { deps: GameDeps }).deps, api: offline, storage: first.storage });
+      again.problems.quiet = true;
+      expect(again.weather?.city).toBe("Sofia, Bulgaria");
+      again.load();
+      expect(again.stats.sky?.weather).toEqual({ kind: "snow", tempC: -2 });
+      run(again, 2);
+      await tick();
+      // The failed request is logged once by the Api, with no second line about the weather.
+      const weatherRows = () => again.problems.warnings.map((w) => w.text).filter((t) => /open-meteo|weather/.test(t));
+      expect(weatherRows()).toEqual(["Request to api.open-meteo.com failed: HTTP 503 (server overloaded)"]);
+      const tries = down;
+      run(again, 5);
+      await tick();
+      expect(down).toBe(tries);
+      now += 11 * 60_000;
+      run(again, 2);
+      await tick();
+      expect(down).toBeGreaterThan(tries);
+      expect(again.stats.sky?.weather?.kind).toBe("snow");
+    });
+
+    it("finds shops closed at night and does nothing there", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      // Closed places don't pull him, so he only gets there on a goal picked by day.
+      g.walker!.need = () => NO_NEED;
+      run(g, 400);
+      const lines = g.stats.history.entries.map((e) => e.text);
+      expect(lines).toContain("Found Shoe Shop closed");
+      expect(lines.some((l) => l.endsWith("at Shoe Shop"))).toBe(false);
+    });
+
+    it("doesn't head for closed places", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      g.debugNewGoal();
+      expect(g.walker!.place).toBeNull();
+      expect(g.debugLog.entries.at(-1)?.fallback).toBe("every place near enough is closed");
+      // Closed at night is normal: no warning in Problems, and the pick isn't one either.
+      expect(g.problems.warnings.filter((w) => w.text.startsWith("Picked a random spot"))).toEqual([]);
+      expect(DebugLog.isWarning(g.debugLog.entries.at(-1)!)).toBe(false);
+      expect(DebugLog.title(g.debugLog.entries.at(-1)!)).toBe("🌙 Random spot: everything near is closed (button)");
+    });
+
+    it("lets a quest step at a closed shop wait for morning instead of heading there", async () => {
+      const { g } = game({ places: [SHOP], hour: () => 23 });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      run(g, 2);
+      const at = { name: SHOP.name, class: SHOP.class, subclass: SHOP.subclass, lat: SHOP.lat, lon: SHOP.lon };
+      g.stats.quests.active = { key: "q:Ana:0", kind: "q", giver: "Ana", item: 0, twist: -1, at, step: 0, target: at };
+      g.debugNewGoal();
+      expect(g.walker!.place?.name).not.toBe("Shoe Shop");
+      expect(g.stats.quests.active?.key).toBe("q:Ana:0");
     });
   });
 });

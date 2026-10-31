@@ -81,8 +81,13 @@ describe("look", () => {
   const cafe = { class: "cafe", subclass: "cafe" };
 
   it("walking: a need wins over the goal's icon", () => {
-    expect(look(fine(), cafe, null)).toEqual({ face: "🙂", bubble: "☕", pose: null });
+    expect(look(fine(), cafe, null)).toEqual({ face: "🙂", bubble: "☕", pose: null, mount: "", pet: "" });
     expect(look({ ...fine(), thirst: 5 }, cafe, null).bubble).toBe("🥤");
+  });
+
+  it("a fantasy mount shows at his side; everyday vehicles don't", () => {
+    expect(look(fine(), cafe, null, "dragon").mount).toBe("🐉");
+    expect(look(fine(), cafe, null, "car").mount).toBe("");
   });
 
   it("no bubble on the way to a random spot", () => {

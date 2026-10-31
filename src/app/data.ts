@@ -1,9 +1,17 @@
 // The bundled game data, fetched once after first paint (about 166 KB gzip
 // in all), so the city picker shows before any of it arrives.
 import type { ActionTable } from "../core/activities";
+import type { Letters } from "../core/bond";
+import type { Borders } from "../core/border";
 import type { Forecast } from "../core/forecast";
+import type { Creature } from "../core/creatures";
+import type { Spell } from "../core/magic";
+import type { Incident } from "../core/incidents";
+import type { Contest } from "../core/rival";
+import type { FriendData } from "../core/friends";
 import type { Jokes } from "../core/jokes";
 import type { Dex } from "../core/keepsakes";
+import type { Bank } from "../core/quests";
 import { parseAirports, parseCities } from "../core/trips";
 import type { GameData } from "../game/game";
 
@@ -60,14 +68,14 @@ export async function parseStream<T>(body: ReadableStream<BufferSource>, parse: 
 let pending: Promise<GameData> | null = null;
 
 export function loadData(): Promise<GameData> {
-  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json")]).then(
-    async ([a, f, cities, airports, x, j, fc]) => {
+  pending ??= Promise.all([text("actions.json"), text("flavour.json"), table("cities.tsv", parseCities), table("airports.tsv", parseAirports), text("placedex.json"), text("jokes.json"), text("forecasts.json"), text("letters.json"), text("incidents.json"), text("borders.json"), text("rival.json"), text("friends.json"), text("creatures.json"), text("quests.json"), text("spells.json")]).then(
+    async ([a, f, cities, airports, x, j, fc, l, inc, b, riv, fr, cr, qb, sp]) => {
       await yieldNow();
       const actions = JSON.parse(a) as ActionTable;
       await yieldNow();
       const flavour = JSON.parse(f) as Record<string, ActionTable>;
       await yieldNow();
-      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[] };
+      return { actions, flavour, cities, airports, dex: JSON.parse(x) as Dex, jokes: JSON.parse(j) as Jokes, forecasts: JSON.parse(fc) as Forecast[], letters: JSON.parse(l) as Letters, incidents: JSON.parse(inc) as Incident[], borders: JSON.parse(b) as Borders, contests: JSON.parse(riv) as Contest[], friends: JSON.parse(fr) as FriendData, creatures: JSON.parse(cr) as Creature[], quests: JSON.parse(qb) as Bank, spells: JSON.parse(sp) as Spell[] };
     },
   );
   return pending;

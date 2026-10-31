@@ -1,0 +1,28 @@
+{
+  "names": ["Ana", "Ben", "Chiara", "Dario", "Elif", "Femi", "Greta", "Hugo", "Ines", "Jonas", "Kaja", "Luca", "Mira", "Nikos", "Olga", "Pavel", "Rosa", "Sami", "Tereza", "Uma", "Vera", "Wim", "Yara", "Zeno", "Aiko", "Bruno", "Dana", "Emil", "Lena", "Omar"],
+  "icons": ["🧑", "👩", "👨", "🧔", "👱", "👩‍🦱", "👨‍🦰", "🧑‍🦳", "👵", "👴"],
+  "companions": [
+    { "who": "student", "icon": "🎓", "lines": ["Exams are next week. I'm not thinking about it.", "Do you know a cheap place to eat?", "My mum thinks I'm in the library."] },
+    { "who": "retired sailor", "icon": "⚓", "lines": ["This is nothing. In '78 we had waves like houses.", "Every harbour smells different, you know.", "I still wake up at four."] },
+    { "who": "backpacker", "icon": "🎒", "lines": ["I've been on the road eight months.", "Have you tried hostels with a rooftop?", "My shoes are held together by tape."] },
+    { "who": "grandmother on a visit", "icon": "👵", "lines": ["You're too thin. Have a biscuit.", "My grandson works here, very important job.", "In my day the trams were green."] },
+    { "who": "busker with a guitar", "icon": "🎸", "lines": ["This corner is good on Saturdays.", "Want to hear the one about the sea?", "Three chords is all you need."] },
+    { "who": "travelling salesman", "icon": "💼", "lines": ["Vacuum cleaners. Best in the business.", "Fourth city this week.", "Never trust a hotel breakfast."] }
+  ],
+  "news": [
+    { "id": "guitar", "icon": "🎸", "line": "{NAME} took up the guitar" },
+    { "id": "marathon", "icon": "🏅", "line": "{NAME} ran a marathon" },
+    { "id": "dog", "icon": "🐶", "line": "{NAME} got a dog" },
+    { "id": "promotion", "icon": "📈", "line": "{NAME} got a promotion" },
+    { "id": "garden", "icon": "🌱", "line": "{NAME} started growing tomatoes on the balcony" },
+    { "id": "language", "icon": "🗣", "line": "{NAME} is learning Japanese" },
+    { "id": "haircut", "icon": "💇", "line": "{NAME} has a bold new haircut" },
+    { "id": "lottery", "icon": "🎟", "line": "{NAME} won a little on the lottery" },
+    { "id": "married", "icon": "💍", "line": "{NAME} got married", "letter": "We got married last Saturday, by the river. Next time you're here, dinner is on us!" },
+    { "id": "baby", "icon": "👶", "line": "{NAME} had a baby", "letter": "We had a baby girl! She has my nose, poor thing." },
+    { "id": "bakery", "icon": "🥐", "line": "{NAME} opened a bakery", "letter": "I finally did it: I opened my own bakery! First croissant is free for you." },
+    { "id": "moved", "icon": "📦", "line": "{NAME} moved to {CITY}", "letter": "Big news: I've moved to {CITY}! Come and find me if you're ever there.", "move": true },
+    { "id": "band", "icon": "🥁", "line": "{NAME} started a band", "letter": "My band plays its first gig on Friday. We are terrible and it is wonderful." },
+    { "id": "dragon", "icon": "🐉", "line": "{NAME} swears a dragon flew over the old town last night", "letter": "You won't believe me, but I saw a dragon over the old town. Nobody else did. I know what I saw." }
+  ]
+}

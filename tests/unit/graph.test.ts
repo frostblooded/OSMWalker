@@ -117,6 +117,17 @@ describe("StreetGraph", () => {
     expect(g.placesIn([41.999, 22.999, 42.001, 23.001])).toEqual([cafe]);
     expect(g.placesIn([42.001, 22.999, 42.002, 23.001])).toEqual([]);
   });
+
+  it("counts made-up places only once their cell is loaded", () => {
+    const g = new StreetGraph();
+    const home = cellOf(42, 23);
+    const inn = { name: "Inn", class: "lodging", subclass: "guest_house", rank: 1, lat: 41.9995, lon: 23.0005, made: true };
+    const far = { ...inn, name: "Far inn", lat: 43 };
+    g.made = [inn, far];
+    expect(g.placesIn([41, 22, 44, 24])).toEqual([]);
+    g.addCell(home, compactCells(plus(), [home]).get(cellKey(home))!);
+    expect(g.placesIn([41, 22, 44, 24])).toEqual([inn]);
+  });
 });
 
 describe("cells", () => {

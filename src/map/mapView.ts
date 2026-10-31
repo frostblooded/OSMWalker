@@ -1,12 +1,14 @@
 // The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a
-// face with a bubble over his head), his goal as a pin, his trail and the
-// ride line as lines. MapLibre only draws when something changes, so the
+// face with a bubble over his head), his goal as a pin, Viktor while he is
+// about, his trail and the ride line as lines. MapLibre only draws when something changes, so the
 // game moves the camera a few times a second instead of every frame (see
 // app/loop.ts): the main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
-import type { Look } from "../core/look";
+import { POSE_EVERY_S, type Look } from "../core/look";
+import type { MapIcon } from "../core/mapIcons";
+import { RIVAL_ICON } from "../core/rival";
 import type { LatLon } from "../core/trips";
 import type { MapPort, Padding } from "./scene";
 
@@ -18,6 +20,8 @@ const TRIP_COLOR = "#c01c28";
 const AREA_COLOR = "#e8730c";
 const OUTLINE_COLOR = "#7b3fbf";
 const ROUTE_COLOR = "#ff7a3d";
+/** Indigo `--magic` (app.css), as the magic icons (map/icons.ts); MapLibre can't read CSS tokens. */
+const LEY_COLOR = "#3d2a8a";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
@@ -49,6 +53,7 @@ export class MapView implements MapPort {
   map!: MlMap;
   private him!: Marker;
   private pin!: Marker;
+  private rival!: Marker;
   private following = true;
   /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
   autoFollow = true;
@@ -57,12 +62,21 @@ export class MapView implements MapPort {
   private ready!: Promise<void>;
   private trailKey = "";
   private tripKey = "";
+  private leyKey = "";
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
+  /** His pose ("icon motion", "" for none) and performance.now() when it last moved. */
+  private poseKey = "";
+  private poseAt = 0;
+  private iconKey = "";
+  /** The icon pictures and layer, added the first time there is an icon to show. */
+  private iconLayer: Promise<boolean> | null = null;
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
+  /** Told the `id` of a game icon the player taps. */
+  onIconTap: (id: string) => void = () => {};
 
   static async create(container: HTMLElement, center: LatLon, zoom: number): Promise<MapView> {
     const v = new MapView();
@@ -99,6 +113,7 @@ export class MapView implements MapPort {
     this.map.touchZoomRotate.disableRotation();
     this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
+    this.rival = new ml.Marker({ element: markerEl("rival", RIVAL_ICON), anchor: "center" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
         this.following = false;
@@ -142,6 +157,7 @@ export class MapView implements MapPort {
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
     this.map.setLayoutProperty("trail", "visibility", "none");
     this.addLine("trip", TRIP_COLOR, 4, 0.85, [2, 1]);
+    this.addLine("leys", LEY_COLOR, 3, 0.6, [1, 2]);
     this.map.addSource("events", { type: "geojson", data: none });
     this.map.addLayer({ id: "events", type: "circle", source: "events", paint: { "circle-radius": 11, "circle-color": TRAIL_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     this.map.addLayer({
@@ -193,14 +209,33 @@ export class MapView implements MapPort {
   /**
    * His face, bubble and pose, written to the page only when one changes. A
    * new pose plays its CSS animation a few times and then holds still, so the
-   * GPU is idle again after a few seconds.
+   * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}`;
-    if (key === this.lookKey) return;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}`;
+    if (key === this.lookKey) {
+      if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
+      // Dropping the pose's class and a reflow restart its CSS animation.
+      this.poseAt = performance.now();
+      const bubble = this.him.getElement().querySelector<HTMLElement>(".bubble")!;
+      const cls = bubble.className;
+      bubble.className = "bubble";
+      void bubble.offsetWidth;
+      bubble.className = cls;
+      return;
+    }
     this.lookKey = key;
+    // Only a new pose plays from the start; a new face keeps the pose's minute running.
+    const pose = l.pose ? `${l.pose.icon} ${l.pose.motion}` : "";
+    if (pose !== this.poseKey) [this.poseKey, this.poseAt] = [pose, performance.now()];
     const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
+    const mount = el.querySelector<HTMLElement>(".mount")!;
+    mount.textContent = l.mount;
+    mount.hidden = !l.mount;
+    const pet = el.querySelector<HTMLElement>(".pet")!;
+    pet.textContent = l.pet;
+    pet.hidden = !l.pet;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
@@ -225,6 +260,14 @@ export class MapView implements MapPort {
     this.pin.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
+  setRival(at: LatLon | null): void {
+    if (!at) {
+      this.rival.remove();
+      return;
+    }
+    this.rival.setLngLat([at[1], at[0]]).addTo(this.map);
+  }
+
   /** Shows or hides his trail and the History markers. */
   showTrail(on: boolean): void {
     if (on === this.trailOn) return;
@@ -239,6 +282,13 @@ export class MapView implements MapPort {
     if (!this.trailOn || key === this.trailKey) return;
     this.trailKey = key;
     (this.map.getSource("trail") as GeoJSONSource | undefined)?.setData(line(segments()));
+  }
+
+  /** The ley lines, or none when `key` is ""; only sent to MapLibre when `key` changes. */
+  setLeys(key: string, lines: () => LatLon[][]): void {
+    if (key === this.leyKey) return;
+    this.leyKey = key;
+    (this.map.getSource("leys") as GeoJSONSource | undefined)?.setData(line(key ? lines() : []));
   }
 
   /** The line he rides along on a trip, or none. */
@@ -267,6 +317,36 @@ export class MapView implements MapPort {
     (this.map.getSource("events") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
       features: markers.map((m) => ({ type: "Feature", properties: { label: m.label }, geometry: { type: "Point", coordinates: [m.at[1], m.at[0]] } })),
+    });
+  }
+
+  /**
+   * The game's icons (made-up places, travel hubs, quests); only sent to
+   * MapLibre when `key` changes. The pictures load as their own chunk the
+   * first time there is one to show.
+   */
+  setMapIcons(key: string, icons: () => MapIcon[]): void {
+    if (key === this.iconKey) return;
+    this.iconKey = key;
+    const list = icons();
+    if (!list.length && !this.iconLayer) return;
+    const data: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: list.map((i) => ({
+        type: "Feature",
+        properties: { id: i.id, icon: i.icon, label: i.label, kind: i.kind ?? "place", pulse: !!i.pulse, ends_at: i.ends_at ?? -1 },
+        geometry: { type: "Point", coordinates: [i.at[1], i.at[0]] },
+      })),
+    };
+    // A chunk that can't load (offline before it was cached) leaves the map without icons until the game is opened again.
+    this.iconLayer ??= import("./icons")
+      .then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)))
+      .then(
+        () => true,
+        () => false,
+      );
+    void this.iconLayer.then((ok) => {
+      if (ok && this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);
     });
   }
 
@@ -353,7 +433,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head. */
+/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side and his pet, if any, at the other. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -362,7 +442,13 @@ function himMarker(): HTMLElement {
   const bubble = document.createElement("span");
   bubble.className = "bubble";
   bubble.hidden = true;
-  el.append(face, bubble);
+  const mount = document.createElement("span");
+  mount.className = "mount";
+  mount.hidden = true;
+  const pet = document.createElement("span");
+  pet.className = "pet";
+  pet.hidden = true;
+  el.append(face, bubble, mount, pet);
   return el;
 }
 

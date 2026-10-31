@@ -3,7 +3,7 @@ import { distanceM, moved, offsetM } from "../../src/core/geo";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { rideS, type City, type Plan } from "../../src/core/trips";
+import { ROAD_FACTOR, rideS, type City, type Plan } from "../../src/core/trips";
 import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { plus, PLUS_BBOX } from "../support/osm";
@@ -411,6 +411,15 @@ describe("saves", () => {
     expect(back.restM).toBeCloseTo(REST_M - 50, 3);
   });
 
+  it("measure a ride from a save without road_m by the straight line", () => {
+    walker.startAt(n(3));
+    walker.startTravel({ name: "Fartown", code: "XXX", country: "X-land", lat: 43, lon: 24, pop: 50_000, bounds: [42.99, 23.99, 43.01, 24.01] }, "train");
+    const d = JSON.parse(JSON.stringify(walker));
+    delete d.travel.road_m;
+    const t = Walker.fromJSON(d).travel!;
+    expect(t.road_m).toBeCloseTo(distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, 3);
+  });
+
   it("cut an over-long rest to a minute", () => {
     walker.startAt(n(3));
     const d = JSON.parse(JSON.stringify(walker));
@@ -532,6 +541,24 @@ describe("goal weights", () => {
       food += +(w.place!.name === "Food");
     }
     expect(food).toBeGreaterThan(220);
+  });
+
+  it("a place's own pull counts for that place alone, though need is worked out per kind", () => {
+    const w = atCross();
+    const a = moved(42, 23, [500, 0]);
+    const b = moved(42, 23, [-500, 0]);
+    // Both cafes, so need is asked once for the kind; "New" comes second.
+    setPlaces(w.graph, [cafe("Old", b[0], b[1]), cafe("New", a[0], a[1])]);
+    w.need = () => ({ pull: 1, urgent: false, bottom: false, why: "" });
+    w.placePull = (q) => (q.name === "New" ? 5 : 1);
+    let fresh = 0;
+    for (let s = 0; s < 300; s++) {
+      w.rng = new Rng(s);
+      w.startAt(n(1));
+      w.pickGoal();
+      fresh += +(w.place!.name === "New");
+    }
+    expect(fresh).toBeGreaterThan(220);
   });
 
   const urgentPicks = (bottom: boolean) => {
@@ -670,6 +697,7 @@ describe("trips", () => {
     expect(walker.isTraveling()).toBe(true);
     expect(walker.isDeparting()).toBe(false);
     expect(walker.travel!.mode).toBe("bus");
+    expect(walker.travel!.road_m).toBe(boarded[0]!.distance_m);
     const pathM = distanceM(42.0, 23.00135, 43, 24);
     expect(Math.abs(walker.travel!.total_m - rideS("bus", pathM) * SPEED_MPS)).toBeLessThan(1);
     expect(walker.isResting()).toBe(false);
@@ -867,5 +895,100 @@ describe("relocate", () => {
     expect(walker.graph).not.toBe(graph);
     expect(walker.position()).toEqual([48.85, 2.35]);
     expect(walker.isTraveling()).toBe(false);
+  });
+});
+
+describe("flying mounts", () => {
+  const lonOf = (node: number) => 23.0 + (node - 1) * 0.00604;
+  const park: Place = { name: "Park", class: "park", subclass: "park", rank: 1, lat: 42.0, lon: lonOf(3) };
+  const far = cafe("Far Cafe", 42.0, lonOf(4));
+
+  function flyer(places: Place[]): W.Walker {
+    const g = longStreet(6);
+    g.places.set(cellKey(cellOf(42, 23)), places);
+    const w = new Walker(g);
+    w.bounds = CITY_BOX;
+    w.startAt(1);
+    w.setGoal(far.lat, far.lon);
+    w.place = far;
+    w.flies = true;
+    return w;
+  }
+
+  it("flies straight to a park near a far goal, lands and walks the rest", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.flight).not.toBeNull();
+    expect(w.streetName()).toBe("");
+    const p = w.position();
+    expect(p[1]).toBeGreaterThan(lonOf(1));
+    expect(p[1]).toBeLessThan(lonOf(3));
+    expect(w.walkLeftM()).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)) - 100, 0);
+    w.advance(distanceM(42, lonOf(1), 42, lonOf(3)));
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    // He walks the rest on foot, until his next goal.
+    expect(w.afoot).toBe(true);
+    expect(roundTrip(w, longStreet(6)).afoot).toBe(true);
+    w.advance(distanceM(42, lonOf(3), 42, lonOf(4)) + 1);
+    expect(w.isResting()).toBe(true);
+    expect(w.totalM).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)), 0);
+  });
+
+  it("walks the streets when no park or garden is near the goal, or on foot", () => {
+    const w = flyer([far]);
+    w.advance(100);
+    expect(w.flight).toBeNull();
+    const foot = flyer([park, far]);
+    foot.flies = false;
+    foot.advance(100);
+    expect(foot.flight).toBeNull();
+  });
+
+  it("mid-flight, his route line is the straight line to the goal, with no streets", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.routeLine()).toEqual({ streets: [], rest: [w.position(), [far.lat, far.lon]] });
+  });
+
+  it("a new goal from Debug mid-flight lands him where he was headed first", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.forceNewGoal();
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.afoot).toBe(false);
+  });
+
+  it("comes down at the nearest corner when his mount stops flying mid-air", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    w.flies = false;
+    w.advance(1);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(1);
+  });
+
+  it("waking in the air with no hospital to go to, he stands on the corner he was landing on", () => {
+    const w = flyer([park, far]);
+    w.advance(100);
+    expect(w.wakeAt(null, null)).toBe(false);
+    expect(w.flight).toBeNull();
+    expect(w.fromNode).toBe(3);
+    expect(w.isResting()).toBe(true);
+  });
+
+  it("keeps a flight in the save", () => {
+    const w = flyer([park, far]);
+    w.advance(300);
+    const back = roundTrip(w, longStreet(6));
+    expect(back.flight).toEqual(w.flight);
+    expect(back.position()[1]).toBeCloseTo(w.position()[1], 9);
+    // Reloaded with no streets yet, he still lands and stands where he landed.
+    const bare = roundTrip(w);
+    bare.flies = true;
+    bare.advance(5000);
+    expect(bare.flight).toBeNull();
+    expect(bare.position()).toEqual(w.flight!.to);
   });
 });

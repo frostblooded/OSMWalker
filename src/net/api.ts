@@ -1,11 +1,14 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
 // (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
 // for road routes between cities, Wikidata for city trivia and Nominatim for
-// city outlines. Fetch is injected, so it is easy to test.
+// city outlines, Open-Meteo for his city's weather and Nager.Date for public
+// holidays. Fetch is injected, so it is easy to test.
 import * as CityFacts from "../core/cityFacts";
 import type { BBox, Tile } from "../core/geo";
+import * as Holidays from "../core/holidays";
 import type { OverpassData } from "../core/graph";
 import { TILE_ZOOM } from "../core/ofm";
+import { parseWeather, weatherUrl, type WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 
 /** Public Overpass servers, tried in order; the main one is often busy (429/504). */
@@ -268,6 +271,34 @@ export class Api {
   async cityFacts(lat: number, lon: number): Promise<CityFacts.Row[]> {
     const data = (await this.getJson(CityFacts.url(lat, lon), 30)) as { results?: { bindings?: CityFacts.Row[] } } | null;
     return data?.results?.bindings ?? [];
+  }
+
+  /** Hourly weather around `lat`, `lon` from today to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
+  async weather(city: string, lat: number, lon: number, nowMs: number): Promise<WeatherForecast | null> {
+    const url = weatherUrl(lat, lon);
+    const data = await this.getJson(url, 20);
+    const f = data === null ? null : parseWeather(data, city, nowMs);
+    if (data !== null && !f) this.fail(url, "answer was not a forecast");
+    return f;
+  }
+
+  /** A country's public holidays in `year`: [] when Nager.Date has none for it (204 or 404), null when the request fails. */
+  async holidays(year: number, cc2: string): Promise<Holidays.Holiday[] | null> {
+    const url = Holidays.url(year, cc2);
+    try {
+      const res = await this.fetchFn(url, { signal: AbortSignal.timeout(30_000) });
+      if (res.status === 204 || res.status === 404) return [];
+      if (res.status !== 200) {
+        this.fail(url, describeFailure(res.status));
+        return null;
+      }
+      const list = Holidays.parse(await res.json());
+      if (!list) this.fail(url, "answer was not a holiday list");
+      return list;
+    } catch (e) {
+      this.fail(url, describeFailure(e as Error));
+      return null;
+    }
   }
 
   /** The road route between two points, or [] on failure. */

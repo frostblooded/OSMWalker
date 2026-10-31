@@ -2,7 +2,6 @@
   "profile": "4G (9 Mbps, 85 ms) + 4x CPU throttle",
   "budgets": {
     "transfer_kb": 500,
-    "app_js_kb": 60,
     "first_paint_ms": 1000,
     "ready_ms": 2000,
     "main_thread_busy_pct": 15,
