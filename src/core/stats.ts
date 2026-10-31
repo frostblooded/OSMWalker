@@ -822,7 +822,7 @@ export class Stats {
     if (!it) return;
     this.bag.splice(this.bag.indexOf(it), 1);
     h.things.push(it);
-    this.say(`🖼 Put up his ${it.name} from ${it.story!.from} at home (${h.things.length} of ${Hm.HOME_THINGS})`);
+    this.say(`🖼 Put up his ${it.name} from ${it.story!.from.split(",")[0]} at home (${h.things.length} of ${Hm.HOME_THINGS})`);
   }
 
   /** Each morning: a share in his spot here if he has none in this city, then, with the next business's price to spare past what he saves up for (and his reserve), he buys it where he is (see business.ts). Not while you whisper to save. */

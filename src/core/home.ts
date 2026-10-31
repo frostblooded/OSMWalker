@@ -70,9 +70,9 @@ export class Home {
   }
 }
 
-/** The thing from his travels he would put up next: the dearest one in `bag` from another city that isn't stolen or treasured (`treasured` says), or null. */
+/** The thing from his travels he would put up next: the dearest one in `bag` from another city (`city` and a story's `from` are both "Sofia, Bulgaria") that isn't stolen or treasured (`treasured` says), or null. */
 export function nextThing(bag: Item[], city: string, treasured: (i: Item) => boolean): Item | null {
   let best: Item | null = null;
-  for (const it of bag) if (it.story && it.story.from !== city.split(",")[0] && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
+  for (const it of bag) if (it.story && it.story.from !== city && !it.stolen && !treasured(it) && (!best || it.price > best.price)) best = it;
   return best;
 }

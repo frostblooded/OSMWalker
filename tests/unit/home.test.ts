@@ -15,7 +15,7 @@ const DAY = 86400;
 const T0 = Date.UTC(2026, 10, 2, 12) / 1000;
 const SOFIA = "Sofia, Bulgaria";
 const HOSTEL: Action = { name: "Hostel bunk for the night", min: 480, cost: 15, sleep: true, fx: { energy: 100 } } as Action;
-const thing = (name: string, price: number, from = "Lisbon", countries: string[] = ["PT"]): Item => ({ name, slot: "trinket", stats: {}, rarity: "Common", price, story: { from, t: 0, countries, km: 0 } });
+const thing = (name: string, price: number, from = "Lisbon, Portugal", countries: string[] = ["PT"]): Item => ({ name, slot: "trinket", stats: {}, rarity: "Common", price, story: { from, t: 0, countries, km: 0 } });
 
 /** A Stats in Sofia at T0 whose day has started, known there at `points` of fame. */
 function inSofia(points: number, cents = 0): Stats {
@@ -81,8 +81,8 @@ describe("his home", () => {
     const s = inSofia(1000);
     nextDay(s);
     s.home.bought = s.now();
-    const treasured = thing("Old Map", 9000, "Rome", ["IT", "FR", "ES", "PT", "GR"]);
-    s.bag = [thing("Cheap Fan", 100), thing("Silk Shawl", 2000), { ...thing("Hot Watch", 5000), stolen: true }, thing("Sofia Mug", 3000, "Sofia"), treasured];
+    const treasured = thing("Old Map", 9000, "Rome, Italy", ["IT", "FR", "ES", "PT", "GR"]);
+    s.bag = [thing("Cheap Fan", 100), thing("Silk Shawl", 2000), { ...thing("Hot Watch", 5000), stolen: true }, thing("Sofia Mug", 3000, SOFIA), treasured];
     nextDay(s);
     expect(s.home.things.map((i) => i.name)).toEqual(["Silk Shawl"]);
     nextDay(s);
