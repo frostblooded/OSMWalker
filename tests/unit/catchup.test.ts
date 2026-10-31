@@ -432,6 +432,16 @@ describe("catch-up", () => {
     expect(s.stops).toBe(s.lines.filter((l) => /^Reached (?!level )/.test(l.text)).length);
   });
 
+  it("rolls the listed city's own quests on its key, not on the searched name", () => {
+    const stats = new Stats();
+    const q = (id: string, city?: string) => ({ id, city, icon: "🧪", title: `Quest ${id}`, items: ["a box"], lean: "wit" as const, twists: [], good: ["Good."], worse: ["Worse."], reward: {}, steps: [{ at: ["cafe"], say: ["At {PLACE}."] }, { at: ["shop"], say: ["At {PLACE}."] }] });
+    stats.quests.bank = { names: ["Ana"], quests: [q("a"), q("big", "Bigtown, A-land")], events: [] };
+    const cafes = Array.from({ length: 20 }, (_, i) => place(`Cafe ${i}`, "cafe", "cafe", 0.0005 * (i % 5), 0.0005 * Math.floor(i / 5)));
+    const town: AwayCity = { ...HOME, name: "Bigtown, Some Province, A-land", key: "Bigtown, A-land", places: [...PLACES, ...cafes] };
+    catchUp(stats, town, [0, 0], 600, START_MS, deps());
+    expect([...stats.quests.board.map((o) => o.key), stats.quests.active?.key, ...stats.quests.done]).toContain("big");
+  });
+
   it("lets a quest step at a closed place wait for it to open, instead of going back all night", () => {
     const stats = new Stats();
     const shop = place("Shoe Shop", "shop", "shoes", 0.003, 0);
