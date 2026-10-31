@@ -3167,14 +3167,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
+   "lottery": true,
    "fx": {
     "luck": 0.05,
     "xp": 5
-   },
-   "risk": {
-    "p": 0.01,
-    "text": "and WON 200c",
-    "cost": -200
    }
   },
   {
@@ -3219,14 +3215,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
+   "lottery": true,
    "fx": {
     "luck": 0.05,
     "xp": 5
-   },
-   "risk": {
-    "p": 0.01,
-    "text": "and WON 200c",
-    "cost": -200
    }
   },
   {
@@ -5332,13 +5324,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
-   "earn": [
-    0,
-    4
-   ],
+   "lottery": true,
    "fx": {
-    "luck": 0.1,
-    "xp": 2
+    "luck": 0.05,
+    "xp": 5
    }
   },
   {
