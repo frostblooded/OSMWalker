@@ -163,7 +163,9 @@ describe("map scene", () => {
   it("puts the police car on his trail during a chase, and takes it off after", () => {
     game.chase = { place: "Kiosk", ends: game.now() + R.CHASE_S * 1000, trail: [[42, 23], [42.002, 23]] };
     scene.draw(0.25, 250);
-    expect(map.police).toEqual([42, 23]);
+    // Just begun: the car is at the start of his trail (a millisecond may have passed).
+    expect(map.police![0]).toBeCloseTo(42, 4);
+    expect(map.police![1]).toBeCloseTo(23, 4);
     game.chase = null;
     scene.draw(0.25, 250);
     expect(map.police).toBeNull();
