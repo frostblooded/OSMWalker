@@ -26,7 +26,7 @@ describe("work chance cards", () => {
     const s = new Stats();
     s.cents = 0;
     s.meters.energy = 100;
-    expect(W.draw(s, 1000, fixed(DOUBLE, 0, 0, 0))).toBe("⏱ At work: The boss asks him to cover a double shift. Take it: he worked the double and got paid for it (+€10, -25 energy, +20 XP)");
+    expect(W.draw(s, 1000, fixed(DOUBLE, 0, 0, 0))).toBe("⏱ At work: The boss asks him to cover a double shift. Decided by himself: Take it: he worked the double and got paid for it (+€10, -25 energy, +20 XP)");
     expect(s.cents).toBe(1000);
     expect(s.meters.energy).toBe(75);
   });
@@ -74,4 +74,34 @@ describe("work chance cards", () => {
     }
     expect(said.filter((l) => l.includes(" At work: "))).toEqual([]);
   });
+
+  it("holds the card for the game to ask while it can, and plays it the same as away when he picks", () => {
+    const job: Action = { name: "Worked a shift", min: 60, earn: 10 };
+    // Find a time with a card, away.
+    let t = 1;
+    for (; t < 400; t++) {
+      const s = new Stats();
+      s.now = () => t;
+      s.do(job, "Cafe", fixed(0, 0.99));
+      if (s.history.entries.some((e) => e.text.includes(" At work: "))) break;
+    }
+    const away = new Stats();
+    away.now = () => t;
+    away.do(job, "Cafe", fixed(0, 0.99));
+    const watched = new Stats();
+    watched.now = () => t;
+    watched.askCards = true;
+    watched.do(job, "Cafe", fixed(0, 0.99));
+    expect(watched.history.entries.some((e) => e.text.includes(" At work: "))).toBe(false);
+    const { d, dice } = watched.workCard!;
+    watched.say(W.settle(watched, d, W.hisPick(watched, d.card, dice), false, dice));
+    expect(watched.history.entries.at(-1)!.text).toBe(away.history.entries.at(-1)!.text);
+    expect(watched.cents).toBe(away.cents);
+  });
+
+  it("is a two-option moment, bold first, safe by default, leaning on the card's attribute", () => {
+    const m = W.momentOf(W.CARDS[DOUBLE]!);
+    expect(m).toMatchObject({ id: "work-double", lean: "str", default: "safe", options: [{ id: "bold", label: "Take it" }, { id: "safe", label: "Go home" }] });
+  });
 });
+
