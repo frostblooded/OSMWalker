@@ -1,5 +1,6 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
+// the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
 // buffs, his rival, friends and pet. Items with a story open to show it.
 // His records close it.
@@ -135,6 +136,33 @@ function Spells({ stats: s }: { stats: Stats }) {
   );
 }
 
+/** Languages shown on the Local words card before the rest fold away. */
+const WORD_ROWS = 4;
+
+/** The local words he knows, by language (most first, the rest folded), with the last one learned. */
+function LocalWords({ stats: s }: { stats: Stats }) {
+  const book = s.wordBook;
+  const rows = Object.entries(s.words.known)
+    .filter(([k, l]) => l.length && book?.languages[k])
+    .sort(([, a], [, b]) => b.length - a.length)
+    .map(([k, l]) => {
+      const lang = book!.languages[k]!;
+      const last = lang.words.find(([, m]) => m === l.at(-1));
+      return <KV key={k} k={`${lang.name} ${l.length} / ${lang.words.length}`} v={last ? `${last[0]} = ${last[1]}` : ""} />;
+    });
+  const more = rows.slice(WORD_ROWS);
+  return (
+    <Card icon="🗣" title="Local words" right={s.words.count() || undefined}>
+      {rows.length ? <div class="zebra">{rows.slice(0, WORD_ROWS)}</div> : <KV k="Learned" v="none so far" />}
+      {more.length > 0 && (
+        <Collapsible title="More languages" right={more.length}>
+          <div class="zebra">{more}</div>
+        </Collapsible>
+      )}
+    </Card>
+  );
+}
+
 /** His bests and lifetime totals. */
 function Records({ stats: s }: { stats: Stats }) {
   const r = s.records;
@@ -207,6 +235,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       {s.sky && <SkyCard sky={s.sky} vehicle={afoot ? "" : s.getsAbout()} />}
       {s.where.code && <VisaCard s={s} />}
       <Spells stats={s} />
+      <LocalWords stats={s} />
       <Card icon="💪" title="Attributes">
         <div class="tiles">
           {ATTRS.map((a) => {
