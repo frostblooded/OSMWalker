@@ -83,7 +83,7 @@ test("Stats shows his level, meters, attributes, skills, languages and gear", as
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "Saving for", "Bike", "Vitals", "Health", "🔮 Magic", "Spells", "none yet", "Attributes", "Strength", "Skills", "📷 Photography", "Languages", "English", "Gear", "Vehicle", "Bag", "🧺 Pantry", "Effects"]) await expect(sheet).toContainText(t);
+  for (const t of ["Level 1", "Saving for", "Bike", "Side income", "⏭ Next", "🎟 Lottery", "Vitals", "Health", "🔮 Magic", "Spells", "none yet", "Attributes", "Strength", "Skills", "📷 Photography", "Languages", "English", "Gear", "Vehicle", "Bag", "🧺 Pantry", "Effects"]) await expect(sheet).toContainText(t);
   // In Sofia, Bulgarian is his own language: fluent, and the one spoken here.
   await expect(sheet).toContainText("Bulgarian · herefluent");
   // He starts with €200, more than a €150 bike plus his €20 reserve.
@@ -91,6 +91,18 @@ test("Stats shows his level, meters, attributes, skills, languages and gear", as
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
+});
+
+test("A wanted walker shows his stars on the top card, a halo of good karma, and his Reputation on the Stats sheet", async ({ page }) => {
+  await startInSofia(page);
+  await expect(page.locator(".pill.wanted")).toHaveCount(0);
+  await reopenWith(page, "d.stats.law = { heat: 45, topStars: 2 }; d.stats.bond.lean = 80;");
+  await expect(page.locator(".pill.wanted")).toHaveText("🚨 ★★", { timeout: 20000 });
+  await expect(page.locator(".marker.him .aura.halo")).toBeVisible();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Stats/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Stats/ });
+  for (const t of ["Reputation", "😇 Kind (+80 of ±100)", "Fame here", "Stranger", "−5%", "The police", "2 of 5 stars", "Paying it off"]) await expect(sheet).toContainText(t);
 });
 
 test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {
@@ -120,7 +132,8 @@ test("Collection shows his cards, places, world, gear and badges in tabs", async
   await sheet.getByRole("tab", { name: /Places/ }).click();
   for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("tab", { name: /World/ }).click();
-  await sheet.getByRole("button", { name: /^All/ }).last().click();
+  // The Souvenirs card's All, after the Countries card's.
+  await sheet.getByRole("button", { name: /^All/ }).nth(1).click();
   await expect(sheet).toContainText("bottle of rose oil");
   await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
   await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
@@ -275,6 +288,8 @@ async function dragAway(page: Page) {
 }
 
 test("Back to him shows after a drag only while the camera follows him", async ({ page }) => {
+  // Two drags and a reload: about 28 s on a busy CI runner, so it gets room.
+  test.setTimeout(60_000);
   await startInSofia(page);
   const back = page.getByRole("button", { name: /Back to him/ });
   await dragAway(page);

@@ -10,7 +10,11 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "perf": "node tests/perf/perf.mjs",
-    "lint": "biome lint --error-on-warnings ."
+    "lint": "biome lint --error-on-warnings .",
+    "verify": "node tools/verify.ts",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "check": "node tools/verify.ts --check",
+    "e2e:failed": "playwright test --last-failed"
   },
   "dependencies": {
     "@fontsource/fredoka": "5.3.0",

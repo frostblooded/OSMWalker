@@ -14,6 +14,8 @@ export const WANT_PULL = 4;
 export const FEAR_PULL = 0.25;
 /** A short want he hasn't met in this many hours makes way for a new one; a mishap's want lasts SHAKE_H. */
 export const SHORT_H = 8;
+/** Hours a long want, or the want to face a fear, lasts: the city may have no such place. A fear goes with its want. */
+export const LONG_H = 72;
 export const SHAKE_H = 3;
 /** Odds a mishap at a kind of place leaves a fear of it, and the most fears he holds at once. */
 export const FEAR_CHANCE = 0.25;
@@ -33,11 +35,18 @@ export const LONG_KINDS = ["castle", "museum", "zoo", "aquarium", "lookout", "th
 export const SHORT_KINDS = ["cafe", "bakery", "ice_cream", "restaurant", "park", "bar", "cinema", "library", "fast_food", "beer", "art_gallery", "swimming_pool"];
 export const SHAKE_KINDS = ["cafe", "ice_cream", "bar", "park", "bakery"];
 /** Classes whose name reads badly as a noun. */
-const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence" };
+const NOUNS: Record<string, string> = { beer: "pub", harbor: "harbour", lookout: "viewpoint", fast_food: "snack bar", art_gallery: "gallery", lodging: "hotel", place_of_worship: "church", grocery: "supermarket", clothing_store: "clothes shop", shop: "shop", alcohol_shop: "off-licence", ice_cream: "ice cream parlour" };
 export const noun = (kind: string) => NOUNS[kind] ?? kind.replace(/_/g, " ");
+/** "bakery" -> "bakeries", "church" -> "churches", "place of worship" -> "places of worship". */
+export const plural = (noun: string): string => {
+  const [head, ...rest] = noun.split(" of ");
+  const p = /[^aeiou]y$/.test(head!) ? `${head!.slice(0, -1)}ies` : /(s|x|ch|sh)$/.test(head!) ? `${head}es` : `${head}s`;
+  return [p, ...rest].join(" of ");
+};
+const a = (n: string) => `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
 
 export type WantKind = "long" | "short" | "shake" | "face";
-/** A want for a kind of place (map class); `until` is unix seconds, 0 for never. */
+/** A want for a kind of place (map class); `until` is unix seconds (0 only in saves from before LONG_H, mended in refill). */
 export type Want = { kind: WantKind; place: string; until: number };
 /** `emo`: the emotion it counts towards (see emotion.ts); untagged, Happy or Sad by its sign. */
 export type Moodlet = { name: string; icon: string; per_h: number; left: number; emo?: Emotion };
@@ -47,9 +56,9 @@ export const wantIcon = (w: Want) => WANT_ICON[w.kind];
 /** What he says he wants: "see a castle", "a cafe", "cheer up at a park", "face the dog park again". */
 export function wantText(w: Want): string {
   const n = noun(w.place);
-  if (w.kind === "long") return `See a ${n}`;
-  if (w.kind === "short") return `Go to a ${n}`;
-  if (w.kind === "shake") return `Cheer up at a ${n}`;
+  if (w.kind === "long") return `See ${a(n)}`;
+  if (w.kind === "short") return `Go to ${a(n)}`;
+  if (w.kind === "shake") return `Cheer up at ${a(n)}`;
   return `Face the ${n} again`;
 }
 
@@ -95,12 +104,19 @@ export class Mind {
 
   /** At `now`: drops wants that ran out and fills the empty long and short slots, with dice from `dice` (only made when needed). */
   refill(now: number, dice: () => Rng): void {
-    if (this.wants.some((w) => w.until && w.until <= now)) this.wants = this.wants.filter((w) => !w.until || w.until > now);
+    // Saves from before LONG_H hold long and face wants that never end: they start counting now.
+    for (const w of this.wants) if (!w.until) w.until = now + LONG_H * 3600;
+    const gone = this.wants.filter((w) => w.until <= now);
+    if (gone.length) {
+      this.wants = this.wants.filter((w) => !gone.includes(w));
+      // A fear he never got to face fades with its want.
+      this.fears = this.fears.filter((f) => !gone.some((w) => w.kind === "face" && w.place === f));
+    }
     const long = !this.wants.some((w) => w.kind === "long");
     const short = !this.wants.some((w) => w.kind === "short");
     if (!long && !short) return;
     const rng = dice();
-    if (long) this.wants.push({ kind: "long", place: this.fresh(LONG_KINDS, rng), until: 0 });
+    if (long) this.wants.push({ kind: "long", place: this.fresh(LONG_KINDS, rng), until: now + LONG_H * 3600 });
     if (short) this.wants.push({ kind: "short", place: this.fresh(SHORT_KINDS, rng), until: now + SHORT_H * 3600 });
   }
 
@@ -114,11 +130,12 @@ export class Mind {
    * He did something at a place of map class `kind` at `now`, with a mishap
    * or not. Wants of that kind come true (a "face" want only with no mishap,
    * which also beats the fear); a mishap rattles him, wants him to shake it
-   * off and may leave a fear. Returns what came true and the feed lines.
+   * off and may leave a fear. Returns what came true, the feed lines and whether a new fear came.
    */
-  did(kind: string, mishap: boolean, now: number, rng: Rng): { met: Want[]; lines: string[] } {
+  did(kind: string, mishap: boolean, now: number, rng: Rng): { met: Want[]; lines: string[]; feared: boolean } {
     const met: Want[] = [];
     const lines: string[] = [];
+    let feared = false;
     for (const w of this.wants) {
       if (w.place !== kind || (w.kind === "face" && mishap)) continue;
       met.push(w);
@@ -140,12 +157,13 @@ export class Mind {
       if (!this.fears.includes(kind) && this.fears.length < MAX_FEARS && !met.length && rng.randf() < FEAR_CHANCE) {
         this.fears.push(kind);
         this.wants = this.wants.filter((w) => w.place !== kind);
-        this.wants.push({ kind: "face", place: kind, until: 0 });
+        this.wants.push({ kind: "face", place: kind, until: now + LONG_H * 3600 });
         this.feel(`Scared of the ${noun(kind)}`, "😨", ...SHAKEN, "tense");
-        lines.push(`😨 Now he is wary of ${noun(kind)}s`);
+        feared = true;
+        lines.push(`😨 Now he is wary of ${plural(noun(kind))}`);
       }
     }
-    return { met, lines };
+    return { met, lines, feared };
   }
 
   toJSON() {

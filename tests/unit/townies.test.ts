@@ -45,6 +45,20 @@ describe("townies", () => {
     expect(started().roll("2026-10-02", [local()], "", [big], [], fixed(0))).toBe(`${T.LETTER_MARK} A letter from Ana in Sofia: "We got married!"`);
   });
 
+  it("puts a big news letter in his mailbox too", () => {
+    const s = new Stats();
+    s.townNews = [big];
+    s.friends.list = [local()];
+    let t = Math.floor(new Date(2026, 9, 2, 23, 59).getTime() / 1000);
+    s.now = () => t;
+    s.passTime(1, 0);
+    for (let d = 3; d < 60 && !s.townies.done[local().id]; d++) {
+      t = Math.floor(new Date(2026, 9, d, 0, 1).getTime() / 1000);
+      s.passTime(1, 0);
+    }
+    expect(s.mail.letters.map((l) => [l.from, l.city, l.text])).toEqual([["Ana", "Sofia, Bulgaria", "We got married!"]]);
+  });
+
   it("moves a friend to a city he has been to, where he may meet them from then on; no move with nowhere to go", () => {
     const ana = local();
     expect(started().roll("2026-10-02", [ana], "", [move], ["Sofia, Bulgaria"], fixed(0))).toBe("");

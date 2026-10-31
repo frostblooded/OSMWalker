@@ -5,6 +5,7 @@ import { catchUp, type AwayCity } from "../../src/core/catchup";
 import { bboxAround } from "../../src/core/geo";
 import * as Q from "../../src/core/quests";
 import { Rng } from "../../src/core/rng";
+import { PRACTICE_MIN, QUEST_PRACTICE_MIN } from "../../src/core/skills";
 import { ATTRS, Stats, type Place } from "../../src/core/stats";
 import { parseAirports, parseCities, Trips } from "../../src/core/trips";
 import { dataFile } from "../support/data";
@@ -55,11 +56,17 @@ describe("the quest bank", () => {
   });
 
   it("catches bad data", () => {
-    const bad: Q.Bank = { names: ["A"], quests: [one({ steps: [{ at: ["moon"], say: [] }] })], events: [{ ...BANK.events[0]!, next: { win: "nope" } }] };
+    const odd = "juggling" as Q.Reward["skill"];
+    const bad: Q.Bank = {
+      names: ["A"],
+      quests: [one({ steps: [{ at: ["moon"], say: [] }], reward: { skill: odd } })],
+      events: [{ ...BANK.events[0]!, next: { win: "nope" }, lose: { say: "x", skill: odd } }],
+    };
     const out = Q.check(bad, new Set(Object.keys(ACTIONS)), ATTRS);
     expect(out.join("\n")).toMatch(/no place key moon/);
     expect(out.join("\n")).toMatch(/two steps/);
     expect(out.join("\n")).toMatch(/no follow-up nope/);
+    expect(out.filter((l) => l.endsWith("skill juggling"))).toHaveLength(2);
   });
 });
 
@@ -267,6 +274,18 @@ describe("going on a quest", () => {
     expect(Q.questGoal(f.s, town, HERE, new Rng(4))).toBe(tower);
   });
 
+  it("a quest that teaches trains its skill when it ends well", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [one({ reward: { eur: 10, skill: "cooking" } })], events: [] });
+    s.quests.roll("Testville", 300_000, TOWN, new Rng(3));
+    const low = { randf: () => 0, randiRange: (lo: number) => lo, pick: <T>(l: readonly T[]) => l[0]! } as unknown as Rng;
+    for (let i = 0; i < Q.QUEST_EVERY_MAX; i++) Q.questStop(s, TOWN[4]!, TOWN, 12, low);
+    const giver = Q.questGoal(s, TOWN, HERE, low)!;
+    Q.questStop(s, giver, TOWN, 12, low);
+    Q.questStop(s, Q.questGoal(s, TOWN, HERE, low)!, TOWN, 12, low);
+    expect(s.quests.finished).toBe(1);
+    expect(s.skills.steps.cooking).toBe(QUEST_PRACTICE_MIN / PRACTICE_MIN);
+  });
+
   it("can fail at its middle step: it ends early, with no reward", () => {
     const three = one({ steps: [{ at: ["post"], say: ["Start at {PLACE}."] }, { at: ["cafe"], say: ["Middle at {PLACE}."] }, { at: ["library"], say: ["End at {PLACE}."] }] });
     const f = fresh({ names: ["Ana"], quests: [three], events: [] });
@@ -447,6 +466,16 @@ describe("world events", () => {
     const low = { randf: () => rolls.shift() ?? 0, randiRange: (lo: number) => lo, pick: <T>(l: readonly T[]) => l[0]! } as unknown as Rng;
     Q.questStop(s, park, TOWN, 12, low);
     expect(s.quests.events.map((e) => e.kind)).toEqual(["f"]);
+  });
+
+  it("can teach: a skill like an hour's practice, and hours in the local language", () => {
+    const { s } = fresh({ names: ["Ana"], quests: [], events: [ev({ win: { say: "Won.", skill: "chess", lang: 2 }, lose: { say: "Lost.", skill: "chess", lang: 2 } })] });
+    const park = TOWN.find((p) => p.class === "park")!;
+    Q.startEvent(s, null, park, TOWN, 12, new Rng(8));
+    const hours = s.languages.hours[s.lang()] ?? 0;
+    Q.questStop(s, park, TOWN, 12, new Rng(8));
+    expect(s.skills.steps.chess).toBe(QUEST_PRACTICE_MIN / PRACTICE_MIN);
+    expect(s.languages.hours[s.lang()]).toBe(hours + 2);
   });
 
   it("honour their time of day", () => {

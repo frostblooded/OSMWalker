@@ -126,6 +126,9 @@ export class SaveFile {
       const walker = Walker.fromJSON(d.walker);
       if (walker.fromNode === null || !walker.graph.hasNode(walker.fromNode)) return "The saved game had no spot for him; starting over";
       walker.bounds ??= cityBounds(d.origin[0], d.origin[1]);
+      const stats = Stats.fromJSON(d.stats);
+      // A save from before life stages: he has walked what his walker has, so his letter one day counts it.
+      if (!d.stats.life) stats.life.km = walker.totalM / 1000;
       return {
         city: d.city,
         country: d.country || "",
@@ -135,9 +138,9 @@ export class SaveFile {
         walker,
         // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
         // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
-        // his bond with you, golden bricks, his life story (the firsts already past marked done), records, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) and his visas (none: every country starts on Tourist),, his mind (no moodlets or fears; fresh wants on the next tick; an old Rattled or Scared moodlet counts towards Tense), skills (all 0), his pantry (empty), languages (English; the country he is in next becomes his own), his tastes (rolled on the next tick) and lifetime rewards (no points or perks).
+        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick; an old Rattled or Scared moodlet counts towards Tense), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), his bucket list (empty, filled on the next new day), his tastes (rolled on the next tick) and lifetime rewards (no points or perks).
         // The day's stops that older saves carry are dropped.
-        stats: Stats.fromJSON(d.stats),
+        stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
         savedAt: d.saved_at ?? 0,
         made: d.made_places ?? {},

@@ -1,0 +1,18 @@
+{
+  "letters": [
+    "Dear friend, {PLACE} isn't the same without you. Come back to {CITY} soon! {NAME}",
+    "Hi! I sat at our table at {PLACE} today and thought of you. Where are you now? {NAME}",
+    "{CITY} is rainy and slow. Remember {PLACE}? I still laugh about it. Write back! {NAME}",
+    "Guess who asked about you at {PLACE}? Everyone. Safe travels. {NAME}",
+    "Found a postcard of {PLACE} and had to send you something. Don't forget us in {CITY}. {NAME}",
+    "Quick note: I'm learning to cook, and it's your fault, after {PLACE}. {NAME}"
+  ],
+  "gifts": [
+    { "name": "a little flower", "icon": "🌷", "fx": { "mood": 10 }, "line": "A little flower in a jam jar" },
+    { "name": "a lucky coin", "icon": "🪙", "fx": { "luck": 0.5 }, "line": "An old coin, polished bright, for luck" },
+    { "name": "homemade cake", "icon": "🍰", "fx": { "fullness": 30, "mood": 5 }, "line": "A slice of homemade cake, wrapped in paper" },
+    { "name": "a good book", "icon": "📖", "fx": { "xp": 40, "mood": 5 }, "line": "A dog-eared book with a note inside" },
+    { "name": "a cat", "icon": "🐈", "fx": { "mood": 15 }, "line": "A cat waiting for him, who stays for a cuddle and then leaves" },
+    { "name": "a bottle of water", "icon": "💧", "fx": { "thirst": 30 }, "line": "A cold bottle of water, with a smiley drawn on it" }
+  ]
+}

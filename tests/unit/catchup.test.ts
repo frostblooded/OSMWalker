@@ -1,4 +1,5 @@
 // The catch-up on its own: a small fake city, the real actions and fixed dice.
+import { BUSINESSES } from "../../src/core/business";
 import { describe, expect, it } from "vitest";
 import { Activities } from "../../src/core/activities";
 import { catchUp, legM, MADE_UP_KINDS, MAX_AWAY_S, type AwayCity, type CatchUpDeps } from "../../src/core/catchup";
@@ -10,7 +11,7 @@ import { FIRST_VISIT_XP, HOSPITAL_FEE, Stats, visitKey, type Place } from "../..
 import { skyAt } from "../../src/core/sky";
 import { HITCH_BELOW, HOSTEL_CENTS, LONG_WALK_MAX_S, parseAirports, parseCities, ROAD_FACTOR, Trips } from "../../src/core/trips";
 import * as Items from "../../src/core/items";
-import { signed } from "../../src/core/money";
+import { SPOT_MIN } from "../../src/core/spot";
 import { dataFile } from "../support/data";
 
 const CITIES = "Bigtown\tAAA\tA-land\t0.0\t0.0\t1000000\nNexttown\tAAA\tA-land\t1.0\t0.0\t500000\nFarcity\tBBB\tB-land\t10.0\t10.0\t3000\n";
@@ -190,6 +191,8 @@ describe("catch-up", () => {
     expect(s.end.city.places).toBeNull();
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
+    // Where he landed, so an heir could set out there (see Game.retire).
+    expect(stats.life.cityAt["Nexttown, A-land"]).toEqual(s.end.city.center);
     // He paid the fare (his wages that day may come to more).
     expect(s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text).toMatch(/\(-€[\d.]+\)$/);
   });
@@ -201,6 +204,17 @@ describe("catch-up", () => {
     const s = catchUp(stats, HOME, [0, 0], 6 * 3600, START_MS, deps());
     expect(stats.languages.level("A-land's language")).toBeGreaterThanOrEqual(2);
     expect(s.lines.some((l) => l.text === "🗣 A-land's language: now basic")).toBe(true);
+  });
+
+  it("counts what his businesses and the lottery brought in while away, for the card", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown", "AAA", "A-land");
+    stats.business.buy(BUSINESSES[1]!, "Bigtown", 0);
+    stats.business.earned = 5000;
+    const s = catchUp(stats, HOME, [0, 0], 30 * 3600, START_MS, deps());
+    expect(s.takings).toBeGreaterThan(0);
+    expect(s.takings).toBe(stats.business.earned - 5000);
+    expect(s.lotteryWon).toBe(stats.lottery.won);
   });
 
   it("lands jet-lagged after a flight, as in a watched trip", () => {
@@ -223,6 +237,42 @@ describe("catch-up", () => {
     };
     expect(away(false).some((t) => t.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(away(true).some((t) => t.startsWith("Took the plane to Farcity"))).toBe(true);
+  });
+
+  it("a share of his trips go home, as in a watched trip", () => {
+    const home = (stats: Stats) => stats.home.rent("Farcity, B-land", "BBB", [10, 10], 0);
+    const went = Array.from({ length: 20 }, (_, i) => {
+      const stats = new Stats();
+      stats.cents = 500_000;
+      home(stats);
+      let rolls = 0;
+      return catchUp(stats, HOME, [0, 0], 3600, START_MS + i * 60_000, deps({ roll: () => (rolls++ ? 0.99 : 0.05) })).lines.some((l) => l.text.startsWith("Took the plane to Farcity"));
+    });
+    expect(went).toContain(true);
+    expect(went).toContain(false);
+  });
+
+  it("someone greets him at real places while he is away, where he is known", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown, A-land", "AAA", "A-land");
+    stats.fame.add(stats.here(), 1000);
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
+    const s = catchUp(stats, HOME, [0, 0], 24 * 3600, START_MS, deps());
+    expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(true);
+  });
+
+  it("no one greets him at made-up places while he is away, as in the watched game", () => {
+    const stats = new Stats();
+    stats.arrive("Bigtown, A-land", "AAA", "A-land");
+    stats.fame.add(stats.here(), 1000);
+    // A deck that never plays, so a stop gets as far as the greeting.
+    stats.incidents = [{ id: "x", icon: "", tone: "odd", text: "", say: "" }];
+    stats.story.tension = 0;
+    for (const places of [null, []]) {
+      const s = catchUp(stats, { ...HOME, places }, [0, 0], 24 * 3600, START_MS, deps());
+      expect(s.lines.some((l) => l.text.startsWith("👋"))).toBe(false);
+    }
   });
 
   it("packs a travel kit as he boards, as in a watched trip", () => {
@@ -293,6 +343,34 @@ describe("catch-up", () => {
       return n;
     };
     expect(firstAtNew(true)).toBeGreaterThan(firstAtNew(false));
+  });
+
+  it("his spot pulls him in the morning, as in a watched walk", () => {
+    const firstAtSpot = (spot: boolean) => {
+      let n = 0;
+      for (let i = 0; i < 30; i++) {
+        const stats = new Stats();
+        stats.where = { city: HOME.name, code: "AAA", country: "A-land" };
+        const two = PLACES[1]!;
+        if (spot) stats.spots.cities[HOME.name] = [{ name: two.name, lat: two.lat, lon: two.lon, n: SPOT_MIN, t: 1 }];
+        const s = catchUp(stats, HOME, [0, 0], 1800, START_MS, deps({ rng: new Rng(i) }));
+        if (s.lines.find((l) => l.text.startsWith("Reached"))?.text.startsWith("Reached Cafe Two")) n++;
+      }
+      return n;
+    };
+    expect(firstAtSpot(true)).toBeGreaterThan(firstAtSpot(false));
+  });
+
+  it("the visit that makes his spot already gets the regular's discount, as in a watched walk", () => {
+    const museum = place("Grand Museum", "museum", "museum", 0.0045, 0);
+    const city: AwayCity = { ...HOME, places: [museum] };
+    const stats = new Stats();
+    stats.where = { city: city.name, code: "AAA", country: "A-land" };
+    stats.spots.cities[city.name] = [{ name: museum.name, lat: museum.lat, lon: museum.lon, n: SPOT_MIN - 1, t: 1 }];
+    const s = catchUp(stats, city, [0, 0], 3600, START_MS, deps({ activities: new Activities({ museum: [{ name: "Look", min: 1, cost: 10 }] }) }));
+    const texts = s.lines.map((l) => l.text);
+    expect(texts[0]).toContain("Grand Museum is his spot now");
+    expect(texts.find((t) => t.startsWith("Look"))).toBe("Look at Grand Museum (-€9)");
   });
 
   it("stays put while a need is urgent", () => {
@@ -378,17 +456,22 @@ describe("catch-up", () => {
     const away = (seed: number, s: number) => {
       const stats = new Stats();
       stats.cents = 100_000;
+      // His money as each line is said, to see what the hostels cost him apart from his shifts.
+      const paid: [string, number][] = [];
+      const say = stats.say.bind(stats);
+      stats.say = (line: string) => (paid.push([line, stats.cents]), say(line));
       let rolls = 0;
-      return { stats, lines: catchUp(stats, HOME, [0, 0], s, START_MS, deps({ trips: near, rng: new Rng(seed), roll: () => (rolls++ ? 0.99 : 0.1) })).lines.map((l) => l.text) };
+      return { paid, lines: catchUp(stats, HOME, [0, 0], s, START_MS, deps({ trips: near, rng: new Rng(seed), roll: () => (rolls++ ? 0.99 : 0.1) })).lines.map((l) => l.text) };
     };
     let seed = 1;
     while (seed < 60 && !away(seed, 6 * 3600).lines.some((l) => l.startsWith("Setting off on foot"))) seed++;
-    const { lines } = away(seed, 6 * 3600);
+    const { lines, paid } = away(seed, 6 * 3600);
     expect(lines.some((l) => l.startsWith("Setting off on foot for Neartown"))).toBe(true);
     expect(lines.some((l) => /^Walked out of town towards Neartown, A-land \(-€20 for hostels\)$/.test(l))).toBe(true);
     expect(lines.some((l) => /^Walked \d+ km to Neartown, A-land, sleeping in 1 hostel on the way$/.test(l))).toBe(true);
-    // The hostels are paid up front; shifts on the way may earn it back, so the line, not his money, tells.
-    expect(lines).toContain(`Walked out of town towards Neartown, A-land (${signed(-HOSTEL_CENTS)} for hostels)`);
+    // Between the line before and the hostel line, his money drops by the hostels.
+    const out = paid.findIndex(([l]) => l.startsWith("Walked out of town"));
+    expect(paid[out - 1]![1] - paid[out]![1]).toBe(HOSTEL_CENTS);
     // The same dice with too little time left: he doesn't set off.
     expect(away(seed, LONG_WALK_MAX_S - 60).lines.some((l) => l.startsWith("Walked out of town"))).toBe(false);
   });
