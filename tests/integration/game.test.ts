@@ -8,7 +8,8 @@ import { EXPLORE_PULL } from "../../src/core/activities";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
-import { visitKey, type Place } from "../../src/core/stats";
+import { type Place, Stats, visitKey } from "../../src/core/stats";
+import { MOMENT_S } from "../../src/core/moments";
 import * as R from "../../src/core/repute";
 import { Game, RIVAL_OFFSET_DEG, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { look } from "../../src/game/hud";
@@ -332,8 +333,86 @@ describe("game", () => {
     while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
     g.stats.now = () => t;
     run(g, 400);
+    await tick();
     expect(g.stats.creatures.met).toEqual({ dryad: 1 });
-    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Listened to a dryad's stories in Park Near");
+    // Untouched, the timed choice runs out and he takes her stories himself.
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
+  });
+
+  it("asks you about a creature as a timed choice, and that stop asks nothing else", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    // The park's own moment skips this visit, not even settled by himself, so he walks on without another question.
+    const places: string[] = [];
+    const settle = g.stats.settleMoment.bind(g.stats);
+    g.stats.settleMoment = (m, ...rest) => {
+      places.push(m.id);
+      return settle(m, ...rest);
+    };
+    for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+    expect(g.moment!.m.id).toBe("dryad");
+    expect(g.moment!.m.ask).not.toContain("{PLACE}");
+    g.settleMoment("acorn");
+    await tick();
+    expect(g.stats.history.entries.at(-1)!.text).toBe("🌳 Got an acorn from a dryad in Park Near");
+    for (let i = 0; i < 400 && g.walker!.isResting(); i++) {
+      g.step(1);
+      if (g.moment) places.push(g.moment.m.id);
+    }
+    await tick();
+    expect(places).toEqual([]);
+  });
+
+  it("an untouched creature goes by his pick and Wits of when it asked, as away", async () => {
+    const BRIDGE: Place = { ...CAFE, name: "Old Bridge", class: "bridge", subclass: "bridge" };
+    // Several meeting times, so a pick or riddle worked out later, on his new Wits or the dice of a later time, would differ for some.
+    const lines: string[] = [];
+    for (let n = 0, t = 1_800_000_000; n < 24; t += 60) {
+      if (meetingDice(t, BRIDGE.name).randf() >= CREATURE_CHANCE) continue;
+      n++;
+      const { g } = game({ places: [BRIDGE], moments: true });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.stats.cents = 100_000;
+      // Clever enough that he sometimes tries the riddle himself.
+      g.stats.addBuff({ name: "Sharp", min: 600, attrs: { wit: 4 } });
+      let now = t;
+      g.stats.now = () => now;
+      for (let i = 0; i < 400 && !g.moment; i++) g.step(1);
+      expect(g.moment!.m.id).toBe("troll");
+      // Away, he would settle it at once on what he is now.
+      const away = Object.assign(Stats.fromJSON(JSON.parse(JSON.stringify(g.stats.toJSON()))), { creatureKinds: g.stats.creatureKinds });
+      const troll = g.stats.creatureKinds.find((c) => c.id === "troll")!;
+      const line = away.meet(troll, BRIDGE.name, away.creaturePick(troll, BRIDGE.name, t), { you: false, t, attr: (a) => away.attr(a) });
+      // Watched, his Wits fall away while the sheet is open (a riddle tried on them works only at the base odds), then the bar runs out.
+      g.stats.addBuff({ name: "Muddled", min: 600, attrs: { wit: -100 } });
+      now += MOMENT_S;
+      run(g, MOMENT_S);
+      await tick();
+      expect(g.stats.history.entries.map((e) => e.text)).toContain(line);
+      lines.push(line);
+    }
+    expect(lines.some((l) => l.includes("riddle"))).toBe(true);
+  });
+
+  it("a police chase that starts at a creature's stop answers the creature himself, so he runs on", async () => {
+    const PARK: Place = { ...CAFE, name: "Park Near", class: "park", subclass: "park" };
+    const { g } = game({ places: [PARK], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    let t = 1_800_000_000;
+    while (meetingDice(t, PARK.name).randf() >= CREATURE_CHANCE) t += 60;
+    g.stats.now = () => t;
+    let chased = 0;
+    g.stats.reputeAt = () => ++chased > 0;
+    for (let i = 0; i < 400 && !chased; i++) g.step(1);
+    expect(chased).toBe(1);
+    // No sheet holds him still: the dryad got his own pick as the chase began.
+    expect(g.moment).toBeNull();
+    await tick();
+    expect(g.stats.history.entries.map((e) => e.text)).toContain("🌳 Decided by himself: Listened to a dryad's stories in Park Near");
   });
 
   it("works out the ley lines from the loaded places and fills Magic as he walks along one", async () => {
