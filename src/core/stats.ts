@@ -625,8 +625,8 @@ export class Stats {
    * He retires (`by` age, or by you from the menu): the family tree keeps him
    * with his letter and life story, and an heir one generation on starts
    * with the family perk, his best worn item that isn't a vehicle, the
-   * family's keepsakes (the card binder, Placedex, souvenirs, badges) and
-   * monuments, his pet, your clovers and your storyteller. He stops in `home`,
+   * family's keepsakes (the card binder, Placedex, souvenirs, badges, creatures,
+   * giants, fairy finds, midnight finds, portals) and monuments, his pet, your clovers and your storyteller. He stops in `home`,
    * his favourite city unless its streets won't load (see game.ts retire). Changes
    * nothing of his, so the game can try again; the heir says hello once he is out.
    */
@@ -649,6 +649,12 @@ export class Stats {
     heir.bricks = this.bricks;
     heir.care = this.care;
     heir.pets = this.pets;
+    // The Collection's other finds stay with the family too.
+    heir.creatures = this.creatures;
+    heir.giants = this.giants;
+    heir.rings = this.rings;
+    heir.finds = this.finds;
+    heir.portals = this.portals;
     heir.story.style = this.story.style;
     heir.milestone("heir", `Took over from ${L.walkerName(this.life.gen)}, who retired in ${home.split(",")[0]}`);
     return { heir, ancestor };

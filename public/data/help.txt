@@ -428,12 +428,12 @@ Each stage starts the count over. You never have to do anything: he looks after 
 ## Retiring {retire}
 At the end of his elder stage, {LIFE_DAYS} days after he set out, he retires by himself: in the city he spent the most time in, his favourite. If he is on a ride, he lands first. While he is an elder you may retire him sooner from ☰ Menu → 🌅 Retire him now, but you never need to.
 
-He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. His heir then sets out from the favourite city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later. If you retire him while he is on a ride, he says he will and retires once he lands.
+He leaves his heir a farewell letter, which opens once over the map, and joins the family tree. If his time runs out while the game is closed, the catch-up stops there, and the card for the time away shows how long he lived before he retired. A Retire you asked for on a ride works the same way once he lands. His heir then sets out from the favourite city. If the streets there can't load, his heir sets out from where he is instead, and if those can't load either he walks on and tries again {RETIRE_RETRY_MIN} minute later; on a reopen the card then says he stopped to retire. If you retire him while he is on a ride, he says he will and retires once he lands.
 ## His heirs and the family {family}
-Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words or wants and fears. What the family keeps:
+Each heir is a new walker, Walker II, Walker III and so on, starting at level 1 as a backpacker with fresh meters and attributes, and none of the old walker's money, friends, rival, quests, visas, local words, wants and fears, spells and Magic, Records, or your bond with him. What the family keeps:
 - an heirloom: the old walker's strongest worn item that isn't a vehicle, with its story,
 - the family perk: +{PERK_XP_PCT} XP and {PERK_EURO} more starting money for each generation after the first, so Walker III earns +{PERK_XP_PCT_3} XP and starts with {PERK_START_3},
-- the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, and golden bricks and monuments,
+- the family's keepsakes: every card in the binder, the Placedex, souvenirs, crawls, badges and title, free packs and spares, the creatures, giants, fairy gifts, midnight finds and portals in the Collection, and golden bricks and monuments,
 - his pet, if he has one (see His pet),
 - your clovers, care packages and storyteller.
 
@@ -685,7 +685,7 @@ If the trip is called off before he boards (he can't pay, or he faints), the gue
 
 The whole card travels inside the link, after the #, so no server keeps it. When a friend opens it, their game shows "A postcard from Ivan in Sofia" (your name, or "a friend" if you left it empty), right away on the city picker, or in a game once its While you were away card and any open sheet are closed, with 📮 Send one back if they have a game going, or Start my own walk if they don't. Opening a postcard changes nothing in their game.
 ## One choice on reopen {dilemma}
-Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires brings none (see Retiring). Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
+Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." A reopen on which he retires, or is due to, brings none (see Retiring). Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
 
 When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} for each point of the attribute he leans on above 1, up to {LEAN_CAP_PCT}. Below 1 it stays even. The choices:
 {DILEMMA_LIST}
@@ -847,7 +847,7 @@ Its buttons change the game right away:
 - New country sends him straight to a city in another country.
 - ⏩ A stage older (in the 🎂 Life stage card) makes him a stage older at once; as an elder it makes him due to retire (see Life stages).
 
-The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires (see One choice on reopen), for testing. The switch is remembered.
+The 🤔 Dilemmas switch, "One on every long reopen", makes every reopen after {DILEMMA_AWAY_H} hours bring a choice, except one on which he retires or is due to (see One choice on reopen), for testing. The switch is remembered.
 ## New city {new_city}
 New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (stats, money, gear, bag, History and the goal-pick log), you have to type RESET in capitals and confirm.
 

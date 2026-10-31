@@ -234,6 +234,26 @@ describe("retiring", () => {
     expect(heir.now()).toBe(t.now);
   });
 
+  it("the Collection's other finds stay with the family; spells, Magic, Records and your bond start fresh", () => {
+    const t = { now: T0 };
+    const s = him(t);
+    s.creatures.met.troll = 1;
+    s.giants.seen.nessie = 1;
+    s.rings.gifts.push("acorn");
+    s.finds.got.push("lantern");
+    s.portals.went.push("p1");
+    s.lore.known.push("glow");
+    s.bond.trust = 90;
+    const { heir } = s.retire("age");
+    expect(heir.creatures.met).toEqual({ troll: 1 });
+    expect(heir.giants.seen).toEqual({ nessie: 1 });
+    expect(heir.rings.gifts).toEqual(["acorn"]);
+    expect(heir.finds.got).toEqual(["lantern"]);
+    expect(heir.portals.went).toEqual(["p1"]);
+    expect(heir.lore.known).toEqual([]);
+    expect(heir.bond.trust).toBe(new Stats().bond.trust);
+  });
+
   it("with no gear he leaves no heirloom", () => {
     const t = { now: T0 };
     const s = him(t);

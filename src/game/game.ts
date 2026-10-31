@@ -750,13 +750,17 @@ export class Game {
       const shortWait = () => new Promise<null>((r) => setTimeout(() => r(null), DILEMMA_WAIT_MS));
       const [D] = await Promise.all([Promise.race([dilemmas, shortWait()]), Promise.race([this.loadIso2(), shortWait()])]);
       await this.catchUp(Math.min(awayS, MAX_AWAY_S), awayS, from);
-      // His elder stage ran out while you were away: the catch-up stopped there, and the heir sets out now.
-      // Aged to now first, since time past the catch-up's limit counts towards his life too.
-      this.stats.passTime(0, 0);
-      if (this.stats.life.retireDue) await this.retire("age", true);
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
-      this.dilemma = this.retired
+      // His elder stage ran out while you were away (or you asked on a ride): the catch-up stopped there, and the heir sets out now.
+      // Aged to now first, since time past the catch-up's limit counts towards his life too.
+      this.stats.passTime(0, 0);
+      const old = this.stats;
+      if (old.life.retireDue || old.life.asked) await this.retire(old.life.asked ? "you" : "age", true);
+      const retired = this.stats !== old;
+      if (retired && this.away) this.away.retire = "done";
+      // A reopen on which he retires, or will once streets load, brings no dilemma.
+      this.dilemma = retired || this.away?.retire
         ? null
         : D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.

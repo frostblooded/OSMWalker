@@ -112,7 +112,7 @@ export function Farewell({ a, gen, onDone }: { a: L.Ancestor; gen: number; onDon
       <Card icon="🌱" title={`${L.walkerName(gen)} sets out`} right={short(a.home)}>
         <KV k="🎁 Heirloom" v={a.heirloom || <span class="dim">None</span>} />
         <KV k="👪 Family perk" v={`XP +${Math.round(L.PERK_XP * (gen - 1) * 100)}% · ${euro(L.PERK_CENTS * (gen - 1))} more to start`} />
-        <KV k="🗂 Kept" v="cards, Placedex, souvenirs, badges, monuments, clovers" />
+        <KV k="🗂 Kept" v="the Collection, monuments, his pet, your clovers, care packages and storyteller" />
         <button class="btn primary" onClick={onDone}>
           Carry on
         </button>

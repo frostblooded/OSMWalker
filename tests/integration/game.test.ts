@@ -16,6 +16,7 @@ import { NO_NEED } from "../../src/core/goals";
 import * as Items from "../../src/core/items";
 import { FAIRY_CHANCE, FAIRY_FROM_H } from "../../src/core/fairy";
 import { ELDER, LIFE_S, PERK_CENTS } from "../../src/core/life";
+import { TRUST_START } from "../../src/core/bond";
 import { PORTAL_CHANCE } from "../../src/core/portals";
 import { Rng, seedOf } from "../../src/core/rng";
 import { FULLNESS_PER_H, ON_THE_TRAIL, type Place } from "../../src/core/stats";
@@ -987,6 +988,19 @@ describe("game", () => {
       expect(g.away).toBeNull();
     });
 
+    it("a later reopen still rolls a dilemma while the farewell letter waits to be read", async () => {
+      let now = Date.now();
+      const { g } = await elder(-1, { clock: () => now });
+      run(g, 1);
+      await settled(g);
+      expect(g.retired).not.toBeNull();
+      g.setAlwaysDilemma(true);
+      g.save();
+      now += 5 * 3600 * 1000;
+      await g.wake();
+      expect(g.dilemma).not.toBeNull();
+    });
+
     it("a Retire from the menu that can't load streets is kept and done on a later try", async () => {
       const ok = streets().load;
       let down = false;
@@ -1093,8 +1107,48 @@ describe("game", () => {
       expect(again.stats.life.gen).toBe(2);
       expect(again.dilemma).toBeNull();
       // The card says he lived only until then, and that he retired.
-      expect(again.away!.retired).toBe(true);
+      expect(again.away!.retire).toBe("done");
       expect(again.away!.coveredS).toBeLessThan(3 * 3600);
+    });
+
+    it("asked to retire on a ride and closed, he retires on reopen without living the time away", async () => {
+      const { again } = await reopen(6 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 10 * 86400;
+        g.stats.life.asked = true;
+      });
+      expect(again.retired?.by).toBe("you");
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.away!.retire).toBe("done");
+      expect(again.away!.coveredS).toBe(0);
+      expect(again.away!.stops).toBe(0);
+      expect(again.dilemma).toBeNull();
+    });
+
+    it("when he is due to retire but no streets load, the card says so and he retires later, with no dilemma", async () => {
+      let down = false;
+      const ok = streets().load;
+      const { again } = await reopen(6 * HOUR, { load: (t, o) => (down ? Promise.resolve({ error: "HTTP 503" }) : ok(t, o)) }, (g) => {
+        g.setAlwaysDilemma(true);
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 2 * 3600;
+        down = true;
+      });
+      expect(again.retired).toBeNull();
+      expect(again.stats.life.gen).toBe(1);
+      expect(again.away!.retire).toBe("soon");
+      expect(again.away!.coveredS).toBeLessThan(3 * 3600);
+      expect(again.dilemma).toBeNull();
+    });
+
+    it("the heir's bond with you doesn't fade for days away before he set out", async () => {
+      const { again } = await reopen(96 * HOUR, {}, (g) => {
+        g.stats.life.stage = ELDER;
+        g.stats.life.born = Date.UTC(2026, 9, 29, 8) / 1000 - LIFE_S + 2 * 3600;
+      });
+      expect(again.stats.life.gen).toBe(2);
+      expect(again.stats.bond.trust).toBe(TRUST_START);
     });
 
     it("when his elder stage runs out past the catch-up's limit, he still retires on reopen, with no dilemma", async () => {
