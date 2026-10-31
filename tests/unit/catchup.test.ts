@@ -191,6 +191,8 @@ describe("catch-up", () => {
     expect(s.end.city.places).toBeNull();
     expect(s.lines.some((l) => l.text.startsWith("Took the bus to Nexttown"))).toBe(true);
     expect(s.lines.some((l) => l.text === "Arrived in Nexttown, A-land")).toBe(true);
+    // Where he landed, so an heir could set out there (see Game.retire).
+    expect(stats.life.cityAt["Nexttown, A-land"]).toEqual(s.end.city.center);
     // He paid the fare (his wages that day may come to more).
     expect(s.lines.find((l) => l.text.startsWith("Took the bus to Nexttown"))!.text).toMatch(/\(-€[\d.]+\)$/);
   });

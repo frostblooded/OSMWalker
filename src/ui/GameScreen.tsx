@@ -13,6 +13,7 @@ import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
 import { MODES } from "../core/trips";
+import { ELDER, walkerName } from "../core/life";
 import { STYLE } from "../core/storyteller";
 import type { Postcard } from "../core/postcard";
 import { MapView } from "../map/mapView";
@@ -30,7 +31,7 @@ const UI_HZ = 4;
 /** The night shade's opacity moves in steps this big, so it is restyled rarely. */
 const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "diary" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "story" | null;
+type Sheet = "menu" | "history" | "diary" | "stats" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
 
 export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -236,6 +237,11 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => game.nextStoryteller()}>
               {STYLE[s.story.style].icon} Storyteller <span class="pill">{STYLE[s.story.style].name}</span>
             </button>
+            {s.life.stage === ELDER && !s.life.asked && (
+              <button class="btn" onClick={() => setSheet("retire")}>
+                🌅 Retire him now
+              </button>
+            )}
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city
             </button>
@@ -314,6 +320,24 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
       {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
+      {sheet === "retire" && (
+        <RetireSheet
+          heir={walkerName(s.life.gen + 1)}
+          home={s.life.favourite(s.where.city).split(",")[0]!}
+          onCancel={() => setSheet(null)}
+          onConfirm={() => {
+            setSheet(null);
+            void game.retire("you");
+          }}
+        />
+      )}
+      {game.retired && !game.away && sheet === null && (
+        <SheetBox title="✉ A farewell letter" onClose={() => game.dismissRetired()} full>
+          <Lazy load={() => import("./Family")} what="the farewell letter">
+            {(m) => <m.Farewell a={game.retired!} gen={s.life.gen} onDone={() => game.dismissRetired()} />}
+          </Lazy>
+        </SheetBox>
+      )}
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
           <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
@@ -522,6 +546,23 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
       </header>
       <div class="body">{children}</div>
     </section>
+  );
+}
+
+/** Retiring him early, from the menu while he is an elder; he would retire by himself at the end of the stage. */
+function RetireSheet({ heir, home, onCancel, onConfirm }: { heir: string; home: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <SheetBox title="🌅 Retire him now?" onClose={onCancel}>
+      <Card icon="🌱" title={`${heir} sets out`} right={home}>
+        <p class="dim">He settles in {home}, and his heir sets out from there with his heirloom. He retires by himself at the end of this stage anyway.</p>
+        <button class="btn danger" onClick={onConfirm}>
+          Retire
+        </button>
+        <button class="btn" onClick={onCancel}>
+          Keep walking
+        </button>
+      </Card>
+    </SheetBox>
   );
 }
 

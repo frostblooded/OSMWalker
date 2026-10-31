@@ -30,7 +30,8 @@ export const rollFinish = (r: number): Finish => (r < GOLD_CHANCE ? "gold" : r <
 
 /** Newest cards the Collection sheet draws when the list opens; its counts cover them all. */
 export const CARDS_SHOWN = 60;
-export type Card = { name: string; kind: string; city: string; rarity: Rarity; finish: Finish; t: number };
+/** `gen`: the walker of the family who found it (see life.ts), missing for the first. */
+export type Card = { name: string; kind: string; city: string; rarity: Rarity; finish: Finish; t: number; gen?: number };
 
 /** Bonus XP the first time he sees a place kind, by its Placedex rarity. */
 export const DEX_XP: Record<Rarity, number> = { Common: 10, Uncommon: 30, Rare: 80, Legendary: 200 };

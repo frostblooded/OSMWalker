@@ -117,6 +117,8 @@ export type Summary = {
   lotteryWon: number;
   /** "Bought ..." lines. */
   bought: string[];
+  /** He was due to retire (his elder stage ran out, or you asked on a ride), so the catch-up stopped there (coveredS is up to then): "soon", or "done" once the game has retired him. */
+  retire?: "soon" | "done";
   /** Everything he did, oldest first. */
   lines: Line[];
   /** Where he is at the end: the city, the spot and the place he stays at (null for a made-up place or none). */
@@ -218,6 +220,8 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
   try {
     stats.history.breakTrail();
     while (leftMin() > 0) {
+      // His elder stage ran out, or you asked: the game retires him, and his heir starts on the real clock.
+      if (stats.life.retireDue || stats.life.asked) break;
       // His dragon eats before each leg, as before each step of a watched walk, so a fed one flies it.
       stats.feedDragon(rng);
       if (tryTrip()) continue;
@@ -293,7 +297,10 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
       pass(Math.min(restMinutes(action ?? { name: "", min: 1 }), leftMin()), 0);
       yield;
     }
-    if (leftMin() > 0) pass(leftMin(), 0);
+    if (stats.life.retireDue || stats.life.asked) {
+      s.retire = "soon";
+      s.coveredS = Math.min(elapsed, coveredS);
+    } else if (leftMin() > 0) pass(leftMin(), 0);
   } finally {
     stats.now = clock;
     stats.onSay = heard;
@@ -352,6 +359,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
     city = { name: cityKey(dest), code: dest.code, center: [dest.lat, dest.lon], bounds: dest.bounds ?? cityBounds(dest), places: null };
     facts = [];
     s.cities.push(city.name);
+    stats.life.mark(city.name, city.center);
     stats.arrive(city.name, dest.code, dest.country);
     stats.week.city(city.name);
     moveTo(null, at);

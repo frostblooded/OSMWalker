@@ -35,6 +35,7 @@ import * as Guess from "../core/guess";
 import * as History from "../core/history";
 import * as Items from "../core/items";
 import * as Jokes from "../core/jokes";
+import * as Life from "../core/life";
 import * as Snap from "./snap";
 import * as CC from "../core/cityCards";
 import * as K from "../core/keepsakes";
@@ -231,6 +232,15 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   return [...names].join(", ");
 }
 
+/** What a life stage changes, in words. */
+function stageText(st: Life.Stage): string {
+  const out = [];
+  if (st.speed !== 1) out.push(`gets about ${pct(Math.abs(st.speed - 1))} ${st.speed < 1 ? "slower" : "faster"}`);
+  if (st.xp !== 1) out.push(`${pct(st.xp - 1)} more XP from what he does`);
+  if (st.wage !== 1) out.push(`${pct(st.wage - 1)} more pay`);
+  return out.join(", ") || "where everyone starts, with no changes";
+}
+
 export function values(data: GameData): Record<string, string> {
   const s = new S.Stats();
   const incidents = data.incidents ?? [];
@@ -332,6 +342,23 @@ export function values(data: GameData): Record<string, string> {
     TRINKET_LIST: Midnight.TRINKETS.map((t) => `- ${t.icon} ${t.name}, ${euro(t.cents)}${t.magic ? ` and ${num(t.magic)} Magic` : ""}: ${Gifts.effect(t)}`).join("\n"),
     MONUMENT_LIST: Bricks.MONUMENTS.map((m) => `- ${m.icon} A ${m.name}: ${num(m.bricks)} bricks`).join("\n"),
     LEVEL_MARKS: Chron.LEVEL_MARKS.join(", "),
+    STAGE_DAYS: num(Life.STAGE_DAYS),
+    STAGE_COUNT: num(Life.STAGES.length),
+    LIFE_DAYS: num(Life.LIFE_S / Life.DAY_S),
+    STAGE_LIST: Life.STAGES.map((st, i, all) => `- ${st.icon} ${st.name}: ${stageText(st)}${st.attr ? `; his care in the stage before nudges ${Inc.ATTR_NAMES[st.attr]}` : ""}${i === all.length - 1 ? "." : ","}`).join("\n"),
+    GOOD_STARVE_H: num(Life.GOOD_STARVE_H),
+    POOR_FAINTS: num(Life.POOR_FAINTS),
+    POOR_STARVE_H: num(Life.POOR_STARVE_H),
+    GOOD_NUDGE: num(Life.TIERS.good.nudge),
+    POOR_NUDGE_ABS: num(-Life.TIERS.poor.nudge),
+    RETIRE_RETRY_MIN: num(G.RETIRE_RETRY_MS / 60_000),
+    PERK_XP_PCT: pct(Life.PERK_XP),
+    PERK_EURO: euro(Life.PERK_CENTS),
+    PERK_XP_PCT_3: pct(2 * Life.PERK_XP),
+    PERK_START_3: euro(S.START_CENTS + 2 * Life.PERK_CENTS),
+    ELDER_SPEED_PCT: pct(1 - Life.STAGES[Life.ELDER]!.speed),
+    SETTLED_WAGE_PCT: pct(Life.STAGES[1].wage - 1),
+    STAGE_XP: Life.STAGES.filter((st) => st.xp !== 1).map((st) => `×${st.xp} as ${Life.withArticle(st.name).toLowerCase()}`).join(", "),
     COUNTRY_MARKS: Chron.COUNTRY_MARKS.join(", "),
     TRUST_MAX: num(Bond.TRUST_MAX),
     TRUST_START: num(Bond.TRUST_START),
