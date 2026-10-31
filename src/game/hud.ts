@@ -121,8 +121,10 @@ export function look(g: Game): Looks.Look {
   const w = g.walker!;
   const pet = g.stats.pets.icon();
   const aura = Looks.aura(g.stats.bond.lean);
-  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "", pet, ...(aura ? { aura } : {}) };
-  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout(), pet, g.stats.bond.lean);
+  const say = g.saidNow();
+  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "", pet, ...(aura ? { aura } : {}), ...(say ? { say } : {}) };
+  const l = Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout(), pet, g.stats.bond.lean);
+  return say ? { ...l, say } : l;
 }
 
 /** What the city sound plays now. */
