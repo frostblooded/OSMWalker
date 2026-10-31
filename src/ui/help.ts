@@ -259,7 +259,7 @@ function comfortLines(actions: GameData["actions"], key: "bed" | "meal", tiers: 
 }
 
 /** A moodlet's mood an hour and hours, in words. */
-const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hours`}`;
+const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hour${f[3] === 1 ? "" : "s"}`}`;
 
 /** What a life stage changes, in words. */
 function stageText(st: Life.Stage): string {
@@ -608,7 +608,7 @@ export function values(data: GameData): Record<string, string> {
     BELIEF_LIST: Beliefs.BELIEFS.map((b) => `- ${b.icon} ${b.name}: takes root at ${b.seeds.map(Mind.noun).join(" or ")}; ${[b.kinds.length ? `pulls to ${b.kinds.map(Mind.noun).join(", ")}` : "", b.likes ? `favours ${b.likes}` : ""].filter(Boolean).join(", and ")}.`).join("\n"),
     BELIEF_PULL: num(Beliefs.BELIEF_PULL),
     BELIEF_LEAN: num(Beliefs.BELIEF_LEAN),
-    BELIEF_MOOD: `+${Beliefs.BELIEF_MOOD[0]} an hour for ${Beliefs.BELIEF_MOOD[1]} hour`,
+    BELIEF_MOOD: feel(["", "", ...Beliefs.BELIEF_MOOD]),
     FADE_DAYS: String(Beliefs.FADE_DAYS),
     BED_LIST: comfortLines(data.actions, "bed", Comforts.BEDS),
     HOME_BED: `${Comforts.HOME_BED[1]} ${Comforts.HOME_BED[0]} (${feel(Comforts.HOME_BED)})`,

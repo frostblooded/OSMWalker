@@ -112,6 +112,10 @@ describe("clothes wear", () => {
     s.equip(cap);
     expect(s.bag.some((i) => i.name === "Cotton Shirt")).toBe(false);
     expect(s.tattered()).toBe(false);
+    const coat = { ...shirt(Cl.WEAR_KM), name: "Cotton Coat", story: { from: "Lisbon", t: 0, countries: ["PT", "ES", "FR"], km: 0 } };
+    s.gear.body = coat;
+    s.equip(cap);
+    expect(s.bag.some((i) => i.name === "Cotton Coat")).toBe(true); // treasured: he keeps it
   });
 
   it("tattered, its speed and Magic count for nothing too", () => {
@@ -161,7 +165,7 @@ describe("beliefs", () => {
     expect(b.lean({ cost: 5 })).toBe(1);
     const thrift = B.Beliefs.fromJSON({ held: { thrift: T0 } });
     expect(thrift.lean({ name: "Sit on a bench" } as never)).toBe(B.BELIEF_LEAN);
-    for (const buy of [{ item: "clothes" }, { midnight: true }, { bounty: true }, { steal: true }]) expect(thrift.lean(buy), JSON.stringify(buy)).toBe(1);
+    for (const buy of [{ item: "clothes" }, { midnight: true }, { bounty: true }, { steal: true }, { risk: { cost: 25 } }]) expect(thrift.lean(buy), JSON.stringify(buy)).toBe(1);
   });
 
   it("living by one keeps it; one not lived by for FADE_DAYS fades, and may come back", () => {
@@ -182,6 +186,7 @@ describe("beliefs", () => {
     s.beliefs.held = {};
     expect(weight(job, s)).toBeCloseTo(w / B.BELIEF_LEAN);
     s.beliefs.held = { hard_work: T0 };
+    expect(s.emoXpMult(job)).toBe(1); // a belief weighs, but gives no emotion XP bonus
     s.do(job, "Office", new Rng(1), "office");
     expect(feels(s)).toContain("An honest day's work");
   });

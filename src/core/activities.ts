@@ -183,7 +183,7 @@ export function weight(action: Action, stats: Stats): number {
   if (stats.saving()) {
     if (action.cost !== undefined || buys) w *= SAVING_SPEND_MULT;
   } else if (action.item && action.item === stats.vehicleGoal()?.kind) w += GOAL_SHOP_WEIGHT;
-  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * stats.emoLean(action) * harm(action, stats);
+  return w * (1 + NEED_BOOST * needScore(action, stats).score) * strengthLean(action, stats) * skillLean(action, stats) * stats.emoLean(action) * stats.beliefs.lean(action) * harm(action, stats);
 }
 
 /**

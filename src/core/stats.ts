@@ -502,7 +502,7 @@ export class Stats {
   /** EMO_PULL for an action that trains or needs his emotion's attribute, else 1. */
   emoLean(action: Action): number {
     const attr = Emo.INFO[this.emotion()].attr;
-    return (attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1) * this.beliefs.lean(action);
+    return attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1;
   }
 
   /** True while anything he wears is tattered (see clothes.ts). */
@@ -550,7 +550,7 @@ export class Stats {
   equip(item: Item): void {
     const old = this.gear[item.slot];
     this.gear[item.slot] = item;
-    if (old && Cl.isTattered(old)) this.say(`🧵 Threw away his tattered ${old.name}`);
+    if (old && Cl.isTattered(old) && !Items.isTreasured(old)) this.say(`🧵 Threw away his tattered ${old.name}`);
     else if (old) this.bagAdd(old);
   }
 

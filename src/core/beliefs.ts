@@ -17,7 +17,7 @@ export const BELIEF_MOOD: readonly [number, number] = [1, 1];
 export const FADE_DAYS = 10;
 
 /** What an action looks like to a belief. */
-export type Deed = { earn?: unknown; cost?: number; fx?: { wit?: number }; item?: unknown; midnight?: boolean; bounty?: boolean; steal?: boolean };
+export type Deed = { earn?: unknown; cost?: number; fx?: { wit?: number }; item?: unknown; midnight?: boolean; bounty?: boolean; steal?: boolean; risk?: { cost?: number } };
 /** A belief: where it takes root (`seeds`), the places it pulls him to (`kinds`), the actions it favours (`favours`), and its moodlet. */
 export type Belief = { id: string; name: string; icon: string; what: string; seeds: string[]; kinds: string[]; favours?: (d: Deed) => boolean; /** `favours` in words, for Help. */ likes?: string; treat: string };
 
@@ -25,7 +25,7 @@ export const BELIEFS: Belief[] = [
   { id: "faith", name: "Faith", icon: "🙏", what: "has found faith", seeds: ["place_of_worship"], kinds: ["place_of_worship"], treat: "At peace" },
   { id: "fresh_air", name: "Fresh air", icon: "🌿", what: "swears by fresh air", seeds: ["park", "garden"], kinds: ["park", "garden", "picnic_site"], treat: "A lungful of air" },
   { id: "hard_work", name: "Hard work", icon: "💼", what: "believes in hard work", seeds: ["office", "college"], kinds: [], favours: (d) => d.earn !== undefined, likes: "paid work", treat: "An honest day's work" },
-  { id: "thrift", name: "Thrift", icon: "🪙", what: "believes in thrift", seeds: ["shop"], kinds: [], favours: (d) => !d.cost && !d.item && !d.midnight && !d.bounty && !d.steal, likes: "what is free", treat: "Money well kept" },
+  { id: "thrift", name: "Thrift", icon: "🪙", what: "believes in thrift", seeds: ["shop"], kinds: [], favours: (d) => !d.cost && !d.risk?.cost && !d.item && !d.midnight && !d.bounty && !d.steal, likes: "what is free", treat: "Money well kept" },
   { id: "knowledge", name: "Knowledge", icon: "📚", what: "believes knowledge is power", seeds: ["library", "museum"], kinds: ["library", "museum"], favours: (d) => (d.fx?.wit ?? 0) > 0, likes: "what trains Wits", treat: "Something learned" },
   { id: "carpe_diem", name: "Carpe diem", icon: "🎉", what: "lives for the moment", seeds: ["bar", "theme_park"], kinds: ["bar", "theme_park", "water_park"], treat: "Seized the day" },
   { id: "old_magic", name: "The old magic", icon: "✨", what: "believes in the old magic", seeds: ["castle", "monument"], kinds: ["castle", "monument", "memorial"], treat: "Felt the old magic" },
