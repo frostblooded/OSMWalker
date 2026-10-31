@@ -40,7 +40,7 @@ export const RASCAL_SELL = 1.15;
 export const DODGE_CHANCE = 0.25;
 export const CAUGHT_CHANCE = 0.3;
 export const FINE_MULT = 2;
-/** A kind walker's kind deeds weigh this much more when he picks what to do. */
+/** A kind walker's kind deeds, and a rascal's rascal deeds, weigh this much more when he picks what to do. */
 export const KIND_DEED_WEIGHT = 2;
 
 export type Lean = "kind" | "rascal" | "";
@@ -132,11 +132,6 @@ export class Bond {
     this.judged = t;
     this.lean = clamp(this.lean + sign * JUDGE_STEP, -LEAN_MAX, LEAN_MAX);
     return true;
-  }
-
-  /** One of his own deeds: +1 kind, -1 rascal. */
-  deed(sign: number): void {
-    this.lean = clamp(this.lean + Math.sign(sign) * DEED_STEP, -LEAN_MAX, LEAN_MAX);
   }
 
   /** Every field above is saved; the getters live on the prototype, so they stay out. */
