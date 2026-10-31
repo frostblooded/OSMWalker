@@ -13,7 +13,7 @@ export const LOG_SIZE = 5;
 export const isRuin = (p: Pick<Place, "class">) => p.class === "castle";
 
 export type Room = { text: string; won: boolean; how: string };
-export type Log = { name: string; city: string; t: number; rooms: Room[]; of: number; found: Pick<Item, "name" | "rarity"> | null };
+export type Log = { name: string; city: string; t: number; rooms: Room[]; of: number; found: Pick<Item, "name" | "rarity" | "slot"> | null };
 export type Crawler = (stats: Stats, place: Place, rng: Rng) => Log;
 
 let crawler: Crawler | null = null;

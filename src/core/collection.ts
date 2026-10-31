@@ -82,7 +82,7 @@ export function ownedIds(s: Stats): Set<string> {
 export const TIER_NAMES = ["", "Bronze", "Silver", "Gold"] as const;
 export const MEDALS = ["", "🥉", "🥈", "🥇"] as const;
 
-const SLOT_ICON: Record<Items.Slot, string> = { weapon: "⚔", offhand: "🛡", head: "🎩", body: "👕", feet: "👟", bag: "🎒", trinket: "💍", vehicle: "🚲" };
+export const SLOT_ICON: Record<Items.Slot, string> = { weapon: "⚔", offhand: "🛡", head: "🎩", body: "👕", feet: "👟", bag: "🎒", trinket: "💍", vehicle: "🚲" };
 const VEHICLE_ICON: Record<string, string> = { bike: "🚲", motorcycle: "🛵", car: "🚗", ...MOUNT_ICON };
 const words = (s: string) => s.replace(/_/g, " ");
 /** "biggest", "2nd-biggest"... for a size rank up to CARDS_PER_COUNTRY. */

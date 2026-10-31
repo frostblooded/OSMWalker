@@ -179,7 +179,7 @@ test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({
   await startInSofia(page);
   await reopenWith(
     page,
-    `d.stats.ruins = { last: {}, count: 1, logs: [{ name: "Tsarevets", city: "Sofia", t: 1, of: 3, found: { name: "Bronze Ring", rarity: "Rare" },
+    `d.stats.ruins = { last: {}, count: 1, logs: [{ name: "Tsarevets", city: "Sofia", t: 1, of: 3, found: { name: "Bronze Ring", rarity: "Rare", slot: "trinket" },
       rooms: [{ text: "a stuck oak door", won: true, how: "he shouldered it open" }, { text: "a ghost in a torn cloak", won: false, how: "it wailed and he fled" }] }] };`,
   );
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
@@ -188,7 +188,7 @@ test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({
   const sheet = page.getByRole("dialog", { name: /Collection/ });
   await sheet.getByRole("tab", { name: /Places/ }).click();
   await sheet.getByRole("button", { name: /Tsarevets/ }).click();
-  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "Rare Bronze Ring"]) await expect(sheet).toContainText(t);
+  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "💍 Rare Bronze Ring"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
 });
 

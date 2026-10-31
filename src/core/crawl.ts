@@ -57,7 +57,7 @@ export function explore(s: Stats, place: Place, rng: Rng): Log {
   const passed = log.rooms.filter((r) => r.won).length;
   if (passed) {
     const item = Items.make(rng.pick(LOOT_KINDS), s.level, rng, s.attr("luck"), DEPTH_RARITY * passed);
-    log.found = { name: item.name, rarity: item.rarity };
+    log.found = { name: item.name, rarity: item.rarity, slot: item.slot };
     s.found(item, `${passed} of ${of} rooms into ${place.name}`);
   } else s.say(`Left ${place.name} with nothing`);
   return log;

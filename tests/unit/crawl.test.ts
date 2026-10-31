@@ -37,6 +37,7 @@ describe("explore", () => {
     expect(new Set(log.rooms.map((r) => r.text)).size).toBe(C.MAX_ROOMS);
     // Loot kind, base and material picks, then 0.7 + 5 rooms of DEPTH_RARITY lifts it past the 0.98 three-modifier line.
     expect(log.found?.rarity).toBe("Legendary");
+    expect(["weapon", "trinket"]).toContain(log.found?.slot);
     expect(lines.at(-1)).toMatch(new RegExp(`^Found a Legendary .* ${C.MAX_ROOMS} of ${C.MAX_ROOMS} rooms into Rozafa Castle$`));
     expect([...Object.values(s.gear), ...s.bag].some((i) => i?.name === log.found?.name)).toBe(true);
   });
