@@ -13,7 +13,7 @@ import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, typ
 import { MAGIC_MAX } from "../core/magic";
 import { FAME_NAMES } from "../core/fame";
 import { LEAN_MAX } from "../core/bond";
-import { payoffOf, STARS_MAX } from "../core/repute";
+import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
 import { noun, wantIcon, wantText } from "../core/mind";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
@@ -211,8 +211,9 @@ function Repute({ stats: s }: { stats: Stats }) {
       {(stars > 0 || law.chases > 0) && (
         <Card icon="🚓" title="The police" right={stars ? <span class="tone-error">🚨 {"★".repeat(stars)}</span> : undefined}>
           <KV k="🚨 Wanted" v={stars ? `${stars} of ${STARS_MAX} stars` : "No"} tone={stars ? "error" : undefined} />
-          {stars > 0 && <KV k="Paying it off" v={euro(payoffOf(law.heat))} />}
+          {stars > 0 && <KV k="Paying it off" v={stars >= PAYOFF_STARS ? euro(payoffOf(law.heat)) : `From ${PAYOFF_STARS} stars`} />}
           {law.chases > 0 && <KV k="Chases" v={`${law.chases}: got away ${law.escapes + law.bribes}, caught ${law.caught}, jailed ${law.jailed}`} />}
+          {law.paid > 0 && <KV k="Fines and pay-offs" v={euro(law.paid)} />}
         </Card>
       )}
     </>

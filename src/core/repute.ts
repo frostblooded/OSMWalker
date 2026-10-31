@@ -66,7 +66,6 @@ export const GIFTS: readonly { say: string; cents?: number; fx?: Fx }[] = [
 export const AURA_AT = 70;
 
 export type Pick = "surrender" | "run" | "hide" | "bribe";
-export const PICKS: readonly Pick[] = ["surrender", "run", "hide", "bribe"];
 
 /** What a chase needs to know about him. */
 export type Him = { heat: number; cents: number; str: number; wit: number; luck: number; cha: number; energy: number };

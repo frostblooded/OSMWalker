@@ -676,8 +676,8 @@ A free ride takes him there at once and at no cost, unlike a normal trip (see Tr
 His karma is his lean, from {LEAN_MIN} (a rascal) to +{LEAN_MAX} (kind), starting at 0 (see Kind or rascal). Praise and scold move it, and so do his deeds: kind and rascal actions, choices at work, some quests and events, shoplifting (−{STEAL_KARMA}), bribing the police (−{BRIBE_KARMA}) and giving himself up to them (+{SURRENDER_KARMA}).
 
 From {LEAN_AT} either way:
-- Kind: prices are {KIND_DISCOUNT_PCT} lower, on top of his fame's discount (see Fame). On a bus or train the driver or conductor waves him on for free {FREE_RIDE_PCT} of the time. At each stop a local may give him something for being so kind: {GIFT_PCT_KARMA} of the time, times 1 + his fame tier in that city. Quests only for the kind can come up on a city's board (see Quests).
-- Rascal: prices are {RASCAL_MARKUP_PCT} higher and his fame gives no discount, but he sells at fence prices (see Kind or rascal) and may shoplift at clothes, sports, shoe, jewellery, gift and second-hand shops, taking the item for free. Shady quests only for rascals can come up on a city's board. Every bad deed is a crime (see The police).
+- Kind: prices at places and shops (not fares) are {KIND_DISCOUNT_PCT} lower, on top of his fame's discount (see Fame). On a bus or train the driver or conductor waves him on for free {FREE_RIDE_PCT} of the time. At each stop a local may give him something for being so kind: {GIFT_PCT_KARMA} of the time, times 1 + his fame tier in that city. Quests only for the kind can come up on a city's board (see Quests).
+- Rascal: prices at places and shops (not fares) are {RASCAL_MARKUP_PCT} higher and his fame gives no discount, but he sells at fence prices (see Kind or rascal) and may shoplift at clothes, sports, shoe, jewellery, gift and second-hand shops, taking the item for free. Shady quests only for rascals can come up on a city's board. Every bad deed is a crime (see The police).
 - In between, he only gets his fame's discount.
 
 His karma pulls his own picks: kind deeds weigh more for a kind walker and rascal deeds for a rascal (see How he chooses), and when a choice with a rascal's option comes up (for now, how a police chase ends) he takes that option {RASCAL_BASE_PCT} of the time at karma 0, {RASCAL_PER_KARMA_PCT} more for each point below 0 and less for each above, never under {RASCAL_MIN_PCT} or over {RASCAL_MAX_PCT}. So a saint stays kind and a crook keeps at it, with a small chance to change.
@@ -687,9 +687,9 @@ At {AURA_AT} or more he wears a small gold halo on the map, and at −{AURA_AT} 
 Fame is how well a city knows his face, good or bad. Each city keeps its own: every hour he spends there adds {FAME_PER_H}, and every deed adds one for each point of karma it moves, kind or rascal alike. It never drops. The feed says when a city knows him better:
 {FAME_LIST}
 
-His fame's discount counts unless he leans rascal (see Karma). All his fame together makes the police spot him more easily (see The police), and a city that knows him well adds more heat to a crime there.
+His fame's discount is off prices at places and shops, not fares, and counts unless he leans rascal (see Karma). All his fame together makes the police spot him more easily (see The police), and a city that knows him well adds more heat to a crime there.
 ## The police {police}
-One heat follows him everywhere: it goes from 0 to {HEAT_MAX}, and each {STAR_HEAT} is a wanted star, up to {STARS_MAX}. The top card shows a red 🚨 with his stars while he has one or more.
+One heat follows him everywhere: it goes from 0 to {HEAT_MAX}, and each {STAR_HEAT} is a wanted star, up to {STARS_MAX}. The top card shows a red 🚨 with his stars while he has one or more, and the Stats sheet's police card shows his stars, what paying off would cost, his chases and all he has paid in fines and pay-offs.
 
 Every bad deed but a bribe is a crime: it adds {HEAT_PER_KARMA} heat for each point of karma it costs, times 1 + {FAME_HEAT} for each fame tier of the city he does it in. For example, shoplifting as a stranger adds {STEAL_HEAT}. Heat fades by {HEAT_FADE_PER_H} an hour, watched or away, so a full {HEAT_MAX} is gone in {HEAT_GONE_H} hours.
 
