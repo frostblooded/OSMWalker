@@ -178,10 +178,10 @@ const crawlKinds = (c: K.Crawl) => {
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
 const featLine = (f: Collection.Feat) => `- ${f.icon} ${f.name}: ${Collection.say(f, f.tiers.join(", ").replace(/, (\d+)$/, " and $1"))}; Gold gives the title ${f.title},`;
 
-/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. */
+/** The names of actions marked kind (+1) or rascal (-1) in data/actions.json, in lower case and once each. Shoplifting is left out: it costs STEAL_KARMA, not DEED_STEP (see Karma). */
 function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   const names = new Set<string>();
-  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
+  for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (!a.steal && Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
   return [...names].join(", ");
 }
 

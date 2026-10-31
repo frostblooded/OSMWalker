@@ -216,4 +216,10 @@ describe("search", () => {
     const text = page("words").body;
     expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
   });
+
+  it("lists shoplifting under Karma, not with the rascal deeds (it costs STEAL_KARMA, not DEED_STEP)", () => {
+    const v = Help.values(data);
+    expect(v.RASCAL_DEEDS).not.toContain("pocket something");
+    expect(v.RASCAL_DEEDS!.length).toBeGreaterThan(0);
+  });
 });

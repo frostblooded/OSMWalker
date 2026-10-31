@@ -167,6 +167,22 @@ describe("perks", () => {
     expect(cents - s.cents).toBe(s.priced(t.cents));
   });
 
+  it("an enchanted item costs a rascal more but keeps its own price for resale", () => {
+    const buy = (lean: number) => {
+      const s = at();
+      s.bond.lean = lean;
+      s.magic = 100;
+      s.cents = 10_000_000;
+      s.gear = {};
+      s.do({ name: "Knock", min: 15, midnight: true }, "Antiques", Object.assign(new Rng(1), { randf: () => 0 }), "shop");
+      return { paid: 10_000_000 - s.cents, item: Object.values(s.gear).find((i) => i?.story)! };
+    };
+    const plain = buy(0);
+    const rascal = buy(-LEAN_AT);
+    expect(rascal.item.price).toBe(plain.item.price);
+    expect(rascal.paid).toBeGreaterThan(plain.paid);
+  });
+
   it("he saves up for his next vehicle at the price he will pay", () => {
     const s = at();
     const list = s.vehicleSaving();

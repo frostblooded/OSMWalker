@@ -1289,15 +1289,17 @@ export class Stats {
     const at = `${where ? ` at ${where}` : ""} after midnight`;
     if (rng.randf() < Mn.ENCHANTED_CHANCE) {
       const item = Items.makeEnchanted(rng.pick(Mn.ENCHANTED_KINDS), this.level, rng, this.attr("luck"));
-      item.price = this.priced(Math.round(item.price * Mn.ENCHANTED_PRICE));
-      if (this.magic < Mn.ENCHANTED_MAGIC) return this.say(`🌙 Saw a ${item.rarity} ${item.name}${at}, but hadn't the Magic for it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
-      if (!this.isUpgrade(item) || this.cents - item.price < KEEP_CENTS) return this.say(`🌙 Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(item.price)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
-      this.cents -= item.price;
+      item.price = Math.round(item.price * Mn.ENCHANTED_PRICE);
+      // What he pays; the item keeps its own price, so his karma doesn't follow it to resale.
+      const cost = this.priced(item.price);
+      if (this.magic < Mn.ENCHANTED_MAGIC) return this.say(`🌙 Saw a ${item.rarity} ${item.name}${at}, but hadn't the Magic for it (${euro(cost)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      if (!this.isUpgrade(item) || this.cents - cost < KEEP_CENTS) return this.say(`🌙 Looked at a ${item.rarity} ${item.name}${at} but didn't buy it (${euro(cost)} and ${Mn.ENCHANTED_MAGIC} Magic)`);
+      this.cents -= cost;
       this.magic -= Mn.ENCHANTED_MAGIC;
       item.story = { from: this.where.city, t: this.now(), countries: this.where.code ? [this.where.code] : [], km: 0 };
       this.equip(item);
       for (const e of Items.ENCHANTMENTS) if (item.name.includes(e.name)) this.finds.note(e.name);
-      return this.say(`🌙 Bought a ${item.rarity} ${item.name}${at} (${signed(-item.price)}, Magic −${Mn.ENCHANTED_MAGIC})`);
+      return this.say(`🌙 Bought a ${item.rarity} ${item.name}${at} (${signed(-cost)}, Magic −${Mn.ENCHANTED_MAGIC})`);
     }
     const t = rng.pick(Mn.TRINKETS);
     const cost = this.priced(t.cents);
