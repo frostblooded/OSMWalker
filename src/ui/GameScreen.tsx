@@ -132,7 +132,10 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
               {h.ride ? MODES[h.ride.mode].icon : h.doing === "resting" ? "⏸" : "🚶"}
             </span>
             <div class="grow">
-              <div class="city">{h.city} · {h.doing}</div>
+              <div class="city">
+                {h.city} · {h.doing}
+                {h.feeling && ` · ${h.feeling.icon} ${h.feeling.word}`}
+              </div>
               <div class="street">{h.ride ? `${h.ride.mode === "walk" ? "Walking" : "Riding"} to ${h.ride.to} ${MODES[h.ride.mode].how}` : streetLine(h.street, h.doing === "resting")}</div>
             </div>
             <div class="pills">

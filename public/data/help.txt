@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear.
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear. So do his emotion, ×{EMO_PULL} for its kinds of place (see Emotions), and his tastes, ×{LIKE_PULL} for a kind he loves and ×{DISLIKE_PULL} for one he can't stand (see Hidden tastes).
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -208,7 +208,7 @@ At each place he first throws out every action he can't do right now (see Requir
 
 His needs here are the ones he feels: while he follows an Eat or Rest whisper, the meters it names count as empty (see Whispers).
 
-Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always, and only from actions that fix that meter.
+Then his needs take over (see His needs): the weight is multiplied by 1 + {NEED_BOOST} x the action's need score, by how well it suits him, by {EMO_PULL} when it trains or needs his emotion's attribute (see Emotions), and cut for every need it drains. With a meter under {URGENT_AT}, he only picks from actions that fix an urgent need, but for {SLIP_PCT} of the time; under {BOTTOM_AT}, always, and only from actions that fix that meter.
 
 An action with weight 4 is four times as likely as one with weight 1.
 ## His needs {urges}
@@ -254,6 +254,7 @@ Every job lists a real-world wage for a shift, such as a café paying for washin
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
 - up to {VISA_PAY_MAX} more with a better visa in the country (see Visas).
+- {EMO_BONUS_PCT} more when the job needs his emotion's attribute (see Emotions), and {SILVER_PCT} more with Silver tongue (see Lifetime rewards).
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
@@ -288,7 +289,7 @@ When health reaches 0 he faints and wakes up in hospital (see Fainting and hospi
 ## Energy {energy}
 Energy (EN, the yellow bar) goes from 0 to 100 and starts at {START_ENERGY}.
 
-He uses {ENERGY_PER_KM} energy for every km he walks, less on a bike or in a motor vehicle (see Speed and vehicles), less on a tailwind day (see Daily forecast), and {COLD_ENERGY_PER_H} more every hour while it is freezing (see Weather). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
+He uses {ENERGY_PER_KM} energy for every km he walks ({WEARY_PCT} less with Never weary: see Lifetime rewards), less on a bike or in a motor vehicle (see Speed and vehicles), less on a tailwind day (see Daily forecast), and {COLD_ENERGY_PER_H} more every hour while it is freezing (see Weather). Coffee, food, rest, naps and buffs such as Caffeinated give it back; hard jobs, workouts and debuffs such as Hungover or Crash take it away.
 
 When energy is under {NEED_AT} he needs rest more and more (see His needs), and shuns actions that tire him. Napping under a tree only happens when it is under {NAP_BELOW}. Under {TIRED_ENERGY} he slows down, to half speed at 0, but he never stops. Nothing else happens at 0 energy.
 ## Fullness {fullness}
@@ -314,13 +315,36 @@ Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 an
 ## Moodlets {moodlets}
 On top of the usual drift, named moodlets nudge his mood a little every hour while they last: "Wish come true", "Rattled", "Scared of the dog park". Each has its own mood an hour and a time left. The same moodlet again starts its time over instead of adding up, and he keeps at most {MAX_MOODLETS}.
 
-The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
+Most moodlets also count towards an emotion (see Emotions). The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
 ## Wants and fears {wants}
 He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}), and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
 
 A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
 
 A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
+
+Each wish that comes true also gives lifetime points (see Lifetime rewards).
+## Emotions {emotions}
+His moodlets add up to one emotion, shown on the top card next to the city and on the Character card of the Stats sheet. Each moodlet counts its mood an hour towards its own emotion; ones with no emotion of their own count towards Happy when they lift his mood and Sad when they lower it. Energy of {FULL_ENERGY} or more counts {ENERGY_WEIGHT} towards Energised, and mood of {SAD_MOOD} or less {SAD_WEIGHT} towards Sad. The biggest wins. With nothing to count he is Bored when mood is under {BORED_MOOD}, else just Fine.
+
+Doing anything at some kinds of place brings an emotion's moodlet ({EMO_MOODLET}):
+- Focused ("Deep in thought"): {FOCUSED_KINDS}. Lifts Wits work.
+- Inspired: {INSPIRED_KINDS}. Lifts Luck work.
+- Playful ("In a playful mood"): {PLAYFUL_KINDS}. Lifts Charm work.
+- Energised ("Pumped"): {ENERGISED_KINDS}. Lifts Strength work.
+Rattled and Scared moodlets count towards Tense, and so does a taste he can't stand.
+
+An emotion pulls his goal ×{EMO_PULL} towards its kinds of place, and when sad, tense or bored to places that help: Sad to {SAD_KINDS}; Tense to {TENSE_KINDS}; Bored to {BORED_KINDS}. Focused, Inspired, Playful and Energised also weigh actions that train or need their attribute ×{EMO_PULL}, and give those actions {EMO_BONUS_PCT} more XP and pay. Happy gives {HAPPY_XP_PCT} more XP from every action.
+## Hidden tastes {tastes}
+Every walker is born with {LIKES} kinds of place he loves and {DISLIKES} he can't stand, picked at random from {TASTE_KINDS}. Nobody knows them at first, not even him: the first time he does something at one, the feed says so ("Turns out he loves zoos"), and the Character card on the Stats sheet lists it from then on.
+
+Known or not, a kind he loves pulls his goal ×{LIKE_PULL} and one he can't stand ×{DISLIKE_PULL} (see Picking the next goal). Each visit to a kind he loves gives {LIKE_MOOD}; one he can't stand gives {DISLIKE_MOOD}, which counts towards Tense (see Emotions).
+## Lifetime rewards {perks}
+Wishes that come true give lifetime points: {POINTS_LONG} for a long want, {POINTS_SHORT} for a short one or cheering up, {POINTS_FACE} for facing a fear (see Wants and fears). Each level gives {LEVEL_POINTS}.
+
+He spends them himself on lasting perks, as soon as he has enough for one. When he can afford more than one he takes the one tied to his best attribute (perks with no attribute count his average), the cheaper on a tie:
+{PERK_LIST}
+The Character card on the Stats sheet shows his points, the price of the cheapest perk left, and the perks he has.
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -390,7 +414,7 @@ Luck does four things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # ⭐ Progress
 ## XP and levels {xp}
-He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
+He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired, by his emotion (see Emotions) and by Quick study (see Lifetime rewards).
 
 Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level.
 

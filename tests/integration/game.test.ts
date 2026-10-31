@@ -858,6 +858,12 @@ describe("game", () => {
     const f = facts(g)!;
     expect(f.placesInBox).toBe(1);
     expect(f.boxKm![0]).toBeGreaterThan(2);
+    g.stats.mind.moodlets = [];
+    g.stats.meters.energy = 50;
+    g.stats.meters.mood = 50;
+    expect(hud(g)!.feeling).toBeNull();
+    g.stats.mind.feel("Pumped", "🏃", 5, 1, "energised");
+    expect(hud(g)!.feeling).toEqual({ icon: "🏃", word: "Energised" });
   });
 
   it("shows the rest left while he stays at a place", async () => {

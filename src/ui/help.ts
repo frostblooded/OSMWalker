@@ -14,7 +14,10 @@ import * as CityFacts from "../core/cityFacts";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Emo from "../core/emotion";
 import * as Mind from "../core/mind";
+import * as Perks from "../core/perks";
+import * as Tastes from "../core/tastes";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -387,6 +390,36 @@ export function values(data: GameData): Record<string, string> {
     SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
     FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
     LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
+    EMO_PULL: num(Emo.EMO_PULL),
+    EMO_BONUS_PCT: pct(Emo.EMO_BONUS),
+    HAPPY_XP_PCT: pct(Emo.HAPPY_XP),
+    FULL_ENERGY: String(Emo.FULL_ENERGY),
+    ENERGY_WEIGHT: num(Emo.ENERGY_WEIGHT),
+    SAD_MOOD: String(Emo.SAD_MOOD),
+    SAD_WEIGHT: num(Emo.SAD_WEIGHT),
+    BORED_MOOD: String(Emo.BORED_MOOD),
+    EMO_MOODLET: `+${Emo.EMO_MOODLET[0]} an hour for ${Emo.EMO_MOODLET[1]} hours`,
+    FOCUSED_KINDS: Emo.INFO.focused.kinds.map(Mind.noun).join(", "),
+    INSPIRED_KINDS: Emo.INFO.inspired.kinds.map(Mind.noun).join(", "),
+    PLAYFUL_KINDS: Emo.INFO.playful.kinds.map(Mind.noun).join(", "),
+    ENERGISED_KINDS: Emo.INFO.energised.kinds.map(Mind.noun).join(", "),
+    SAD_KINDS: Emo.INFO.sad.kinds.map(Mind.noun).join(", "),
+    TENSE_KINDS: Emo.INFO.tense.kinds.map(Mind.noun).join(", "),
+    BORED_KINDS: Emo.INFO.bored.kinds.map(Mind.noun).join(", "),
+    LIKES: String(Tastes.LIKES),
+    DISLIKES: String(Tastes.DISLIKES),
+    LIKE_PULL: num(Tastes.LIKE_PULL),
+    DISLIKE_PULL: num(Tastes.DISLIKE_PULL),
+    LIKE_MOOD: `+${Tastes.LIKE_MOOD[0]} an hour for ${Tastes.LIKE_MOOD[1]} hours`,
+    DISLIKE_MOOD: `${Tastes.DISLIKE_MOOD[0]} an hour for ${Tastes.DISLIKE_MOOD[1]} hours`,
+    TASTE_KINDS: Tastes.KINDS.map(Tastes.plural).join(", "),
+    POINTS_LONG: String(Perks.WANT_POINTS.long),
+    POINTS_SHORT: String(Perks.WANT_POINTS.short),
+    POINTS_FACE: String(Perks.WANT_POINTS.face),
+    LEVEL_POINTS: String(Perks.LEVEL_POINTS),
+    SILVER_PCT: pct(Perks.SILVER_PAY),
+    WEARY_PCT: pct(Perks.WEARY_CUT),
+    PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),

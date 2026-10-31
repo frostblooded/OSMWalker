@@ -1,8 +1,9 @@
 // What the screens show about him, worked out once from the game: his look
 // on the map, the soundscape, the top card (what he is doing, where he goes,
-// how long until he moves again, why he waits, the sky) and the facts Debug lists.
+// how long until he moves again, why he waits, how he feels, the sky) and the facts Debug lists.
 // Plain data, so the screens only lay it out and the numbers are tested
 // without a browser.
+import { INFO } from "../core/emotion";
 import { distanceM, type BBox } from "../core/geo";
 import * as Looks from "../core/look";
 import type { Season, Sky } from "../core/sky";
@@ -30,6 +31,8 @@ export type Hud = {
   restShare: number | null;
   /** Why he stands still when it is not a rest. */
   waiting: "" | "streets" | "failing";
+  /** His emotion as an icon and a word, or null while he is just Fine. */
+  feeling: { icon: string; word: string } | null;
   /** The weather (or the season while it is unknown) as an icon, the temperature, and how dark the map is (0-1). */
   sky: { icon: string; tempC: number | null; dark: number } | null;
 };
@@ -59,8 +62,14 @@ export function hud(g: Game): Hud | null {
     goal: goal(g),
     restShare: resting && !riding ? w.restFraction() : null,
     waiting,
+    feeling: feeling(g),
     sky: g.stats.sky ? { icon: skyIcon(g.stats.sky), tempC: g.stats.sky.weather ? Math.round(g.stats.sky.weather.tempC) : null, dark: g.stats.sky.dark } : null,
   };
+}
+
+function feeling(g: Game): Hud["feeling"] {
+  const e = g.stats.emotion();
+  return e === "fine" ? null : { icon: INFO[e].icon, word: INFO[e].word };
 }
 
 function goal(g: Game): Goal | null {
