@@ -18,7 +18,6 @@ import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
-import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, type MapIcon } from "../core/mapIcons";
@@ -28,7 +27,7 @@ import { Rng, seedOf } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
-import type { PlaceMoments } from "../core/placeMoments";
+import { momentDice, tripMoment, type PlaceMoment, type PlaceMoments } from "../core/placeMoments";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
@@ -157,6 +156,8 @@ export class Game {
   awayClover = false;
   /** The choice the summary card offers this time, if any; he settles it himself when the card closes or the page is left. */
   dilemma: Dilemma | null = null;
+  /** Seconds left before he decides the open dilemma himself (the moment timer, see momentS). */
+  dilemmaLeft = 0;
   /** core/dilemmas.ts, loaded on a reopen (and warmed at idle by main.tsx) rather than at startup. */
   private dilemmas: typeof import("../core/dilemmas") | null = null;
   /** The Collection's badge rules, loaded once he is awake so they stay out of startup JS and off the reopen; null if they failed. */
@@ -327,6 +328,8 @@ export class Game {
   step(dt: number): void {
     const w = this.walker;
     if (!w || this.waking) return;
+    // The away card's dilemma waits the moment timer too, then he decides.
+    if (this.dilemma?.picked === null && (this.dilemmaLeft -= dt) <= 0) this.leaveDilemma();
     // A timed moment holds him where he is until you tap or its time runs out.
     if (this.moment) {
       this.moment.left -= dt;
@@ -349,8 +352,6 @@ export class Game {
     if (w.totalM > before && !w.isTraveling() && this.stats.walkFor(s / 60, this.rng)) this.changed();
     if (!w.isTraveling()) this.leyM += w.totalM - before;
     if (!w.isTraveling()) this.track();
-    // A trip called off before boarding (a faint, a new goal) takes its guess with it.
-    if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
@@ -402,7 +403,6 @@ export class Game {
     const door = this.stats.portalAt(place, this.trips);
     if (door) {
       this.doing = null;
-      this.stats.care.guess = null;
       this.stats.history.breakTrail();
       this.walker!.rideNow(door, "portal");
       return;
@@ -430,13 +430,22 @@ export class Game {
     this.changed();
   }
 
-  /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds; its own dice, so his walk stays the same as in the catch-up (Stats.momentByHimself). */
+  /** The timed moment of `place` as he starts an activity there, open at most `maxS` seconds. */
   private askAt(place: Place, maxS: number): void {
-    const m = this.stats.momentAt(place);
+    this.askPlaceMoment(this.stats.momentAt(place), place.name, momentDice(this.stats.now(), place.name), maxS);
+  }
+
+  /** As he boards for `plan`: maybe a moment on the way. */
+  private askTrip(plan: Plan): void {
+    const dice = momentDice(this.stats.now(), plan.city.name);
+    this.askPlaceMoment(tripMoment(this.stats.placeMoments, dice), plan.city.name, dice);
+  }
+
+  /** Asks moment `m` at `where` ({PLACE} in its text) and applies the pick, on its own `dice`, so it goes as in the catch-up (Stats.byHimself) and his walk stays the same. */
+  private askPlaceMoment(m: PlaceMoment | null, where: string, dice: Rng, maxS?: number): void {
     if (!m) return;
-    const dice = new Rng(seedOf(`moment${this.stats.now()}${place.name}`));
-    void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", place.name) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
-      this.stats.settleMoment(m, place.name, p.id, p.you, dice.randf());
+    void this.ask({ ...m, ask: m.ask.replaceAll("{PLACE}", where) }, { maxS, his: () => defaultPick(m, this.stats, dice) }).then((p) => {
+      this.stats.settleMoment(m, where, p.id, p.you, dice.randf());
       this.save();
     });
   }
@@ -497,20 +506,11 @@ export class Game {
     return { here: w.position(), city: this.city, country: this.country, places: w.bounds ? w.graph.placesIn(w.bounds) : [], noPlaces: this.noPlaces() };
   }
 
-  /** The trip dice on a new goal; a planned trip opens a guess about where he is going. */
+  /** The trip dice on a new goal. */
   private planTrip(): Plan | null {
     // He finishes the quest he is on before he leaves the city.
     if (this.stats.quests.active) return null;
-    const plan = this.journey.consider(this.where(), this.stats);
-    this.stats.care.guess = plan ? makeGuess(plan.city, this.country, this.city.split(",")[0]!, this.trips.cities, this.rng) : null;
-    return plan;
-  }
-
-  /** The player's guess about where he is going; settled when he boards. */
-  pickGuess(choice: string): void {
-    if (!this.stats.care.pickGuess(choice)) return;
-    this.save();
-    this.changed();
+    return this.journey.consider(this.where(), this.stats);
   }
 
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */
@@ -518,10 +518,9 @@ export class Game {
     const why = this.journey.board(plan, this.stats);
     if (why) {
       this.debugLog.add({ no_trip: why });
-      this.stats.care.guess = null;
       return false;
     }
-    this.stats.care.reveal(this.stats);
+    this.askTrip(plan);
     this.changed();
     return true;
   }
@@ -704,6 +703,9 @@ export class Game {
           const here = w.position();
           return this.trips.pick(kind, this.country, here[0], here[1], this.rng);
         }, this.alwaysDilemma ? 1 : D.DILEMMA_CHANCE) ?? null;
+      this.dilemmaLeft = this.momentS;
+      // With the timer Off he decides at once, and the card shows what he chose.
+      if (!this.momentS) this.leaveDilemma();
     } finally {
       this.waking = false;
       this.woken();
@@ -866,8 +868,7 @@ export class Game {
     if (d.city && pick === 0 && w?.isTraveling()) [pick, by] = [1, "him"];
     const o = this.dilemmas!.settle(d, pick, by, this.stats, this.rng);
     if (!o.trip || !d.city || !w) return;
-    // A free ride replaces a trip he is still walking to the station for, and its guess.
-    this.stats.care.guess = null;
+    // A free ride replaces a trip he is still walking to the station for.
     this.stats.history.breakTrail();
     w.rideNow({ ...d.city, bounds: tripBounds(d.city) });
   }

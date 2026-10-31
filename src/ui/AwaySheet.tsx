@@ -18,9 +18,10 @@ export function AwaySheet({
   clover,
   week,
   dilemma,
+  dilemmaS,
   onChoose,
   onDone,
-}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; onChoose: (pick: number) => void; onDone: () => void }) {
+}: { summary: Summary; clover: boolean; week: Week; dilemma: Dilemma | null; dilemmaS: number; onChoose: (pick: number) => void; onDone: () => void }) {
   const money = s.endCents - s.startCents;
   const lost = s.awayS - s.coveredS;
   const bias = biasMin();
@@ -32,7 +33,7 @@ export function AwaySheet({
         {lost >= 60 && <KV k="Past the limit, not counted" v={duration(lost)} tone="warning" />}
         {clover && <KV k="☘ Clover for checking in" v={`+${CLOVERS_PER_CHECKIN}`} tone="ok" />}
       </Card>
-      {dilemma && <DilemmaCard d={dilemma} onChoose={onChoose} />}
+      {dilemma && <DilemmaCard d={dilemma} leftS={dilemmaS} onChoose={onChoose} />}
       <Card icon="🚶" title="What he did">
         <KV k="📍 Places visited" v={s.stops} />
         <KV k="✨ New places" v={s.firstVisits} />
@@ -103,13 +104,16 @@ function weekText(start: number): string {
   return `${f(start + 3600)} – ${f(start + 6 * 86400 + 3600)}`;
 }
 
-/** The one choice this reopen offers: tap an option, or carry on and he decides by himself. */
-function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => void }) {
+/** The one choice this reopen offers: tap an option before the bar runs out (`leftS`), or he decides by himself. */
+function DilemmaCard({ d, leftS, onChoose }: { d: Dilemma; leftS: number; onChoose: (pick: number) => void }) {
   return (
     <Card icon={d.icon} title="One choice" right={d.picked === null ? "optional" : undefined}>
       <p>{d.ask}</p>
       {d.picked === null ? (
         <>
+          <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(leftS)} seconds to choose`}>
+            <div style={{ animationDuration: `${leftS}s` }} />
+          </div>
           <div class="choices dilemma">
             {d.labels.map((n, i) => (
               <button key={n} class="btn" onClick={() => onChoose(i)}>
@@ -117,7 +121,7 @@ function DilemmaCard({ d, onChoose }: { d: Dilemma; onChoose: (pick: number) => 
               </button>
             ))}
           </div>
-          <p class="dim small">Or carry on, and he decides by himself.</p>
+          <p class="dim small">Or wait, and he decides by himself.</p>
         </>
       ) : (
         <>

@@ -195,6 +195,27 @@ An action can:
 Some actions have a risk: a chance that it goes differently, which adds to what it says, for example "Rakia with the salad, one too many". A risk can cost extra money and change his meters, for better or worse.
 
 What he did pops up at the top for a few seconds, and goes into his History. About {JOKE_PCT} of these lines (not buying or selling) get a dry joke on the end, picked for the kind of place: "Looked at the paintings at the National Museum. The museum did not visit back." Lines players suggest may join them in later updates (see Suggest a line).
+## Timed moments {moments}
+When he starts an activity at a place, a small moment comes with it: a quick choice or a mini-game made for that kind of place ({MOMENT_KINDS} kinds of places, {MOMENT_GAMES} of them with a mini-game, see Mini-games). As he boards for a trip, a moment on the way may come too: a chatty passenger, a photo out of the window, the snack trolley or a nap.
+
+A sheet opens over the map and he stands still while it is open. A bar shows the time left: {MOMENT_S} seconds at first, or what you set with ☰ Menu → ⏱ Choice timer ({MOMENT_TIMERS} seconds, or Off; remembered). The activity does what it always does either way (see What he does at places); your pick adds its own effect on top: mood, energy, XP, money, a buff for a while, sometimes a free item, which he wears if it is better than his own.
+
+Every tap is optional:
+- When the bar runs out, you close the sheet or you leave the game, he picks himself, and his History says "Decided by himself".
+- With the timer Off the sheet never opens and he always picks himself.
+- While you are away he lives through the same moments, at the same places and trips, and always picks himself (see While you were away).
+
+At a choice he takes the usual option, unless his attribute tilts him to the bolder first one: {MOMENT_LEAN_PCT} for each point above 1 of the attribute that choice leans on, up to {MOMENT_LEAN_CAP_PCT}. He never picks a shady option himself.
+
+Some options are a gamble, like walking out without paying or robbing a till: they work {RISK_BASE_PCT} of the time, plus {RISK_PER_POINT_PCT} for each point of Luck above 1, up to {RISK_CAP_PCT}. When one fails he is caught: he may pay a fine (only what he has), get hurt and lose mood. Kind and shady picks are meant to raise and lower his karma; until karma comes to the game they change only what they say.
+## Mini-games {minigames}
+A mini-game's result picks one of its options, from worst to best:
+- ⏱ Timing: a marker sweeps across a bar and back. Tap ✋ Stop with it in the green middle for the best result, in the amber around it for the middle one.
+- 🂠 Pick a card: three cards lie face down, one bad, one middling and one good.
+- 👆 Tap fast: tap {TAPS} times before the bar runs out. If it runs out first, you get what your taps have scored so far.
+- 🔍 Odd one out: six icons, one of them different. Tap it at once for the best result, after one wrong tap for the middle one; two wrong taps give the worst.
+
+When you don't play, he plays himself and scores the middle result, never the worst. With some skill he scores the best: {MOMENT_LEAN_PCT} for each point above 1 of Charm at Timing, Luck at Pick a card, Strength at Tap fast and Wits at Odd one out, up to {MOMENT_LEAN_CAP_PCT}.
 ## How he chooses {choosing}
 At each place he first throws out every action he can't do right now (see Requirements). From the rest he picks one at random, but some actions weigh more than others:
 - Every action starts with weight 1.
@@ -462,7 +483,7 @@ While no places of note are loaded in the city box, the odds double to {NO_PLACE
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
-While he walks to the station, where he is going stays a surprise: the History says only "somewhere in Bulgaria" or "somewhere abroad", and he reveals the city when he boards. You may guess it (see Guess the next trip). While you are away he doesn't keep it secret.
+As he boards, a moment on the way may come (see Timed moments).
 
 He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
@@ -595,7 +616,7 @@ You never steer him, but you can leave him a small gift. Gifts cost clovers, and
 ☰ Menu → 🎁 Care package shows your clovers and what they buy. Tap a gift's ☘ button to send it. One package is on its way at a time, and he opens it at the next place he reaches (also while the game is closed) and thanks you in his History:
 {GIFT_LIST}
 
-A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. A right guess about his next trip earns clovers too (see Guess the next trip). Each package he opens adds to his trust in you (see His trust in you).
+A boost works like any buff (see Buffs and debuffs). Gifts are optional: he never waits for one. Each package he opens adds to his trust in you (see His trust in you).
 ## His trust in you {trust}
 He doesn't know who you are, but he can tell someone is looking out for him. His trust in you runs from 0 to {TRUST_MAX} and starts at {TRUST_START}. The Care package sheet shows it.
 - A check-in that earns a clover adds {TRUST_PER_CHECKIN}, and each care package he opens adds {TRUST_PER_GIFT}.
@@ -616,16 +637,6 @@ He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle.
 From {LEAN_AT} either way it shows:
 - Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.
 - Rascal: things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has).
-## Guess the next trip {guess}
-When the trip dice send him to another city, the top card shows "🎲 Where to?" with up to {GUESS_CHOICES} choices while he walks to the station:
-- for a trip in his country, the right city and other cities of the country,
-- for a trip abroad, the right country and other countries.
-
-The city he is in is never a choice. When the bundled city list has no other city to offer, there are fewer choices, or no guess for that trip.
-
-Tap one to guess. You get one guess per trip. When he boards, his History says whether you were right, and a right guess earns {GUESS_CLOVERS} ☘ clover (see Clovers and care packages), on top of the daily ones. If you don't guess, nothing changes: he goes all the same.
-
-If the trip is called off before he boards (he can't pay, or he faints), the guess goes with it. So does leaving the game for {MIN_AWAY_MIN} minute or more before he boards: the catch-up starts him afresh at a place (see While you were away). Trips he takes while you are away have no guess.
 ## Suggest a line {phrases}
 ✍ Suggest a line in the menu opens a new GitHub issue (you need a free GitHub account) with three things to fill in: the kind of place, a dry line he might add after what he did there, and the name you want credited. If the line fits, it ships in a later update with "(line by your name)" at its end, and from then on it can show up in anyone's feed (see What he does at places). Nothing is sent until you press Submit on GitHub.
 ## Postcards to friends {postcards}
@@ -633,14 +644,14 @@ If the trip is called off before he boards (he can't pay, or he faints), the gue
 
 The whole card travels inside the link, after the #, so no server keeps it. When a friend opens it, their game shows "A postcard from Ivan in Sofia" (your name, or "a friend" if you left it empty), right away on the city picker, or in a game once its While you were away card and any open sheet are closed, with 📮 Send one back if they have a game going, or Start my own walk if they don't. Opening a postcard changes nothing in their game.
 ## One choice on reopen {dilemma}
-Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." Tap an option and it happens. Or just carry on: when the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". Nothing waits for you.
+Now and then, when you open the game after at least {DILEMMA_AWAY_H} hours away ({DILEMMA_PCT} of such reopens), the While you were away card holds one small choice, such as "A trucker offers a free ride to Varna." Tap an option before its bar runs out (the Choice timer, see Timed moments) and it happens. Or just carry on: when the bar runs out, the card closes, or you leave the game with it open, he decides by himself, and his History says "Decided by himself". With the Choice timer Off he decides at once, and the card shows what he chose. Nothing waits for you.
 
 When he decides, it's even odds, tilted toward the first option by {LEAN_PCT} for each point of the attribute he leans on above 1, up to {LEAN_CAP_PCT}. Below 1 it stays even. The choices:
 {DILEMMA_LIST}
 
 At chess he wins {CHESS_BASE_PCT} of the time, plus {CHESS_PER_WIT_PCT} for each point of Wits, up to {CHESS_MAX_PCT}.
 
-A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for, and its guess.
+A free ride takes him there at once and at no cost, unlike a normal trip (see Trips to other cities). There are no free rides while he is on a paid one; if he boards one while the card is open, he turns the free ride down himself. A free ride replaces a trip he is still walking to the station for.
 # 📖 Stories
 ## The storyteller {storyteller}
 A storyteller decides when something happens to him, the way RimWorld's do. It keeps a tension number from 0 to {TENSION_MAX}. Every hour of his life adds to it, faster for a wilder storyteller: {STORY_RATES} an hour. Money draws trouble: each {WEALTH_STEP} he has adds 1 more an hour, up to {WEALTH_CAP}.
@@ -711,13 +722,13 @@ The day he set out is his birthday (in a game begun before his life story was ke
 On the same day of each of the other months (or the month's last day, when it is shorter) he marks the time on the road, such as "3 months on the road", for {MONTH_MOOD} mood. Both happen at the first minute of the day, also while you are away.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, the "🎲 Where to?" guess while he walks to a station for a trip, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
+The card at the top shows the city and what he is doing, his money and level, the weather and temperature in his city (the season's icon while the weather is unknown or he is on a trip to another city), the street he is on (or the ride he is on), his goal with the distance and the approximate walking time, today's forecast in one dim line (see Daily forecast), and three small bars: ❤ health, ⚡ energy and 🍞 fullness. While he rests it shows the countdown and a bar. A red line in it warns about anything that could leave him stuck; tap it to open Debug.
 
 What he just did pops up under it for a few seconds.
 
 Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. The small ⓘ at the bottom left shows the map credits. "Back to him" shows up at the bottom when you have dragged the map away while the camera follows him.
 ## The menu {menu}
-☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
+☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Collection, Care package (with your clovers), Send a postcard, Help, Suggest a line (see Suggest a line), Debug, the Route to goal, Camera follows him, City area and City sound switches, Storyteller (see The storyteller), ⏱ Choice timer (see Timed moments), and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
 To see more of the map, drag any sheet down by its title bar (the one with the grip line). It stays at the height where you let go, up to {SHEET_TALL_PCT}% of the screen (all of it for full-screen sheets like Stats and Help). Let go below {SHEET_CLOSE_PCT}% of the screen and it closes. Drag it back up to see more of it.
 

@@ -636,6 +636,22 @@ describe("game", () => {
     expect(g.walker!.isDeparting()).toBe(false);
   });
 
+  it("as he boards, a moment on the way may ask you something, and he rides on once it is settled", async () => {
+    const { g } = game({ roll: 0.1, places: [BUS], moments: true });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    g.stats.cents = 50_000;
+    g.stats.meters.fullness = g.stats.meters.thirst = 100;
+    g.skipRoll = false;
+    g.debugNewGoal();
+    const w = g.walker!;
+    for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
+    expect(g.moment?.m.id).toMatch(/^_trip:/);
+    expect(g.moment!.m.ask).toContain("Plovdiv");
+    g.settleMoment(g.moment!.m.options[0]!.id);
+    await tick();
+    expect(g.stats.history.latest()).toMatch(/on the way to Plovdiv/);
+  });
+
   it("walks to the bus station for a trip, pays and rides", async () => {
     const { g } = game({ roll: 0.1 });
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -647,61 +663,12 @@ describe("game", () => {
     const w = g.walker!;
     expect(w.isDeparting()).toBe(true);
     expect(w.departing!.station.name).toBe("Central Bus");
-    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to somewhere in Bulgaria");
+    expect(g.stats.history.latest()).toContain("Heading to Central Bus for the bus to Plovdiv");
     const fare = w.departing!.fare;
     for (let i = 0; i < 600 && !w.isTraveling(); i++) g.step(1);
     expect(w.isTraveling()).toBe(true);
     expect(g.stats.cents).toBe(50_000 - fare);
     expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus to Plovdiv"))).toBe(true);
-  });
-
-  it("lets you guess where he is going until he boards, and pays a clover for a right guess", async () => {
-    const { g } = game({ roll: 0.1 });
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.cents = 50_000;
-    g.skipRoll = false;
-    g.debugNewGoal();
-    const guess = g.stats.care.guess!;
-    expect(guess.abroad).toBe(false);
-    expect([...guess.choices].sort()).toEqual(["Plovdiv", "Vidin"]);
-    g.pickGuess("Plovdiv");
-    g.pickGuess("Vidin");
-    expect(guess.pick).toBe("Plovdiv");
-    for (let i = 0; i < 600 && !g.walker!.isTraveling(); i++) g.step(1);
-    expect(g.stats.care.clovers).toBe(1);
-    expect(g.stats.care.guess).toBeNull();
-    expect(g.stats.history.entries.some((e) => e.text === "You guessed it: Plovdiv! (+1 ☘)")).toBe(true);
-  });
-
-  it("drops the guess when the trip is called off, and he goes on without one", async () => {
-    const { g } = game({ roll: 0.1 });
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.cents = 50_000;
-    g.skipRoll = false;
-    g.debugNewGoal();
-    expect(g.stats.care.guess).not.toBeNull();
-    g.walker!.departing = null;
-    g.step(1);
-    expect(g.stats.care.guess).toBeNull();
-  });
-
-  it("drops the guess, with no clover, when he can't pay at the station", async () => {
-    const { g } = game({ roll: 0.1 });
-    await g.startCity("Sofia, Bulgaria", ...START, null);
-    g.stats.cents = 50_000;
-    g.skipRoll = false;
-    g.debugNewGoal();
-    g.pickGuess("Plovdiv");
-    expect(g.stats.care.guess!.pick).toBe("Plovdiv");
-    g.stats.cents = 0;
-    // Stops at the station: broke, his next pick may send him hitchhiking instead.
-    const stuck = () => g.stats.history.entries.some((e) => e.text.startsWith("Can't afford"));
-    for (let i = 0; i < 600 && !stuck(); i++) g.step(1);
-    expect(g.stats.history.entries.some((e) => e.text.startsWith("Took the bus"))).toBe(false);
-    expect(g.stats.history.entries.some((e) => e.text.startsWith("Can't afford the bus to Plovdiv"))).toBe(true);
-    expect(g.stats.care.guess).toBeNull();
-    expect(g.stats.care.clovers).toBe(0);
-    expect(g.stats.history.entries.some((e) => /guessed it|^Not /.test(e.text))).toBe(false);
   });
 
   it("saves up when he can't afford a trip", async () => {
@@ -722,7 +689,7 @@ describe("game", () => {
     g.skipRoll = false;
     g.debugNewGoal();
     expect(g.walker!.departing!.mode).toBe("hitch");
-    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to somewhere in Bulgaria");
+    expect(g.stats.history.latest()).toBe("Broke, so he sticks his thumb out to hitchhike to Plovdiv");
     for (let i = 0; i < 3600 && !g.stats.where.city.startsWith("Plovdiv"); i++) g.step(1);
     const lines = g.stats.history.entries.map((e) => e.text);
     expect(lines).toContain("Hitchhiked to Plovdiv, Bulgaria");
@@ -1130,6 +1097,21 @@ describe("game", () => {
       expect(other.stats.history.latest()).toMatch(/^Decided by himself: /);
     });
 
+    it("decides by himself once the moment timer runs out, or at once with it Off", async () => {
+      const { again } = await reopenDilemma("bread");
+      expect(again.dilemmaLeft).toBe(MOMENT_S);
+      run(again, MOMENT_S - 1);
+      expect(again.dilemma).toMatchObject({ picked: null });
+      run(again, 1);
+      expect(again.dilemma).toMatchObject({ by: "him" });
+
+      const off = await reopen(5 * HOUR, {}, (g) => {
+        g.setAlwaysDilemma(true);
+        while (g.momentS) g.nextMomentTimer();
+      });
+      expect(off.again.dilemma).toMatchObject({ by: "him" });
+    });
+
     it("never waits for you: leaving the page, or another reopen, lets him decide", async () => {
       const { again } = await reopenDilemma("bread");
       again.leave();
@@ -1205,17 +1187,15 @@ describe("game", () => {
       expect(new Game({ ...(long.g as unknown as { deps: GameDeps }).deps }).woke).toBe(false);
     });
 
-    it("lets a free ride replace a trip he is walking to, with its guess", async () => {
+    it("lets a free ride replace a trip he is walking to", async () => {
       const { again } = await reopenDilemma("trucker");
       const [plovdiv, vidin] = ["Plovdiv", "Vidin"].map((n) => again.trips.cities.find((c) => c.name === n)!);
       again.dilemma!.city = vidin!;
       const w = again.walker!;
       w.departing = { city: { ...plovdiv!, bounds: cityBounds(plovdiv!) }, mode: "bus", station: null, fare: 1248, arrive: [plovdiv!.lat, plovdiv!.lon], distance_m: 120000 } as unknown as typeof w.departing;
-      again.stats.care.guess = { abroad: false, choices: ["Plovdiv", "Vidin"], answer: "Plovdiv", pick: "" };
       again.chooseDilemma(0);
       expect(again.city).toBe("Vidin, Bulgaria");
       expect(w.departing).toBeNull();
-      expect(again.stats.care.guess).toBeNull();
     });
 
     it("still finishes a reopen when the dilemma code can't load", async () => {

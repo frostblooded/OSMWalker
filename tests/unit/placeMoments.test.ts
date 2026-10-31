@@ -90,6 +90,8 @@ describe("the bundled moments", () => {
       for (const o of m.options) expect(m.outcomes[o.id], `${k}.${o.id}`).toBeTruthy();
       expect(m.options.some((o) => o.id === m.default), k).toBe(true);
       if (m.risky) expect(m.outcomes[m.risky.option], k).toBeTruthy();
+      // Help: he never picks a shady option himself, and a gamble works by Luck.
+      if (m.risky) expect([m.default, m.risky.attr], k).toEqual([expect.not.stringMatching(`^${m.risky.option}$`), "luck"]);
       if (m.risky) expect(m.game, `${k}: a mini-game's score decides, so it has no risky option`).toBeUndefined();
       // His attribute leans him to the first option, so it is neither his default nor a crime.
       if (m.lean) expect([m.default, m.risky?.option], k).not.toContain(m.options[0]!.id);

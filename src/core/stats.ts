@@ -951,12 +951,9 @@ export class Stats {
     return this.say(`${m.icon} ${you ? "" : "Decided by himself: "}${o.say.replaceAll("{PLACE}", where)}${got}${net ? ` (${signed(net)})` : ""}`);
   }
 
-  /** Right after starting an activity at `place` with nobody to ask (the catch-up): he takes his own pick. Its own dice, so his walk stays the same. */
-  momentByHimself(place: Pick<Place, "class" | "subclass" | "name">): void {
-    const m = this.momentAt(place);
-    if (!m) return;
-    const rng = new Rng(seedOf(`moment${this.now()}${place.name}`));
-    this.settleMoment(m, place.name, M.defaultPick(m, this, rng), false, rng.randf());
+  /** Moment `m` at `where` with nobody to ask (the catch-up): he takes his own pick, on `dice` (placeMoments.ts momentDice). */
+  byHimself(m: PM.PlaceMoment | null, where: string, dice: Rng): void {
+    if (m) this.settleMoment(m, where, M.defaultPick(m, this, dice), false, dice.randf());
   }
 
   /** Walked `m` meters along a ley line: a little Magic, and his luck charmed a while. */

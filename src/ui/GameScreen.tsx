@@ -1,7 +1,7 @@
 // The game screen: the map with him on it (dimmed at night), a compact card
-// on top (where he is, where he goes, a guess about his next trip, what he
-// waits for, the weather), zoom on the right edge and the main buttons in a
-// bar at the bottom, in reach of the thumb.
+// on top (where he is, where he goes, what he waits for, the weather), zoom
+// on the right edge and the main buttons in a bar at the bottom, in reach of
+// the thumb; a timed moment opens over it all.
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
@@ -9,7 +9,6 @@ import type { Game } from "../game/game";
 import type { Sound } from "../app/sound";
 import { hud, sound, type Goal, type Hud } from "../game/hud";
 import { words, type Forecast } from "../core/forecast";
-import { GUESS_CLOVERS, type Guess } from "../core/guess";
 import { GAME_NAME } from "../core/moments";
 import { euro } from "../core/money";
 import { NIGHT_SHADE } from "../core/sky";
@@ -148,7 +147,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
-          {s.care.guess && h.goal?.kind === "going" && h.goal.departing && <GuessRow guess={s.care.guess} onPick={(c) => game.pickGuess(c)} />}
           <ForecastLine f={s.forecast()} />
           <div class="minibars" aria-hidden="true">
             <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
@@ -312,7 +310,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       {game.away && sheet === null && (
         <SheetBox title="🌙 While you were away" onClose={() => game.dismissAway()} full>
           <Lazy load={() => import("./AwaySheet")} what="what he did while you were away">
-            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />}
+            {(m) => <m.AwaySheet summary={game.away!} clover={game.awayClover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onDone={() => game.dismissAway()} />}
           </Lazy>
         </SheetBox>
       )}
@@ -394,25 +392,6 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
         {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
       </span>
     </button>
-  );
-}
-
-/** While he walks to the station: guess where he is going, or the guess you made. */
-function GuessRow({ guess: g, onPick }: { guess: Guess; onPick: (choice: string) => void }) {
-  if (g.pick) return <div class="notice">🎲 Your guess: {g.pick}. He reveals it when he boards.</div>;
-  return (
-    <div class="guess" role="group" aria-label="Guess where he is going">
-      <div class="small dim">
-        🎲 Where to? {g.abroad ? "Which country" : "Which city"}, for +{GUESS_CLOVERS} ☘
-      </div>
-      <div class="choices">
-        {g.choices.map((c) => (
-          <button key={c} class="btn" onClick={() => onPick(c)}>
-            {c}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 

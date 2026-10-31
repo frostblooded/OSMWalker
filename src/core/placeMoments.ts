@@ -4,6 +4,7 @@
 // (data/moments.json), keyed like actions.json; Stats.settleMoment applies it.
 import type { Kind } from "./items";
 import { riskOdds, type Moment } from "./moments";
+import { Rng, seedOf } from "./rng";
 import type { Action, Attr, Fx, Place } from "./stats";
 
 export type PlaceOutcome = {
@@ -27,6 +28,18 @@ export type PlaceMoment = Moment & {
 
 /** Keyed "class/subclass", "class" or "_generic", like actions.json. */
 export type PlaceMoments = Record<string, PlaceMoment>;
+
+/** The moments a trip may bring as he boards, keyed "_trip:..." in the same table. */
+export const tripMoments = (table: PlaceMoments) => Object.keys(table).filter((k) => k.startsWith("_trip:")).map((k) => table[k]!);
+
+/** A trip's moment, on `dice`; null with none loaded. */
+export function tripMoment(table: PlaceMoments, dice: Rng): PlaceMoment | null {
+  const all = tripMoments(table);
+  return all.length ? all[dice.randiRange(0, all.length - 1)]! : null;
+}
+
+/** A moment's own dice from the time and where it happens, the same while you watch and in the catch-up, so his walk stays the same. */
+export const momentDice = (t: number, where: string) => new Rng(seedOf(`moment${t}${where}`));
 
 /** The moment for `place`: its class/subclass, its class, or the generic one; null with none loaded. */
 export function momentFor(table: PlaceMoments, place: Partial<Pick<Place, "class" | "subclass">>): PlaceMoment | null {
