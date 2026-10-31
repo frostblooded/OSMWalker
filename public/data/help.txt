@@ -232,7 +232,9 @@ His strengths: an action that trains or needs one of his attributes weighs (that
 ## Requirements {needs}
 An action can only be picked when he meets all of its requirements:
 - Money: he needs at least the action's price.
-- Shopping for an item needs more than {KEEP_CENTS}.
+- Shopping for an item (not shoplifting) needs more than {KEEP_CENTS}.
+- Shoplifting: only while he leans rascal (see Karma).
+- Paying off the police: {PAYOFF_STARS} stars or more, and money to spare after it (see The police).
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Skills: some need a level of a skill, such as a street concert at music {CONCERT_AT} (see Skills).
@@ -706,7 +708,7 @@ He leans kind or rascal, from {LEAN_MIN} to +{LEAN_MAX}, starting in the middle.
 
 From {LEAN_AT} either way it shows:
 - Kind: kind deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more.
-- Rascal: things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has). Either way a skipped ticket is a rascal deed.
+- Rascal: rascal deeds count +{KIND_DEED_WEIGHT} in How he chooses, so he does them more. Things he sells fetch {RASCAL_SELL_PCT} more, and on a bus he skips the ticket {DODGE_PCT} of the time. A skipped ticket is caught {CAUGHT_PCT} of the time, and then he pays {FINE_MULT} times the fare as a fine (never more than he has). Either way a skipped ticket is a rascal deed.
 
 His lean is his karma: it also sets his prices, his perks, how the police treat him and the halo or horns on him (see Karma).
 ## Guess the next trip {guess}

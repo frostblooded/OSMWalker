@@ -214,7 +214,7 @@ describe("perks", () => {
     while (new Rng(seedOf(`law${g}${p.name}`)).randf() >= R.GIFT_CHANCE) g++;
     const k = at(g);
     k.bond.lean = LEAN_AT;
-    expect(k.reputeAt(p)).toBeNull();
+    expect(k.reputeAt(p)).toBe(false);
     expect(k.history.latest()).toMatch(/^🎁 /);
   });
 
@@ -255,12 +255,13 @@ describe("the law", () => {
 
   it("the police only spot him while he is wanted, and a kind walker gives himself up by himself", () => {
     const p = place("Square", "park");
-    expect(at().reputeAt(p)).toBeNull();
+    expect(at().reputeAt(p)).toBe(false);
     let t = T0;
     while (new Rng(seedOf(`law${t}${p.name}`)).randf() >= R.spotChance(R.HEAT_MAX, 0)) t++;
     const s = at(t);
     s.law.addHeat(R.HEAT_MAX);
-    const m = s.reputeAt(p)!;
+    expect(s.reputeAt(p)).toBe(true);
+    const m = R.chaseMoment(s.him());
     expect(m.id).toBe("police_chase");
     expect(s.history.latest()).toBe("🚨 The police spotted him at Square!");
     s.bond.lean = LEAN_MAX;

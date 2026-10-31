@@ -22,7 +22,6 @@ import { makeGuess } from "../core/guess";
 import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
-import type { Moment } from "../core/moments";
 import { Problems } from "../core/problems";
 import * as R from "../core/repute";
 import { Rng } from "../core/rng";
@@ -122,7 +121,7 @@ export class Game {
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
   /** A police chase under way: the timed moment, where it began, when it ends (ms) and the streets he ran since, once a second. Not saved. */
-  chase: { m: Moment; place: string; ends: number; trail: LatLon[] } | null = null;
+  chase: { place: string; ends: number; trail: LatLon[] } | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -403,10 +402,9 @@ export class Game {
       return;
     }
     // The police roll their own dice; a chase takes the place of an action, and he runs on.
-    const chase = this.chase ? null : this.stats.reputeAt(place);
-    if (chase) {
+    if (!this.chase && this.stats.reputeAt(place)) {
       const at = this.walker!.position();
-      this.chase = { m: chase, place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
+      this.chase = { place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
       this.doing = null;
       // He runs on at once instead of stopping.
       this.walker!.restFor(0);

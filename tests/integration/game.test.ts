@@ -264,7 +264,7 @@ describe("game", () => {
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.law.addHeat(R.HEAT_MAX);
     g.stats.bond.lean = 100;
-    const spot = vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => R.chaseMoment(g.stats.him()));
+    const spot = vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => true);
     for (let i = 0; i < 400 && !g.chase; i++) {
       now += 1000;
       g.step(1);
@@ -300,7 +300,7 @@ describe("game", () => {
     const { g } = game({ places: [CAFE], clock: () => now });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     g.stats.law.addHeat(R.HEAT_MAX);
-    vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => R.chaseMoment(g.stats.him()));
+    vi.spyOn(g.stats, "reputeAt").mockImplementationOnce(() => true);
     for (let i = 0; i < 400 && !g.chase; i++) {
       now += 1000;
       g.step(1);
@@ -316,7 +316,7 @@ describe("game", () => {
     expect(g.stats.history.latest()).toBe("🚓 The police gave up the chase");
     // Heading for a ride out loses them too, so jail never lands mid-trip.
     g.stats.law.addHeat(R.HEAT_MAX);
-    g.chase = { m: R.chaseMoment(g.stats.him()), place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+    g.chase = { place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
     g.walker!.departing = {} as never;
     now += 1000;
     g.step(1);
@@ -1044,7 +1044,7 @@ describe("game", () => {
       let now = Date.UTC(2026, 9, 29, 8);
       const { g } = game({ clock: () => now });
       await g.startCity("Sofia, Bulgaria", ...START, null);
-      g.chase = { m: R.chaseMoment(g.stats.him()), place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
+      g.chase = { place: "Cafe", ends: now + R.CHASE_S * 1000, trail: [g.walker!.position()] };
       g.save();
       now += HOUR;
       await g.wake();

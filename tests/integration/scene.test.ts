@@ -161,7 +161,7 @@ describe("map scene", () => {
   });
 
   it("puts the police car on his trail during a chase, and takes it off after", () => {
-    game.chase = { m: R.chaseMoment(game.stats.him()), place: "Kiosk", ends: game.now() + R.CHASE_S * 1000, trail: [[42, 23], [42.002, 23]] };
+    game.chase = { place: "Kiosk", ends: game.now() + R.CHASE_S * 1000, trail: [[42, 23], [42.002, 23]] };
     scene.draw(0.25, 250);
     expect(map.police).toEqual([42, 23]);
     game.chase = null;

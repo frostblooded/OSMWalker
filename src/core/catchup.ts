@@ -273,8 +273,7 @@ export function* catchUpSteps(stats: Stats, city: AwayCity, here: LatLon, awayS:
         continue;
       }
       // The police roll their own dice too; he picks how the chase goes, and jail takes its hours.
-      const chase = stats.reputeAt(place);
-      if (chase) {
+      if (stats.reputeAt(place)) {
         // A chase takes the place of the stop's action, as while you watch; jail takes its hours.
         const jail = stats.runChase(place.name);
         s.stops++;

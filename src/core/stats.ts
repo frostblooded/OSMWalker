@@ -34,7 +34,7 @@ import * as CC from "./cityCards";
 import { JOKE_CHANCE, jokesFor, type Jokes } from "./jokes";
 import * as K from "./keepsakes";
 import * as Lang from "./languages";
-import { defaultPick, type Moment } from "./moments";
+import { defaultPick } from "./moments";
 import type { Item, Slot } from "./items";
 import { Records } from "./records";
 import * as R from "./repute";
@@ -1014,27 +1014,27 @@ export class Stats {
 
   /**
    * Right after reaching `place`: the police may spot him while he is wanted
-   * (returns the chase as a timed moment), or else a kind walker may get a
+   * (returns true: a chase begins), or else a kind walker may get a
    * small gift from a local. Its own dice, so his walk stays the same.
    */
-  reputeAt(place: Pick<Place, "name">): Moment | null {
+  reputeAt(place: Pick<Place, "name">): boolean {
     const rng = new Rng(seedOf(`law${this.now()}${place.name}`));
     if (this.law.stars() > 0 && rng.randf() < R.spotChance(this.law.heat, tierOf(this.fame.total()))) {
       this.say(`🚨 The police spotted him at ${place.name}!`);
-      return R.chaseMoment(this.him());
+      return true;
     }
-    if (this.bond.leaning() !== "kind" || rng.randf() >= R.GIFT_CHANCE * (1 + this.fame.tier(this.here()))) return null;
+    if (this.bond.leaning() !== "kind" || rng.randf() >= R.GIFT_CHANCE * (1 + this.fame.tier(this.here()))) return false;
     const g = rng.pick(R.GIFTS);
     this.cents += g.cents ?? 0;
     if (g.fx) this.applyFx(g.fx);
     this.say(`🎁 ${g.say.replace("{PLACE}", place.name)}${g.cents ? ` (${signed(g.cents)})` : ""}`);
-    return null;
+    return false;
   }
 
-  /** Ends the chase begun at the place named `place`, with your `pick` or else his own by his karma (moments.ts defaultPick) from his money and energy as they are now, not when it began; see chased. Its own dice. */
-  runChase(place: string, pick?: R.Pick): number {
+  /** Ends the chase begun at the place named `place` with his own pick by his karma (moments.ts defaultPick), from his money and energy as they are now, not when it began; see chased. Its own dice. */
+  runChase(place: string): number {
     const rng = new Rng(seedOf(`chase${this.now()}${place}`));
-    return this.chased(pick ?? (defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick), rng.randf());
+    return this.chased(defaultPick(R.chaseMoment(this.him()), this, rng) as R.Pick, rng.randf());
   }
 
   /** The chase ends with `pick` and dice `r`: away, or caught and fined, or jailed when he can't pay, and what he stole is taken back. Returns jail minutes, or 0. */
