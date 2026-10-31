@@ -702,7 +702,7 @@ export class Game {
     const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
     const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: near ? cityKey(near) : "" };
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: Q.listedKey(this.city, near) };
     const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
@@ -1024,7 +1024,7 @@ export class Game {
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
     const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, near ? cityKey(near) : "");
+    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near));
     if (q.rev !== rev) this.changed();
   }
 

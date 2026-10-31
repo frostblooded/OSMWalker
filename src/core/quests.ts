@@ -5,8 +5,9 @@
 // capitals also have their own quests (data/city-quests.json) about named
 // landmarks, dealt first. Every QUEST_EVERY_MIN to QUEST_EVERY_MAX stops he
 // takes one on and does its steps back to back, stopping only for an urgent
-// need; at its middle step it goes on or fails, ending early with no reward. World events (Guild
-// Wars 2's dynamic events) pop up at real places near him with a timer: he
+// need; at its middle step it goes on or fails, ending early with no
+// reward. World events (Guild Wars 2's dynamic events) pop up at real
+// places near him with a timer: he
 // joins one when he is free, it goes well or badly, and either way a
 // follow-up may come next; one he misses plays out without him. Nothing here
 // waits for you. Pure; Stats owns one Quests, and the game and the catch-up
@@ -57,8 +58,7 @@ export const LOG_MAX = 40;
 export const CARD_RECENT = 2;
 
 export type Reward = { eur?: number | [number, number]; xp?: number; fx?: Fx; item?: Items.Kind };
-/** One step: where (actions.json keys, class or class/subclass) and what he does, one line picked from `say`. */
-/** Where a step happens: one of the named landmarks in `name` when one is loaded (a city's own quests), else a place of the kinds in `at`. */
+/** One step: where (one of the named landmarks in `name` when one is loaded, for a city's own quests, else a place of the actions.json kinds in `at`, class or class/subclass) and what he does, one line picked from `say`. */
 export type Step = { at: string[]; name?: string[]; say: string[] };
 export type QuestKind = {
   id: string;
@@ -133,6 +133,10 @@ export function stepPlaces(step: Step, places: readonly Place[]): Place[] {
 /** Lower case without accents, so "Bogotá" and "Bogota" match. */
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
+/** The cities.tsv key city quests match for a game city named `city` (however a search spelled it), given the listed `near`est city: "" when the game city is another town nearby. */
+export function listedKey(city: string, near: { name: string; country: string } | null): string {
+  return near && fold(city).startsWith(fold(near.name)) ? `${near.name}, ${near.country}` : "";
+}
 
 /** The done keys kept: every city quest (its key is its id, with no ":"), and the newest DONE_MAX of the rest. */
 const remember = (done: string[]) => [...done.filter((k) => !k.includes(":")), ...done.filter((k) => k.includes(":")).slice(-DONE_MAX)];

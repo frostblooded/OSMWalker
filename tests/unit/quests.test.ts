@@ -140,6 +140,15 @@ describe("the capitals' own quests", () => {
     expect(other.quests.board.some((o) => o.key === "eiffel")).toBe(false);
   });
 
+  it("belong to the listed city only, not to another town near it", () => {
+    const paris = { name: "Paris", country: "France" };
+    expect(Q.listedKey("Paris, Île-de-France, France", paris)).toBe("Paris, France");
+    expect(Q.listedKey("Paris, France", paris)).toBe("Paris, France");
+    expect(Q.listedKey("Bogotá, Bogotá D.C., Colombia", { name: "Bogota", country: "Colombia" })).toBe("Bogota, Colombia");
+    expect(Q.listedKey("Versailles, Île-de-France, France", paris)).toBe("");
+    expect(Q.listedKey("Somewhere", null)).toBe("");
+  });
+
   it("are kept done for good, however many template quests he finishes after", () => {
     const { s } = fresh({ names: ["Ana"], quests: [one({ id: "a" }), paris], events: [] });
     s.quests.done = ["eiffel", ...Array.from({ length: Q.DONE_MAX + 5 }, (_, i) => `a:Ana:${i}`)];
