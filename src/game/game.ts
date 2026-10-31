@@ -953,7 +953,8 @@ export class Game {
       this.awayClover = this.stats.care.checkIn(awayS, dayOf(this.now()));
       this.stats.wrote(this.stats.bond.checkIn(awayS, this.awayClover));
       // His elder stage ran out while you were away (or you asked on a ride): the catch-up stopped there, and the heir sets out now.
-      // Aged to now first, since time past the catch-up's limit counts towards his life too.
+      // Aged to now first, since time past the catch-up's limit counts towards his life too, under the sky of now (without weather, like the catch-up).
+      this.stats.sky = { ...this.sky(), weather: null };
       this.stats.passTime(0, 0);
       const old = this.stats;
       const leaving = old.life.leaving;

@@ -7,8 +7,8 @@
 import { Rng, seedOf } from "./rng";
 import type { Sky } from "./sky";
 
-/** It counts as night once Sky.dark passes this (see sky.ts). */
-export const NIGHT_DARK = 0.5;
+/** It counts as night once Sky.dark (0 by day to 1 at night) passes this. */
+const NIGHT_DARK = 0.5;
 
 export type EventId = "full_moon" | "shooting_stars" | "meteor_shower" | "comet" | "aurora" | "lunar_eclipse";
 export type SkyEvent = { id: EventId; icon: string; name: string; what: string; say: string; chance: number; mood: [number, number] };

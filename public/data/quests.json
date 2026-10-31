@@ -25,11 +25,11 @@
       "good": ["{GIVER} sets a plate for him. It tastes like someone's childhood.", "The whole family claps when he walks in with {ITEM}."],
       "worse": ["He can't find the right one anywhere, and dinner goes ahead without it.", "Grandma's handwriting beats him; he gives the card back unread."],
       "reward": { "skill": "cooking", "eur": [5, 12], "xp": 35, "fx": { "fullness": 30, "mood": 8 } } },
-    { "id": "star_chart", "icon": "🌌", "title": "The Star Chart", "lean": "wit", "time": "night",
+    { "id": "star_chart", "icon": "📐", "title": "The Star Chart", "lean": "wit",
       "items": ["the Summer Triangle", "the Plough", "Orion's belt", "the Pole Star"],
       "steps": [
-        { "at": ["library", "school"], "say": ["{GIVER} at {PLACE} has an old star chart with {ITEM} circled, and no idea where to look.", "At {PLACE}, {GIVER} lends him a star chart: find {ITEM} tonight."] },
-        { "at": ["lookout", "park", "garden"], "say": ["At {PLACE} he holds the chart up to the sky and turns it the right way round.", "He lies on the grass at {PLACE} and counts stars until his neck hurts."] },
+        { "at": ["library", "school"], "say": ["{GIVER} at {PLACE} has an old star chart with {ITEM} circled, and no idea where to look.", "At {PLACE}, {GIVER} lends him a star chart: find {ITEM} in the sky."] },
+        { "at": ["lookout", "park", "garden"], "say": ["At {PLACE} he picks the darkest spot to come back to after sunset, and turns the chart the right way round.", "He waits at {PLACE} for the stars to come out, counting them until his neck hurts."] },
         { "at": ["library", "school"], "say": ["He brings the chart back to {PLACE} with {ITEM} found and marked."] }
       ],
       "twists": ["The street lamps come on and wash half the sky out.", "A cloud parks itself right over {ITEM}."],
@@ -999,7 +999,7 @@
       "win": { "say": "He shuts the right window and the spell fizzles. The wizard nods.", "xp": 40, "fx": { "luck": 0.2 } },
       "lose": { "say": "Everything nearby smells of lavender for a day.", "xp": 15 },
       "missed": "The sparks at {PLACE} died down." },
-    { "id": "star_party", "icon": "☄", "title": "Star party", "at": ["lookout", "park"], "time": "night", "min": [30, 60], "lean": "wit",
+    { "id": "star_party", "icon": "🪐", "title": "Star party", "at": ["lookout", "park"], "time": "night", "min": [30, 60], "lean": "wit",
       "text": ["Someone has set up telescopes at {PLACE} and invites anyone to look."],
       "win": { "say": "He waits his turn and sees the rings of Saturn. He can't stop talking about it.", "xp": 30, "fx": { "mood": 8 } },
       "lose": { "say": "By his turn the clouds roll in; he sees a lens cap.", "xp": 10 },

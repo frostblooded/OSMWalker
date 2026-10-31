@@ -434,7 +434,7 @@ After sunset the map darkens under a blue shade as the sun sinks, until it is {N
 Now and then a night puts on a show. These are the game's own, not the real sky's: each night in each city rolls its own dice, and about {SKY_PCT} of nights have one. On the first dark moment of such a night he looks up, wherever he is, whatever he is doing and whatever the weather, once a night:
 {SKY_LIST}
 
-He says what he saw in History, and the moodlet lifts his mood for its hours (see Moodlets). It happens the same while you are away. The first one goes in his life story. The Collection's Places tab keeps every event he has seen and how often, and the 🌌 Stargazer badge counts them all. Some quests and events at night send him to look at the stars too.
+He says what he saw in History, and the moodlet lifts his mood for its hours (see Moodlets). It happens the same while you are away. The first one goes in his life story. The Collection's Places tab keeps every event he has seen and how often, and the 🌌 Stargazer badge counts them all. A quest and a night-time event also send him to look at the stars.
 ## Opening hours {opening}
 Shops, offices, museums, galleries, libraries, banks, cafes and other day businesses are open from {OPEN_H} to {CLOSE_H} by the city's clock. Kiosks and corner shops, bars, pubs, fast food, hotels, hospitals, pharmacies, stations, parks and monuments stay open all night.
 

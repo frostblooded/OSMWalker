@@ -114,6 +114,27 @@ describe("game", () => {
       expect(weather[0]).toBeNull();
     });
 
+    it("ages him to now after a catch-up of over a day under the sky of now, not the catch-up's last", async () => {
+      let now = NOW;
+      const { api } = weatherApi(0, 15);
+      const { g, storage } = game({ api, clock: () => now });
+      await g.startCity("Sofia, Bulgaria", ...START, null);
+      g.save();
+      now += 33 * 3600_000;
+      const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
+      again.problems.quiet = true;
+      again.load();
+      const atNow: [Sky, Sky][] = [];
+      const pass = again.stats.passTime.bind(again.stats);
+      again.stats.passTime = (m, w) => {
+        if (again.stats.now() * 1000 >= now - 1000) atNow.push([again.stats.sky!, again.sky()]);
+        return pass(m, w);
+      };
+      await again.wake();
+      expect(atNow.length).toBeGreaterThan(0);
+      expect(atNow[0]![0].rise).toBeCloseTo(atNow[0]![1].rise, 4);
+    });
+
     it("lives the ride's time on reopen under the sky at its end, not at the reopen", async () => {
       let now = NOW;
       const { api } = weatherApi(0, 15);
