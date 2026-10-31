@@ -347,15 +347,18 @@ describe("quests, events and the Collection", () => {
   });
 
   it("a board only has the kind or rascal quests that fit his lean", () => {
-    const places = ["bar", "shop/pawnbroker", "place_of_worship", "town_hall", "cafe", "bus", "park", "police", "grocery", "bakery"].map((c, i) => ({ ...place(`P${i}`, c.split("/")[0]!), subclass: c.split("/")[1] ?? c, lat: i * 0.001 }));
-    const sides = (lean: string) => {
+    const places = ["bar", "shop/pawnbroker", "place_of_worship", "town_hall", "cafe", "bus", "park", "police", "grocery", "bakery"].flatMap((c) => [c, c, c]).map((c, i) => ({ ...place(`P${i}`, c.split("/")[0]!), subclass: c.split("/")[1] ?? c, lat: i * 0.001 }));
+    const sides = (lean: string, only = false) => {
       const q = new Quests();
-      q.bank = bank;
-      q.roll("Bigtown", 5_000_000, places, new Rng(5), lean);
+      q.bank = only ? { ...bank, quests: bank.quests.filter((k) => k.side) } : bank;
+      q.roll("Bigtown", 5_000_000, places, new Rng(5), "", lean);
       return new Set(q.board.map((o) => bank.quests.find((k) => k.id === o.kind)!.side ?? ""));
     };
     expect(sides("kind").has("rascal")).toBe(false);
+    expect(sides("kind", true).has("kind")).toBe(true);
     expect(sides("rascal").has("kind")).toBe(false);
+    expect(sides("rascal", true).has("rascal")).toBe(true);
+    expect(sides("").size).toBeGreaterThan(0);
     const plain = sides("");
     expect(plain.has("kind") || plain.has("rascal")).toBe(false);
   });

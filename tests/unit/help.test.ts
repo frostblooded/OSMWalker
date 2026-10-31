@@ -19,10 +19,11 @@ const data = {
   dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
   forecasts: JSON.parse(dataFile("forecasts.json")),
   incidents: JSON.parse(dataFile("incidents.json")),
-  quests: JSON.parse(dataFile("quests.json")),
+  quests: (() => { const b = JSON.parse(dataFile("quests.json")); b.quests.push(...JSON.parse(dataFile("city-quests.json"))); return b; })(),
   creatures: JSON.parse(dataFile("creatures.json")),
   spells: JSON.parse(dataFile("spells.json")),
   borders: JSON.parse(dataFile("borders.json")),
+  words: JSON.parse(dataFile("words.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);
@@ -209,5 +210,10 @@ describe("search", () => {
 
   it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
+  });
+
+  it("counts the local words from the word list", () => {
+    const text = page("words").body;
+    expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
   });
 });

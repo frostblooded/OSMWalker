@@ -141,7 +141,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: his heading is the direction from where his last walk started to where it ended. A place straight ahead weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after arriving in a new city he has no heading yet, so every direction counts the same.
 
-Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
+Need: a place weighs 1 + {NEED_BOOST} x the need score of the best thing he can do there right now, times how well it suits him (see His needs). So a place that meets an empty need in full weighs {NEED_MAX} times as much, and at half of {NEED_AT} {NEED_HALF} times. When he is hungry he heads for food, when tired for coffee or a bed, and when he is broke or saving for a trip or a vehicle, for paid work. A full bag counts as an empty need met in full by resale shops (see The bag and selling). Once he has saved up for his next vehicle and isn't saving for a fare, a shop that sells it weighs {GOAL_SHOP_PULL} times as much (see Saving for a vehicle). Only an urgent need beats that. A whisper he follows (see Whispers) changes this too: Eat and Rest make those meters feel empty, so they count as rock bottom (see Urgent below), Save counts as saving for a trip, and Explore makes each place he has never been to weigh {EXPLORE_PULL} times as much. His wants and fears (see Wants and fears) multiply a place's need too: ×{WANT_PULL} for each want of its kind, ×{FEAR_PULL} for a fear. While he is wanted enough to pay off the police and can spare it, police stations weigh {PAYOFF_PULL} times as much (see The police).
 
 Urgent: while a meter is under {URGENT_AT} and some open place in the city box can fix it, he only looks at places that fix an urgent need, and rank, the {GOAL_PEAK_M} m bump and heading drop out: the nearest fix wins. A fix {URGENT_NEAR_M} m away or closer weighs most, one twice as far a quarter as much. He still does as he likes {SLIP_PCT} of the time, unless a meter is under {BOTTOM_AT}: then he always goes, and only places that fix that meter count, even over another urgent need.
 
@@ -246,11 +246,17 @@ Prices are real-world euro prices, the same in every country: a coffee is a few 
 
 He spends money on food, drinks, tickets, trips and gear, and earns it from jobs, from selling items and from lucky finds. While he has less than {SKINT} money is a need, steeper the closer he gets to €0, and he leans away from spending (see His needs).
 
-He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money.
+He keeps a small reserve: he won't buy gear that would leave him with less than {KEEP_CENTS}. Until he has a dragon he saves up for his next vehicle (see Saving for a vehicle). Waking up in hospital costs {HOSPITAL_FEE}, but never more than {HOSPITAL_MAX_PCT} of his money. Each week he pays his bills (see Bills).
+## Bills {bills}
+At the start of each week (Monday at midnight by your phone's clock), his bills arrive, also while you're away, and he pays them by himself:
+{BILL_LIST}
+
+At level 1 they come to {BILLS_L1} a week, at level 10 {BILLS_L10} and at level 30 {BILLS_L30}. If he hasn't got it all, he pays nothing and a debt collector takes the cheapest thing in his bag instead, never his gear or a treasured item (see The bag and selling). With nothing to take, the bills are written off. The Stats sheet shows this week's bills on the Level card.
 ## Wages {wages}
 Every job lists a real-world wage for a shift, such as a café paying for washing cups. At level 1 a job with no attribute need pays exactly that, unless the daily forecast raises pay for the day (see Daily forecast). As he grows he earns more, well above real wages, so that vehicles come within reach:
 - {WAGE_LEVEL_PCT} more for every level above 1,
 - {WAGE_ATTR_PCT} more for every point of the attribute the job needs, counting his gear. Tending the bar needs charm, so with charm 10 it pays {WAGE_ATTR_X10} more.
+- up to {VISA_PAY_MAX} more with a better visa in the country (see Visas).
 
 For example a job with no attribute need pays {WAGE_LV11} its listed wage at level 11, and {WAGE_LV30} at level 30. Only pay grows: prices stay the same at every level. Anything that pays counts, including bets, gigs and lucky finds at places such as the coin by the ATM. Selling items and money found while walking don't grow.
 ## Chance cards at work {work_cards}
@@ -303,11 +309,21 @@ Under {NEED_AT} he needs a drink more and more (see His needs); under {URGENT_AT
 ## Mood {mood}
 Mood is how happy he is, from 0 to 100, starting at {START_MOOD}. The daily forecast can make one kind of place lift it more for a day (see Daily forecast).
 
-It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Wet weather takes {WET_MOOD_PER_H} more an hour and sunshine gives {SUNNY_MOOD_PER_H} back (see Weather). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
+It drops by {MOOD_PER_H} every hour the game is open, and by {DIRTY_MOOD_PER_H} more while he is dirty (see Hygiene). Wet weather takes {WET_MOOD_PER_H} more an hour and sunshine gives {SUNNY_MOOD_PER_H} back (see Weather). Moodlets add their bit every hour too (see Moodlets). Treats, sights, music, chats and buffs such as Tipsy or Blessed raise it; failed bets, risks gone wrong and debuffs such as Hungover lower it.
 
 When mood is under {NEED_AT} he needs cheering up more and more (see His needs).
 
 Mood scales the XP he gets from actions: ×{MOOD_XP_MIN} at mood 0, ×1 at 50 and ×{MOOD_XP_MAX} at 100, in a straight line between. For example at mood 80 an action worth 20 XP gives {MOOD_80_XP}. The Stats sheet shows the multiplier now. First-visit XP is not scaled.
+## Moodlets {moodlets}
+On top of the usual drift, named moodlets nudge his mood a little every hour while they last: "Wish come true", "Rattled", "Scared of the dog park". Each has its own mood an hour and a time left. The same moodlet again starts its time over instead of adding up, and he keeps at most {MAX_MOODLETS}.
+
+The Mind card on the Stats sheet opens a Mood list of everything that moves his mood each hour now: the drift, dirt, the weather and each moodlet, with their total.
+## Wants and fears {wants}
+He always has two wants, each for a kind of place: a long one, a sight he dreams of ({LONG_WANTS}), and a short one, an everyday treat he wants within {SHORT_H} hours or he moves on to another. After a mishap he also wants to cheer up somewhere for {SHAKE_H} hours. The Mind card on the Stats sheet lists them.
+
+A wanted kind of place pulls his goal {WANT_PULL} times as hard (see Picking the next goal). Doing anything there makes the wish come true: {WANT_XP_LONG} XP and {WISH_MOOD_LONG} for a long want, {WANT_XP_SHORT} XP and {WISH_MOOD_SHORT} for a short one, {WANT_XP_SHAKE} XP and {WISH_MOOD_SHAKE} for cheering up. Then a new want takes its place.
+
+A risk gone wrong rattles him ({RATTLED}), and {FEAR_PCT} of the time leaves him wary of that kind of place ({SHAKEN}), up to {MAX_FEARS} fears. A kind he already fears, or one where a wish came true on the same visit, leaves no new fear. A feared kind pulls only ×{FEAR_PULL}, but he also wants to face it again, so the two even out. A visit there with no mishap beats the fear: {WANT_XP_FACE} XP and {FACED_MOOD}.
 ## Hygiene {hygiene}
 Hygiene is how clean he is, from 0 to 100, starting at {START_HYGIENE}.
 
@@ -461,7 +477,7 @@ Every time he picks a new goal he rolls the trip dice, unless a need is urgent (
 
 Apart from the dice, an old monument or castle ruin very rarely opens as a portal and takes him to a new city for free (see Portals).
 
-While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots.
+While no places of note are loaded in the city box, the odds double to {NO_PLACES_COUNTRY_PCT} and {NO_PLACES_CITY_PCT}, so he doesn't stay long in a city where he can only walk to random spots. On the last day of his visa a trip abroad gets likelier still (see Visas).
 
 The first goal after you choose a city never rolls the dice. The country he is in is the country of the nearest of the {CITY_COUNT} listed cities ({COUNTRY_COUNT} countries). Cities closer than {SAME_CITY_KM} km don't count as a different city. The city is picked at random, weighted by population, so big cities come up most.
 
@@ -470,6 +486,11 @@ While he walks to the station, where he is going stays a surprise: the History s
 He first walks to a bus or railway station, a ferry terminal, an airport, or (with a car) a gas station, and pays there (see Stations and getting there, and Fares). Cycling and hitchhiking set off from where he stands and are free (see Other ways to travel), and so does a long walk, paying only for hostels (see Long walks). If there is no way out or he can't pay, he stays, the Debug log says why, and he saves up for it (see Fares), unless he is broke enough to hitchhike.
 
 In the new city he picks goals within 8 x the square root of its population in metres from the centre, at least {MIN_TRIP_CITY_KM} km and at most {MAX_TRIP_CITY_KM} km.
+## Visas {visas}
+Each country he spends days in gives him a better visa there. A day counts at the first minute of each day, by your phone's clock, in the country he is in, also while you're away:
+{VISA_LIST}
+
+A visa limits how long one stay in the country lasts; a stay starts when he enters it. Nothing makes him leave: on the last day of the stay, a trip abroad is {VISA_URGE} times likelier when he rolls the trip dice (see Trips to other cities), and past it {VISA_PUSH} times, so he moves on by himself. He says so in the feed on that last day, and when his visa gets better. A better visa pays more at any paid work in that country (see Wages). The Stats sheet shows his visa in the country he is in, this stay against its limit, and the days to the next one.
 ## Stations and getting there {stations}
 How he goes depends on the distance in a straight line:
 - under {PLANE_FROM_KM} km he always goes by road,
@@ -523,6 +544,10 @@ Each time he arrives in a different country than the one he left, by any kind of
 - a dry remark about the border guard.
 
 {BORDER_COUNTRIES} countries have their own word and money. Elsewhere he still gets the stamp and the guard. It all happens on its own, while you are away too, and changes nothing about his stats.
+## Local words {words}
+In {WORD_COUNTRIES} countries he picks up everyday words in the local language ({WORD_LANGUAGES} languages, about {WORD_EACH} words each): hello, thank you, coffee, bread, the bill, cheers and the like. At {WORD_PCT} of his stops there he learns one he doesn't know yet, with how to say it in Latin letters where the language uses another script, for example "🗣 Learned a Bulgarian word at Cafe Rila: "кафе (kafe)" means coffee".
+
+A word that fits the place comes first: coffee at a café, bread at a bakery, the bill at a restaurant, beer and cheers at a bar or pub, water at a fountain, a church (or mosque or temple) at a place of worship, station at a station, pharmacy at a pharmacy, ice cream at an ice cream parlour. Words like hello and thank you he learns anywhere. Each word gives wits +{WORD_WIT} and {WORD_XP} XP. Words carry over between countries that share a language, and he learns them while you are away too. The Stats sheet lists them, and the Polyglot badge counts them (see Badges and titles).
 ## Country flavour {flavour}
 {FLAVOUR_COUNTRIES} countries have their own actions ({FLAVOUR_ACTIONS} in all), such as banitsa with boza at a bakery in Bulgaria or Turkish coffee in a copper pot. They join the usual actions at the matching kind of place while he is in that country.
 
@@ -705,15 +730,17 @@ A bad one never takes more than {LOSS_CAP_PCT} of his money. It may take one ite
 ## Quests {quests}
 Quests are the heart of his life. Every city has a board of them, rolled the first time {BOARD_PLACES} of its places (not counting bridges) are loaded, with at least one where a quest can start: {BOARD_MIN} in a town of {BOARD_TOWN_POP} people or fewer, {BOARD_MAX} in a city of {BOARD_BIG_POP} or more, and in between on a sliding scale (about {BOARD_MID} in a city of {BOARD_MID_POP}). There are {QUEST_KINDS} kinds of quest, {FANTASY_KINDS} of them with a touch of magic (at most {FANTASY_PCT} of a board), and each one is filled with a local's name, an item, sometimes a twist and the city's real places, so the same kind reads as a new quest: over {QUEST_VARIANTS} in all. A quest he has done never comes back, so when he returns to a city it has new ones. A few kinds are only for the kind (a soup kitchen, a lost wallet to hand in) or only for rascals (a parcel with no questions asked, a rigged card game): they only come up on a board rolled while he leans that way (see Karma), and some quests and events move his karma (see Karma).
 
+{CITY_CITIES} cities, nearly every capital among them, also have quests of their own, {CITY_QUESTS} in all, about their real landmarks: they go on that city's board before any other, and he does each one once. Where the landmark isn't loaded yet, a place of the same kind stands in.
+
 After every {QUEST_EVERY_MIN} to {QUEST_EVERY_MAX} stops he takes one on, likelier one near him, and does its steps back to back (a step at a place closed for the night waits for morning, see Opening hours): first the quest giver, then {STEPS_MORE_MIN} to {STEPS_MORE_MAX} more places of the right kinds (a pharmacy, then the neighbour's café), each picked among the {STEP_CHOICES} nearest that fit. Each step takes {STEP_MIN} minutes instead of an action. An urgent need (see His needs) comes first: he eats or sleeps, then carries on. He doesn't set off on a trip while he is on a quest; if a free ride takes him away anyway, the quest stays behind, along with the city's board and events.
 
-At the end it goes well at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}), and pays its money, XP and effects, now and then with a thank-you item for his bag. One that ends worse pays {WORSE_PCT} of it. Nothing waits for you.
+At its middle step, where a twist may come, it goes on at even odds, tilted by {INC_LEAN_PCT} for each point of the quest's attribute above 1 (up to {INC_LEAN_CAP_PCT}). Otherwise it fails there and ends early with no reward, and it doesn't come back either; the Quests card counts only those he finished. One that goes on pays its money, XP and effects at the end, now and then with a thank-you item for his bag. Nothing waits for you.
 
 On the map, a purple ! marks each quest on the board, at its giver's place, and a purple flag the step he is on, with a yellow glow. Tap one to read it; Go help sends him to that quest next, without waiting for the stops in between (once its place is open, see Opening hours). It is only a nudge: he does just as well without it. The ❗ Quests card on the Stats sheet shows what he is on and his last {CARD_RECENT}. The {LOG_MAX} newest quests and events are kept.
 
 While you are away he takes on quests, does their steps and joins events the same way, in a city whose places are loaded.
 ## World events {world_events}
-World events happen at real places near him whether he is there or not, like Guild Wars 2's events: an oven breaks down at a bakery, a parrot escapes from a pet shop, a tour group loses its guide. At each stop that isn't a quest step or an event there is a {EVENT_CHANCE_PCT} chance of a new one within {EVENT_NEAR_KM} km, while fewer than {EVENT_MAX} run; each lasts the minutes it says, and some only happen in the morning, by day, in the evening or at night. There are {EVENT_KINDS}, {FOLLOW_KINDS} of them follow-ups.
+World events happen at real places near him whether he is there or not, like Guild Wars 2's events: an oven breaks down at a bakery, a parrot escapes from a pet shop, a tour group loses its guide. At each stop that isn't a quest step or an event there is a {EVENT_CHANCE_PCT} chance of a new one within {EVENT_NEAR_KM} km, while fewer than {EVENT_MAX} run; each lasts the minutes it says, and some only happen in the morning, by day, in the evening or at night. There are {EVENT_KINDS}, {FOLLOW_KINDS} of them follow-ups. {EVENT_FANTASY} of them have a touch of magic, such as a statue that steps down at night or a pigeon that asks the time.
 
 A purple star marks each one on the map. When he picks where to go next and isn't setting off on a trip, one within {EVENT_NEAR_KM} km comes before anything else unless a need is urgent or its place is closed (see Opening hours; tap one and Go help to send him to that one first, however far). Helping takes {STEP_MIN} minutes and goes well at the same odds as a quest, with its own attribute. Win or lose, a follow-up may come next ({FOLLOW_PCT} of the time when there is one): a stalled museum move leaves boxes to sort, a lost child becomes a big search. An event he misses plays out without him, and word of it reaches his History.
 ## Night legends {legends}
@@ -781,12 +808,14 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 City sound (a switch, off at first and remembered) plays a soft loop for where he is (see City sound).
 ## The Stats sheet {sheet}
 🧍 Stats opens his character sheet, a set of cards:
-- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed and how mood scales his XP.
+- Level, his title once he has one (see Badges and titles), an XP bar towards the next level, his money, his speed, how mood scales his XP and his weekly bills (see Bills).
 - Quests: the quest he is on and which step, how many quests the city's board still has, the events near him, and his last three quests and events (see Quests).
 - Saving for: the vehicle he saves up for (see Saving for a vehicle) and any trip fare, each with a gold bar of how much he has.
 - Vitals: a coloured bar and the value for each of his six meters, and an indigo one for Magic (see Magic), with what his enchanted gear adds a km.
+- Visa: his visa in the country he is in, this stay against its limit, the extra pay at work and the days to the next visa (see Visas).
 - Sky: the season, the weather, the city's time, and today's sunrise and sunset, and a row of what the weather does to him right now, such as "speed {SNOW_SPEED_PCT}" in snow (see Weather).
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
+- Local words: for each language, how many of its words he knows and the last one he learned (see Local words).
 - Attributes: a tile for each, with the part his gear, buffs and a finished city card set add in green.
 - Reputation: his karma with a bar (green when good, red when bad), his fame in this city and what that does to his prices (see Karma and Fame).
 - The police, once they want him or have chased him: his wanted stars, what paying it off would cost, and his chases so far (see The police).

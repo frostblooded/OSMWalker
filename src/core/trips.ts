@@ -90,6 +90,8 @@ export const JET_LAG_XP = 0.9;
 export type Kind = "stay" | "city" | "country";
 export type Mode = "bus" | "plane" | "car" | "train" | "ferry" | "bike" | "hitch" | "walk" | "portal";
 export type City = { name: string; code: string; country: string; lat: number; lon: number; pop: number; bounds?: BBox };
+/** The city's "Name, Country" key, the name trips give it and city quests match on. */
+export const cityKey = (c: City): string => `${c.name}, ${c.country}`;
 export type Airport = Place & { iata: string; code: string };
 export type LatLon = [number, number];
 export type Plan = {
@@ -121,10 +123,10 @@ export function parseAirports(text: string): Airport[] {
   return rows(text, 5).map((f) => ({ name: f[0]!, class: "aerodrome", subclass: "airport", iata: f[1]!, code: f[2]!, lat: +f[3]!, lon: +f[4]!, rank: 1 }));
 }
 
-/** What a roll means: r is uniform in [0, 1). `boost` multiplies the trip odds. */
-export function roll(r: number, boost = 1): Kind {
-  if (r < COUNTRY_CHANCE * boost) return "country";
-  if (r < (COUNTRY_CHANCE + CITY_CHANCE) * boost) return "city";
+/** What a roll means: r is uniform in [0, 1). `boost` multiplies the trip odds, and `abroad` the odds of a trip abroad on top (see visas.ts). */
+export function roll(r: number, boost = 1, abroad = 1): Kind {
+  if (r < COUNTRY_CHANCE * abroad * boost) return "country";
+  if (r < (COUNTRY_CHANCE * abroad + CITY_CHANCE) * boost) return "city";
   return "stay";
 }
 

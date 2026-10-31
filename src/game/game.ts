@@ -6,7 +6,7 @@
 // At each place he does an action that changes his stats. The sky over the
 // city (sun, season, Open-Meteo weather, closed places) steers him. No DOM
 // here: the app calls step() and the screens read the state.
-import { Activities, choose, exploreWeight, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
+import { Activities, choose, exploreWeight, minded, needLine, needOf, restMinutes, type ActionTable } from "../core/activities";
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
@@ -30,6 +30,7 @@ import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { Forecast } from "../core/forecast";
 import type { Creature } from "../core/creatures";
 import { leyLines, onLey, type Ley, type Spell } from "../core/magic";
+import type { WordBook } from "../core/words";
 import type { Incident } from "../core/incidents";
 import * as Q from "../core/quests";
 import type { Contest } from "../core/rival";
@@ -41,7 +42,7 @@ import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
 import { Stats, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, cityKey, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
@@ -74,7 +75,7 @@ export const MADE_CITIES = 20;
 /** How far east of a meeting Viktor shows, in degrees of longitude (some 25 m), so he stands beside him. */
 export const RIVAL_OFFSET_DEG = 0.0003;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[] };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -310,7 +311,7 @@ export class Game {
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.questGoal = () => this.questGoal();
-    w.need = (p) => skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky);
+    w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour()), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => exploreWeight(p, this.stats);
     w.events = {
       landed: (c, t) => this.onLanded(c, t),
@@ -384,6 +385,7 @@ export class Game {
     // Until the timed choices can ask you, he takes his own pick.
     this.stats.meetAt(place);
     this.stats.magicAt(place);
+    this.stats.wordAt(place);
     this.stats.giantAt(place);
     const nap = this.stats.fairyAt(place, this.hour());
     if (nap) {
@@ -529,7 +531,7 @@ export class Game {
   }
 
   private onLanded(dest: City, t: Travel): void {
-    this.city = `${dest.name}, ${dest.country}`;
+    this.city = cityKey(dest);
     this.country = dest.code;
     this.origin = [dest.lat, dest.lon];
     this.placeStats();
@@ -565,12 +567,13 @@ export class Game {
     w.rideNow(dest);
   }
 
-  /** Tells his stats the Placedex data, the jokes, the border lines, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
+  /** Tells his stats the Placedex data, the jokes, the border lines, the local words, the forecasts, the incident deck, the place creatures, the quest bank, the spells and where he is, after the city changed or a game loaded. */
   private placeStats(): void {
     this.stats.dex = this.deps.data.dex ?? {};
     this.stats.setCityPool(CC.pool(this.deps.data.cities));
     this.stats.jokes = this.deps.data.jokes ?? {};
     this.stats.borders = this.deps.data.borders ?? null;
+    this.stats.wordBook = this.deps.data.words ?? null;
     this.stats.forecasts = this.deps.data.forecasts ?? [];
     this.stats.letters = this.deps.data.letters ?? null;
     this.stats.incidents = this.deps.data.incidents ?? [];
@@ -772,7 +775,8 @@ export class Game {
     // A ride longer than the time away (a long walk, say) goes on when you are back.
     const onRide = w.travel !== null;
     const bounds = w.bounds ?? cityBounds(this.origin[0], this.origin[1]);
-    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0 };
+    const near = this.trips.cityNear(this.origin[0], this.origin[1]);
+    const city: AwayCity = { name: this.city, code: this.country, center: this.origin, bounds, places: w.graph.cells.size ? w.graph.placesIn(bounds) : null, pop: near?.pop ?? 0, key: Q.listedKey(this.city, near, this.origin) };
     const steps = catchUpSteps(this.stats, city, w.position(), onRide ? 0 : coverS - rideS, fromMs + rideS * 1000, {
       activities: this.activities,
       trips: this.trips,
@@ -1137,7 +1141,8 @@ export class Game {
     const q = this.stats.quests;
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
-    q.roll(this.city, this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0, this.storyPlaces(), this.cardRng, this.stats.bond.leaning());
+    const near = this.trips.cityNear(this.origin[0], this.origin[1]);
+    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near, this.origin), this.stats.bond.leaning());
     if (q.rev !== rev) this.changed();
   }
 
