@@ -1,6 +1,7 @@
 // Karma, fame and the law: what deeds do to them, perks either way, the police chase, and the same while away.
 import { describe, expect, it } from "vitest";
-import { Activities, exploreWeight, PAYOFF_PULL } from "../../src/core/activities";
+import { Activities, BOUNTY_WEIGHT, exploreWeight, PAYOFF_PULL, weight } from "../../src/core/activities";
+import { KIND_DEED_WEIGHT, DODGE_CHANCE } from "../../src/core/bond";
 import { FEATS, SETS } from "../../src/core/collection";
 import { Quests, type Bank } from "../../src/core/quests";
 import { DEED_STEP, LEAN_AT, LEAN_MAX } from "../../src/core/bond";
@@ -88,6 +89,20 @@ describe("karma", () => {
     const s = at();
     s.do(action("restaurant", "Sneak out without paying"), "Diner", new Rng(1), "restaurant");
     expect(s.bond.lean).toBe(-DEED_STEP);
+    expect(s.law.heat).toBe(DEED_STEP * R.HEAT_PER_KARMA);
+  });
+
+  it("a rascal picks rascal deeds more often, and a dodged bus ticket is a rascal deed", () => {
+    const s = at();
+    const rascal = { name: "Sneak", min: 5, deed: -1 };
+    const before = weight(rascal, s);
+    s.bond.lean = -LEAN_AT;
+    expect(weight(rascal, s)).toBe(before + KIND_DEED_WEIGHT);
+    let t = T0;
+    while (new Rng(seedOf(`Central${t}`)).randf() >= DODGE_CHANCE) t++;
+    s.now = () => t;
+    s.ride(500, "bus", "Central", "Plovdiv");
+    expect(s.bond.lean).toBe(-LEAN_AT - DEED_STEP);
     expect(s.law.heat).toBe(DEED_STEP * R.HEAT_PER_KARMA);
   });
 
@@ -232,6 +247,7 @@ describe("the law", () => {
     s.law.addHeat(1);
     expect(s.canDo(pay, 12)).toBe(true);
     expect(exploreWeight(place("Police", "police"), s)).toBe(PAYOFF_PULL);
+    expect(weight(pay, s)).toBe(weight({ ...pay, bounty: undefined }, s) + BOUNTY_WEIGHT);
     const cents = s.cents;
     s.do(pay, "Police", new Rng(1), "police");
     expect(cents - s.cents).toBe(R.payoffOf(R.STAR_HEAT * R.PAYOFF_STARS));
