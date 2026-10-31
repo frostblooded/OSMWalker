@@ -110,7 +110,8 @@
     "p": 0.5,
     "text": "and won 5c",
     "cost": -5
-   }
+   },
+   "skill": "chess"
   },
   {
    "name": "Rest and charge his phone",
@@ -139,6 +140,15 @@
    },
    "needs": {
     "weather": "wet"
+   }
+  },
+  {
+   "name": "Chat with the locals",
+   "min": 20,
+   "lang": true,
+   "fx": {
+    "mood": 5,
+    "xp": 5
    }
   }
  ],
@@ -334,6 +344,22 @@
      "mood": -15
     }
    }
+  },
+  {
+   "name": "Cook on the line for a shift",
+   "min": 120,
+   "earn": [
+    40,
+    70
+   ],
+   "fx": {
+    "energy": -25,
+    "xp": 25
+   },
+   "skill": "cooking",
+   "needs": {
+    "cooking": 4
+   }
   }
  ],
  "fast_food": [
@@ -477,7 +503,8 @@
    },
    "needs": {
     "cha": 2
-   }
+   },
+   "skill": "music"
   },
   {
    "name": "Pub quiz",
@@ -548,6 +575,33 @@
    },
    "needs": {
     "season": "winter"
+   }
+  },
+  {
+   "name": "Play a set on open-mic night",
+   "min": 60,
+   "earn": [
+    30,
+    80
+   ],
+   "fx": {
+    "mood": 15,
+    "cha": 0.2,
+    "xp": 30
+   },
+   "skill": "music",
+   "needs": {
+    "music": 6,
+    "time": "evening"
+   }
+  },
+  {
+   "name": "Chat with the locals",
+   "min": 20,
+   "lang": true,
+   "fx": {
+    "mood": 8,
+    "xp": 5
    }
   }
  ],
@@ -865,6 +919,7 @@
   },
   {
    "name": "Nap on a gallery bench",
+   "sleep": true,
    "min": 20,
    "fx": {
     "energy": 15,
@@ -892,7 +947,8 @@
     "name": "Inspired",
     "min": 120,
     "xp_mult": 2.0
-   }
+   },
+   "skill": "art"
   },
   {
    "name": "Volunteer as a guide",
@@ -952,6 +1008,7 @@
   },
   {
    "name": "Nap on a gallery bench",
+   "sleep": true,
    "min": 20,
    "fx": {
     "energy": 15,
@@ -979,7 +1036,8 @@
     "name": "Inspired",
     "min": 120,
     "xp_mult": 2.0
-   }
+   },
+   "skill": "art"
   },
   {
    "name": "Volunteer as a guide",
@@ -1010,7 +1068,8 @@
    "fx": {
     "mood": 5,
     "xp": 10
-   }
+   },
+   "skill": "photo"
   },
   {
    "name": "Pay for the top deck",
@@ -1067,6 +1126,47 @@
    "needs": {
     "cha": 4
    }
+  },
+  {
+   "name": "Photograph it from a good angle",
+   "min": 15,
+   "fx": {
+    "mood": 5,
+    "xp": 10
+   },
+   "skill": "photo"
+  },
+  {
+   "name": "Sell prints to tourists",
+   "min": 60,
+   "earn": [
+    10,
+    40
+   ],
+   "fx": {
+    "energy": -10,
+    "xp": 20
+   },
+   "skill": "photo",
+   "needs": {
+    "photo": 4
+   }
+  },
+  {
+   "name": "Guide a walking tour",
+   "min": 120,
+   "earn": [
+    40,
+    80
+   ],
+   "fx": {
+    "energy": -15,
+    "cha": 0.2,
+    "xp": 30
+   },
+   "needs": {
+    "lang": 4
+   }
   }
  ],
  "castle": [
@@ -1118,6 +1218,15 @@
     "xp": 20,
     "mood": 10
    }
+  },
+  {
+   "name": "Photograph it from a good angle",
+   "min": 15,
+   "fx": {
+    "mood": 5,
+    "xp": 10
+   },
+   "skill": "photo"
   }
  ],
  "monument": [
@@ -1162,6 +1271,15 @@
     "time": "evening",
     "weather": "sunny"
    }
+  },
+  {
+   "name": "Photograph it from a good angle",
+   "min": 15,
+   "fx": {
+    "mood": 5,
+    "xp": 10
+   },
+   "skill": "photo"
   }
  ],
  "memorial": [
@@ -1259,6 +1377,20 @@
      "fullness": 30
     }
    }
+  },
+  {
+   "name": "Photograph a wedding",
+   "min": 240,
+   "earn": 120,
+   "fx": {
+    "energy": -25,
+    "mood": 10,
+    "xp": 40
+   },
+   "skill": "photo",
+   "needs": {
+    "photo": 7
+   }
   }
  ],
  "theatre": [
@@ -1343,6 +1475,7 @@
   },
   {
    "name": "Fall asleep in the film",
+   "sleep": true,
    "min": 90,
    "cost": 9,
    "fx": {
@@ -1401,6 +1534,7 @@
   },
   {
    "name": "Nap in the reading room",
+   "sleep": true,
    "min": 30,
    "fx": {
     "energy": 20,
@@ -1431,6 +1565,22 @@
    "fx": {
     "xp": 10
    }
+  },
+  {
+   "name": "Play in a chess tournament",
+   "min": 120,
+   "earn": [
+    20,
+    80
+   ],
+   "fx": {
+    "wit": 0.3,
+    "xp": 40
+   },
+   "skill": "chess",
+   "needs": {
+    "chess": 7
+   }
   }
  ],
  "park": [
@@ -1445,6 +1595,7 @@
   },
   {
    "name": "Nap under a tree",
+   "sleep": true,
    "min": 60,
    "fx": {
     "energy": 40,
@@ -1472,7 +1623,8 @@
     "energy": -20,
     "hygiene": -15,
     "xp": 15
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Busk",
@@ -1486,7 +1638,8 @@
    },
    "needs": {
     "cha": 2
-   }
+   },
+   "skill": "music"
   },
   {
    "name": "Chess at the outdoor tables",
@@ -1494,7 +1647,8 @@
    "fx": {
     "wit": 0.3,
     "xp": 20
-   }
+   },
+   "skill": "chess"
   },
   {
    "name": "Pick up litter",
@@ -1587,6 +1741,7 @@
   },
   {
    "name": "Doze in the summer sun",
+   "sleep": true,
    "min": 30,
    "fx": {
     "energy": 15,
@@ -1626,6 +1781,102 @@
    "needs": {
     "time": "night"
    }
+  },
+  {
+   "name": "Sketch the passers-by",
+   "min": 30,
+   "fx": {
+    "mood": 8,
+    "xp": 10
+   },
+   "skill": "art"
+  },
+  {
+   "name": "Hustle chess for coins",
+   "min": 30,
+   "earn": [
+    5,
+    20
+   ],
+   "fx": {
+    "wit": 0.1,
+    "xp": 15
+   },
+   "skill": "chess",
+   "needs": {
+    "chess": 4
+   }
+  },
+  {
+   "name": "Play a street concert",
+   "min": 60,
+   "earn": [
+    20,
+    60
+   ],
+   "fx": {
+    "mood": 10,
+    "energy": -10,
+    "xp": 25
+   },
+   "skill": "music",
+   "needs": {
+    "music": 4
+   }
+  },
+  {
+   "name": "Sell sketches to passers-by",
+   "min": 60,
+   "earn": [
+    10,
+    35
+   ],
+   "fx": {
+    "energy": -5,
+    "xp": 20
+   },
+   "skill": "art",
+   "needs": {
+    "art": 4
+   }
+  },
+  {
+   "name": "Run the city fun run",
+   "min": 60,
+   "earn": [
+    0,
+    50
+   ],
+   "fx": {
+    "mood": 20,
+    "str": 0.2,
+    "energy": -30,
+    "hygiene": -20,
+    "xp": 40
+   },
+   "skill": "sport",
+   "needs": {
+    "sport": 7
+   }
+  },
+  {
+   "name": "Have a picnic he made",
+   "min": 30,
+   "cook": true,
+   "fx": {
+    "fullness": 40,
+    "xp": 10
+   },
+   "skill": "cooking"
+  },
+  {
+   "name": "Chat with the locals",
+   "min": 15,
+   "lang": true,
+   "fx": {
+    "mood": 5,
+    "xp": 5
+   }
   }
  ],
  "garden": [
@@ -1640,6 +1891,7 @@
   },
   {
    "name": "Nap under a tree",
+   "sleep": true,
    "min": 60,
    "fx": {
     "energy": 40,
@@ -1667,7 +1919,8 @@
     "energy": -20,
     "hygiene": -15,
     "xp": 15
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Busk",
@@ -1681,7 +1934,8 @@
    },
    "needs": {
     "cha": 2
-   }
+   },
+   "skill": "music"
   },
   {
    "name": "Chess at the outdoor tables",
@@ -1689,7 +1943,8 @@
    "fx": {
     "wit": 0.3,
     "xp": 20
-   }
+   },
+   "skill": "chess"
   },
   {
    "name": "Pick up litter",
@@ -1735,6 +1990,41 @@
     "mood": 10,
     "xp": 5
    }
+  },
+  {
+   "name": "Sketch the passers-by",
+   "min": 30,
+   "fx": {
+    "mood": 8,
+    "xp": 10
+   },
+   "skill": "art"
+  },
+  {
+   "name": "Hustle chess for coins",
+   "min": 30,
+   "earn": [
+    5,
+    20
+   ],
+   "fx": {
+    "wit": 0.1,
+    "xp": 15
+   },
+   "skill": "chess",
+   "needs": {
+    "chess": 4
+   }
+  },
+  {
+   "name": "Have a picnic he made",
+   "min": 30,
+   "cook": true,
+   "fx": {
+    "fullness": 40,
+    "xp": 10
+   },
+   "skill": "cooking"
   }
  ],
  "playground": [
@@ -1812,7 +2102,8 @@
     "energy": -30,
     "hygiene": -20,
     "xp": 30
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Referee a kids' match",
@@ -1821,6 +2112,20 @@
    "fx": {
     "cha": 0.1,
     "xp": 15
+   }
+  },
+  {
+   "name": "Coach a kids' team",
+   "min": 90,
+   "earn": 30,
+   "fx": {
+    "cha": 0.1,
+    "energy": -15,
+    "xp": 20
+   },
+   "skill": "sport",
+   "needs": {
+    "sport": 4
    }
   }
  ],
@@ -1855,7 +2160,8 @@
     "wit": 0.2,
     "energy": -20,
     "xp": 20
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Shower in the locker room",
@@ -1898,7 +2204,8 @@
     "wit": 0.2,
     "energy": -20,
     "xp": 20
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Shower in the locker room",
@@ -1955,7 +2262,8 @@
     "hygiene": 40,
     "energy": -20,
     "xp": 15
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Sunbathe",
@@ -2048,6 +2356,7 @@
   },
   {
    "name": "Rent a cabin and sleep",
+   "sleep": true,
    "min": 480,
    "cost": 20,
    "fx": {
@@ -2055,6 +2364,16 @@
     "hygiene": 10,
     "xp": 5
    }
+  },
+  {
+   "name": "Cook over the campfire",
+   "min": 30,
+   "cook": true,
+   "fx": {
+    "fullness": 40,
+    "xp": 10
+   },
+   "skill": "cooking"
   }
  ],
  "harbor": [
@@ -2122,6 +2441,7 @@
  "lodging": [
   {
    "name": "Hostel bunk for the night",
+   "sleep": true,
    "min": 480,
    "cost": 15,
    "fx": {
@@ -2140,6 +2460,7 @@
   },
   {
    "name": "Hotel room",
+   "sleep": true,
    "min": 480,
    "cost": 50,
    "fx": {
@@ -2207,6 +2528,28 @@
    },
    "needs": {
     "season": "winter"
+   }
+  },
+  {
+   "name": "Cook in the hostel kitchen",
+   "min": 30,
+   "cook": true,
+   "fx": {
+    "fullness": 40,
+    "xp": 10
+   },
+   "skill": "cooking"
+  },
+  {
+   "name": "Translate for travellers",
+   "min": 60,
+   "earn": 35,
+   "fx": {
+    "cha": 0.1,
+    "xp": 15
+   },
+   "needs": {
+    "lang": 4
    }
   }
  ],
@@ -2389,6 +2732,23 @@
    "fx": {
     "xp": 5
    }
+  },
+  {
+   "name": "Pay off his bounty",
+   "min": 10,
+   "bounty": true,
+   "fx": {
+    "xp": 5
+   }
+  },
+  {
+   "name": "Help find a lost dog",
+   "min": 30,
+   "fx": {
+    "mood": 10,
+    "xp": 15
+   },
+   "deed": 1
   }
  ],
  "fire_station": [
@@ -2410,6 +2770,16 @@
     "cha": 0.2,
     "xp": 15
    }
+  },
+  {
+   "name": "Volunteer for the street clean-up",
+   "min": 45,
+   "fx": {
+    "mood": 10,
+    "str": 0.1,
+    "xp": 15
+   },
+   "deed": 1
   }
  ],
  "laundry": [
@@ -2483,6 +2853,19 @@
     "per_h": {
      "mood": 4
     }
+   }
+  },
+  {
+   "name": "Teach a cooking class",
+   "min": 90,
+   "earn": 60,
+   "fx": {
+    "cha": 0.1,
+    "xp": 30
+   },
+   "skill": "cooking",
+   "needs": {
+    "cooking": 7
    }
   }
  ],
@@ -2579,7 +2962,8 @@
    "fx": {
     "mood": 5,
     "xp": 2
-   }
+   },
+   "skill": "photo"
   }
  ],
  "information": [
@@ -2589,6 +2973,22 @@
    "fx": {
     "wit": 0.1,
     "xp": 10
+   }
+  },
+  {
+   "name": "Guide a walking tour",
+   "min": 120,
+   "earn": [
+    40,
+    80
+   ],
+   "fx": {
+    "energy": -15,
+    "cha": 0.2,
+    "xp": 30
+   },
+   "needs": {
+    "lang": 4
    }
   }
  ],
@@ -2613,7 +3013,8 @@
    },
    "needs": {
     "cha": 2
-   }
+   },
+   "skill": "music"
   }
  ],
  "bus": [
@@ -2725,6 +3126,22 @@
     "energy": -25,
     "xp": 20
    }
+  },
+  {
+   "name": "Buy something to cook with",
+   "min": 5,
+   "cost": 3,
+   "groceries": [
+    "cheese",
+    "tomato",
+    "eggs",
+    "pasta",
+    "veg",
+    "fruit"
+   ],
+   "fx": {
+    "xp": 2
+   }
   }
  ],
  "shop/kiosk": [
@@ -2750,14 +3167,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
+   "lottery": true,
    "fx": {
     "luck": 0.05,
     "xp": 5
-   },
-   "risk": {
-    "p": 0.01,
-    "text": "and WON 200c",
-    "cost": -200
    }
   },
   {
@@ -2802,14 +3215,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
+   "lottery": true,
    "fx": {
     "luck": 0.05,
     "xp": 5
-   },
-   "risk": {
-    "p": 0.01,
-    "text": "and WON 200c",
-    "cost": -200
    }
   },
   {
@@ -2819,6 +3228,20 @@
    "fx": {
     "wit": 0.1,
     "xp": 5
+   }
+  },
+  {
+   "name": "Buy something to cook with",
+   "min": 3,
+   "cost": 3,
+   "groceries": [
+    "bread",
+    "cheese",
+    "eggs",
+    "pasta"
+   ],
+   "fx": {
+    "xp": 2
    }
   }
  ],
@@ -3120,6 +3543,16 @@
     "cha": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/shoes": [
@@ -3160,6 +3593,16 @@
     "cha": 0.1,
     "xp": 5
    }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/sports": [
@@ -3198,6 +3641,16 @@
    "fx": {
     "mood": 10,
     "cha": 0.1,
+    "xp": 5
+   }
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "clothes",
+   "steal": true,
+   "deed": -1,
+   "fx": {
     "xp": 5
    }
   }
@@ -3271,6 +3724,16 @@
     "cha": 3
    },
    "deed": -1
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/watches": [
@@ -3342,6 +3805,16 @@
     "mood": 4
    },
    "pack": true
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/second_hand": [
@@ -3385,6 +3858,16 @@
     "cha": 3
    },
    "deed": -1
+  },
+  {
+   "name": "Pocket something while nobody looks",
+   "min": 5,
+   "item": "trinkets",
+   "steal": true,
+   "deed": -1,
+   "fx": {
+    "xp": 5
+   }
   }
  ],
  "shop/charity": [
@@ -3488,7 +3971,8 @@
     "cha": 0.1,
     "mood": 5,
     "xp": 5
-   }
+   },
+   "skill": "music"
   }
  ],
  "_generic": [
@@ -3554,6 +4038,20 @@
     "text": "worth 3c",
     "cost": -3
    }
+  },
+  {
+   "name": "Paint a mural on a blank wall",
+   "min": 240,
+   "earn": 90,
+   "fx": {
+    "mood": 20,
+    "energy": -20,
+    "xp": 50
+   },
+   "skill": "art",
+   "needs": {
+    "art": 7
+   }
   }
  ],
  "bakery": [
@@ -3616,6 +4114,17 @@
     "fullness": 30,
     "thirst": 10,
     "xp": 5
+   }
+  },
+  {
+   "name": "Buy bread to cook with",
+   "min": 3,
+   "cost": 2,
+   "groceries": [
+    "bread"
+   ],
+   "fx": {
+    "xp": 2
    }
   }
  ],
@@ -3729,6 +4238,17 @@
    },
    "needs": {
     "str": 3
+   }
+  },
+  {
+   "name": "Buy meat to cook with",
+   "min": 3,
+   "cost": 5,
+   "groceries": [
+    "meat"
+   ],
+   "fx": {
+    "xp": 2
    }
   }
  ],
@@ -4294,7 +4814,8 @@
     "hygiene": 40,
     "energy": -20,
     "xp": 15
-   }
+   },
+   "skill": "sport"
   },
   {
    "name": "Sunbathe",
@@ -4451,11 +4972,22 @@
   },
   {
    "name": "Nap on a picnic bench",
+   "sleep": true,
    "min": 15,
    "fx": {
     "energy": 20,
     "xp": 3
    }
+  },
+  {
+   "name": "Cook on the barbecue",
+   "min": 30,
+   "cook": true,
+   "fx": {
+    "fullness": 40,
+    "xp": 10
+   },
+   "skill": "cooking"
   }
  ],
  "recycling": [
@@ -4548,7 +5080,8 @@
     "wit": 0.5,
     "mood": -5,
     "xp": 20
-   }
+   },
+   "skill": "chess"
   }
  ],
  "karting": [
@@ -4791,13 +5324,10 @@
    "name": "Lottery ticket",
    "min": 2,
    "cost": 2,
-   "earn": [
-    0,
-    4
-   ],
+   "lottery": true,
    "fx": {
-    "luck": 0.1,
-    "xp": 2
+    "luck": 0.05,
+    "xp": 5
    }
   },
   {
@@ -5128,6 +5658,57 @@
    "fx": {
     "cha": 0.1,
     "xp": 5
+   }
+  }
+ ],
+ "_holiday": [
+  {
+   "name": "Watch the holiday parade",
+   "min": 30,
+   "fx": {
+    "mood": 15,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Join a family's holiday picnic",
+   "min": 40,
+   "fx": {
+    "fullness": 25,
+    "mood": 12,
+    "cha": 0.1,
+    "xp": 10
+   }
+  },
+  {
+   "name": "Toast the holiday with strangers",
+   "min": 15,
+   "cost": 3,
+   "fx": {
+    "thirst": 20,
+    "mood": 10,
+    "cha": 0.1,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Hear the holiday bells and speeches",
+   "min": 20,
+   "fx": {
+    "mood": 8,
+    "wit": 0.1,
+    "xp": 8
+   }
+  },
+  {
+   "name": "Watch the holiday fireworks",
+   "min": 20,
+   "fx": {
+    "mood": 20,
+    "xp": 10
+   },
+   "needs": {
+    "time": "night"
    }
   }
  ]

@@ -34,7 +34,8 @@ export const RARE_STOCK: ReadonlySet<string> = new Set(["tortoises", "brooms", "
 export type Stats = Partial<Record<"str" | "cha" | "wit" | "luck" | "speed" | "magic", number>>;
 /** Where an item came from and what it has been through with him. */
 export type Story = { from: string; t: number; countries: string[]; km: number };
-export type Item = { name: string; slot: Slot; stats: Stats; rarity: Rarity; price: number; vehicle?: Exclude<Vehicle, "">; story?: Story };
+/** `stolen`: shoplifted; the police take it back if they catch him (repute.ts). */
+export type Item = { name: string; slot: Slot; stats: Stats; rarity: Rarity; price: number; vehicle?: Exclude<Vehicle, "">; story?: Story; stolen?: boolean };
 /** An item worn through this many countries is treasured: he keeps it instead of selling it. */
 export const TREASURED_COUNTRIES = 3;
 export const isTreasured = (item: Item) => (item.story?.countries.length ?? 0) >= TREASURED_COUNTRIES;

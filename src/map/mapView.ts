@@ -6,7 +6,7 @@
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
-import type { Look } from "../core/look";
+import { POSE_EVERY_S, type Look } from "../core/look";
 import type { MapIcon } from "../core/mapIcons";
 import { RIVAL_ICON } from "../core/rival";
 import type { LatLon } from "../core/trips";
@@ -54,6 +54,7 @@ export class MapView implements MapPort {
   private him!: Marker;
   private pin!: Marker;
   private rival!: Marker;
+  private police!: Marker;
   private following = true;
   /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
   autoFollow = true;
@@ -67,6 +68,9 @@ export class MapView implements MapPort {
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
+  /** His pose ("icon motion", "" for none) and performance.now() when it last moved. */
+  private poseKey = "";
+  private poseAt = 0;
   private iconKey = "";
   /** The icon pictures and layer, added the first time there is an icon to show. */
   private iconLayer: Promise<boolean> | null = null;
@@ -111,6 +115,7 @@ export class MapView implements MapPort {
     this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
     this.rival = new ml.Marker({ element: markerEl("rival", RIVAL_ICON), anchor: "center" }).setLngLat([center[1], center[0]]);
+    this.police = new ml.Marker({ element: markerEl("police", "🚓"), anchor: "center" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
         this.following = false;
@@ -206,17 +211,36 @@ export class MapView implements MapPort {
   /**
    * His face, bubble and pose, written to the page only when one changes. A
    * new pose plays its CSS animation a few times and then holds still, so the
-   * GPU is idle again after a few seconds.
+   * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
    */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}`;
-    if (key === this.lookKey) return;
+    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}|${l.aura ?? ""}`;
+    if (key === this.lookKey) {
+      if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
+      // Dropping the pose's class and a reflow restart its CSS animation.
+      this.poseAt = performance.now();
+      const bubble = this.him.getElement().querySelector<HTMLElement>(".bubble")!;
+      const cls = bubble.className;
+      bubble.className = "bubble";
+      void bubble.offsetWidth;
+      bubble.className = cls;
+      return;
+    }
     this.lookKey = key;
+    // Only a new pose plays from the start; a new face keeps the pose's minute running.
+    const pose = l.pose ? `${l.pose.icon} ${l.pose.motion}` : "";
+    if (pose !== this.poseKey) [this.poseKey, this.poseAt] = [pose, performance.now()];
     const el = this.him.getElement();
     el.querySelector(".face")!.textContent = l.face;
+    const aura = el.querySelector<HTMLElement>(".aura")!;
+    aura.className = `aura ${l.aura ?? ""}`;
+    aura.hidden = !l.aura;
     const mount = el.querySelector<HTMLElement>(".mount")!;
     mount.textContent = l.mount;
     mount.hidden = !l.mount;
+    const pet = el.querySelector<HTMLElement>(".pet")!;
+    pet.textContent = l.pet;
+    pet.hidden = !l.pet;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
@@ -247,6 +271,14 @@ export class MapView implements MapPort {
       return;
     }
     this.rival.setLngLat([at[1], at[0]]).addTo(this.map);
+  }
+
+  setPolice(at: LatLon | null): void {
+    if (!at) {
+      this.police.remove();
+      return;
+    }
+    this.police.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
   /** Shows or hides his trail and the History markers. */
@@ -414,7 +446,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head and his fantasy mount, if any, at his side. */
+/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side, his pet, if any, at the other, and a halo or horns at very good or bad karma. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -426,7 +458,13 @@ function himMarker(): HTMLElement {
   const mount = document.createElement("span");
   mount.className = "mount";
   mount.hidden = true;
-  el.append(face, bubble, mount);
+  const pet = document.createElement("span");
+  pet.className = "pet";
+  pet.hidden = true;
+  const aura = document.createElement("span");
+  aura.className = "aura";
+  aura.hidden = true;
+  el.append(face, bubble, mount, pet, aura);
   return el;
 }
 

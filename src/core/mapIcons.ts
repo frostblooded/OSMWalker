@@ -2,8 +2,11 @@
 // and the real bus stations and airports he travels from, nearest to him
 // first and capped, so a capital never floods the map. Quests and events add
 // their own icons with another `kind`; each kind has its own cap. The
-// monuments he built in this city always show, uncapped (see bricks.ts).
+// monuments he built in this city always show, uncapped (see bricks.ts), and
+// so does his spot (see spot.ts).
 import { MONUMENTS, type Monument } from "./bricks";
+import type { Home } from "./home";
+import type { Visits } from "./spot";
 import { distanceM, type BBox } from "./geo";
 import { isAirport, isBusStation } from "./cityCheck";
 import type { Place } from "./stats";
@@ -62,3 +65,9 @@ export function placeIcons(places: Place[], airports: Place[], box: BBox, here: 
 /** A plaque icon for each monument he built (core/bricks.ts) in `city`. */
 export const monumentIcons = (built: Monument[], city: string): MapIcon[] =>
   built.flatMap((m, i) => (m.city === city ? [{ id: `monument:${i}`, at: [m.lat, m.lon] as LatLon, icon: "plaque", label: `His ${MONUMENTS[m.kind]!.name}`, kind: "place" as const }] : []));
+
+/** A house icon on his spot, if he has one in this city. */
+export const spotIcons = (spot: Visits | null): MapIcon[] => (spot ? [{ id: "spot", at: [spot.lat, spot.lon], icon: "home", label: `His spot: ${spot.name}`, kind: "place" }] : []);
+
+/** His home's icon, while he is in its city (`here`, see Stats.atHome). */
+export const homeIcons = (home: Home, here: boolean): MapIcon[] => (here ? [{ id: "home", at: home.at, icon: "flat", label: home.bought ? "His home" : "His flat (rented)", kind: "place" }] : []);

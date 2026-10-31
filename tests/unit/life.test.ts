@@ -142,15 +142,19 @@ describe("stats", () => {
     expect(stats.xp).toBe(20);
   });
 
-  it("pay grows 3% a level and 2% per point of the attribute a job needs", () => {
-    const job: Action = { name: "Tend the bar", min: 60, earn: 100, needs: { cha: 3 } };
+  it("pay grows 10% a career rank and 2% per point of the attribute a job needs, not with his level", () => {
+    const job: Action = { name: "Tend the bar", min: 60, earn: 100, needs: { cha: 3 }, career: "bar" };
     stats.attrs.cha = 3;
     expect(stats.wageMult(job)).toBeCloseTo((1 + 0.02 * 3), 9);
     stats.level = 11;
-    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 3), 9);
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.02 * 3), 9);
+    stats.careers.shifts.bar = 12; // rank 3
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.1 * 2 + 0.02 * 3), 9);
     stats.gear.trinket = { name: "Ring", slot: "trinket", stats: { cha: 2 }, rarity: "Common", price: 1 };
-    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 5), 9);
-    expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1.3, 9);
+    expect(stats.wageMult(job)).toBeCloseTo((1 + 0.1 * 2 + 0.02 * 5), 9);
+    // A job of another career, or of none, doesn't get his bar rank.
+    expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15, career: "office" })).toBeCloseTo(1, 9);
+    expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1, 9);
     const before = stats.cents;
     // His money as the job's line is said, before any chance card at work (workCards.ts).
     let paid: number | null = null;
@@ -705,6 +709,14 @@ describe("activities", () => {
     const acts = new Activities({ cafe: [{ name: "Coffee", min: 1 }] }, { BGR: { cafe: [{ name: "Boza", min: 1 }] } });
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "BGR").map((a) => a.name)).toEqual(["Coffee", "Boza"]);
     expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "BGR")[1]!.flavour).toBe(true);
+  });
+
+  it("holiday actions join every place's on a public holiday", () => {
+    const acts = new Activities({ cafe: [{ name: "Coffee", min: 1 }], _spot: [{ name: "Sit", min: 1 }], _holiday: [{ name: "Parade", min: 1 }] });
+    expect(acts.forPlace({ class: "cafe", subclass: "cafe" }).map((a) => a.name)).toEqual(["Coffee"]);
+    expect(acts.forPlace({ class: "cafe", subclass: "cafe" }, "", true).map((a) => a.name)).toEqual(["Coffee", "Parade"]);
+    expect(acts.peek(null, "", true).map((a) => a.name)).toEqual(["Sit", "Parade"]);
+    expect(bundled().data._holiday?.length).toBeGreaterThan(2);
   });
 
   it("needs steer the choice", () => {

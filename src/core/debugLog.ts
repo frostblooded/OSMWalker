@@ -57,9 +57,11 @@ export function lines(e: Entry, biasMin: number): string[] {
     out.push(`Trip dice not rolled: ${str(e.skipped)}`);
   } else if ("roll" in e) {
     const boost = num(e.boost, 1);
+    const abroad = num(e.abroad, 1);
     out.push(
-      `Trip dice ${num(e.roll).toFixed(4)} → ${str(e.outcome) || "?"} (country below ${(COUNTRY_CHANCE * boost).toFixed(2)}, city below ${((COUNTRY_CHANCE + CITY_CHANCE) * boost).toFixed(2)}, else stay)` +
-        (boost > 1 ? "; odds doubled: no places in the city box" : ""),
+      `Trip dice ${num(e.roll).toFixed(4)} → ${str(e.outcome) || "?"} (country below ${(COUNTRY_CHANCE * abroad * boost).toFixed(2)}, city below ${((COUNTRY_CHANCE * abroad + CITY_CHANCE) * boost).toFixed(2)}, else stay)` +
+        (boost > 1 ? "; odds doubled: no places in the city box" : "") +
+        (abroad > 1 ? `; trips abroad ${abroad} times likelier: his visa is running out` : ""),
     );
   }
   if ("trip" in e) {

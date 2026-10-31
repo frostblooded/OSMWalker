@@ -32,6 +32,8 @@ export type Hud = {
   waiting: "" | "streets" | "failing";
   /** The weather (or the season while it is unknown) as an icon, the temperature, and how dark the map is (0-1). */
   sky: { icon: string; tempC: number | null; dark: number } | null;
+  /** His wanted stars (repute.ts), 0 when nobody is after him. */
+  wanted: number;
 };
 
 export const SEASON_ICON: Record<Season, string> = { spring: "🌸", summer: "🌻", autumn: "🍂", winter: "❄" };
@@ -60,6 +62,7 @@ export function hud(g: Game): Hud | null {
     restShare: resting && !riding ? w.restFraction() : null,
     waiting,
     sky: g.stats.sky ? { icon: skyIcon(g.stats.sky), tempC: g.stats.sky.weather ? Math.round(g.stats.sky.weather.tempC) : null, dark: g.stats.sky.dark } : null,
+    wanted: g.stats.law.stars(),
   };
 }
 
@@ -107,8 +110,10 @@ export function doing(g: Game): string {
 /** His face, bubble and pose: the goal's kind while he walks, what he does while he stays, nothing on a trip. */
 export function look(g: Game): Looks.Look {
   const w = g.walker!;
-  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "" };
-  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout());
+  const pet = g.stats.pets.icon();
+  const aura = Looks.aura(g.stats.bond.lean);
+  if (w.travel) return { face: Looks.face(g.stats.meters), bubble: "", pose: null, mount: "", pet, ...(aura ? { aura } : {}) };
+  return Looks.look(g.stats.meters, w.place, w.isResting() ? g.doing : null, g.stats.getsAbout(), pet, g.stats.bond.lean);
 }
 
 /** What the city sound plays now. */
