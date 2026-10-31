@@ -99,6 +99,10 @@ describe("debug log", () => {
     for (const s of ["button", "Paris, France", "120 cities", "4.1%", "Going by plane from Sofia Airport"]) expect(text).toContain(s);
   });
 
+  it("shows the odds abroad raised when his visa runs out", () => {
+    expect(D.lines({ t: 0, roll: 0.05, outcome: "country", abroad: 4 }, 0).join("\n")).toContain("country below 0.10, city below 0.20, else stay); trips abroad 4 times likelier");
+  });
+
   it("doubles the shown odds when boosted", () => {
     expect(D.lines({ t: 0, roll: 0.2, outcome: "city", boost: 2 }, 0).join("\n")).toContain("city below 0.25, else stay); odds doubled");
   });
