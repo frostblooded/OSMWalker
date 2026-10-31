@@ -786,6 +786,53 @@
       "good": ["Every stamp is in place; {GIVER} can stay.", "The clerk is so impressed she fast-tracks his own papers too."],
       "worse": ["They get it all done, then learn it expires in a month.", "Wrong colour of ink: back to the start, tomorrow."],
       "reward": { "eur": [5, 15], "xp": 40, "fx": {"mood": 6, "wit": 0.1} } },
+    { "id": "food_critic", "icon": "🍽", "title": "The Food Critic's Night Off", "lean": "cha",
+      "items": ["a little notebook of stars", "a borrowed false moustache", "a list of the city's best kitchens"],
+      "steps": [
+        { "at": ["restaurant", "cafe"], "say": ["At {PLACE} {GIVER}, a food critic everyone knows by sight, asks him to taste for them tonight, with {ITEM}.", "{GIVER} at {PLACE} slides {ITEM} over: every chef in town knows the critic's face, but not his."] },
+        { "at": ["grocery", "bakery", "butcher"], "say": ["At {PLACE} he asks the stallholders where the chefs buy their bread.", "At {PLACE} a baker whispers which kitchen still makes its own stock."] },
+        { "at": ["restaurant"], "say": ["At {PLACE} he eats five courses and writes down every one.", "At {PLACE} the chef sends out a dish that isn't on the menu."] },
+        { "at": ["restaurant", "cafe"], "say": ["Back at {PLACE}, {GIVER} reads his notes and laughs out loud.", "At {PLACE} {GIVER} turns his notes into a glowing review."] }
+      ],
+      "twists": ["The chef recognises {ITEM} and plays along anyway.", "He is served the same dish he loved as a boy."],
+      "good": ["{GIVER} puts his name in the review: the city's newest gourmet.", "The restaurant gets its star, and he gets a standing table."],
+      "worse": ["He spills soup on the notes; the review is only half written.", "The kitchen is closed for a private party, and he eats a sandwich outside."],
+      "reward": { "eur": [5, 20], "xp": 40, "meal": "lavish" } },
+    { "id": "mystery_guest", "icon": "🛎", "title": "The Mystery Guest", "lean": "wit",
+      "items": ["a hotel inspector's clipboard", "a white glove for checking dust", "a room key on a brass tag"],
+      "steps": [
+        { "at": ["lodging"], "say": ["At {PLACE} {GIVER} hands him {ITEM}: tonight he is the hotel guide's mystery guest.", "{GIVER} at {PLACE} needs someone the staff won't know, and gives him {ITEM}."] },
+        { "at": ["cafe", "restaurant"], "say": ["At {PLACE} he asks the waiters which hotel treats its staff best.", "At {PLACE} he hears a porter grumble about the lifts."] },
+        { "at": ["lodging"], "say": ["At {PLACE} he checks the sheets, the towels and the breakfast.", "At {PLACE} he rings for room service at three in the morning, for science."] }
+      ],
+      "twists": ["The night porter guesses who he is and polishes everything twice.", "His room has a view of the whole old town."],
+      "good": ["{GIVER} gives the hotel its fifth star, and him the best room for the night.", "The report is perfect; the suite is his for the night."],
+      "worse": ["He falls asleep before he checks anything.", "The guide closes before his report goes in."],
+      "reward": { "eur": [5, 15], "xp": 40, "bed": "hotel" } },
+    { "id": "painters_view", "icon": "🖼", "title": "The Painter's Lost View", "lean": "luck",
+      "items": ["an old painting of the city", "a sketch with no name on it", "a faded watercolour postcard"],
+      "steps": [
+        { "at": ["art_gallery", "museum", "cafe"], "say": ["At {PLACE} {GIVER} shows him {ITEM}: a view painted a hundred years ago, nobody knows from where.", "{GIVER} at {PLACE} has spent a year looking for the spot in {ITEM}."] },
+        { "at": ["park", "garden", "fountain"], "say": ["At {PLACE} he holds {ITEM} up against the trees: close, but not quite.", "At {PLACE} the light is right, but the angle is wrong."] },
+        { "at": ["lookout", "monument", "castle"], "say": ["At {PLACE} the roofs line up with {ITEM} at last.", "From {PLACE} it is the very view, only the trees are taller."] },
+        { "at": ["art_gallery", "museum", "cafe"], "say": ["Back at {PLACE}, {GIVER} sets up an easel to paint it again.", "At {PLACE} {GIVER} writes the place's name on the back of {ITEM}."] }
+      ],
+      "twists": ["An old man at the spot says his grandfather sat for that painter.", "A new building now hides half of the view."],
+      "good": ["{GIVER} paints the view again, with him in the corner.", "The gallery hangs {ITEM} with a label: found by a walker."],
+      "worse": ["It was a view that doesn't exist: the painter made it up.", "He finds the spot, but it is a car park now."],
+      "reward": { "eur": [0, 10], "xp": 40, "fx": {"mood": 12, "luck": 0.1} } },
+    { "id": "palm_reader", "icon": "🔮", "title": "The Palm Reader's Hunch", "lean": "luck", "fantasy": true,
+      "items": ["a deck of worn tarot cards", "a crystal on a string", "a palm drawn on a napkin"],
+      "steps": [
+        { "at": ["cafe", "bar"], "say": ["At {PLACE} {GIVER} takes his hand and frowns: there is a love in it he hasn't met yet.", "{GIVER} at {PLACE} swings {ITEM} over his palm: a place he will love, it says, and one he will hate."] },
+        { "at": ["museum", "zoo", "aquarium", "theatre", "cinema", "library"], "say": ["At {PLACE} he waits to feel something. He feels something.", "At {PLACE} {ITEM} spins on its own, just for a moment."] },
+        { "at": ["park", "garden", "lookout"], "say": ["At {PLACE} he sits a while and thinks about what he really likes.", "At {PLACE} a crow lands next to him and looks him in the eye."] },
+        { "at": ["cafe", "bar"], "say": ["Back at {PLACE}, {GIVER} nods: he knows himself a bit better now.", "At {PLACE} {GIVER} says the lines on his hand have moved."] }
+      ],
+      "twists": ["{GIVER} reads his other hand and says the opposite.", "The cards come up the same three times in a row."],
+      "good": ["Whatever it was, he walks off lighter.", "{GIVER} won't take any money: 'You'll know when you get there.'"],
+      "worse": ["{GIVER} admits it was the same reading for everyone today.", "It rains on the way, and the hunch washes off."],
+      "reward": { "xp": 35, "fx": {"mood": 10} } },
     {"id": "travellers_tale", "icon": "📝", "title": "The Traveller's Photos", "lean": "cha", "items": ["a camera full of travel photos", "a battered travel journal", "a roll of film from far away"], "steps": [{"at": ["lodging", "cafe"], "say": ["At {PLACE}, {GIVER} has lost {ITEM}, with a year of travels on it.", "{GIVER} at {PLACE} is close to tears: {ITEM} is gone, and every far-off sight with it."]}, {"at": ["railway", "information", "bar"], "say": ["He asks around at {PLACE}, and someone saw {ITEM} left on a bench.", "At {PLACE} a cleaner hands over {ITEM} from the lost and found."]}, {"at": ["lodging", "cafe"], "say": ["Back at {PLACE}, {GIVER} shows him every photo, one sight after another.", "At {PLACE}, {GIVER} tells him about each place over a long coffee."]}], "twists": ["One photo is of a place on his own bucket list.", "The journal ends with a list of dreams, half of them ticked off."], "good": ["{GIVER} hugs him and says: go and see them yourself. He looks at his bucket list with new eyes.", "They swap bucket lists, and he promises to send a postcard from the first sight he ticks off."], "worse": ["The photos are all of the same cat; still, {GIVER} is grateful.", "Half the film is ruined, but the stories are not."], "reward": {"eur": [5, 20], "xp": 40, "fx": {"mood": 10}}}
   ],
   "events": [

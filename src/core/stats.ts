@@ -14,6 +14,7 @@ import * as B from "./bond";
 import { crossing, type Borders } from "./border";
 import * as Br from "./bricks";
 import * as Ca from "./careers";
+import * as Cf from "./comforts";
 import { Clubs } from "./clubs";
 import * as Cook from "./cooking";
 import { Chronicle, COUNTRY_MARKS, LEVEL_MARKS } from "./chronicle";
@@ -174,8 +175,12 @@ export type Action = {
   /** A resale shop's sale: with a full bag he sells a load here (see SELL_RUN_LEFT), and such shops pull him while the bag is full. */
   resale?: boolean;
   flavour?: boolean;
-  /** A nap or a night's sleep: he may dream (see diary.ts). */
+  /** A nap or a night's sleep: he may dream (see diary.ts), and the bed leaves a moodlet (see comforts.ts). */
   sleep?: boolean;
+  /** How good the bed of a `sleep` action is (see comforts.ts). */
+  bed?: Cf.Bed;
+  /** A meal better or worse than plain, and its moodlet (see comforts.ts). */
+  meal?: Cf.Meal;
   /** The career (see careers.ts) this job counts for; a `rank` need is a rank in it. */
   career?: string;
   /** A kind (1) or rascal (-1) deed: doing it leans him that way (see bond.ts). */
@@ -198,6 +203,12 @@ export type Action = {
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
 export const xpToNext = (lvl: number) => 100 * lvl;
+
+/** How each way across town to a station reads in History (see Stats.hop). */
+const HOP_HOW: Record<T.HopBy, string> = {
+  metro: "🚇 Took the metro", taxi: "🚕 Took a taxi", car: "🚗 Drove", bike: "🚲 Rode his bike", motorcycle: "🏍 Rode his motorbike",
+  tortoise: "🐢 Rode his tortoise", broom: "🧹 Flew his broom", carpet: "🪄 Flew his carpet", dragon: "🐉 Flew his dragon",
+};
 
 export class Stats {
   meters: Record<Meter, number> = { health: 100, energy: 100, fullness: 80, mood: 70, hygiene: 100, thirst: 80 };
@@ -298,6 +309,8 @@ export class Stats {
   tastes = new Tastes();
   /** His lifetime points and the perks he spent them on. */
   perks = new Pk.Perks();
+  /** His lavish meals and hotel nights, counted (see comforts.ts). */
+  comforts = new Cf.Comforts();
   /** His quirks from habits, and his spot in each city. */
   quirks = new Qk.Quirks();
   spots = new Spots();
@@ -483,9 +496,26 @@ export class Stats {
     return attr && (action.needs?.[attr] !== undefined || (action.fx?.[attr] ?? 0) > 0) ? Emo.EMO_PULL : 1;
   }
 
-  /** How hard his emotion and tastes pull him to a place of map class `kind`. */
+  /** How hard his emotion, tastes and grim surroundings pull him to a place of map class `kind`. */
   feelPull(kind: string): number {
-    return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind);
+    const grim = Cf.GREEN_KINDS.includes(kind) && this.mind.moodlets.some((m) => m.name === Cf.GRIM[0]);
+    return Emo.emoPull(this.emotion(), kind) * this.tastes.pull(kind) * (grim ? Cf.BEAUTY_PULL : 1);
+  }
+
+  /** A meal or a bed someone treats him to (a quest's reward): its moodlet, and it counts (see comforts.ts). */
+  treat({ meal, bed }: { meal?: Cf.Meal; bed?: Cf.Bed }): void {
+    if (meal) this.mind.feel(...Cf.MEALS[meal]);
+    if (bed) this.mind.feel(...Cf.BEDS[bed]);
+    for (const tier of [meal, bed]) if (tier) this.comforts.count(tier);
+  }
+
+  /** He looks around him (see comforts.ts): a spot of beauty `score` brings its moodlet, in place of the other one. */
+  lookAround(score: number): void {
+    const feel = Cf.sceneFeel(score);
+    if (!feel) return;
+    const other = feel === Cf.PRETTY ? Cf.GRIM[0] : Cf.PRETTY[0];
+    this.mind.moodlets = this.mind.moodlets.filter((m) => m.name !== other);
+    this.mind.feel(...feel);
   }
 
   /** Wears `item`; whatever was in its slot goes in the bag. */
@@ -547,6 +577,18 @@ export class Stats {
   sellPrice(item: Item): number {
     const rascal = this.bond.leaning() === "rascal" ? B.RASCAL_SELL : 1;
     return Math.round(item.price * SELL_SHARE * (1 + SELL_PER_CHA * this.attr("cha")) * F.mult(this.forecast(), "sell") * rascal);
+  }
+
+  /**
+   * Rides `roadM` across town to `station` by `by` (see trips.ts hopBy),
+   * paying its fare if that still leaves `keep` cents (the ticket there):
+   * the History line, or "" when he walks instead.
+   */
+  hop(by: T.HopBy, roadM: number, station: string, keep: number): string {
+    const fare = T.hopFare(by, roadM);
+    if (this.cents - fare < keep) return "";
+    this.cents -= fare;
+    return this.say(`${HOP_HOW[by]} to ${station}${fare ? ` (${signed(-fare)})` : ""}`);
   }
 
   /**
@@ -1150,7 +1192,11 @@ export class Stats {
     if (action.sleep) {
       const dream = this.diary.dream(this.diaryData, new Rng(seedOf(`dream${this.now()}${where}`)));
       if (dream) this.say(`💤 ${dream}`);
+      const home = this.nightAtHome(action, kind);
+      if (home) this.mind.feel(...Cf.HOME_BED);
+      else this.treat({ bed: action.bed });
     }
+    this.treat({ meal: action.meal });
     if (!kind) return line;
     // Its own dice, so the walk's stay the same.
     const { met, lines, feared } = this.mind.did(kind, this.mishap, this.now(), new Rng(seedOf(`mind${this.now()}${where}`)));
@@ -2006,7 +2052,7 @@ export class Stats {
       home: this.home.toJSON(),
       visas: this.visas.toJSON(),
       mind: this.mind.toJSON(), quirks: this.quirks.toJSON(), spots: this.spots.toJSON(), diary: this.diary.toJSON(), mail: this.mail.toJSON(),
-      tastes: this.tastes.toJSON(), perks: this.perks.toJSON(),
+      tastes: this.tastes.toJSON(), perks: this.perks.toJSON(), comforts: this.comforts.toJSON(),
       skills: this.skills.toJSON(), pantry: this.pantry.toJSON(), languages: this.languages.toJSON(),
       business: this.business.toJSON(), lottery: this.lottery.toJSON(), bucket: this.bucket.toJSON(),
       careers: this.careers.toJSON(),
@@ -2077,6 +2123,8 @@ export class Stats {
     // A save from before tastes and perks: his tastes roll on the next tick, and no points or perks yet.
     s.tastes = Tastes.fromJSON(d.tastes);
     s.perks = Pk.Perks.fromJSON(d.perks);
+    // A save from before comforts: no lavish meals or hotel nights counted yet.
+    s.comforts = Cf.Comforts.fromJSON(d.comforts);
     // A save from before Viktor: he hasn't met him yet.
     s.rival = Rival.fromJSON(d.rival);
     // A save from before friends: he hasn't met anyone yet.

@@ -11,6 +11,7 @@ import { Activities, choose, minded, placePull, needLine, needOf, restMinutes, t
 import type { NeedKey } from "../core/goals";
 import { catchUpSteps, MAX_AWAY_S, MIN_AWAY_S, type AwayCity, type Line, type Summary } from "../core/catchup";
 import * as CityCheck from "../core/cityCheck";
+import { BEAUTY_EVERY_S, BEAUTY_M, beautyOf } from "../core/comforts";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
@@ -48,7 +49,7 @@ import { offsetFromLon, skyAt, skyNeed, type Sky } from "../core/sky";
 import { FLYERS } from "../core/speeds";
 import { Stats, visitKey, type Action, type Place } from "../core/stats";
 import { STYLES } from "../core/storyteller";
-import { cityBounds as tripBounds, cityKey, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
+import { cityBounds as tripBounds, cityKey, hopBy, hopS, NO_PLACES_BOOST, Trips, type City, type LatLon, type Plan } from "../core/trips";
 import { cityBounds, SPEED_MPS, Walker, type PickInfo, type Travel } from "../core/walker";
 import { WEATHER_RETRY_MS, WEATHER_TTL_MS, weatherAt, type WeatherForecast } from "../core/weather";
 import type { Api, SearchPlace } from "../net/api";
@@ -196,6 +197,11 @@ export class Game {
   private forced = "";
   private saveTimer = 0;
   private checkTimer = 0;
+  private lookTimer = 0;
+  /** The kinds of land the map shows around a spot (see map/mapView.ts landAt); the screen sets it once the map is up. */
+  land: ((at: [number, number]) => string[]) | null = null;
+  /** His last look around: the land the map showed, its beauty and how long the map took to answer, for Debug. */
+  looked: { land: string[]; score: number; ms: number } | null = null;
   private outlineOf = "";
   /** The city whose trivia lookup has finished. */
   private factsOf = "";
@@ -339,6 +345,7 @@ export class Game {
     this.walker = w;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
+    w.hopper = (plan, roadM) => this.hop(plan, roadM);
     w.questGoal = () => this.questGoal();
     w.need = (p) => minded(skyNeed(needOf(this.activities.peek(p, this.country), this.stats, this.hour(), p.class), p, this.stats.sky), p, this.stats);
     w.placePull = (p) => placePull(p, this.stats, this.hour());
@@ -392,11 +399,34 @@ export class Game {
       this.checkChase();
       this.rollBoard();
     }
+    this.lookTimer += dt;
+    if (this.lookTimer >= BEAUTY_EVERY_S) {
+      this.lookTimer = 0;
+      this.lookAround();
+    }
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  /** He looks at the land and places around him (see comforts.ts); not while riding. Debug's Look around calls it too. */
+  lookAround(): void {
+    const w = this.walker;
+    if (!w || !this.land || w.isTraveling()) return;
+    const at = w.position();
+    const t = performance.now();
+    const land = this.land(at);
+    const ms = performance.now() - t;
+    // The street cells the BEAUTY_M around him reach into, so a castle just across a cell's edge counts.
+    const d = BEAUTY_M / 111_000;
+    const keys = new Set([-d, d].flatMap((dy) => [-d, d].map((dx) => cellKey(cellOf(at[0] + dy, at[1] + dx / Math.cos((at[0] * Math.PI) / 180))))));
+    const near = [...keys].flatMap((k) => w.graph.places.get(k) ?? []);
+    const score = beautyOf(land, near, at);
+    this.looked = { land, score, ms };
+    this.stats.lookAround(score);
+    this.changed();
   }
 
   /** Notes the street he walks for his street collection, once each time he turns into another one. */
@@ -651,6 +681,14 @@ export class Game {
     // He finishes the quest he is on before he leaves the city.
     if (this.stats.quests.active) return null;
     return this.journey.consider(this.where(), this.stats);
+  }
+
+  /** A trip's station is far: he rides there (paid now, see Stats.hop) and it takes this many seconds, or 0 when he can't afford it and walks. */
+  private hop(plan: Plan, roadM: number): number {
+    const by = hopBy(this.stats.getsAbout(), this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0);
+    if (!this.stats.hop(by, roadM, plan.station.name, plan.fare)) return 0;
+    this.changed();
+    return hopS(by, roadM);
   }
 
   /** At the station: rides off once paid, or stays and saves up when he has spent too much on the way. */

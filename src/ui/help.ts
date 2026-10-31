@@ -21,6 +21,7 @@ import * as Crawl from "../core/crawl";
 import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
+import * as Comforts from "../core/comforts";
 import * as Emo from "../core/emotion";
 import * as Diary from "../core/diary";
 import * as Mail from "../core/mail";
@@ -89,6 +90,8 @@ import { MIDDLE } from "../map/mapView";
 import { MAX_AGE_S } from "../streets/source";
 import { MIN_CHARS } from "./Picker";
 
+/** The taxi ride Help prices as an example. */
+const TAXI_EG_M = 10_000;
 export type Page = { id: string; title: string; body: string };
 export type Section = { title: string; pages: Page[] };
 export type Block = { text: string; items: string[] };
@@ -241,6 +244,20 @@ function deeds(actions: GameData["actions"], sign: 1 | -1): string {
   for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (!a.steal && Math.sign(a.deed ?? 0) === sign) names.add(a.name.toLowerCase());
   return [...names].join(", ");
 }
+
+/** One Help line per bed or meal tier (see comforts.ts): its moodlet, and the actions in data/actions.json that have it, once each. */
+function comfortLines(actions: GameData["actions"], key: "bed" | "meal", tiers: Record<string, Comforts.Feel>): string {
+  return Object.entries(tiers)
+    .map(([tier, f]) => {
+      const names = new Set<string>();
+      for (const list of Object.values(actions)) if (Array.isArray(list)) for (const a of list) if (a[key] === tier) names.add(a.name.toLowerCase());
+      return `- ${f[1]} ${f[0]} (${feel(f)}): ${[...names].join(", ")}.`;
+    })
+    .join("\n");
+}
+
+/** A moodlet's mood an hour and hours, in words. */
+const feel = (f: Comforts.Feel) => `${f[2] > 0 ? "+" : ""}${f[2]} an hour for ${f[3] < 1 ? `${f[3] * 60} minutes` : `${f[3]} hours`}`;
 
 /** What a life stage changes, in words. */
 function stageText(st: Life.Stage): string {
@@ -571,6 +588,18 @@ export function values(data: GameData): Record<string, string> {
     WEARY_PCT: pct(Perks.WEARY_CUT),
     LUCKY_FIND: num(Perks.LUCKY_FIND),
     PERK_LIST: Perks.PERKS.map((p) => `- ${p.icon} ${p.name} (${p.cost} points${p.attr ? `, ${Inc.ATTR_NAMES[p.attr]}` : ""}): ${p.what}.`).join("\n"),
+    BED_LIST: comfortLines(data.actions, "bed", Comforts.BEDS),
+    HOME_BED: `${Comforts.HOME_BED[1]} ${Comforts.HOME_BED[0]} (${feel(Comforts.HOME_BED)})`,
+    MEAL_LIST: comfortLines(data.actions, "meal", Comforts.MEALS),
+    BEAUTY_EVERY_MIN: String(Comforts.BEAUTY_EVERY_S / 60),
+    BEAUTY_M: String(Comforts.BEAUTY_M),
+    NICE_LAND: Comforts.NICE_LAND.join(", "),
+    GRIM_LAND: Comforts.GRIM_LAND.join(", "),
+    OLD_TOWN: Comforts.OLD_TOWN.map(Mind.noun).join(", "),
+    PRETTY: `${Comforts.PRETTY[1]} ${Comforts.PRETTY[0]} (${feel(Comforts.PRETTY)})`,
+    GRIM: `${Comforts.GRIM[1]} ${Comforts.GRIM[0]} (${feel(Comforts.GRIM)})`,
+    GREEN_KINDS: Comforts.GREEN_KINDS.map(Mind.noun).join(", "),
+    BEAUTY_PULL: num(Comforts.BEAUTY_PULL),
     MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
     DIARY_LINES: String(Diary.DAY_LINES),
     FRIEND_LETTER_PCT: pct(Mail.LETTER_CHANCE),
@@ -710,6 +739,17 @@ export function values(data: GameData): Record<string, string> {
     PLANE_ALWAYS_KM: km(Trips.PLANE_ALWAYS_M),
     MAX_ROAD_KM: km(Trips.MAX_ROAD_M),
     AIRPORT_KM: km(Trips.AIRPORT_REACH_M),
+    HOP_MIN_M: num(Trips.HOP_MIN_M),
+    HOP_MAX_MIN: num(Trips.HOP_MAX_S / 60),
+    METRO_POP: num(Trips.METRO_POP),
+    METRO_FARE: euro(toCents(Trips.METRO_FARE)),
+    METRO_KMH: kmh(Speeds.METRO),
+    TAXI_BASE: euro(toCents(Trips.TAXI_BASE)),
+    TAXI_PER_KM: euro(toCents(Trips.TAXI_PER_KM)),
+    TAXI_KMH: kmh(Speeds.CAR),
+    TAXI_EG_KM: km(TAXI_EG_M),
+    TAXI_EG: euro(Trips.hopFare("taxi", TAXI_EG_M)),
+    TAXI_EG_MIN: num(Math.round(Trips.hopS("taxi", TAXI_EG_M) / 60)),
     AIRPORT_COUNT: String(data.airports.length),
     BUS_KMH: kmh(Speeds.BUS),
     BIKE_ICON: Trips.MODES.bike.icon,
@@ -717,7 +757,7 @@ export function values(data: GameData): Record<string, string> {
     LONG_WALK_MIN_KM: km(Trips.LONG_WALK_MIN_M),
     LONG_WALK_MAX_KM: km(Trips.LONG_WALK_MAX_M),
     LONG_WALK_PCT: pct(Trips.LONG_WALK_CHANCE),
-    LONG_WALK_MAX_H: num(Trips.LONG_WALK_MAX_S / 3600),
+    LONG_WALK_MAX_MIN: num(Trips.LONG_WALK_MAX_S / 60),
     HOSTEL_KM: km(Trips.HOSTEL_EVERY_M),
     HOSTEL_PRICE: euro(Trips.HOSTEL_CENTS),
     LONG_WALK_XP_PER_KM: num(Trips.LONG_WALK_XP_PER_KM),
@@ -870,7 +910,8 @@ export function values(data: GameData): Record<string, string> {
     WEALTH_CAP: num(Story.WEALTH_CAP),
     FIRE_AT: num(Story.FIRE_AT),
     FIRE_MAX_PCT: pct(Story.FIRE_MAX),
-    LUCKY_H: num(Story.LUCKY_H),
+    LUCKY_MIN: num(Story.LUCKY_MIN),
+    WEALTH_PER_H: num(Story.WEALTH_PER_H),
     KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
     RECENT_INCIDENTS: num(Story.RECENT),
     INCIDENT_COUNT: String(incidents.length),
