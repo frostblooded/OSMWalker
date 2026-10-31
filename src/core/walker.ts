@@ -16,7 +16,7 @@ import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
-import { ROAD_FACTOR, rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
+import { HOP_MIN_M, ROAD_FACTOR, rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
 
 /** A ride's road distance when no trip plan gives it: the straight line times ROAD_FACTOR. */
 const straightRoadM = (a: LatLon, b: LatLon) => distanceM(a[0], a[1], b[0], b[1]) * ROAD_FACTOR;
@@ -43,8 +43,12 @@ export const FLY_MIN_M = 400;
 export const LAND_MAX_M = 1500;
 export const LAND_SHARE = 0.5;
 export const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
-/** A flight over the city: from where he took off to the corner `node` by the park he lands in. */
-export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number };
+/**
+ * A flight over the city: from where he took off to the corner `node` by the
+ * park he lands in. With `mps`, a ride across town to a trip's station at that
+ * speed instead (see hopper); he boards on arrival.
+ */
+export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number; mps?: number };
 /** A ride to another city; `road_m` is its road distance, from the trip plan when he boards one. */
 export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number; road_m: number };
 export type PickInfo = Record<string, unknown>;
@@ -93,6 +97,8 @@ export class Walker {
   events: WalkerEvents = {};
   /** Asked on every destination pick: a trip plan, or null to stay. */
   tripPlanner: (() => Plan | null) | null = null;
+  /** Asked when a trip's station is farther than HOP_MIN_M: the seconds the ride there takes, or 0 to walk; set by the game. */
+  hopper: ((plan: Plan, roadM: number) => number) | null = null;
   /** How fast he really moves on the streets (see Stats.speedMps). */
   speedMps = SPEED_MPS;
   /** True while he rides a flying mount; set by the game. */
@@ -179,6 +185,7 @@ export class Walker {
       this.place = plan.station;
       this.departing = plan;
       this.events.picked?.({ trip: `${plan.city.name}, ${plan.city.country}`, by: `${plan.mode} from ${plan.station.name}` });
+      this.hop(plan);
       return;
     }
     const story = this.questGoal?.();
@@ -407,7 +414,7 @@ export class Walker {
         if (this.travel.left_m <= 0) this.land();
         continue;
       }
-      if (this.flight && !this.flies) {
+      if (this.flight && !this.flight.mps && !this.flies) {
         // His mount stopped flying (a dragon that now sulks): he comes down at the nearest corner and walks.
         const p = this.position();
         this.startAt(this.graph.nearestNode(p[0], p[1]) ?? this.flight.node);
@@ -415,14 +422,19 @@ export class Walker {
       }
       if (this.flight) {
         const f = this.flight;
-        const fly = meters * scale;
-        const m = Math.min(fly, f.left_m);
+        const k = f.mps ? f.mps / SPEED_MPS : scale;
+        const m = Math.min(meters * k, f.left_m);
         f.left_m -= m;
         this.totalM += m;
         this.tripM += m;
         if (f.left_m > 0) return 0;
-        meters -= m / scale;
+        meters -= m / k;
         this.startAt(f.node);
+        if (f.mps) {
+          // At the station: boards (or stays, and the streets around load).
+          this.arrive();
+          continue;
+        }
         // The game sets his walking speed from the next step on.
         this.afoot = true;
         continue;
@@ -480,7 +492,7 @@ export class Walker {
   private nextStep(): number | null {
     if (!this.goal) {
       this.pickGoal();
-      if (this.travel) return null;
+      if (this.travel || this.flight) return null;
     }
     if (this.takeOff()) return null;
     const from = this.fromNode!;
@@ -500,6 +512,29 @@ export class Walker {
       return null;
     }
     return this.route.shift()!;
+  }
+
+  /** Rides across town to the station of `plan` when it is far and the hopper says how long that takes: on its nearest loaded corner, else on a lone point there. */
+  private hop(plan: Plan): void {
+    if (!this.hopper || !this.here()) return;
+    const from = this.position();
+    const st = plan.station;
+    const roadM = distanceM(from[0], from[1], st.lat, st.lon) * ROAD_FACTOR;
+    if (roadM < HOP_MIN_M) return;
+    const s = this.hopper(plan, roadM);
+    if (s <= 0) return;
+    let node = this.graph.nearestNode(st.lat, st.lon);
+    let at = node === null ? null : this.graph.nodes.get(node)!;
+    if (node === null || !at || distanceM(at[0], at[1], st.lat, st.lon) > SNAP_M) {
+      node = ARRIVAL_NODE;
+      at = [st.lat, st.lon];
+      this.graph.nodes.set(node, at);
+    }
+    const m = distanceM(from[0], from[1], at[0], at[1]);
+    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m, mps: m / s };
+    this.legFrom = from;
+    this.route = [];
+    this.routeArrives = false;
   }
 
   /** On a flying mount, at the start of the way to a far goal: flies to a park or garden near it, if one is loaded. */

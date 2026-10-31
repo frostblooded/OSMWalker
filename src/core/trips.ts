@@ -15,7 +15,7 @@ import { isBusStation, isFerryTerminal, isGasStation, isRailwayStation } from ".
 import { bboxAround, distanceM, moved, type BBox } from "./geo";
 import { euro, toCents } from "./money";
 import { Rng, seedOf, slug } from "./rng";
-import { BIKE_ROAD, BUS, CAR_ROAD, FERRY, HITCH, PLANE, TRAIN, WALK } from "./speeds";
+import { BIKE_ROAD, BUS, CAR, CAR_ROAD, FERRY, FOR_VEHICLE, HITCH, METRO, PLANE, TRAIN, WALK, type Vehicle } from "./speeds";
 import type { Action, Fx, Place } from "./stats";
 
 export const COUNTRY_CHANCE = 0.025;
@@ -49,7 +49,7 @@ export const LONG_WALK_CHANCE = 0.15;
 export const LONG_WALK_MIN_M = 15_000;
 export const LONG_WALK_MAX_M = 80_000;
 /** A long walk takes LONG_WALK_MAX_S of open play: even the shortest is longer at real walking speed. */
-export const LONG_WALK_MAX_S = 3 * 3600;
+export const LONG_WALK_MAX_S = 10 * 60;
 /** He sleeps in a hostel every HOSTEL_EVERY_M of road, at HOSTEL_CENTS a night, and gets LONG_WALK_XP_PER_KM XP a km and LONG_WALK_MOOD mood at the end. */
 export const HOSTEL_EVERY_M = 25_000;
 export const HOSTEL_CENTS = 2000;
@@ -60,6 +60,14 @@ export const HITCH_GOOD_FX: Fx = { mood: 15, xp: 20 };
 /** Rides go this many times faster than the real speeds, and never take longer than RIDE_MAX_S. */
 export const RIDE_SPEEDUP = 10;
 export const RIDE_MAX_S = 15 * 60;
+/** A trip's station farther than this, he rides there across town (see hopBy), taking the time it takes but never longer than HOP_MAX_S. */
+export const HOP_MIN_M = 300;
+export const HOP_MAX_S = 15 * 60;
+/** In a city of this many people he takes the metro to the station, for a flat fare; elsewhere a taxi, by the km. */
+export const METRO_POP = 1_000_000;
+export const METRO_FARE = 2;
+export const TAXI_BASE = 3;
+export const TAXI_PER_KM = 1.5;
 /** Roads are about this much longer than the straight line. */
 export const ROAD_FACTOR = 1.3;
 /** Planes are never taken below the first distance and always above the second. */
@@ -152,6 +160,25 @@ const FREE: ReadonlySet<Mode> = new Set(["bike", "hitch", "portal"]);
 export function rideS(mode: Mode, distanceM: number): number {
   if (mode === "walk") return LONG_WALK_MAX_S;
   return Math.min(distanceM / (MODE_MPS[mode] * RIDE_SPEEDUP), RIDE_MAX_S);
+}
+
+/** How he gets across town to a trip's station: his own vehicle (or mount), else the metro in a big city, else a taxi. */
+export type HopBy = Exclude<Vehicle, ""> | "metro" | "taxi";
+export function hopBy(vehicle: Vehicle, cityPop: number): HopBy {
+  return vehicle || (cityPop >= METRO_POP ? "metro" : "taxi");
+}
+
+/** Seconds a ride of `roadM` across town by `by` takes, at most HOP_MAX_S. */
+export function hopS(by: HopBy, roadM: number): number {
+  const mps = by === "metro" ? METRO : by === "taxi" ? CAR : FOR_VEHICLE[by];
+  return Math.min(roadM / mps, HOP_MAX_S);
+}
+
+/** Cents a ride of `roadM` across town by `by` costs: nothing on his own vehicle. */
+export function hopFare(by: HopBy, roadM: number): number {
+  if (by === "metro") return toCents(METRO_FARE);
+  if (by === "taxi") return Math.ceil(toCents(TAXI_BASE) + (100 * TAXI_PER_KM * roadM) / 1000);
+  return 0;
 }
 
 /** Cents for a ride of `distanceM`, rounded up to a cent and never free, but for cycling, hitchhiking and a long walk with no hostel night. */

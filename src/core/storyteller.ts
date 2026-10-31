@@ -13,9 +13,9 @@ export type Tone = "good" | "bad" | "odd";
 
 /** How each storyteller paces: tension per hour of calm, and the share of incidents that are bad. */
 export const STYLE: Record<Style, { icon: string; name: string; per_h: number; bad: number }> = {
-  calm: { icon: "🌤", name: "Calm", per_h: 8, bad: 0.25 },
-  classic: { icon: "📖", name: "Classic", per_h: 15, bad: 0.45 },
-  chaotic: { icon: "🌪", name: "Chaotic", per_h: 30, bad: 0.65 },
+  calm: { icon: "🌤", name: "Calm", per_h: 60, bad: 0.25 },
+  classic: { icon: "📖", name: "Classic", per_h: 120, bad: 0.45 },
+  chaotic: { icon: "🌪", name: "Chaotic", per_h: 240, bad: 0.65 },
 };
 export const DEFAULT_STYLE: Style = "classic";
 export const TENSION_MAX = 100;
@@ -23,11 +23,12 @@ export const TENSION_MAX = 100;
 export const FIRE_AT = 30;
 /** Chance per stop at full tension; it grows in a straight line from 0 at FIRE_AT. */
 export const FIRE_MAX = 0.5;
-/** Extra tension per hour for each WEALTH_STEP cents he has, up to WEALTH_CAP an hour. */
+/** Extra tension per hour for each WEALTH_STEP cents he has (WEALTH_PER_H), up to WEALTH_CAP an hour. */
+export const WEALTH_PER_H = 8;
 export const WEALTH_STEP = 50000;
-export const WEALTH_CAP = 5;
-/** Hours after a bad incident with only good or odd ones. */
-export const LUCKY_H = 6;
+export const WEALTH_CAP = 40;
+/** Minutes after a bad incident with only good or odd ones. */
+export const LUCKY_MIN = 45;
 /** Share of the tension a good or odd incident leaves (a bad one leaves none). */
 export const KEEP_AFTER_GOOD = 0.5;
 /** The last this many incidents aren't dealt again while others fit. */
@@ -43,7 +44,7 @@ export class Storyteller {
 
   /** Lets `minutes` of his life pass with `cents` in his pocket. */
   pass(minutes: number, cents: number): void {
-    const wealth = Math.min(Math.floor(Math.max(cents, 0) / WEALTH_STEP), WEALTH_CAP);
+    const wealth = Math.min(Math.floor(Math.max(cents, 0) / WEALTH_STEP) * WEALTH_PER_H, WEALTH_CAP);
     this.tension = Math.min(this.tension + ((STYLE[this.style].per_h + wealth) * minutes) / 60, TENSION_MAX);
     this.luckyMin = Math.max(this.luckyMin - minutes, 0);
   }
@@ -65,7 +66,7 @@ export class Storyteller {
     this.recent = [...this.recent.filter((r) => r !== id), id].slice(-RECENT);
     if (tone === "bad") {
       this.tension = 0;
-      this.luckyMin = LUCKY_H * 60;
+      this.luckyMin = LUCKY_MIN;
     } else this.tension *= KEEP_AFTER_GOOD;
   }
 

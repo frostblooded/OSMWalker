@@ -547,6 +547,19 @@ export class Stats {
   }
 
   /**
+   * Rides `roadM` across town to `station` by `by` (see trips.ts hopBy),
+   * paying its fare if that still leaves `keep` cents (the ticket there):
+   * the History line, or "" when he walks instead.
+   */
+  hop(by: T.HopBy, roadM: number, station: string, keep: number): string {
+    const fare = T.hopFare(by, roadM);
+    if (this.cents - fare < keep) return "";
+    this.cents -= fare;
+    const how = by === "metro" ? "🚇 Took the metro" : by === "taxi" ? "🚕 Took a taxi" : by === "car" ? "🚗 Drove" : Speeds.FLYERS.has(by as Speeds.Vehicle) ? `Flew his ${by}` : `Rode his ${by}`;
+    return this.say(`${how} to ${station}${fare ? ` (${signed(-fare)})` : ""}`);
+  }
+
+  /**
    * Pays `fare` for a ride by `mode` from `station` to `to` ("Plovdiv,
    * Bulgaria") and returns its History line, the same while he plays and in
    * the catch-up. A rascal on a bus may dodge the fare (DODGE_CHANCE) and, if

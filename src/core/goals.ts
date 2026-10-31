@@ -9,7 +9,7 @@ import type { Meter, Place } from "./stats";
 import type { LatLon } from "./trips";
 
 /** Goals this far away weigh most; the weight falls off smoothly on a log scale both ways. */
-export const GOAL_PEAK_M = 500;
+export const GOAL_PEAK_M = 200;
 export const GOAL_SPREAD = 0.6;
 /** A goal straight ahead (along his last leg) weighs this many times one straight behind. */
 export const HEADING_RATIO = 3;

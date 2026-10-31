@@ -94,7 +94,7 @@ describe("Stats.landRide", () => {
     expect(s.ride(2000, "walk", "the road out of town", "Pernik")).toBe("Walked out of town towards Pernik (-€20 for hostels)");
     expect(s.buffNames()).toContain(ON_THE_TRAIL);
     const before = { ...s.meters };
-    s.passTime(60, 0);
+    s.passTime(5, 0);
     expect(s.meters.fullness).toBeCloseTo(before.fullness, 5);
     const xp = s.xp + s.level * 1000;
     expect(s.landRide("walk", 30_000, "Pernik")).toBe("Walked 30 km to Pernik, sleeping in 1 hostel on the way");

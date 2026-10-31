@@ -114,8 +114,9 @@ describe("game", () => {
         g.stats.ride(0, "walk", "the road out of town", "Vidin, Bulgaria");
         g.walker!.startTravel({ ...vidin, bounds: cityBounds(vidin) }, "walk");
       };
-      const { again } = await reopen(HOUR, {}, walk);
-      expect(again.away!.coveredS).toBe(HOUR / 1000);
+      const away = LONG_WALK_MAX_S * 500;
+      const { again } = await reopen(away, {}, walk);
+      expect(again.away!.coveredS).toBe(away / 1000);
       expect(again.walker!.isTraveling()).toBe(true);
       expect(again.walker!.travel!.mode).toBe("walk");
       expect(again.city).toBe("Sofia, Bulgaria");
