@@ -298,6 +298,8 @@ export class Game {
     w.startAt(start);
     w.bounds = cityBounds(lat, lon, bbox);
     this.stats = stats;
+    // A chase belongs to the walker it was after, not to an heir or a new game.
+    this.chase = null;
     this.debugLog = new DebugLog();
     this.attach(w);
     this.city = name;
@@ -674,6 +676,7 @@ export class Game {
   reset(): void {
     this.walker = null;
     this.stats = new Stats();
+    this.chase = null;
     this.debugLog = new DebugLog();
     this.city = "";
     this.file.clear();

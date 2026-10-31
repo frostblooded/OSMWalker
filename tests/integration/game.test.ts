@@ -994,6 +994,8 @@ describe("game", () => {
 
     it("at the end of elder he retires by himself and his heir sets out from his favourite city", async () => {
       const { g, storage } = await elder(-1);
+      // A chase after the old walker doesn't follow his heir.
+      g.chase = { place: "Cafe", ends: Date.now() + R.CHASE_S * 1000, trail: [g.walker!.position()] };
       run(g, 1);
       await settled(g);
       expect(g.retired).toMatchObject({ gen: 1, by: "age", home: "Sofia, Bulgaria", heirloom: "Bronze Sword", level: 9 });
@@ -1002,6 +1004,8 @@ describe("game", () => {
       expect(g.stats.cents).toBe(20000 + PERK_CENTS);
       expect(g.stats.gear.weapon?.name).toBe("Bronze Sword");
       expect(g.city).toBe("Sofia, Bulgaria");
+      expect(g.chase).toBeNull();
+      expect(g.stats.history.entries.some((e) => e.text.includes("police"))).toBe(false);
       expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
       expect(JSON.parse(storage.getItem(SAVE_KEY)!).stats.life.gen).toBe(2);
       run(g, 30);
