@@ -6,6 +6,7 @@
 // may leave a gift at his spot; he finds it the next time he gets there. His
 // partner is with him, so never writes or leaves one.
 // Lines and gifts live in data/mail.json. Pure; Stats owns one.
+import { FRIEND_LETTER_MARK } from "./bond";
 import type { Friend } from "./friends";
 import type { Fx } from "./stats";
 import type { Rng } from "./rng";
@@ -47,7 +48,8 @@ export class Mailbox {
       const town = f.city.split(",")[0]!;
       this.letters.push({ from: f.name, icon: f.icon, city: f.city, text: fill(rng.pick(data.letters), { NAME: f.name, PLACE: f.place.name, CITY: town }), t });
       if (this.letters.length > KEEP_LETTERS) this.letters.shift();
-      out.push(`📬 A letter from ${f.name} in ${town}`);
+      // A letter, not one of his deeds (see bond.ts isNote).
+      out.push(`${FRIEND_LETTER_MARK} A letter from ${f.name} in ${town}`);
     }
     const givers = friends.filter((f) => f.id !== partner && f.hearts >= GIFT_AT && spots.includes(f.city) && !this.waiting.some((w) => w.city === f.city));
     if (givers.length && data.gifts.length && rng.randf() < GIFT_CHANCE) {

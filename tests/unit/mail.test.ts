@@ -1,6 +1,7 @@
 // Letters and gifts from his friends: alone, the data file, and through Stats.
 import { describe, expect, it } from "vitest";
 import type { Friend } from "../../src/core/friends";
+import { isNote } from "../../src/core/bond";
 import * as M from "../../src/core/mail";
 import type { Rng } from "../../src/core/rng";
 import * as Sp from "../../src/core/spot";
@@ -28,8 +29,10 @@ describe("mailbox", () => {
     expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT - 1)], "", [], DATA, fixed(0))).toEqual([]);
     expect(m.day(T0, PORTO, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(0))).toEqual([]); // she is right there
     expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(M.LETTER_CHANCE))).toEqual([]);
-    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(0))).toEqual(["📬 A letter from Ana in Porto"]);
+    expect(m.day(T0, SOFIA, [friend("Ana", PORTO, M.LETTER_AT)], "", [], DATA, fixed(0))).toEqual(["💌 A letter from Ana in Porto"]);
     expect(m.letters[0]!.text).toContain("Cafe Luz");
+    // A letter is no deed of his to praise or scold.
+    expect(isNote("💌 A letter from Ana in Porto")).toBe(true);
   });
 
   it("never from his partner, who is with him", () => {
