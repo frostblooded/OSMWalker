@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAP_CACHE_MAX, strategyFor } from "../../src/sw/strategy";
+import { APP_ASSETS_MAX, MAP_CACHE_MAX, overflow, replaced, strategyFor } from "../../src/sw/strategy";
 
 const here = "https://frostblooded.github.io/OSMWalker/";
 const s = (url: string, mode: RequestMode = "cors") => strategyFor(new URL(url, here), here, mode);
@@ -18,6 +18,17 @@ describe("service worker strategy", () => {
     expect(s(`${here}data/actions.json`)).toEqual({ kind: "stale-while-revalidate", cache: "app" });
   });
 
+  it("serves a data file with a version in its address from the cache", () => {
+    expect(s(`${here}data/help.txt?v=1a2b3c4d`)).toEqual({ kind: "cache-first", cache: "app" });
+  });
+
+  it("drops older versions of a data file when a new one is stored", () => {
+    const keys = [`${here}data/help.txt?v=old1`, `${here}data/help.txt?v=new2`, `${here}data/actions.json`, `${here}data/help.txt`];
+    expect(replaced(keys, `${here}data/help.txt?v=new2`)).toEqual([`${here}data/help.txt?v=old1`, `${here}data/help.txt`]);
+    expect(replaced(keys, `${here}data/actions.json`)).toEqual([]);
+    expect(replaced([...keys, `${here}data/actions.json?x=1`], `${here}data/actions.json?x=2`)).toEqual([]);
+  });
+
   it("keeps map tiles, which never change at a versioned address", () => {
     expect(s("https://tiles.openfreemap.org/planet/20251022_001001_pt/14/9253/6039.pbf")).toEqual({ kind: "cache-first", cache: "map" });
     expect(s("https://tiles.openfreemap.org/styles/liberty")).toEqual({ kind: "stale-while-revalidate", cache: "map" });
@@ -33,5 +44,13 @@ describe("service worker strategy", () => {
   it("leaves the save and other origins' pages alone", () => {
     expect(s(`${here}sw.js`)).toBeNull();
     expect(s("https://example.com/", "navigate")).toBeNull();
+  });
+
+  it("drops the oldest build files past the cap, never the page or game data", () => {
+    const assets = Array.from({ length: APP_ASSETS_MAX + 5 }, (_, i) => `${here}assets/chunk-${i}.js`);
+    const keys = [here, `${here}data/actions.json`, ...assets];
+    expect(overflow(keys, APP_ASSETS_MAX, (u) => u.startsWith(`${here}assets/`))).toEqual(assets.slice(0, 5));
+    expect(overflow(assets.slice(0, 3), APP_ASSETS_MAX, () => true)).toEqual([]);
+    expect(APP_ASSETS_MAX).toBeGreaterThan(40);
   });
 });

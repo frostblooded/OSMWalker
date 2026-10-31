@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import type { Tile } from "../../src/core/geo";
+import { fromPbf } from "../../src/core/ofm";
 import * as A from "../../src/net/api";
+
+/** A street tile as the streets worker gets it: fetched by the Api, decoded with core/ofm.ts. */
+const tileOf = async (api: A.Api, t: Tile) => {
+  const bytes = await api.streetTileBytes(t);
+  return bytes ? fromPbf(bytes, t) : null;
+};
 
 const BOX: [number, number, number, number] = [1, 2, 3, 4];
 const pbf = () => readFileSync(fileURLToPath(new URL("../fixtures/ofm/14_9253_6039.pbf", import.meta.url)));
@@ -106,6 +114,14 @@ describe("failures", () => {
     expect(seen).toEqual(["Request to example.org failed: HTTP 503 (server overloaded)"]);
   });
 
+  it("say when the weather answer is not a forecast", async () => {
+    const { api } = fake(() => json({}));
+    const seen: string[] = [];
+    api.onProblem = (t) => seen.push(t);
+    expect(await api.weather("Sofia", 42.7, 23.3, 0)).toBeNull();
+    expect(seen).toEqual(["Request to api.open-meteo.com failed: answer was not a forecast"]);
+  });
+
   it("say when JSON is broken", async () => {
     const { api } = fake(() => new Response("{nope"));
     expect(await api.getJson("https://example.org/x")).toBeNull();
@@ -114,6 +130,10 @@ describe("failures", () => {
 });
 
 describe("street tiles", () => {
+  it("are decoded in the streets worker, so the page's code doesn't carry the decoder", () => {
+    expect(readFileSync(fileURLToPath(new URL("../../src/net/api.ts", import.meta.url)), "utf8")).not.toMatch(/\bfromPbf\b/);
+  });
+
   const TILEJSON = { tiles: ["https://tiles.openfreemap.org/planet/v1/{z}/{x}/{y}.pbf"] };
   const tiles = (opts: { gzip?: boolean; down?: boolean } = {}) =>
     fake((url) => {
@@ -124,27 +144,27 @@ describe("street tiles", () => {
 
   it("come from OpenFreeMap, reading the TileJSON once", async () => {
     const { api, asked } = tiles();
-    const cell = await api.streetTile({ x: 9253, y: 6039 });
+    const cell = await tileOf(api, { x: 9253, y: 6039 });
     expect(cell!.ids.length).toBeGreaterThan(1000);
     expect(asked).toEqual([A.OFM_TILEJSON, "https://tiles.openfreemap.org/planet/v1/14/9253/6039.pbf"]);
-    await api.streetTile({ x: 9253, y: 6040 });
+    await tileOf(api, { x: 9253, y: 6040 });
     expect(asked).toHaveLength(3);
   });
 
   it("share one TileJSON request between loads that start together", async () => {
     const { api, asked } = tiles();
-    await Promise.all([api.streetTile({ x: 9253, y: 6039 }), api.streetTile({ x: 9253, y: 6040 })]);
+    await Promise.all([tileOf(api, { x: 9253, y: 6039 }), tileOf(api, { x: 9253, y: 6040 })]);
     expect(asked.filter((u) => u === A.OFM_TILEJSON)).toHaveLength(1);
   });
 
   it("unzip gzipped answers", async () => {
     const { api } = tiles({ gzip: true });
-    expect((await api.streetTile({ x: 9253, y: 6039 }))!.ids.length).toBeGreaterThan(1000);
+    expect((await tileOf(api, { x: 9253, y: 6039 }))!.ids.length).toBeGreaterThan(1000);
   });
 
   it("rest the tile server after a failure", async () => {
     const { api, tick } = tiles({ down: true });
-    expect(await api.streetTile({ x: 9253, y: 6039 })).toBeNull();
+    expect(await tileOf(api, { x: 9253, y: 6039 })).toBeNull();
     expect(api.tilesResting()).toBe(true);
     expect(api.serverStats.get(A.hostOf(A.OFM_TILEJSON))!.fail).toBe(1);
     tick(A.REST_MS + 1);

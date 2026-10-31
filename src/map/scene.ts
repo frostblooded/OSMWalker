@@ -1,13 +1,17 @@
-// What the map shows and where its camera points. Each tick it puts him, his
-// goal pin, the ride, his trail, the route line and the city area on the map,
-// sending a layer to MapLibre only when it changed. The camera follows him;
-// a tap on the goal chip shows him and his goal until he picks a new one; a
-// trip zooms out to the whole ride until he lands; History fits his trail
-// above its sheet. The map itself sits behind MapPort, so tests use a fake.
+// What the map shows and where its camera points. Each tick it puts him (his
+// face, bubble and pose), his goal pin, the ride, his trail, the route line
+// and the city area on the map, sending a layer to MapLibre only when it
+// changed. The camera follows him; a tap on the goal chip shows him and his
+// goal until he picks a new one; a trip zooms out to the whole ride until he
+// lands; History fits his trail above its sheet; the Stats sheet shows the
+// ley lines. The map itself sits behind MapPort, so tests use a fake.
 import type { BBox } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
+import type { Look } from "../core/look";
+import type { MapIcon } from "../core/mapIcons";
 import type { LatLon } from "../core/trips";
 import type { Game } from "../game/game";
+import { look } from "../game/hud";
 
 export type Padding = { top: number; bottom: number; left: number; right: number };
 export type RouteLine = { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null;
@@ -19,13 +23,21 @@ export interface MapPort {
   /** Told when the player drags the map. */
   onUserMove: () => void;
   setHim(at: LatLon, walking: boolean, glideMs: number): void;
+  /** His face, the bubble over his head and his pose. */
+  setLook(l: Look): void;
   setGoal(at: LatLon | null): void;
+  /** Viktor, his rival, while he is about. */
+  setRival(at: LatLon | null): void;
   setTrip(path: LatLon[] | null): void;
   showTrail(on: boolean): void;
   setTrail(key: string, segments: () => LatLon[][]): void;
   setRoute(key: string, route: () => RouteLine): void;
   setArea(box: BBox | null, outline: LatLon[][]): void;
   setEvents(markers: EventMarker[]): void;
+  /** The ley lines while the Stats sheet is open, sent on only when `key` changes; "" hides them. */
+  setLeys(key: string, lines: () => [LatLon, LatLon][]): void;
+  /** The game's icons, sent on only when `key` changes. */
+  setMapIcons(key: string, icons: () => MapIcon[]): void;
   follow(zoom?: number): void;
   focus(at: LatLon, minZoom: number): void;
   fit(box: BBox, padding: Padding, maxZoom?: number): void;
@@ -38,6 +50,8 @@ export interface MapPort {
 
 /** Zoom for looking at one History event. */
 export const EVENT_ZOOM = 17;
+/** Steps per degree at which the icons near him are picked again (1/200 of a degree, about 500 m). */
+const ICON_GRID = 200;
 
 export class MapScene {
   /** Told when the camera starts or stops following him, for the "Back to him" pill. */
@@ -49,6 +63,7 @@ export class MapScene {
   private goalView = "";
   private tripView = "";
   private history = false;
+  private leys = false;
   private eventsKey = "";
 
   /** `panels`: the room the top card and bottom bar take over the map. */
@@ -70,7 +85,9 @@ export class MapScene {
     const at = w.position();
     v.autoFollow = g.cameraFollows;
     v.setHim(at, !w.needsData() && !w.isResting(), glideMs);
+    v.setLook(look(g));
     v.setGoal(g.goalTarget());
+    v.setRival(g.rivalAt());
     v.setTrip(w.travel ? w.travel.path : null);
     const h = g.stats.history;
     v.setTrail(`${h.id}:${h.trailVersion}`, () => h.segments());
@@ -78,6 +95,9 @@ export class MapScene {
     const routeOn = g.showRoute && !w.travel && !!w.goal;
     v.setRoute(routeOn ? `${w.goal}:${w.toNode}:${w.route.length}:${Math.floor(performance.now() / 1000)}` : "", () => w.routeLine());
     v.setArea(g.showCityArea && !w.travel ? w.bounds : null, g.cityOutline);
+    // Icons change with the city's places, his monuments, his quests and events, and as he moves about 500 m (the nearest ones show).
+    v.setMapIcons(w.travel ? "" : `${g.city}:${w.graph.made.length}:${g.stats.bricks.built.length}:${g.stats.quests.rev}:${w.graph.cells.size}:${Math.round(at[0] * ICON_GRID)}:${Math.round(at[1] * ICON_GRID)}`, () => g.placeIcons());
+    v.setLeys(this.leys && !w.travel ? String(g.leysVersion) : "", () => g.leys);
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);
@@ -104,6 +124,11 @@ export class MapScene {
     const box = this.game.stats.history.bounds();
     if (box) v.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
     this.onFollowing(false);
+  }
+
+  /** The Stats sheet opens or closes: the ley lines show while it is open. */
+  showLeys(on: boolean): void {
+    this.leys = on;
   }
 
   /** The goal chip: shows him and his goal together, or follows him again when they already show. */

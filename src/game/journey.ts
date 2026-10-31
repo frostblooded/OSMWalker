@@ -3,11 +3,12 @@
 // trip is planned and its fare checked, the bus or car road is asked for in
 // the background, and at the station he pays or stays to save up. The
 // walker does the walking and the riding; this module decides and pays.
+import { anyUrgent } from "../core/activities";
 import type { Entry } from "../core/debugLog";
-import { euro, signed } from "../core/money";
+import { euro } from "../core/money";
 import type { Rng } from "../core/rng";
 import type { Place, Stats } from "../core/stats";
-import { cityBounds, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
+import { cityBounds, heading, isPlan, NO_PLACES_BOOST, roll, type City, type Kind, type LatLon, type Plan, type Trips } from "../core/trips";
 
 /** Where he is when a trip comes up. */
 export type Where = { here: LatLon; city: string; country: string; places: Place[]; noPlaces: boolean };
@@ -39,6 +40,10 @@ export class Journey {
       this.log = { skipped: "first pick in a new city" };
       return null;
     }
+    if (anyUrgent(stats)) {
+      this.log = { skipped: "an urgent need comes first" };
+      return null;
+    }
     const r = this.deps.roll?.() ?? this.deps.rng.randf();
     const boost = at.noPlaces ? NO_PLACES_BOOST : 1;
     const kind = roll(r, boost);
@@ -47,7 +52,7 @@ export class Journey {
     const found = this.destination(kind, at);
     if (!found) return null;
     const dest = { ...found, bounds: cityBounds(found) };
-    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf());
+    const plan = this.deps.trips.planTrip(dest, at.here, at.places, stats.cents, stats.vehicle() === "car", this.deps.rng.randf(), stats.fareMult(), stats.vehicle() === "bike", stats.vehicle() === "");
     if (!isPlan(plan)) {
       this.log.no_trip = plan.error;
       if (plan.short_of !== undefined) {
@@ -57,9 +62,10 @@ export class Journey {
       return null;
     }
     stats.savingFor = 0;
-    stats.say(`Heading to ${plan.station.name} for the ${plan.mode} to ${dest.name} (${euro(plan.fare)})`);
+    // Where to stays a surprise until he boards, so it can be guessed (core/guess.ts).
+    stats.say(heading(plan, kind === "country" ? "somewhere abroad" : `somewhere in ${dest.country}`));
     this.pending = plan;
-    if (plan.mode !== "plane") void this.fetchRoad(plan);
+    if (plan.mode !== "plane" && plan.mode !== "ferry") void this.fetchRoad(plan);
     return plan;
   }
 
@@ -72,9 +78,9 @@ export class Journey {
       stats.say(`Can't afford the ${plan.mode} to ${dest.name} any more, so he's saving up`);
       return `can't afford the ${plan.mode}: needs ${euro(plan.fare)}, has ${euro(stats.cents)}`;
     }
-    stats.cents -= plan.fare;
-    const how = plan.mode === "car" ? "Filled up and drove" : `Took the ${plan.mode}`;
-    setOff(stats, `${how} to ${dest.name}, ${dest.country} from ${plan.station.name} (${signed(-plan.fare)})`);
+    const [rode, ...kit] = stats.board(plan.fare, plan.mode, plan.station.name, `${dest.name}, ${dest.country}`, dest.code);
+    setOff(stats, rode!);
+    for (const line of kit) stats.say(line);
     return "";
   }
 

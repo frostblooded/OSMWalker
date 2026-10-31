@@ -1,7 +1,9 @@
+import { isAirport } from "../../src/core/cityCheck";
 import { euro } from "../../src/core/money";
 import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
+import { WALK } from "../../src/core/speeds";
 import type { Place } from "../../src/core/stats";
 import * as T from "../../src/core/trips";
 import { dataFile } from "../support/data";
@@ -64,13 +66,6 @@ describe("rides", () => {
     expect(T.fare("bus", 1000)).toBe(8);
     expect(T.fare("bus", 1)).toBe(1);
   });
-
-  it("know stations", () => {
-    expect(T.isBusStation(BUS_STATION)).toBe(true);
-    expect(T.isBusStation({ ...BUS_STATION, subclass: "bus_stop" })).toBe(false);
-    expect(T.isGasStation(FUEL)).toBe(true);
-    expect(T.isGasStation(CAFE)).toBe(false);
-  });
 });
 
 describe("airports", () => {
@@ -78,12 +73,26 @@ describe("airports", () => {
     const a = trips(true).airports;
     expect(a).toHaveLength(2);
     expect(a[0]!.name).toBe("Big Intl");
-    expect(T.isAirport(a[0]!)).toBe(true);
+    expect(isAirport(a[0]!)).toBe(true);
   });
 
   it("are found within reach only", () => {
     expect(trips(true).nearestAirport(0, 0)!.name).toBe("Big Intl");
     expect(trips(true).nearestAirport(5, 5)).toBeNull();
+  });
+
+  it("know the nearest listed city, not just any near one", () => {
+    const t = new T.Trips([
+      { name: "Aville", code: "XX", country: "X", lat: 30.1, lon: 30, pop: 10_000 },
+      { name: "Bigtown", code: "XX", country: "X", lat: 30, lon: 30, pop: 2_000_000 },
+    ]);
+    expect(t.cityNear(30.001, 30)!.name).toBe("Bigtown");
+    expect(t.cityNear(35, 35)).toBeNull();
+  });
+
+  it("are made up for a big city with none in reach", () => {
+    const t = new T.Trips([{ name: "Bigtown", code: "XX", country: "X", lat: 30, lon: 30, pop: 2_000_000 }], []);
+    expect(t.nearestAirport(30, 30)!.name).toBe("Bigtown Airport");
   });
 });
 
@@ -119,15 +128,102 @@ describe("planTrip", () => {
     expect(p.station.name).toBe("Fuel Stop");
   });
 
+  it("never fills up at an EV charger, which the map files under fuel too", () => {
+    const charger: Place = { ...FUEL, name: "Charger", subclass: "charging_station", lon: 0.001 };
+    const p = plan(trips().planTrip(city("Smallton", 1, 0), [0, 0], [charger, FUEL], 10_000, true, 0.99));
+    expect(p.station.name).toBe("Fuel Stop");
+  });
+
   it("says why there is no way out", () => {
-    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100, false, 0.5)).toEqual({ error: "no bus station or airport within reach" });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100_000, false, 0.5)).toEqual({ error: "no bus station or airport within reach" });
+  });
+
+  it("hitchhikes when broke even with no station, but not past the roads", () => {
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [CAFE], 100, false, 0.5)).toMatchObject({ mode: "hitch" });
+    expect(trips().planTrip(city("Overseas", 40, 0), [0, 0], [CAFE], 100, false, 0.5)).toMatchObject({ error: expect.stringContaining("too far") });
   });
 
   it("says how much is needed", () => {
-    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99)).toEqual({
-      error: `can't afford the bus to Smallton: needs ${euro(smalltonFare)}, has €0.03`,
-      short_of: smalltonFare,
+    const far = city("Farton", 2, 0);
+    const fare = T.fare("bus", distanceM(0, 0, 2, 0) * T.ROAD_FACTOR);
+    expect(fare).toBeGreaterThan(T.HITCH_BELOW);
+    expect(trips().planTrip(far, [0, 0], [BUS_STATION], T.HITCH_BELOW, false, 0.99)).toEqual({
+      error: `can't afford the bus to Farton: needs ${euro(fare)}, has ${euro(T.HITCH_BELOW)}`,
+      short_of: fare,
     });
+  });
+
+  it("takes the road when he can't pay the plane but can pay the road", () => {
+    const rail: Place = { ...BUS_STATION, name: "Central Station", class: "railway", subclass: "station" };
+    const c = city("Midtown", 2.5, 0);
+    expect(T.planeChance(distanceM(0, 0, 2.5, 0))).toBeGreaterThan(0);
+    const withMid = new T.Trips(T.parseCities(LIST), T.parseAirports(`${AIRPORTS}Mid Field\tMID\tAA\t2.5\t0\n`));
+    expect(withMid.planTrip(c, [0, 0], [rail], 2600, false, 0)).toMatchObject({ mode: "train" });
+    expect(withMid.planTrip(c, [0, 0], [rail], 100_000, false, 0)).toMatchObject({ mode: "plane" });
+  });
+
+  it("hitchhikes for free when broke instead of saving up", () => {
+    const plan = trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 3, false, 0.99);
+    expect(plan).toMatchObject({ mode: "hitch", fare: 0, station: { name: "the road out of town" } });
+  });
+
+  it("takes the train from a railway station for a long road trip, and the bus for a short one", () => {
+    const rail: Place = { ...BUS_STATION, name: "Central Station", class: "railway", subclass: "station" };
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION, rail], 100_000, false, 0.99)).toMatchObject({ mode: "train", station: { name: "Central Station" } });
+    expect(trips().planTrip(city("Neartown", 0.5, 0), [0, 0], [BUS_STATION, rail], 100_000, false, 0.99)).toMatchObject({ mode: "bus" });
+  });
+
+  it("sometimes takes the ferry from a ferry terminal, straight over the water", () => {
+    const ferry: Place = { ...BUS_STATION, name: "Harbour", class: "ferry_terminal", subclass: "ferry_terminal" };
+    const c = city("Smallton", 1, 0);
+    const plan = trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE - 0.01);
+    expect(plan).toMatchObject({ mode: "ferry", distance_m: distanceM(0, 0, 1, 0) });
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, T.FERRY_CHANCE)).toMatchObject({ mode: "bus" });
+  });
+
+  it("gives the ferry the same odds where planes come into it", () => {
+    const ferry: Place = { ...BUS_STATION, name: "Harbour", class: "ferry_terminal", subclass: "ferry_terminal" };
+    const c = city("Midtown", 4, 0);
+    const p = T.planeChance(distanceM(0, 0, 4, 0));
+    expect(p).toBeGreaterThan(0.2);
+    // No airports here, so every trip goes by road; the ferry still gets FERRY_CHANCE of the rolls.
+    const ferries = Array.from({ length: 100 }, (_, i) => trips().planTrip(c, [0, 0], [BUS_STATION, ferry], 100_000, false, i / 100)).filter((x) => "mode" in x && x.mode === "ferry");
+    expect(ferries.length).toBeGreaterThanOrEqual(28);
+    expect(ferries.length).toBeLessThanOrEqual(32);
+  });
+
+  it("on foot, sometimes walks to a near town, paying for hostel nights", () => {
+    const c = city("Walkton", 0.3, 0);
+    const road = distanceM(0, 0, 0.3, 0) * T.ROAD_FACTOR;
+    const walk = trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, T.LONG_WALK_CHANCE - 0.01, 1, false, true);
+    expect(walk).toMatchObject({ mode: "walk", fare: T.HOSTEL_CENTS * T.hostelNights(road), station: { name: "the road out of town" } });
+    expect(T.hostelNights(road)).toBe(1);
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, T.LONG_WALK_CHANCE, 1, false, true)).toMatchObject({ mode: "bus" });
+    // Not with a vehicle, not too near or far, and not when he can't pay the hostels.
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, false)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, true)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(city("Nearby", 0.1, 0), [0, 0], [BUS_STATION], 100_000, false, 0, 1, false, true)).toMatchObject({ mode: "bus" });
+    expect(trips().planTrip(c, [0, 0], [BUS_STATION], 100, false, 0, 1, false, true)).toMatchObject({ mode: "hitch" });
+  });
+
+  it("a long walk always takes LONG_WALK_MAX_S, as even the shortest is longer at real pace", () => {
+    expect((T.LONG_WALK_MIN_M * T.ROAD_FACTOR) / WALK).toBeGreaterThan(T.LONG_WALK_MAX_S);
+    expect(T.rideS("walk", T.LONG_WALK_MIN_M * T.ROAD_FACTOR)).toBe(T.LONG_WALK_MAX_S);
+  });
+
+  it("cycles to a near town on his bike, for free", () => {
+    const near = city("Neartown", 0.2, 0);
+    expect(trips().planTrip(near, [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bike", fare: 0 });
+    expect(trips().planTrip(city("Smallton", 1, 0), [0, 0], [BUS_STATION], 100_000, false, 0.99, 1, true)).toMatchObject({ mode: "bus" });
+  });
+
+  it("has a ride time and an icon for every way of travelling, but a portal, which is instant", () => {
+    for (const m of Object.keys(T.MODES) as T.Mode[]) if (m !== "portal") expect(T.rideS(m, 100_000)).toBeGreaterThan(0);
+    expect(T.rideS("portal", 100_000)).toBe(0);
+    expect(Object.values(T.MODES).map((m) => m.icon)).toEqual(["🚌", "✈", "🚗", "🚆", "⛴", "🚲", "👍", "🥾", "🌀"]);
+    expect(T.fare("bike", 50_000)).toBe(0);
+    expect(T.fare("hitch", 50_000)).toBe(0);
+    expect(T.fare("train", 100_000)).toBe(Math.ceil(100 * T.TRAIN_PER_KM * 100));
   });
 });
 
@@ -196,5 +292,20 @@ describe("cities", () => {
     expect(all.countryAt(42.69, 23.32)).toBe("BGR");
     expect(all.airports.length).toBeGreaterThan(3000);
     expect(all.nearestAirport(42.69, 23.32)!.name).toBe("Sofia Airport");
+  });
+});
+
+describe("jet lag", () => {
+  it("counts time zones one per 15 degrees, the short way round", () => {
+    expect(T.timeZones(0, 7)).toBe(0);
+    expect(T.timeZones(0, 8)).toBe(1);
+    expect(T.timeZones(23.4, 139.7)).toBe(8);
+    expect(T.timeZones(170, -170)).toBe(1);
+  });
+
+  it("lasts an hour per zone up to JET_LAG_MAX_H, draining energy and cutting XP", () => {
+    expect(T.jetLag(0)).toBeNull();
+    expect(T.jetLag(3)).toMatchObject({ name: "Jet-lagged", min: 180, per_h: { energy: -T.JET_LAG_ENERGY_PER_H }, xp_mult: T.JET_LAG_XP });
+    expect(T.jetLag(20)!.min).toBe(60 * T.JET_LAG_MAX_H);
   });
 });

@@ -6,6 +6,8 @@ export type Strategy = { kind: "network-first" | "cache-first" | "stale-while-re
 
 /** Map tiles, fonts and icons kept at most; the oldest go first. */
 export const MAP_CACHE_MAX = 3000;
+/** Build files kept at most. Each deploy renames them (about 25 now), so this holds a few builds. */
+export const APP_ASSETS_MAX = 80;
 const OFM = "tiles.openfreemap.org";
 
 export function strategyFor(url: URL, scope: string, mode: RequestMode): Strategy {
@@ -18,6 +20,24 @@ export function strategyFor(url: URL, scope: string, mode: RequestMode): Strateg
   const path = url.href.slice(scope.length).split(/[?#]/)[0]!;
   if (mode === "navigate" || path === "" || path === "index.html") return { kind: "network-first", cache: "app" };
   if (path.startsWith("assets/")) return { kind: "cache-first", cache: "app" };
-  if (path.startsWith("data/")) return { kind: "stale-while-revalidate", cache: "app" };
+  // A data file whose address carries its version (Help's ?v=) can't go stale at that address.
+  if (path.startsWith("data/")) return { kind: versioned(url) ? "cache-first" : "stale-while-revalidate", cache: "app" };
   return null;
+}
+
+/** The oldest of `keys` (cache order) that pass `trimmed`, past the newest `max`: what a trim deletes. */
+export function overflow(keys: string[], max: number, trimmed: (url: string) => boolean): string[] {
+  const own = keys.filter(trimmed);
+  return own.slice(0, Math.max(own.length - max, 0));
+}
+
+/** A data file whose address carries its version (Help's ?v=). */
+export function versioned(url: URL): boolean {
+  return url.searchParams.has("v");
+}
+
+/** Older versions of a versioned `url` in `keys` (same address, another or no ?query): what storing `url` replaces. */
+export function replaced(keys: string[], url: string): string[] {
+  const base = url.split("?")[0]!;
+  return versioned(new URL(url)) ? keys.filter((k) => k !== url && k.split("?")[0] === base) : [];
 }

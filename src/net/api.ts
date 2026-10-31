@@ -1,12 +1,14 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
 // (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
-// for road routes between cities, Wikidata for city trivia, Nominatim for
-// city outlines and Nager.Date for public holidays. Fetch is injected, so it is easy to test.
+// for road routes between cities, Wikidata for city trivia and Nominatim for
+// city outlines, Open-Meteo for his city's weather and Nager.Date for public
+// holidays. Fetch is injected, so it is easy to test.
 import * as CityFacts from "../core/cityFacts";
-import * as Holidays from "../core/holidays";
 import type { BBox, Tile } from "../core/geo";
-import type { Cell, OverpassData } from "../core/graph";
-import { fromPbf, TILE_ZOOM } from "../core/ofm";
+import * as Holidays from "../core/holidays";
+import type { OverpassData } from "../core/graph";
+import { TILE_ZOOM } from "../core/ofm";
+import { parseWeather, weatherUrl, type WeatherForecast } from "../core/weather";
 import type { LatLon } from "../core/trips";
 
 /** Public Overpass servers, tried in order; the main one is often busy (429/504). */
@@ -197,7 +199,7 @@ export class Api {
     this.serverStats.set(host, st);
   }
 
-  /** The raw pbf of one z14 street tile from OpenFreeMap, or null. */
+  /** The raw pbf of one z14 street tile from OpenFreeMap, or null. The streets worker decodes it (core/ofm.ts), so the decoder stays out of the page's code. */
   async streetTileBytes(tile: Tile): Promise<Uint8Array | null> {
     // Loads that start together share one TileJSON request.
     this.tileUrl ??= this.getJson(OFM_TILEJSON, TILE_TIMEOUT_S).then((tj) => (tj as { tiles?: string[] } | null)?.tiles?.[0] ?? "");
@@ -215,12 +217,6 @@ export class Api {
     }
     this.serverResult(url, "");
     return gunzipIfNeeded(body);
-  }
-
-  /** Walkable streets of one z14 tile from OpenFreeMap, or null. */
-  async streetTile(tile: Tile): Promise<Cell | null> {
-    const bytes = await this.streetTileBytes(tile);
-    return bytes ? fromPbf(bytes, tile) : null;
   }
 
   /** True while the tile server is resting after a failure. */
@@ -275,6 +271,15 @@ export class Api {
   async cityFacts(lat: number, lon: number): Promise<CityFacts.Row[]> {
     const data = (await this.getJson(CityFacts.url(lat, lon), 30)) as { results?: { bindings?: CityFacts.Row[] } } | null;
     return data?.results?.bindings ?? [];
+  }
+
+  /** Hourly weather around `lat`, `lon` from today to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
+  async weather(city: string, lat: number, lon: number, nowMs: number): Promise<WeatherForecast | null> {
+    const url = weatherUrl(lat, lon);
+    const data = await this.getJson(url, 20);
+    const f = data === null ? null : parseWeather(data, city, nowMs);
+    if (data !== null && !f) this.fail(url, "answer was not a forecast");
+    return f;
   }
 
   /** A country's public holidays in `year`: [] when Nager.Date has none for it (204 or 404), null when the request fails. */

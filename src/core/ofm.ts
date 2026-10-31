@@ -18,7 +18,12 @@ export const LAYERS = ["transportation", "transportation_name", "poi"];
 const WALKABLE = new Set(["primary", "secondary", "tertiary", "minor", "service", "track", "path"]);
 const NOT_WALKABLE_SUBCLASS = new Set(["platform", "corridor"]);
 /** Stops and entrances are everywhere and not worth a walk. */
-const NOT_A_PLACE_SUBCLASS = new Set(["bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"]);
+export const NOT_A_PLACE_SUBCLASS = new Set(["bus_stop", "tram_stop", "subway_entrance", "train_station_entrance", "platform"]);
+/** A named street bridge is a place too, of this class; rank 10 (POIs are mostly 1 to 5) makes it a goal now and then. */
+export const BRIDGE = "bridge";
+export const BRIDGE_RANK = 10;
+/** A street name that already says bridge, in a few languages (a whole word, or the end of a compound like "Oberbaumbrücke"); others become "Bridge on <street>". */
+const BRIDGE_WORD = /(?<!\p{L})(bridge|pont|puente|ponte|most|мост)(?!\p{L})|(brücke|brug|híd|köprüsü|köprü)(?!\p{L})/iu;
 /** Edge cuts are rounded to this many units (about 2 m), so both tiles' clipped copies of a street meet. */
 const SNAP = 4;
 /** How close (in units, about 0.6 m) a dead end or other node must be to a segment to be joined onto it. */
@@ -72,6 +77,7 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
     for (const line of f.lines ?? []) addLine(line, scale, tile, names, nodes, ways);
   }
   ways = joinJunctions(ways);
+  const found = places(layers.poi, tile);
   const ids = new Float64Array(nodes.size);
   const coords = new Float64Array(nodes.size * 2);
   let i = 0;
@@ -81,7 +87,85 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
     coords[i * 2 + 1] = p[1];
     i++;
   }
-  return { ids, coords, ways, places: places(layers.poi, tile) };
+  return { ids, coords, ways, places: [...found, ...bridges(t, layers.transportation_name, tile)] };
+}
+
+/**
+ * One place per walkable bridge in the tile (see bridgeAt): a street bridge
+ * by the street's name, an unnamed footbridge as "Footbridge". The name layer
+ * is simplified past a bridge's own cut points, so names are matched by the
+ * points they share with the bridge, and the name most of them carry wins
+ * (a point at a crossing carries both streets).
+ */
+export function bridges(layer: Layer | undefined, nameLayer: Layer | undefined, tile: Tile): Place[] {
+  if (!layer) return [];
+  const scale = UNITS / layer.extent;
+  const named = new Map<number, string[]>();
+  for (const f of nameLayer?.features ?? []) {
+    const name = String(f.tags.name ?? "");
+    const k = UNITS / nameLayer!.extent;
+    if (name === "") continue;
+    for (const line of f.lines ?? []) {
+      for (let i = 0; i + 1 < line.length; i += 2) {
+        const id = idAt([line[i]! * k, line[i + 1]! * k], tile);
+        const list = named.get(id);
+        if (!list) named.set(id, [name]);
+        else if (!list.includes(name)) list.push(name);
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const out: Place[] = [];
+  for (const f of layer.features) {
+    if (f.tags.brunnel !== "bridge" || !WALKABLE.has(String(f.tags.class)) || NOT_WALKABLE_SUBCLASS.has(String(f.tags.subclass))) continue;
+    for (const line of f.lines ?? []) {
+      const p = bridgeAt(line, scale);
+      if (!p) continue;
+      const votes = new Map<string, number>();
+      for (let j = 0; j + 1 < line.length; j += 2) for (const n of named.get(idAt([line[j]! * scale, line[j + 1]! * scale], tile)) ?? []) votes.set(n, (votes.get(n) ?? 0) + 1);
+      let street = "";
+      for (const [n, v] of votes) if (v > (votes.get(street) ?? 0)) street = n;
+      const name = street === "" ? (f.tags.class === "path" ? "Footbridge" : "") : BRIDGE_WORD.test(street) ? street : `Bridge on ${street}`;
+      const gx = tile.x * UNITS + p[0];
+      const gy = tile.y * UNITS + p[1];
+      const key = `${name}@${Math.round(gx / GRID)},${Math.round(gy / GRID)}`;
+      if (name === "" || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, class: BRIDGE, subclass: BRIDGE, rank: BRIDGE_RANK, lat: pxToLat(gy, UNIT_ZOOM), lon: pxToLon(gx, UNIT_ZOOM) });
+    }
+  }
+  return out;
+}
+
+/**
+ * Where a bridge line's place goes, in tile units, or null when another tile
+ * has it. A line inside the tile: its middle point. One that leaves the tile
+ * belongs to the tile it doesn't enter from the left or top: there it sits at
+ * the first right or bottom edge crossing, snapped as street cuts are, so the
+ * tiles next door (which see it cross their left or top edge) skip it. Only a
+ * bridge that runs down-left through three tiles is placed twice.
+ */
+function bridgeAt(line: number[], scale: number): Pt | null {
+  let crosses = false;
+  let at: Pt | null = null;
+  for (let i = 0; i + 3 < line.length; i += 2) {
+    const p: Pt = [line[i]! * scale, line[i + 1]! * scale];
+    const q: Pt = [line[i + 2]! * scale, line[i + 3]! * scale];
+    if (inside(p) && inside(q)) continue;
+    const cut = clip(p, q, UNITS);
+    if (!cut) continue;
+    crosses = true;
+    for (const [c, end] of [[cut[0], p], [cut[1], q]] as const) {
+      if (same(c, end)) continue;
+      const e = snapToEdge(c, UNITS);
+      if (e[0] === 0 || e[1] === 0) return null;
+      at ??= e;
+    }
+  }
+  if (crosses || line.length < 4) return at;
+  const i = Math.floor((line.length / 2 - 1) / 2) * 2;
+  const mid: Pt = [line[i]! * scale, line[i + 1]! * scale];
+  return inside(mid) ? mid : null; // all in the buffer past the edge: the neighbouring tile has it
 }
 
 /** Named places inside the tile. A lower rank is more important within its tile. */

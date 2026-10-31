@@ -20,13 +20,15 @@ export class Loop {
   private last = 0;
   /** Called after every tick, for the screens. */
   onTick: () => void = () => {};
+  private readonly onVisibility = () => (document.hidden ? this.pause() : this.start());
+  private readonly onHide = () => this.game.leave();
 
   constructor(
     private readonly game: Game,
     private readonly scene: MapScene,
   ) {
-    document.addEventListener("visibilitychange", () => (document.hidden ? this.pause() : this.start()));
-    addEventListener("pagehide", () => this.game.save());
+    document.addEventListener("visibilitychange", this.onVisibility);
+    addEventListener("pagehide", this.onHide);
   }
 
   start(): void {
@@ -40,7 +42,14 @@ export class Loop {
   pause(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    this.game.save();
+    this.game.leave();
+  }
+
+  /** For good (the game screen closed): pauses and stops listening, so the page showing again can't restart it. */
+  stop(): void {
+    this.pause();
+    document.removeEventListener("visibilitychange", this.onVisibility);
+    removeEventListener("pagehide", this.onHide);
   }
 
   private schedule(ms: number): void {

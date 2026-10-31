@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needWeight, restMinutes, SAVING_EARN_WEIGHT, weight, type ActionTable } from "../../src/core/activities";
+import * as A from "../../src/core/activities";
+import { URGENT_SLIP } from "../../src/core/goals";
+import { Activities, choose, GOAL_SHOP_PULL, GOAL_SHOP_WEIGHT, NEED_AT, NEED_BOOST, needOf, restMinutes, URGENT_AT, weight, type ActionTable } from "../../src/core/activities";
 import type { Item } from "../../src/core/items";
 import * as Items from "../../src/core/items";
+import * as Jokes from "../../src/core/jokes";
 import { Rng } from "../../src/core/rng";
 import * as Speeds from "../../src/core/speeds";
 import { BAG_SIZE, ENERGY_PER_KM, FIRST_VISIT_XP, FULLNESS_PER_H, FX_KEYS, HOSPITAL_FEE, KEEP_CENTS, NEED_KEYS, Stats, THIRST_PER_H, WAKE_HEALTH, xpToNext, type Action } from "../../src/core/stats";
 import * as S from "../../src/core/stats";
+import { dayOf } from "../../src/core/gifts";
 import { euro } from "../../src/core/money";
 import { dataFile } from "../support/data";
 
 const cafe = () => ({ name: "Old Cafe", class: "cafe", subclass: "cafe", rank: 1, lat: 42, lon: 23 });
 const sword = (power: number, price = 40): Item => ({ name: "Bronze Sword", slot: "weapon", stats: { str: power }, rarity: "Common", price });
-const vehicle = (kind: "bike" | "motorcycle" | "car", speed = 0, price = 100): Item => ({ name: `Plain ${kind}`, slot: "vehicle", vehicle: kind, stats: { speed }, rarity: "Common", price });
+const vehicle = (kind: Exclude<Speeds.Vehicle, "">, speed = 0, price = 100): Item => ({ name: `Plain ${kind}`, slot: "vehicle", vehicle: kind, stats: { speed }, rarity: "Common", price });
 const roundTrip = (s: Stats) => Stats.fromJSON(JSON.parse(JSON.stringify(s)));
 
 let stats: Stats;
@@ -99,9 +103,14 @@ describe("stats", () => {
   });
 
   it("jobs earn euros in a range, to the cent", () => {
+    let card = false;
+    stats.onSay = (l) => (card ||= l.includes(" At work: "));
     for (let s = 0; s < 20; s++) {
       const before = stats.cents;
+      card = false;
       stats.do({ name: "Busk", min: 15, earn: [5, 30] }, "Park", new Rng(s));
+      // A chance card at work (workCards.ts) may change the pay; those don't count here.
+      if (card) continue;
       expect(stats.cents - before).toBeGreaterThanOrEqual(500);
       expect(stats.cents - before).toBeLessThanOrEqual(3000);
     }
@@ -143,8 +152,11 @@ describe("stats", () => {
     expect(stats.wageMult(job)).toBeCloseTo((1 + 0.03 * 10 + 0.02 * 5), 9);
     expect(stats.wageMult({ name: "Shelve books", min: 60, earn: 15 })).toBeCloseTo(1.3, 9);
     const before = stats.cents;
+    // His money as the job's line is said, before any chance card at work (workCards.ts).
+    let paid: number | null = null;
+    stats.onSay = () => (paid ??= stats.cents);
     const line = stats.do(job, "Bar", rng);
-    expect(stats.cents - before).toBe(Math.round(10000 * stats.wageMult(job)));
+    expect(paid! - before).toBe(Math.round(10000 * stats.wageMult(job)));
     expect(line).toContain(euro(Math.round(10000 * stats.wageMult(job))));
   });
 
@@ -261,6 +273,58 @@ describe("gear", () => {
     expect(line).toContain("Sold");
   });
 
+  it("a full bag at a resale shop is a selling run, a line per sale", () => {
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5, 1000 + i));
+    const lines: string[] = [];
+    stats.onSay = (l) => lines.push(l);
+    stats.do({ name: "Sell his loot", min: 10, sell: true, resale: true }, "Pawn Stars", rng);
+    expect(stats.bag).toHaveLength(S.SELL_RUN_LEFT);
+    expect(lines.filter((l) => l.startsWith("Sold his"))).toHaveLength(BAG_SIZE - S.SELL_RUN_LEFT);
+    // The cheapest went first.
+    expect(Math.min(...stats.bag.map((it) => it.price))).toBe(1000 + BAG_SIZE - S.SELL_RUN_LEFT);
+  });
+
+  it("a shop that isn't a resale shop, or a bag that isn't full, sells one thing", () => {
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5, 1000 + i));
+    stats.do({ name: "Sell his loot", min: 10, sell: true }, "Arms & Co", rng);
+    expect(stats.bag).toHaveLength(BAG_SIZE - 1);
+    stats.do({ name: "Sell his loot", min: 10, sell: true, resale: true }, "Pawn Stars", rng);
+    expect(stats.bag).toHaveLength(BAG_SIZE - 2);
+  });
+
+  it("resale shops pull him like a need while his bag is full", () => {
+    const resale = { name: "Sell his loot", min: 10, sell: true, resale: true };
+    expect(needOf([resale], stats, 12).pull).toBe(1);
+    for (let i = 0; i < BAG_SIZE; i++) stats.bag.push(sword(0.5));
+    expect(needOf([resale], stats, 12)).toMatchObject({ pull: 1 + NEED_BOOST, why: "bag" });
+    expect(needOf([{ name: "Sell", min: 10, sell: true }], stats, 12).pull).toBe(1);
+  });
+
+  it("jokes are keyed by place classes the actions know", () => {
+    const jokes = JSON.parse(dataFile("jokes.json")) as Record<string, string[]>;
+    const classes = new Set(Object.keys(JSON.parse(dataFile("actions.json"))).map((k) => k.split("/")[0]));
+    for (const [k, lines] of Object.entries(jokes)) {
+      expect(k === "_generic" || classes.has(k), k).toBe(true);
+      expect(lines.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("now and then a line gets a deadpan joke for that kind of place", () => {
+    stats.jokes = JSON.parse(dataFile("jokes.json"));
+    const lines = Array.from({ length: 400 }, (_, i) => stats.do({ name: "Looked around", min: 5 }, "Big Museum", new Rng(i), "museum"));
+    const joked = lines.filter((l) => l !== "Looked around at Big Museum");
+    expect(joked.length / lines.length).toBeGreaterThan(0.08);
+    expect(joked.length / lines.length).toBeLessThan(0.18);
+    for (const l of joked) expect(Jokes.jokesFor(stats.jokes, "museum").some((j) => l.endsWith(` ${j}`))).toBe(true);
+    expect(Jokes.jokesFor(stats.jokes, "nowhere")).toBe(stats.jokes._generic);
+    expect(Jokes.jokesFor({}, "museum")).toEqual([]);
+    // With no jokes loaded the dice aren't touched.
+    const plain = new Stats();
+    const r = new Rng(9);
+    plain.do({ name: "Looked around", min: 5 }, "Big Museum", r, "museum");
+    expect(r.randf()).toBe(new Rng(9).randf());
+  });
+
   it("shop actions offer an item", () => {
     stats.cents = 100_000;
     const line = stats.do({ name: "Browse the weapons", min: 15, item: "weapons" }, "Arms & Co", rng);
@@ -310,6 +374,8 @@ describe("gear", () => {
     stats.gear.vehicle = vehicle("motorcycle");
     expect(stats.vehicleGoal()).toMatchObject({ name: "Hatchback", kind: "cars", cents: 750000 });
     stats.gear.vehicle = vehicle("car");
+    expect(stats.vehicleGoal()).toMatchObject({ name: "Dragon", kind: "dragons", cents: 4000000 });
+    stats.gear.vehicle = vehicle("dragon");
     expect(stats.vehicleGoal()).toBeNull();
   });
 
@@ -323,9 +389,16 @@ describe("gear", () => {
     expect(stats.saving()).toBe(false);
     stats.savingFor = goal + 5;
     expect(stats.saving()).toBe(true);
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
     stats.savingFor = 0;
-    expect(stats.saving()).toBe(false);
+    stats.cents = S.DRAGON_UPKEEP + KEEP_CENTS - 1;
+    expect(stats.saving()).toBe(true);
+    stats.feedDragon(rng);
+    stats.cents = 0;
+    stats.savingFor = 0;
+    expect(stats.savingTarget()).toBe(0);
+    stats.gear.vehicle = vehicle("car");
+    expect(stats.savingTarget()).toBe(stats.vehicleGoal()!.cents + KEEP_CENTS + S.DRAGON_UPKEEP);
   });
 
   it("a car beats any bike", () => {
@@ -378,6 +451,61 @@ describe("speed", () => {
     expect(stats.speedMps()).toBeCloseTo(Speeds.WALK * 0.75);
     stats.meters.energy = 0;
     expect(stats.speedMps()).toBeCloseTo(Speeds.WALK * 0.5);
+  });
+
+  it("a dragon eats its gold once a day, and sulks on foot when he can't pay", () => {
+    let t = Date.UTC(2026, 9, 30, 9) / 1000;
+    stats.now = () => t;
+    stats.equip(vehicle("dragon"));
+    stats.cents = S.DRAGON_UPKEEP;
+    expect(stats.getsAbout()).toBe("");
+    expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
+    const never = { randf: () => 0.99, randiRange: (a: number) => a } as unknown as Rng;
+    expect(stats.feedDragon(never)).toMatch(/^Fed his dragon/);
+    expect(stats.cents).toBe(0);
+    expect(stats.getsAbout()).toBe("dragon");
+    expect(stats.speedMps()).toBeCloseTo(Speeds.DRAGON);
+    expect(stats.feedDragon(never)).toBe("");
+    t += 24 * 3600;
+    expect(stats.feedDragon(never)).toMatch(/sulks/);
+    expect(stats.feedDragon(never)).toBe("");
+    expect(stats.getsAbout()).toBe("");
+    stats.gear.vehicle!.stats.speed = 50;
+    expect(stats.speedMps()).toBeCloseTo(Speeds.WALK);
+    stats.cents = S.DRAGON_UPKEEP;
+    stats.feedDragon(never);
+    expect(stats.getsAbout()).toBe("dragon");
+    expect(roundTrip(stats).dragonFed).toBe(stats.dragonFed);
+  });
+
+  it("a fed dragon now and then brings back treasure", () => {
+    stats.equip(vehicle("dragon"));
+    stats.cents = S.DRAGON_UPKEEP;
+    const lucky = { randf: () => 0, randiRange: (a: number) => a } as unknown as Rng;
+    expect(stats.feedDragon(lucky)).toMatch(/treasure/);
+    expect(stats.cents).toBe(S.DRAGON_TREASURE_MIN);
+  });
+
+  it("after a flyer lands he walks: walking speed and effort", () => {
+    stats.equip(vehicle("broom", 50));
+    expect(stats.speedMps(true)).toBeCloseTo(Speeds.WALK);
+    const walker = new Stats();
+    walker.passTime(0, 1000);
+    stats.passTime(0, 1000, true);
+    expect(stats.meters.energy).toBeCloseTo(walker.meters.energy);
+  });
+
+  it("a giant tortoise never tires him", () => {
+    stats.equip(vehicle("tortoise"));
+    stats.passTime(0, 5000);
+    expect(stats.meters.energy).toBe(100);
+  });
+
+  it("a shop only now and then has a fantasy mount in", () => {
+    stats.cents = 100_000_00;
+    const ask: Action = { name: "Ask after a broomstick", min: 10, item: "brooms" };
+    expect(stats.do(ask, "Hardware", { randf: () => Items.MOUNT_STOCK } as unknown as Rng)).toBe("Asked after a Broomstick at Hardware, but there were none in today");
+    expect(stats.do(ask, "Hardware", new Rng(3))).toMatch(/Broomstick/);
   });
 
   it("riding tires him less than walking", () => {
@@ -477,24 +605,76 @@ describe("mood, hygiene and luck", () => {
 describe("need-driven goals", () => {
   const eat: Action = { name: "Eat", min: 1, cost: 5, fx: { fullness: 40 } };
   const work: Action = { name: "Wash dishes", min: 1, earn: 10 };
-  it("weigh 1 when nothing he needs is there", () => {
-    expect(needWeight([eat], stats)).toBe(1);
-    expect(needWeight([], stats)).toBe(1);
+  const pull = (acts: Action[]) => needOf(acts, stats, 12).pull;
+  it("pull 1 when nothing he needs is there", () => {
+    expect(pull([eat])).toBe(1);
+    expect(pull([])).toBe(1);
   });
-  it("weigh more the lower the meter the place refills", () => {
+  it("pull steeply harder the lower the meter the place refills", () => {
     stats.meters.fullness = NEED_AT / 2;
-    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST / 2, 6);
+    expect(pull([eat])).toBeCloseTo(1 + NEED_BOOST / 4, 6);
     stats.meters.fullness = 0;
-    expect(needWeight([eat], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
-    expect(needWeight([work], stats)).toBe(1);
+    expect(pull([eat])).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(pull([work])).toBe(1);
+  });
+  it("small refills meet a need only in part", () => {
+    stats.meters.fullness = 0;
+    expect(pull([{ name: "Nibble", min: 1, fx: { fullness: A.FULL_FIX / 2 } }])).toBeCloseTo(1 + NEED_BOOST / 2, 6);
+  });
+  it("add up every need an action meets, and name the biggest", () => {
+    stats.meters.fullness = 0;
+    stats.meters.thirst = NEED_AT / 2;
+    const meal: Action = { name: "Meal and a drink", min: 1, fx: { fullness: 40, thirst: 40 } };
+    expect(pull([meal])).toBeCloseTo(1 + NEED_BOOST * 1.25, 6);
+    expect(needOf([meal], stats, 12).why).toBe("fullness");
+  });
+  it("only count what he can do", () => {
+    stats.meters.fullness = 0;
+    stats.cents = 0;
+    expect(pull([eat])).toBe(1);
+    expect(needOf([eat], stats, 12).urgent).toBe(false);
+  });
+  it("mark a place urgent when it fixes a meter under URGENT_AT", () => {
+    stats.meters.fullness = URGENT_AT;
+    expect(needOf([eat], stats, 12).urgent).toBe(false);
+    stats.meters.fullness = URGENT_AT - 1;
+    expect(needOf([eat], stats, 12)).toMatchObject({ urgent: true, bottom: false });
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    expect(needOf([eat], stats, 12).bottom).toBe(true);
   });
   it("send him to paid work when he is broke or saving up", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 0;
-    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
-    stats.cents = 500;
-    stats.savingFor = 1000;
-    expect(needWeight([work], stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(pull([work])).toBeCloseTo(1 + NEED_BOOST, 6);
+    expect(needOf([work], stats, 12).why).toBe("money");
+    stats.cents = A.SKINT;
+    expect(pull([work])).toBe(1);
+    stats.savingFor = 2 * A.SKINT;
+    expect(pull([work])).toBeCloseTo(1 + NEED_BOOST * A.SAVING_URGE, 6);
+  });
+  it("name a strong need in the feed, and stay quiet about a mild one", () => {
+    expect(A.needLine("fullness", 1 + NEED_BOOST * A.SAY_URGE, false, "Bakery", 0)).toBe("Hungry, heading for Bakery");
+    expect(A.needLine("fullness", 2, false, "Bakery", 0)).toBe("");
+    expect(A.needLine("money", 2, true, "Docks", 0)).toBe("Short of money, heading for Docks");
+    expect(A.needLine("", 50, true, "Docks", 0)).toBe("");
+    // Saving up with money in his pocket is not being short of it.
+    expect(A.needLine("money", 1 + NEED_BOOST * A.SAVING_URGE, false, "Docks", A.SKINT)).toBe("");
+  });
+  it("a place pulls as hard as its best action, not a mix of two", () => {
+    const meal: Action = { name: "Meal", min: 1, fx: { fullness: 40 } };
+    const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
+    stats.meters.fullness = 0;
+    stats.attrs.str = 4;
+    expect(pull([meal, lift])).toBeCloseTo(1 + NEED_BOOST, 6);
+  });
+  it("pull towards places that suit his best attribute", () => {
+    const lift: Action = { name: "Lift", min: 1, fx: { str: 0.1 } };
+    expect(pull([lift])).toBe(1);
+    stats.attrs.str = 4;
+    expect(pull([lift])).toBeCloseTo(A.STRENGTH_MAX, 6);
+    stats.attrs.str = 2;
+    expect(pull([lift])).toBeCloseTo(2 / 1.25, 6);
   });
   it("peek at a place's actions without counting it as unknown", () => {
     const acts = new Activities({ _generic: [{ name: "Look", min: 1 }] });
@@ -538,44 +718,90 @@ describe("activities", () => {
   it("needs steer the choice", () => {
     const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
     const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
-    stats.meters.fullness = 10;
-    expect(weight(eat, stats)).toBeGreaterThan(weight(look, stats));
+    stats.meters.fullness = 20;
+    expect(weight(eat, stats)).toBeCloseTo((1 + NEED_BOOST / 4) * weight(look, stats), 6);
     stats.cents = 0;
-    expect(weight({ name: "Wash dishes", min: 60, earn: 20 }, stats)).toBeGreaterThan(weight(look, stats));
+    expect(weight({ name: "Wash dishes", min: 60, earn: 20 }, stats)).toBeCloseTo(1 + NEED_BOOST, 6);
+  });
+
+  it("an urgent need leaves only what fixes it", () => {
+    const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
+    const look: Action = { name: "Look", min: 10, fx: { mood: 5 } };
+    stats.meters.fullness = URGENT_AT - 1;
+    for (const r of [URGENT_SLIP, 0.5, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    // Not yet at rock bottom: URGENT_SLIP of the time he picks from everything.
+    expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+    stats.meters.fullness = A.BOTTOM_AT - 1;
+    for (const r of [0, 0.05, 0.999]) expect(choose([look, eat], stats, 12, r)!.name).toBe("Eat");
+    stats.meters.fullness = URGENT_AT;
+    expect(choose([look, eat], stats, 12, 0)!.name).toBe("Look");
+  });
+
+  it("a need at rock bottom beats another urgent one", () => {
+    const eat: Action = { name: "Eat", min: 10, fx: { fullness: 40 } };
+    const fun: Action = { name: "Fun", min: 10, fx: { mood: 30 } };
+    stats.meters.fullness = A.BOTTOM_AT - 2;
+    stats.meters.mood = URGENT_AT - 5;
+    for (let i = 0; i < 20; i++) expect(choose([fun, eat], stats, 12, i / 20)!.name).toBe("Eat");
+  });
+
+  it("he shuns actions that drain a meter he needs", () => {
+    const jog: Action = { name: "Jog", min: 10, fx: { energy: -20, str: 0.1 } };
+    const w = weight(jog, stats);
+    stats.meters.energy = NEED_AT / 2;
+    expect(weight(jog, stats)).toBeCloseTo(0.75 * w, 6);
+    stats.meters.energy = 0;
+    expect(weight(jog, stats)).toBeCloseTo(A.HARM_FLOOR * w, 6);
+  });
+
+  it("he leans towards what he is good at", () => {
+    const chat: Action = { name: "Chat", min: 10, needs: { cha: 2 } };
+    const w = weight(chat, stats);
+    stats.attrs.cha = 3;
+    expect(weight(chat, stats)).toBeCloseTo(A.STRENGTH_MAX * w, 6);
   });
 
   it("saving for a trip favours paid work and cuts spending", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
+    stats.dragonFed = dayOf(stats.now() * 1000);
     stats.cents = 100;
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const dinner: Action = { name: "Dinner", min: 10, cost: 30 };
     const jobW = weight(job, stats);
     const dinnerW = weight(dinner, stats);
+    stats.cents = A.SKINT;
+    const jobW2 = weight(job, stats);
+    stats.savingFor = 3 * A.SKINT;
+    expect(weight(job, stats)).toBeCloseTo(jobW2 * (1 + NEED_BOOST * A.SAVING_URGE), 6);
+    stats.cents = 100;
     stats.savingFor = 150;
-    expect(weight(job, stats)).toBeGreaterThan(jobW + 3);
     expect(weight(dinner, stats)).toBeLessThan(dinnerW);
     stats.cents = 150;
-    expect(weight(job, stats)).toBeCloseTo(jobW);
+    const done = weight(job, stats);
+    stats.savingFor = 0;
+    expect(done).toBeCloseTo(weight(job, stats), 6);
+    expect(jobW).toBeGreaterThan(done);
   });
 
   it("saving for a vehicle favours paid work too", () => {
-    stats.gear.vehicle = vehicle("car");
+    stats.gear.vehicle = vehicle("dragon");
     const job: Action = { name: "Wash dishes", min: 60, earn: 20 };
     const jobW = weight(job, stats);
     stats.gear.vehicle = vehicle("bike");
-    expect(weight(job, stats)).toBeCloseTo(jobW + SAVING_EARN_WEIGHT, 6);
+    expect(weight(job, stats)).toBeCloseTo(jobW * (1 + NEED_BOOST * A.SAVING_URGE), 6);
   });
 
   it("once he can afford his next vehicle, its shop pulls him and he browses", () => {
+    const pull = (acts: Action[]) => needOf(acts, stats, 12).pull;
     const browse: Action = { name: "Browse the scooters", min: 15, item: "motorcycles" };
     const bikes: Action = { name: "Browse the bikes", min: 15, item: "bicycles" };
     stats.gear.vehicle = vehicle("bike");
     stats.cents = stats.savingTarget() - 1;
-    expect(needWeight([browse], stats)).toBeCloseTo(1, 6);
+    expect(pull([browse])).toBeCloseTo(1, 6);
     const saving = weight(browse, stats);
     stats.cents = stats.savingTarget();
-    expect(needWeight([browse], stats)).toBe(GOAL_SHOP_PULL);
-    expect(needWeight([bikes], stats)).toBeCloseTo(1, 6);
+    expect(pull([browse])).toBe(GOAL_SHOP_PULL);
+    expect(pull([bikes])).toBeCloseTo(1, 6);
     expect(weight(browse, stats)).toBeGreaterThan(saving + GOAL_SHOP_WEIGHT - 1);
     expect(weight(browse, stats) - weight(bikes, stats)).toBeCloseTo(GOAL_SHOP_WEIGHT, 6);
   });

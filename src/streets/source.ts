@@ -3,10 +3,11 @@
 // streets worker, so decoding never blocks a frame.
 import { tileBbox, type Tile } from "../core/geo";
 import { CELL_ZOOM, cellKey, compactCells, type Cell } from "../core/graph";
+import { fromPbf } from "../core/ofm";
 import type { Api } from "../net/api";
 
 /** Bump when the cell format or node ids change, so old entries are not mixed in. */
-export const CACHE_VERSION = "v1";
+export const CACHE_VERSION = "v2";
 /** Cached cells older than this are used, then fetched again for next time. */
 export const MAX_AGE_S = 30 * 86400;
 /** Most cells kept on the device (about 100 KB each). */
@@ -33,7 +34,10 @@ export async function loadCell(tile: Tile, api: Api, store: Store | null, opts: 
   }
   let from: From = "tile";
   let cell: Cell | null = null;
-  if ((opts.useTiles ?? true) && !api.tilesResting()) cell = await api.streetTile(tile);
+  if ((opts.useTiles ?? true) && !api.tilesResting()) {
+    const bytes = await api.streetTileBytes(tile);
+    cell = bytes ? fromPbf(bytes, tile) : null;
+  }
   if (!cell) {
     from = "overpass";
     const data = await api.streets(tileBbox(tile, CELL_ZOOM), opts.server ?? 0);

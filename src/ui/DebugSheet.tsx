@@ -84,6 +84,11 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
           </button>
         </div>
       </Card>
+      <Card icon="🤔" title="Dilemmas">
+        <button class="btn" role="switch" aria-checked={g.alwaysDilemma} onClick={() => g.setAlwaysDilemma(!g.alwaysDilemma)}>
+          One on every long reopen <span class={`switch${g.alwaysDilemma ? " on" : ""}`} aria-hidden="true" />
+        </button>
+      </Card>
       <Card icon="📜" title="Logs">
         <Collapsible title="🧠 Trivia" right={g.cityFacts.length}>
           {g.cityFacts.length ? (
@@ -116,7 +121,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
           {picks.length ? (
             <div class="zebra">
               {picks.map((e, i) => (
-                <Entry key={i} tone={"fallback" in e ? "warning" : undefined} title={DebugLog.title(e)} lines={DebugLog.lines(e, bias)} />
+                <Entry key={i} tone={DebugLog.isWarning(e) ? "warning" : undefined} title={DebugLog.title(e)} lines={DebugLog.lines(e, bias)} />
               ))}
             </div>
           ) : (

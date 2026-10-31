@@ -1,13 +1,21 @@
 // Help: a search box over a list of topics by section, and a page per topic
-// made of cards. The text is fetched the first time Help opens, so it costs
-// nothing before.
+// made of cards. The code that fills the text in (help.ts, with every list and
+// number it pulls from the game) is its own chunk, kept off the startup path
+// (main.tsx fetches it, and the text, at idle once the service worker runs, so Help opens offline).
+// The text's address carries a hash of it, so after a deploy that changes Help
+// the service worker can't hand back the old text.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GameData } from "../game/game";
-import { blocks, build, search, type Section } from "./help";
+import type { Section } from "./help";
+
+type Help = typeof import("./help");
+
+/** Where the Help text lives; a new address whenever the text changes. */
+export const HELP_URL = `${import.meta.env.BASE_URL}data/help.txt?v=${__HELP_VERSION__}`;
 
 let text: Promise<string> | null = null;
 const fetchText = () => {
-  text ??= fetch(`${import.meta.env.BASE_URL}data/help.txt`).then((r) => {
+  text ??= fetch(HELP_URL).then((r) => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   });
@@ -17,17 +25,37 @@ const fetchText = () => {
 
 export function HelpSheet({ data, page, onPage }: { data: GameData; page: string; onPage: (id: string) => void }) {
   const [sections, setSections] = useState<Section[] | null>(null);
+  const [help, setHelp] = useState<Help | null>(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const hits = useMemo(() => (sections ? search(sections, query) : []), [sections, query]);
+  const [tries, setTries] = useState(0);
+  const hits = useMemo(() => (sections && help ? help.search(sections, query) : []), [sections, help, query]);
   useEffect(() => {
-    fetchText()
-      .then((t) => setSections(build(t, data)))
+    Promise.all([fetchText(), import("./help")])
+      .then(([t, h]) => {
+        setHelp(h);
+        setSections(h.build(t, data));
+      })
       .catch(() => setError("Couldn't load Help. Check your connection and try again."));
-  }, [data]);
+  }, [data, tries]);
 
-  if (error) return <p class="notice error">✖ {error}</p>;
-  if (!sections) {
+  if (error) {
+    return (
+      <>
+        <p class="notice error">✖ {error}</p>
+        <button
+          class="btn"
+          onClick={() => {
+            setError("");
+            setTries(tries + 1);
+          }}
+        >
+          ↻ Try again
+        </button>
+      </>
+    );
+  }
+  if (!sections || !help) {
     return (
       <p class="notice">
         <span class="spin" /> Loading Help…
@@ -39,7 +67,7 @@ export function HelpSheet({ data, page, onPage }: { data: GameData; page: string
     return (
       <>
         <h3 class="page-title">{open.title}</h3>
-        {blocks(open.body).map((b, i) => (
+        {help.blocks(open.body).map((b, i) => (
           <div class="card help-block" key={i}>
             {b.text && <p>{b.text}</p>}
             {b.items.length > 0 && (
