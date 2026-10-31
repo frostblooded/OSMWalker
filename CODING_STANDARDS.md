@@ -11,7 +11,8 @@ Every PR gets a review before it is merged:
 1. With the PR open and `npm run verify` passed on its head (pushes to a
    branch only need `npm run check`), start a fresh review agent (Agent tool,
    general-purpose) for a **ponytail review**: it uses the ponytail skill
-   (level `full`) and also checks the rules below. Give it only
+   (level `full`), or where the skill isn't loaded, reviews in its spirit
+   (lean, simple, nothing redundant, clear wording). Give it only
    `git diff origin/master...HEAD`, this file and the PR body. Ask for
    ponytail findings and violations of the rules below, each with file,
    line and the rule or reason, and nothing else.
