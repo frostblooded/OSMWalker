@@ -16,7 +16,7 @@ import { SEASON_ICON, skyIcon } from "../game/hud";
 import { hearts, SHOWN, type Friend } from "../core/friends";
 import { DAYS, kindOf as clubKind } from "../core/clubs";
 import { INGREDIENT, PANTRY_MAX } from "../core/cooking";
-import { LANG_LEVELS } from "../core/languages";
+import { LANG_LEVELS, LANGS_SHOWN } from "../core/languages";
 import { SKILL, SKILL_MAX, SKILLS, SKILLS_SHOWN, type Skill } from "../core/skills";
 import { dist, speed } from "./format";
 import { Bar, Card, Collapsible, KV, RARITY_COLOR } from "./kit";
@@ -157,17 +157,19 @@ function SkillsCard({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** The languages he speaks, his best first; 📍 marks the one spoken where he is. */
+/** The languages he speaks, his best first; 📍 marks the one spoken where he is. Past LANGS_SHOWN the rest fold away. */
 function LanguagesCard({ stats: s }: { stats: Stats }) {
   const here = s.lang();
   const list = s.languages.list();
+  const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang === here ? "📍 " : ""}${lang}`} v={LANG_LEVELS[level]} />;
   return (
     <Card icon="🗣" title="Languages" right={list.length}>
-      <div class="zebra">
-        {list.map(({ lang, level }) => (
-          <KV key={lang} k={`${lang === here ? "📍 " : ""}${lang}`} v={LANG_LEVELS[level]} />
-        ))}
-      </div>
+      <div class="zebra">{list.slice(0, LANGS_SHOWN).map(row)}</div>
+      {list.length > LANGS_SHOWN && (
+        <Collapsible title="More" right={list.length - LANGS_SHOWN}>
+          <div class="zebra">{list.slice(LANGS_SHOWN).map(row)}</div>
+        </Collapsible>
+      )}
     </Card>
   );
 }

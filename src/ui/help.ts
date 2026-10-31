@@ -182,6 +182,20 @@ const skillLines = (actions: Activities.ActionTable) => {
     return `- ${icon} ${name}: ${free.join(", ")}${gated.length ? `; at level ${gated.map((a) => `${a.needs![k]} ${a.name.toLowerCase()}`).join(", at ")}` : ""}.`;
   }).join("\n");
 };
+/** The level of `skill` the action named `name` needs; throws when it is gone, so Help can't quietly say 0. */
+const needOf = (actions: Activities.ActionTable, name: string, skill: Skills.Skill) => {
+  const n = Object.values(actions).flat().find((a) => a.name === name)?.needs?.[skill];
+  if (n === undefined) throw new Error(`Help: no "${name}" needing ${skill} in actions.json`);
+  return n;
+};
+/** What Help calls the shops that sell ingredients, by actions.json key. */
+const GROCERS: Record<string, string> = { grocery: "supermarkets", "shop/convenience": "corner shops", bakery: "bakeries", butcher: "butchers" };
+/** "- bakeries: bread," per kind of shop that sells ingredients. */
+const groceryLines = (actions: Activities.ActionTable) =>
+  Object.entries(actions)
+    .flatMap(([k, l]) => l.filter((a) => a.groceries).map((a) => `- ${GROCERS[k] ?? k.split("/").at(-1)!.replaceAll("_", " ")}: ${Cook.listOf(a.groceries!)}`))
+    .join(",\n")
+    .concat(".");
 const recipeLines = () =>
   Cook.RECIPES.map((r) => `- ${r.icon} ${r.name[0]!.toUpperCase()}${r.name.slice(1)} (cooking ${r.level}): ${Cook.listOf(r.uses)}, ${Object.entries(r.fx).map(([k, v]) => `+${num(v)} ${k === "str" ? "strength" : k === "magic" ? "Magic" : k}`).join(", ")}.`).join("\n");
 /** "- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter." */
@@ -679,7 +693,9 @@ export function values(data: GameData): Record<string, string> {
     SKILL_L10: num(Skills.stepsTo(Skills.SKILL_MAX)),
     PRACTICE_MIN: num(Skills.PRACTICE_MIN),
     PRACTICE_MIN_2X: num(Skills.PRACTICE_MIN * 2),
-    CONCERT_AT: num(Object.values(data.actions).flat().find((a) => a.name === "Play a street concert")?.needs?.music ?? 0),
+    CONCERT_AT: num(needOf(data.actions, "Play a street concert", "music")),
+    LANGS_SHOWN: num(Lang.LANGS_SHOWN),
+    GROCERY_LIST: groceryLines(data.actions),
     SKILLS_SHOWN: num(Skills.SKILLS_SHOWN),
     SKILL_FX_PCT: pct(Skills.SKILL_FX),
     SKILL_FX_MAX_PCT: pct(Skills.SKILL_FX * Skills.SKILL_MAX),

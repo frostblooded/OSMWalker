@@ -16,6 +16,8 @@ export const LANG_HOURS = [0, 1, 6, 20, 50] as const;
 export const CHAT_H = 0.5;
 /** Charm per level while he is in a country that speaks the language. */
 export const LANG_CHARM = 0.75;
+/** Languages the Stats sheet shows open, his best first; the rest fold away. */
+export const LANGS_SHOWN = 4;
 /** The language his feed is in: fluent from the start. */
 export const ENGLISH = "English";
 

@@ -377,7 +377,7 @@ Luck does four things:
 It also unlocks actions that need it, such as finding a coin by the ATM (luck 2). Gear and the Lucky buff count.
 # 🎓 Skills and languages
 ## Skills {skills}
-Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as (a {PRACTICE_MIN_2X}-minute busk is two steps), at least one.
+Apart from his four attributes he has six skills, each from 0 to {SKILL_MAX}: cooking, photography, music, chess, sport and art. They grow by themselves: every action that belongs to a skill trains it a step for every {PRACTICE_MIN} minutes it is listed as, or part of that (a {PRACTICE_MIN_2X}-minute busk is two steps, and so is a 45-minute swim), at least one.
 
 Each level takes more steps than the last: level n to n + 1 takes {SKILL_STEP} x (n + 1) steps, so level 4 takes {SKILL_L4} steps in all and level {SKILL_MAX} takes {SKILL_L10}. The feed says "🎵 Music reached level 3".
 
@@ -392,7 +392,10 @@ What trains each skill, and what each level opens:
 
 The Stats sheet shows his {SKILLS_SHOWN} best skills with their level and how far he is to the next; the rest fold into More.
 ## Cooking {cooking}
-Bakeries (bread), butchers (meat), supermarkets and corner shops (the rest) sell him ingredients, and each buy puts one in his pantry, a corner of his bag that holds {PANTRY_MAX}. He only buys what a recipe he knows still lacks, and nothing while he can already cook something. Buying weighs {GROCERIES_WEIGHT} more than other actions there, so he does it often.
+Some shops sell him ingredients, and each buy puts one in his pantry, a corner of his bag that holds {PANTRY_MAX}:
+{GROCERY_LIST}
+
+He only buys what a recipe he knows still lacks, and nothing while he can already cook something. Buying weighs {GROCERIES_WEIGHT} more than other actions there, so he does it often.
 
 At a hotel or hostel, a park, a garden, a campsite or a picnic site he cooks: he makes the most filling recipe his cooking level knows and his pantry holds. A meal made from ingredients fills more than its parts eaten alone, and cooking makes it bigger still (see Skills). All by himself:
 {RECIPE_LIST}
@@ -406,7 +409,7 @@ The language of the country he set out from is his own, and he speaks English, t
 
 Each level adds {LANG_CHARM} Charm while he is in a country that speaks the language, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). At {FLUENT} in a language he learned abroad (not his own, nor English), he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
 
-The Stats sheet lists the languages he speaks, his best first.
+The Stats sheet lists the languages he speaks, his best first; past {LANGS_SHOWN} the rest fold into More.
 # ⭐ Progress
 ## XP and levels {xp}
 He gains XP (experience) from almost every action, and {FIRST_VISIT_XP} XP the first time he reaches each named place. The first-visit bonus isn't changed by buffs, only by the daily forecast (see Daily forecast); XP from actions is multiplied by buffs such as Inspired.
@@ -771,7 +774,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
 - Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
-- Languages: the languages he speaks with their level, his best first, the one spoken where he is marked 📍 (see Languages).
+- Languages: the languages he speaks with their level, his best first, the one spoken where he is marked 📍; past {LANGS_SHOWN} the rest fold into More (see Languages).
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}, and the ingredients in his pantry, out of {PANTRY_MAX} (see Cooking). Tap the Items heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).
