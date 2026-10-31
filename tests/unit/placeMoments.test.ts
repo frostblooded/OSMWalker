@@ -99,6 +99,13 @@ describe("the bundled moments", () => {
     }
   });
 
+  it("never cost karma on a pick he makes himself: default, lean, or a mini-game's best", () => {
+    for (const [k, m] of Object.entries(moments)) {
+      const his = [m.default, m.lean ? m.options[0]!.id : m.default, m.game ? m.options.at(-1)!.id : m.default];
+      for (const id of his) expect(m.outcomes[id]!.fx?.karma ?? 0, `${k}.${id}`).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it("prefer mini-games: at least half the places have one", () => {
     const all = Object.values(moments);
     expect(all.filter((m) => m.game).length * 2).toBeGreaterThanOrEqual(all.length);

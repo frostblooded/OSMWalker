@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "preact/hooks";
 import { BULL, deal, NEAR, oddGrid, oddScore, sweepAt, SWEEP_S, TAPS, tapScore, timingScore } from "../core/minigames";
 import { scorePick, type GameId, type Moment } from "../core/moments";
 import { Rng } from "../core/rng";
+import { Card } from "./kit";
 
 const HOW: Record<GameId, string> = { timing: "Tap Stop when the marker is in the green.", cards: "Pick one card.", taps: `Tap ${TAPS} times before time runs out.`, odd: "Tap the one that is different." };
 
@@ -13,15 +14,17 @@ type Props = { m: Moment; left: number; onPick: (id: string) => void; onPlay: (i
 
 export function MomentSheet({ m, left, onPick, onPlay }: Props) {
   return (
-    <div class="moment">
-      <p>{m.ask}</p>
+    <Card icon={m.game ? "🎮" : "🤔"} title={m.game ? "Mini-game" : "Choice"}>
+      <div class="moment">
+        <p>{m.ask}</p>
       {/* The bar shrinks on the compositor; the game settles the moment when it runs out. */}
-      <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
-        <div style={{ animationDuration: `${left}s` }} />
+        <div class="bar moment-time" role="timer" aria-label={`${Math.ceil(left)} seconds to choose`}>
+          <div style={{ animationDuration: `${left}s` }} />
+        </div>
+        {m.game ? <Game m={m} onPick={onPick} onPlay={onPlay} /> : <Choices m={m} onPick={onPick} />}
+        <p class="dim small">Or wait, and he {m.game ? "plays it himself" : "decides by himself"}.</p>
       </div>
-      {m.game ? <Game m={m} onPick={onPick} onPlay={onPlay} /> : <Choices m={m} onPick={onPick} />}
-      <p class="dim small">Or wait, and he {m.game ? "plays it himself" : "decides by himself"}.</p>
-    </div>
+    </Card>
   );
 }
 
@@ -59,7 +62,7 @@ function Timing({ onScore }: { onScore: (s: number) => void }) {
         <span class="bull" style={{ width: `${BULL * 200}%` }} />
         {/* Out and back like sweepAt: each way takes half a sweep. */}
         <span class="track" style={{ animationDuration: `${SWEEP_S / 2}s` }}>
-          <span class="marker" />
+          <span class="needle" />
         </span>
       </div>
       <button class="btn primary" onClick={() => onScore(timingScore(sweepAt((performance.now() - start.current) / 1000)))}>

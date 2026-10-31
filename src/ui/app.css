@@ -259,7 +259,7 @@ a.btn { color: inherit; text-decoration: none; }
 .sweep .near { background: var(--warning); opacity: 0.35; }
 .sweep .bull { background: var(--ok); }
 .sweep .track { position: absolute; inset: 0; animation: sweep linear infinite alternate; }
-.sweep .marker { position: absolute; top: 0; bottom: 0; left: -2px; width: 4px; background: var(--ink); }
+.sweep .needle { position: absolute; top: 0; bottom: 0; left: -2px; width: 4px; background: var(--ink); }
 @keyframes sweep { to { transform: translateX(100%); } }
 .tapper { width: 100%; min-height: var(--tap-big); }
 .card-back { font-size: 32px; min-height: 72px; }
