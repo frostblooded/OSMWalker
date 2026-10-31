@@ -16,7 +16,7 @@ export const INGREDIENT: Record<Ingredient, [icon: string, name: string]> = {
   cheese: ["🧀", "cheese"],
   tomato: ["🍅", "tomatoes"],
   eggs: ["🥚", "eggs"],
-  pasta: ["🍝", "pasta"],
+  pasta: ["🌾", "pasta"],
   meat: ["🥩", "meat"],
   veg: ["🥕", "vegetables"],
   fruit: ["🍎", "fruit"],
@@ -32,7 +32,7 @@ export const RECIPES: Recipe[] = [
   { id: "omelette", name: "omelette", icon: "🍳", uses: ["eggs", "cheese"], level: 1, fx: { fullness: 35, health: 5 } },
   { id: "pasta", name: "pasta al pomodoro", icon: "🍝", uses: ["pasta", "tomato"], level: 2, fx: { fullness: 45, mood: 10 } },
   { id: "soup", name: "vegetable soup", icon: "🥣", uses: ["veg", "bread"], level: 3, fx: { fullness: 40, thirst: 15, health: 10 } },
-  { id: "fryup", name: "sausage and eggs", icon: "🍳", uses: ["meat", "eggs"], level: 4, fx: { fullness: 50, str: 0.1 } },
+  { id: "fryup", name: "sausage and eggs", icon: "🌭", uses: ["meat", "eggs"], level: 4, fx: { fullness: 50, str: 0.1 } },
   { id: "stew", name: "hearty stew", icon: "🍲", uses: ["meat", "veg", "tomato"], level: 6, fx: { fullness: 70, health: 10, mood: 15 } },
   { id: "witch", name: "hedge-witch stew", icon: "🧙", uses: ["meat", "veg", "eggs"], level: 9, fx: { fullness: 70, mood: 20, magic: 10 } },
 ];

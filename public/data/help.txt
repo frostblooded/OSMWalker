@@ -232,7 +232,7 @@ An action can only be picked when he meets all of its requirements:
 - Selling needs something in his bag.
 - Attributes: some need a minimum strength, charm, wits or luck, counting his gear. For example arm-wrestling needs strength 4 and volunteering as a museum guide needs wits 6.
 - Skills: some need a level of a skill, such as a street concert at music {CONCERT_AT} (see Skills).
-- Language: guiding and translating need {FLUENT} in the local language, learned abroad: not his own, nor English (see Languages).
+- Language: guiding and translating need {GUIDE_LEVEL} in the local language, learned abroad: not his own, nor English (see Languages).
 - Cooking needs ingredients for a recipe he knows, and buying them room in his pantry (see Cooking).
 - Level: some need a minimum level.
 - Time of day, by the real sun over his city: morning {TIME_MORNING}, day {TIME_DAY}, evening {TIME_EVENING}, night {TIME_NIGHT}, and just after midnight {TIME_MIDNIGHT}, where {SUNRISE_AT} is sunrise and {SUNSET_AT} is sunset (see Day and night). Bars serve rakia only in the evening, for example.
@@ -407,7 +407,7 @@ He has a meter for every language. Each hour in a country fills its language's m
 
 The language of the country he set out from is his own, and he speaks English, the language of his feed: both are {FLUENT} from the start. A country's language is its main one, so German in Germany and Austria alike. In a save from before languages, his own is the language of the country he was in when it loaded.
 
-A language he learned on the road (not his own, nor English) pays off in two ways. Each level adds {LANG_CHARM} Charm while he is in a country that speaks it, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). And at {FLUENT} he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
+A language he learned on the road (not his own, nor English) pays off in two ways. Each level adds {LANG_CHARM} Charm while he is in a country that speaks it, so +{LANG_CHARM_MAX} at {FLUENT} (see Charm). And at {GUIDE_LEVEL} he can guide walking tours at tourist information points and sights, and translate for travellers at hotels: both pay well.
 
 The Stats sheet lists the languages he speaks, his best first; past {LANGS_SHOWN} the rest fold into More.
 # ⭐ Progress
@@ -774,7 +774,7 @@ City sound (a switch, off at first and remembered) plays a soft loop for where h
 - Spells: how many of the spells he knows, each with its Magic cost and how often he cast it (see Spells), or none yet.
 - Attributes: a tile for each, with the part his gear, buffs, a finished city card set and the local language add in green.
 - Skills: his {SKILLS_SHOWN} best skills with their level and a bar towards the next, the rest folded into More (see Skills).
-- Languages: the languages he speaks with their level, his best first, the one spoken where he is marked 📍; past {LANGS_SHOWN} the rest fold into More (see Languages).
+- Languages: the languages he speaks with their level, his best first, the one spoken where he is marked "here"; past {LANGS_SHOWN} the rest fold into More (see Languages).
 - Gear: every slot, with what he wears in it coloured by rarity (grey Common, green Uncommon, blue Rare, orange Legendary), or Empty. Tap an item he bought to see its story (see Item stories); 💎 marks a treasured one, and its story says if he won't sell it.
 - Bag: what he carries, out of {BAG_SIZE}, and the ingredients in his pantry, out of {PANTRY_MAX} (see Cooking). Tap the Items heading to hide or show the list, and an item to see its story.
 - Viktor: his rival's level, their contests won and lost, their chats, where they last met, and whether he is a Rival, a Nemesis or a Friendly rival (see Viktor, his rival).

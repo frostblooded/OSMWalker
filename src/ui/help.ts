@@ -183,13 +183,19 @@ const skillLines = (actions: Activities.ActionTable) => {
   }).join("\n");
 };
 /** The level of `skill` the action named `name` needs; throws when it is gone, so Help can't quietly say 0. */
-const needOf = (actions: Activities.ActionTable, name: string, skill: Skills.Skill) => {
+const needOf = (actions: Activities.ActionTable, name: string, skill: Skills.Skill | "lang") => {
   const n = Object.values(actions).flat().find((a) => a.name === name)?.needs?.[skill];
   if (n === undefined) throw new Error(`Help: no "${name}" needing ${skill} in actions.json`);
   return n;
 };
 /** What Help calls the shops that sell ingredients, by actions.json key. */
 const GROCERS: Record<string, string> = { grocery: "supermarkets", "shop/convenience": "corner shops", bakery: "bakeries", butcher: "butchers" };
+/** The language level guiding and translating need; throws if the two differ, as Help names one. */
+const guideLevel = (actions: Activities.ActionTable) => {
+  const [g, t] = [needOf(actions, "Guide a walking tour", "lang"), needOf(actions, "Translate for travellers", "lang")];
+  if (g !== t) throw new Error("Help: guiding and translating need different language levels");
+  return Lang.LANG_LEVELS[g]!;
+};
 /** "- bakeries: bread," per kind of shop that sells ingredients. */
 const groceryLines = (actions: Activities.ActionTable) =>
   Object.entries(actions)
@@ -695,6 +701,7 @@ export function values(data: GameData): Record<string, string> {
     PRACTICE_MIN_2X: num(Skills.PRACTICE_MIN * 2),
     CONCERT_AT: num(needOf(data.actions, "Play a street concert", "music")),
     LANGS_SHOWN: num(Lang.LANGS_SHOWN),
+    GUIDE_LEVEL: guideLevel(data.actions),
     GROCERY_LIST: groceryLines(data.actions),
     SKILLS_SHOWN: num(Skills.SKILLS_SHOWN),
     SKILL_FX_PCT: pct(Skills.SKILL_FX),

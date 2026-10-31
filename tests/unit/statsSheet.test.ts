@@ -99,7 +99,7 @@ describe("Stats sheet", () => {
     stats.pantry.items = ["bread", "cheese"];
     const text = shown(stats);
     expect(text).toContain("🎵 Music3");
-    expect(text).toContain("📍 France's languagebasic");
+    expect(text).toContain("France's language · herebasic");
     expect(text).toContain("Englishfluent");
     expect(text).toContain(`🧺 Pantry🍞🧀 · 2 / ${PANTRY_MAX}`);
   });

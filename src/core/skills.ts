@@ -27,7 +27,7 @@ export const SKILLS_SHOWN = 4;
 
 /** Icon and name for each skill. */
 export const SKILL: Record<Skill, [icon: string, name: string]> = {
-  cooking: ["🍳", "Cooking"],
+  cooking: ["🧑‍🍳", "Cooking"],
   photo: ["📷", "Photography"],
   music: ["🎵", "Music"],
   chess: ["♟", "Chess"],

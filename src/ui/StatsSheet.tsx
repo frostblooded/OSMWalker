@@ -157,11 +157,11 @@ function SkillsCard({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** The languages he speaks, his best first; 📍 marks the one spoken where he is. Past LANGS_SHOWN the rest fold away. */
+/** The languages he speaks, his best first; "here" marks the one spoken where he is. Past LANGS_SHOWN the rest fold away. */
 function LanguagesCard({ stats: s }: { stats: Stats }) {
   const here = s.lang();
   const list = s.languages.list();
-  const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang === here ? "📍 " : ""}${lang}`} v={LANG_LEVELS[level]} />;
+  const row = ({ lang, level }: { lang: string; level: number }) => <KV key={lang} k={`${lang}${lang === here ? " · here" : ""}`} v={LANG_LEVELS[level]} />;
   return (
     <Card icon="🗣" title="Languages" right={list.length}>
       <div class="zebra">{list.slice(0, LANGS_SHOWN).map(row)}</div>
