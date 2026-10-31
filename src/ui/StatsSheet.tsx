@@ -2,8 +2,8 @@
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
 // four attributes with what his gear adds, every gear slot, the bag and his
-// buffs, his rival, friends and pet, and his mind: wants, fears and what
-// moves his mood. Items with a story open to show it. His records close it.
+// buffs, his rival, friends and pet, his mind (wants, fears and what
+// moves his mood), his quirks and his spot. Items with a story open to show it. His records close it.
 import { isTreasured, SLOTS, type Item, type Slot } from "../core/items";
 import { euro } from "../core/money";
 import { CARD_RECENT, type Quests } from "../core/quests";
@@ -11,6 +11,8 @@ import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
 import { noun, wantIcon, wantText } from "../core/mind";
+import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
+import { SPOT_DISCOUNT } from "../core/spot";
 import { RIVAL_ICON, RIVAL_NAME } from "../core/rival";
 import { COLD_ENERGY_PER_H, HOT_THIRST, isCold, isHot, isSunny, isWet, SNOW_SPEED, SUNNY_MOOD_PER_H, speedShare, WET_MOOD_PER_H, type Sky } from "../core/sky";
 import type { Vehicle } from "../core/speeds";
@@ -281,6 +283,8 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
         )}
       </Card>
       <MindCard s={s} />
+      <QuirksCard s={s} />
+      <SpotCard s={s} />
       <RivalCard s={s} />
       <FriendsCard s={s} />
       <PetCard s={s} />
@@ -441,6 +445,36 @@ function MindCard({ s }: { s: Stats }) {
           ))}
         </div>
       </Collapsible>
+    </Card>
+  );
+}
+
+/** The quirks his habits gave him. */
+function QuirksCard({ s }: { s: Stats }) {
+  const have = s.quirks.have.map(quirk).filter((q) => !!q);
+  return (
+    <Card icon="🌟" title="Quirks" right={`${have.length} / ${MAX_QUIRKS}`}>
+      {have.length ? (
+        <div class="zebra">
+          {have.map((q) => (
+            <KV key={q.id} k={`${q.icon} ${q.name}`} v={<span class="dim">×{QUIRK_PULL} pull</span>} />
+          ))}
+        </div>
+      ) : (
+        <p class="dim small">None yet. What he does often turns into a quirk.</p>
+      )}
+    </Card>
+  );
+}
+
+/** His spot in this city, once he has one. */
+function SpotCard({ s }: { s: Stats }) {
+  const spot = s.spots.spot(s.where.city);
+  if (!spot) return null;
+  return (
+    <Card icon="🏠" title="His spot" right={spot.name}>
+      <KV k="Visits" v={spot.n} />
+      <KV k="Regular's discount" v={<span class="tone-ok">−{Math.round(SPOT_DISCOUNT * 100)}%</span>} />
     </Card>
   );
 }

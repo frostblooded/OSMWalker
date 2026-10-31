@@ -195,9 +195,9 @@ export function needOf(actions: Action[], stats: Stats, hour: number): Need {
   return { pull: goalShop ? GOAL_SHOP_PULL : pull, urgent, bottom, why };
 }
 
-/** `need` with its pull times how his wants and fears pull him to a place of `p`'s kind (see mind.ts). */
+/** `need` with its pull times how his wants, fears and quirks pull him to a place of `p`'s kind (see mind.ts). */
 export function minded(need: Need, p: Pick<Place, "class">, stats: Stats): Need {
-  const m = stats.mind.pull(p.class);
+  const m = stats.mind.pull(p.class) * stats.quirks.pull(p.class);
   return m === 1 ? need : { ...need, pull: need.pull * m };
 }
 
@@ -226,6 +226,11 @@ export function choose(actions: Action[], stats: Stats, hour: number, roll: numb
 export const EXPLORE_PULL = 3;
 export function exploreWeight(p: Place, stats: Stats): number {
   return stats.bond.nudge === "explore" && !stats.visited.has(visitKey(p)) ? EXPLORE_PULL : 1;
+}
+
+/** A place's own pull at local `hour`: an Explore whisper's (exploreWeight) times his spot's in the morning (see spot.ts). */
+export function placePull(p: Place, stats: Stats, hour: number): number {
+  return exploreWeight(p, stats) * stats.spots.pull(stats.where.city, p, hour);
 }
 
 export function restMinutes(_action: Action): number {

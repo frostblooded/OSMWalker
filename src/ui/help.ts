@@ -15,6 +15,8 @@ import * as Creatures from "../core/creatures";
 import * as Magic from "../core/magic";
 import * as Midnight from "../core/midnight";
 import * as Mind from "../core/mind";
+import * as Quirks from "../core/quirks";
+import * as Spot from "../core/spot";
 import * as Portals from "../core/portals";
 import * as Giants from "../core/giants";
 import * as Fairy from "../core/fairy";
@@ -387,6 +389,16 @@ export function values(data: GameData): Record<string, string> {
     SHAKEN: `${Mind.SHAKEN[0]} an hour for ${Mind.SHAKEN[1]} hours`,
     FACED_MOOD: `+${Mind.WANT_MOOD.face[0]} an hour for ${Mind.WANT_MOOD.face[1]} hours`,
     LONG_WANTS: Mind.LONG_KINDS.map(Mind.noun).join(", "),
+    MAX_QUIRKS: String(Quirks.MAX_QUIRKS),
+    QUIRK_PULL: num(Quirks.QUIRK_PULL),
+    QUIRK_MOOD: `+${Quirks.QUIRK_MOOD[0]} an hour for ${Quirks.QUIRK_MOOD[1]} hour`,
+    QUIRK_LIST: Quirks.QUIRKS.map((q) => `- ${q.icon} ${q.name}: ${q.count} ${q.at[0] === Quirks.FAINT ? "faints" : `times at ${q.at.map((k) => `${Mind.noun(k)}s`).join(" or ")}`}`).join("\n"),
+    SPOT_MIN: String(Spot.SPOT_MIN),
+    SPOT_PULL: num(Spot.SPOT_PULL),
+    SPOT_FROM: `${Spot.SPOT_FROM}:00`,
+    SPOT_TO: `${Spot.SPOT_TO}:00`,
+    SPOT_DISCOUNT: pct(Spot.SPOT_DISCOUNT),
+    SPOT_KEEP: String(Spot.SPOT_KEEP),
     MOOD_XP_MIN: num(S.MOOD_XP_MIN),
     MOOD_XP_MAX: num(S.MOOD_XP_MAX),
     MOOD_80_XP: String(Math.round(20 * S.moodXpMult(80))),
