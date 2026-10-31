@@ -56,6 +56,6 @@ export const emoPull = (e: Emotion, kind: string) => (INFO[e].kinds.includes(kin
 
 /** The emotion whose moodlet doing something at a place of map class `kind` brings, if any. */
 export function emoFrom(kind: string): Emotion | null {
-  for (const e of ["focused", "inspired", "playful", "energised"] as const) if (INFO[e].kinds.includes(kind)) return e;
+  for (const e of EMOTIONS) if (INFO[e].moodlet && INFO[e].kinds.includes(kind)) return e;
   return null;
 }

@@ -462,7 +462,7 @@ export class Stats {
   emotion(): Emo.Emotion {
     const { energy, mood } = this.meters;
     const c = this.emoCache;
-    const key = `${this.mind.moodlets.length}${energy >= Emo.FULL_ENERGY}${mood <= Emo.SAD_MOOD}${mood < Emo.BORED_MOOD}`;
+    const key = `${energy >= Emo.FULL_ENERGY}${mood <= Emo.SAD_MOOD}${mood < Emo.BORED_MOOD}`;
     if (c && c.of === this.mind.moodlets && c.key === key) return c.e;
     const e = Emo.emotionOf(this.mind.moodlets, energy, mood);
     this.emoCache = { of: this.mind.moodlets, key, e };
