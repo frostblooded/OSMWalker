@@ -96,6 +96,16 @@ describe("Life", () => {
     expect(heir.perkCents()).toBe(2 * L.PERK_CENTS);
   });
 
+  it("says why he is leaving: your ask before his age", () => {
+    const l = new Life();
+    expect(l.leaving).toBeNull();
+    l.retireDue = true;
+    expect(l.leaving).toBe("age");
+    l.asked = true;
+    expect(l.leaving).toBe("you");
+    expect(Object.keys(l.toJSON())).not.toContain("leaving");
+  });
+
   it("writes Roman walker names", () => {
     expect([1, 2, 4, 9, 14, 40].map(L.walkerName)).toEqual(["Walker I", "Walker II", "Walker IV", "Walker IX", "Walker XIV", "Walker XL"]);
   });
@@ -204,6 +214,18 @@ describe("retiring", () => {
     t.now += L.LIFE_S;
     return { s, t };
   }
+
+  it("an heir starts with clean karma, no fame and nobody after him, and a stolen heirloom is his by right", () => {
+    const { s } = elder();
+    s.gear.weapon!.stolen = true;
+    s.karma(-60);
+    expect(s.law.heat).toBeGreaterThan(0);
+    const { heir } = s.retire("age");
+    expect(heir.bond.lean).toBe(0);
+    expect(heir.law.heat).toBe(0);
+    expect(heir.fame.total()).toBe(0);
+    expect(heir.gear.weapon!.stolen).toBeUndefined();
+  });
 
   it("leaves an heir in his favourite city with the heirloom, the family perk and the binder", () => {
     const { s, t } = elder();

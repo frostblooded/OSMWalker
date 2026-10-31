@@ -23,6 +23,7 @@ import { isOpen } from "../core/opening";
 import { NAME_MAX, type Postcard } from "../core/postcard";
 import { ICON_CAP, monumentIcons, placeIcons, spotIcons, type MapIcon } from "../core/mapIcons";
 import { Problems } from "../core/problems";
+import * as R from "../core/repute";
 import { Rng } from "../core/rng";
 import { isNote, whisperLine, type Letters, type Whisper } from "../core/bond";
 import type { DiaryData } from "../core/diary";
@@ -124,6 +125,8 @@ export class Game {
   private iso2: ((code: string) => string) | null = null;
   /** The action he does at the place he stays at, for his pose; not saved. */
   doing: Action | null = null;
+  /** A police chase under way: the timed moment, where it began, when it ends (ms) and the streets he ran since, once a second. Not saved. */
+  chase: { place: string; ends: number; trail: LatLon[] } | null = null;
   showCityArea = false;
   /** Draws his planned way to the goal; off until the player turns it on. */
   showRoute = false;
@@ -296,6 +299,8 @@ export class Game {
     w.startAt(start);
     w.bounds = cityBounds(lat, lon, bbox);
     this.stats = stats;
+    // A chase belongs to the walker it was after, not to an heir or a new game.
+    this.chase = null;
     this.debugLog = new DebugLog();
     this.attach(w);
     this.city = name;
@@ -350,13 +355,14 @@ export class Game {
     // A trip called off before boarding (a faint, a new goal) takes its guess with it.
     if (this.stats.care.guess && !w.isDeparting() && !w.isTraveling()) this.stats.care.guess = null;
     if (this.stats.fainted()) this.faint();
-    if (this.stats.life.asked) void this.retire("you");
-    else if (this.stats.life.retireDue) void this.retire("age");
+    const leaving = this.stats.life.leaving;
+    if (leaving) void this.retire(leaving);
     this.checkTimer += dt;
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
       this.checkCity();
       this.checkLey();
+      this.checkChase();
       this.rollBoard();
     }
     this.saveTimer += dt;
@@ -406,6 +412,16 @@ export class Game {
       this.stats.care.guess = null;
       this.stats.history.breakTrail();
       this.walker!.rideNow(door, "portal");
+      return;
+    }
+    // The police roll their own dice; a chase takes the place of an action, and he runs on.
+    if (!this.chase && this.stats.reputeAt(place)) {
+      const at = this.walker!.position();
+      this.chase = { place: place.name, ends: this.now() + R.CHASE_S * 1000, trail: [at] };
+      this.doing = null;
+      // He runs on at once instead of stopping.
+      this.walker!.restFor(0);
+      this.changed();
       return;
     }
     // Incidents roll on the card dice, so they leave his walk the same.
@@ -662,9 +678,46 @@ export class Game {
   reset(): void {
     this.walker = null;
     this.stats = new Stats();
+    this.chase = null;
     this.debugLog = new DebugLog();
     this.city = "";
     this.file.clear();
+    this.changed();
+  }
+
+  /** Where the police car is during a chase: on the streets he ran, catching up with him as the chase runs out; null otherwise. */
+  policeAt(): LatLon | null {
+    const c = this.chase;
+    if (!c) return null;
+    const p = Math.min(Math.max(1 - (c.ends - this.now()) / (R.CHASE_S * 1000), 0), 1);
+    const f = (c.trail.length - 1) * p;
+    const i = Math.floor(f);
+    const a = c.trail[i]!;
+    const b = c.trail[Math.min(i + 1, c.trail.length - 1)]!;
+    return [a[0] + (b[0] - a[0]) * (f - i), a[1] + (b[1] - a[1]) * (f - i)];
+  }
+
+  /** Once a second in a chase: notes where he ran, and when it runs out, ends it; caught short of money, he sits in jail (a stop, like any other, while you watch). */
+  private checkChase(): void {
+    const c = this.chase;
+    const w = this.walker;
+    if (!c || !w) return;
+    // Nobody to chase once the heat is gone (paid off, or faded), or once he heads for a ride out or boards it (jail mid-trip would leave the trip half set up).
+    if (this.stats.law.stars() === 0 || w.isTraveling() || w.isDeparting()) {
+      this.chase = null;
+      this.stats.say(w.isTraveling() ? "🚓 He got on board just in time and left the police behind" : w.isDeparting() ? "🚓 He hurried off to catch his ride, and the police lost him" : "🚓 The police gave up the chase");
+      this.changed();
+      return;
+    }
+    c.trail.push(w.position());
+    if (this.now() < c.ends) return;
+    this.chase = null;
+    // Until the timed choices can ask you, he takes his own pick.
+    const jail = this.stats.runChase(c.place);
+    if (jail) {
+      this.doing = { name: "In jail", min: jail };
+      w.restFor(jail);
+    }
     this.changed();
   }
 
@@ -745,6 +798,8 @@ export class Game {
     const awayS = (this.now() - from) / 1000;
     if (!from || awayS < MIN_AWAY_S) return this.woken();
     this.leaveDilemma();
+    // A chase under way when the page was left is dropped; the catch-up rolls its own.
+    this.chase = null;
     this.waking = true;
     // Loads alongside the street wait. A reopen never waits on it for long: without it (offline before it
     // was cached, or a slow fetch) there is just no dilemma this time, and a later reopen tries again.
@@ -768,12 +823,11 @@ export class Game {
       // Aged to now first, since time past the catch-up's limit counts towards his life too.
       this.stats.passTime(0, 0);
       const old = this.stats;
-      if (old.life.retireDue || old.life.asked) await this.retire(old.life.asked ? "you" : "age", true);
-      const retired = this.stats !== old;
-      const due = !retired && (old.life.retireDue || old.life.asked);
-      if (this.away && (retired || due)) this.away.retire = retired ? "done" : "soon";
+      const leaving = old.life.leaving;
+      if (leaving) await this.retire(leaving, true);
+      if (leaving && this.away) this.away.retire = this.stats !== old ? "done" : "soon";
       // A reopen on which he retires, or will once streets load, brings no dilemma.
-      this.dilemma = retired || due
+      this.dilemma = leaving
         ? null
         : D?.rollDilemma(awayS, this.rng, (kind) => {
           // No free ride while he is on a paid one.
@@ -928,6 +982,7 @@ export class Game {
   judge(sign: 1 | -1): void {
     const last = this.lastDeed();
     if (!last || !this.stats.bond.judge(sign, last.t)) return;
+    this.stats.law.karma(this.stats.bond.lean);
     this.save();
     this.changed();
   }
@@ -1186,7 +1241,7 @@ export class Game {
     if (!this.city || (q.city === this.city && q.rolled) || !q.bank.quests.length) return;
     const rev = q.rev;
     const near = this.trips.cityNear(this.origin[0], this.origin[1]);
-    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near, this.origin));
+    q.roll(this.city, near?.pop ?? 0, this.storyPlaces(), this.cardRng, Q.listedKey(this.city, near, this.origin), this.stats.bond.leaning());
     if (q.rev !== rev) this.changed();
   }
 

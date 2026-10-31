@@ -1,7 +1,7 @@
 // His character sheet: level and XP, his quests, what he saves up for,
 // his weekly bills, six meters and Magic as bars, the sky over him, his visa, the spells he knows,
 // the local words he has picked up,
-// four attributes with what his gear adds, his skills and languages, every gear slot, the bag, pantry and his
+// four attributes with what his gear adds, his skills and languages, his karma, fame and the police, every gear slot, the bag, pantry and his
 // buffs, his rival, friends and pet, his mind (wants, fears and what
 // moves his mood), his quirks, his spot and his mailbox. Items with a story open to show it. His life stage comes
 // second, and his records and family tree close it.
@@ -11,6 +11,9 @@ import { CARD_RECENT, type Quests } from "../core/quests";
 import { span } from "../core/records";
 import { ATTRS, BAG_SIZE, DIRTY_AT, METERS, moodXpMult, xpToNext, type Attr, type Meter, type Stats } from "../core/stats";
 import { MAGIC_MAX } from "../core/magic";
+import { FAME_NAMES } from "../core/fame";
+import { LEAN_MAX } from "../core/bond";
+import { PAYOFF_STARS, payoffOf, STARS_MAX } from "../core/repute";
 import { noun, wantIcon, wantText } from "../core/mind";
 import { MAX_QUIRKS, quirk, QUIRK_PULL } from "../core/quirks";
 import { SPOT_DISCOUNT } from "../core/spot";
@@ -238,6 +241,34 @@ function Records({ stats: s }: { stats: Stats }) {
   );
 }
 
+const LEAN_WORD = { kind: "😇 Kind", rascal: "😈 Rascal", "": "Neither" } as const;
+
+/** His karma, how well this city knows him and what it does to prices; then the police, once they want him or have chased him. */
+function Repute({ stats: s }: { stats: Stats }) {
+  const lean = s.bond.lean;
+  const off = s.shopDiscount();
+  const law = s.law;
+  const stars = law.stars();
+  return (
+    <>
+      <Card icon="⚖" title="Reputation">
+        <KV k="Karma" v={`${LEAN_WORD[s.bond.leaning()]} (${lean > 0 ? "+" : ""}${Math.round(lean)} of ±${LEAN_MAX})`} />
+        <Bar share={(lean + LEAN_MAX) / (2 * LEAN_MAX)} color={lean < 0 ? "var(--error)" : "var(--ok)"} />
+        <KV k="⭐ Fame here" v={`${FAME_NAMES[s.fame.tier(s.here())]} (${Math.floor(s.fame.points(s.here()))})`} />
+        <KV k="🏷 Prices" v={off ? `${off > 0 ? "−" : "+"}${Math.round(Math.abs(off) * 100)}%` : "As listed"} tone={off < 0 ? "error" : off > 0 ? "ok" : undefined} />
+      </Card>
+      {(stars > 0 || law.chases > 0) && (
+        <Card icon="🚓" title="The police" right={stars ? <span class="tone-error">🚨 {"★".repeat(stars)}</span> : undefined}>
+          <KV k="🚨 Wanted" v={stars ? `${stars} of ${STARS_MAX} stars` : "No"} tone={stars ? "error" : undefined} />
+          {stars > 0 && <KV k="Paying it off" v={stars >= PAYOFF_STARS ? euro(payoffOf(law.heat)) : `From ${PAYOFF_STARS} stars`} />}
+          {law.chases > 0 && <KV k="Chases" v={`${law.chases}: got away ${law.escapes + law.bribes}, caught ${law.caught}, jailed ${law.jailed}`} />}
+          {law.paid > 0 && <KV k="Fines and pay-offs" v={euro(law.paid)} />}
+        </Card>
+      )}
+    </>
+  );
+}
+
 /** `afoot`: he walks the rest of the way after a flyer landed, so his speed is his walking one. */
 export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: boolean }) {
   const need = xpToNext(s.level);
@@ -312,6 +343,7 @@ export function StatsSheet({ stats: s, afoot = false }: { stats: Stats; afoot?: 
       </Card>
       <SkillsCard stats={s} />
       <LanguagesCard stats={s} />
+      <Repute stats={s} />
       <Card icon="🛡" title="Gear">
         <div class="zebra">
           {SLOTS.map((slot) => {
