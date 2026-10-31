@@ -197,6 +197,11 @@ a.btn { color: inherit; text-decoration: none; }
 .him .aura.horns::after { right: 0; transform: rotate(20deg); }
 .him .pet { position: absolute; left: calc(-1 * var(--s3)); bottom: calc(-1 * var(--s2)); font-size: 16px; }
 .him .pet[hidden] { display: none; }
+/* His words after a beat (core/beats.ts): a speech bubble up and to his right, clear of the emoji bubble over his head; it pops in once and holds still. */
+.him .say { position: absolute; left: calc(100% + var(--s1)); bottom: 70%; width: max-content; max-width: 140px; font: 700 13px/1.25 var(--text); color: var(--ink); padding: var(--s1) var(--s2); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3) var(--s3) var(--s3) 2px; box-shadow: var(--lip); pointer-events: none; animation: say-in 0.25s ease-out; }
+.him .say[hidden] { display: none; }
+@keyframes say-in { from { transform: scale(0.6); transform-origin: bottom left; opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .him .say { animation: none; } }
 .him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
 .him .bubble.rise { animation-name: rise; }
 .him .bubble.pop { animation-name: pop; }

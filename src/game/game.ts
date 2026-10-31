@@ -15,7 +15,9 @@ import { BEAUTY_EVERY_S, BEAUTY_M, beautyOf } from "../core/comforts";
 import * as CityFacts from "../core/cityFacts";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { Dilemma } from "../core/dilemmas";
-import { distanceM, type BBox } from "../core/geo";
+import { bboxAround, distanceM, type BBox } from "../core/geo";
+import { NEAR_M, SAY_S, type Deck as BeatDeck, type Now as BeatNow } from "../core/beats";
+import { placeIcon, pose, SLEEP_ICON } from "../core/look";
 import * as Holidays from "../core/holidays";
 import * as CC from "../core/cityCards";
 import { dayOf } from "../core/gifts";
@@ -81,7 +83,7 @@ export const RIVAL_OFFSET_DEG = 0.0003;
 /** After the heir's streets failed to load, retiring waits this long before trying again. */
 export const RETIRE_RETRY_MS = 60_000;
 
-export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData; moments?: PlaceMoments };
+export type GameData = { actions: ActionTable; flavour: Record<string, ActionTable>; cities: City[]; airports: Trips["airports"]; dex?: Dex; jokes?: Jokes; forecasts?: Forecast[]; letters?: Letters; incidents?: Incident[]; borders?: Borders; contests?: Contest[]; friends?: FriendData; creatures?: Creature[]; quests?: Q.Bank; spells?: Spell[]; words?: WordBook; diary?: DiaryData; mail?: MailData; moments?: PlaceMoments; beats?: BeatDeck };
 export type Alert = { level: "error" | "warning"; text: string };
 export type Severe = { title: string; details: string[] };
 
@@ -193,6 +195,9 @@ export class Game {
   private saveTimer = 0;
   private checkTimer = 0;
   private lookTimer = 0;
+  /** The History line the beats last heard, and the words in his bubble with the seconds they still show. */
+  private lastHeard: object | null = null;
+  private saying: { text: string; leftS: number } | null = null;
   /** The kinds of land the map shows around a spot (see map/mapView.ts landAt); the screen sets it once the map is up. */
   land: ((at: [number, number]) => string[]) | null = null;
   /** His last look around: the land the map showed, its beauty and how long the map took to answer, for Debug. */
@@ -340,6 +345,7 @@ export class Game {
 
   private attach(w: Walker): void {
     this.walker = w;
+    this.saying = null;
     w.rng = this.rng;
     w.tripPlanner = () => this.planTrip();
     w.hopper = (plan, roadM) => this.hop(plan, roadM);
@@ -393,6 +399,7 @@ export class Game {
       this.lookTimer = 0;
       this.lookAround();
     }
+    this.paceBeats(dt);
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
       this.saveTimer = 0;
@@ -421,6 +428,65 @@ export class Game {
     if (this.stats.fainted()) this.faint();
     const leaving = this.stats.life.leaving;
     if (leaving) void this.retire(leaving);
+  }
+
+  /** Fills a quiet spell in his History with a beat once it has lasted long enough (see beats.ts), and times his speech bubble. */
+  private paceBeats(dt: number): void {
+    if (this.saying && (this.saying.leftS -= dt) <= 0) {
+      this.saying = null;
+      this.changed();
+    }
+    const deck = this.deps.data.beats;
+    if (!deck) return;
+    const b = this.stats.beats;
+    const rng = () => new Rng(seedOf(`beat${this.stats.now()}`));
+    const last = this.stats.history.entries.at(-1) ?? null;
+    if (last !== this.lastHeard) {
+      this.lastHeard = last;
+      b.heard(rng());
+      return;
+    }
+    if (!b.tick(dt)) return;
+    const now = this.beatNow();
+    const said = now && b.deal(deck, now, rng());
+    // Nothing fits (or he sleeps): wait another spell. A beat's own line starts the next one.
+    if (!said) return b.heard(rng());
+    this.stats.applyFx(said.fx);
+    this.stats.say(said.line);
+    if (said.say) this.saying = { text: said.say, leftS: SAY_S };
+    this.changed();
+  }
+
+  /** What he is doing, for the beats: on a ride (or in a taxi or the metro to a station), staying at a place, or walking past one; null while he sleeps. */
+  private beatNow(): BeatNow | null {
+    const w = this.walker!;
+    const t = w.travel;
+    const across = w.flight?.mps ? hopBy(this.stats.getsAbout(), this.trips.cityNear(this.origin[0], this.origin[1])?.pop ?? 0) : null;
+    const mode = t?.mode ?? (across === "taxi" || across === "metro" ? across : undefined);
+    const resting = !mode && w.isResting();
+    if (resting && this.doing && pose(this.doing, w.place?.class ?? "").icon === SLEEP_ICON) return null;
+    const base = { sky: this.stats.sky, meters: this.stats.meters, city: this.city, place: resting ? (w.place?.name ?? "") : "" };
+    if (mode) return { ...base, at: "ride", mode, street: "", near: null };
+    if (resting) return { ...base, at: "rest", street: w.streetName(), near: null };
+    const p = w.position();
+    let near: Place | null = null;
+    let nearM = NEAR_M;
+    for (const q of w.graph.placesIn(bboxAround(p[0], p[1], NEAR_M))) {
+      const m = distanceM(p[0], p[1], q.lat, q.lon);
+      if (q.name && q.name !== w.place?.name && m < nearM) [near, nearM] = [q, m];
+    }
+    return { ...base, at: "walk", street: w.streetName(), near: near && { name: near.name, icon: placeIcon(near) } };
+  }
+
+  /** Debug button: a little moment on the next step, whatever the quiet. */
+  debugBeat(): void {
+    this.stats.beats.leftS = 0;
+    this.lastHeard = this.stats.history.entries.at(-1) ?? null;
+  }
+
+  /** His words in the bubble over his head right now (see beats.ts), or "". */
+  saidNow(): string {
+    return this.saying?.text ?? "";
   }
 
   /** He looks at the land and places around him (see comforts.ts); not while riding. Debug's Look around calls it too. */
@@ -1091,6 +1157,7 @@ export class Game {
     if (wait <= 0 || this.moment || this.welcome?.card) return Promise.resolve({ id: his(), you: false });
     return new Promise((done) => {
       this.moment = { m, left: wait, total: wait, done, his };
+      this.saying = null;
       this.changed();
     });
   }

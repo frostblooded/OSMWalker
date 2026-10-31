@@ -25,6 +25,7 @@ const data = {
   moments: JSON.parse(dataFile("moments.json")),
   borders: JSON.parse(dataFile("borders.json")),
   words: JSON.parse(dataFile("words.json")),
+  beats: JSON.parse(dataFile("beats.json")),
 };
 const raw = dataFile("help.txt");
 const sections = Help.build(raw, data);

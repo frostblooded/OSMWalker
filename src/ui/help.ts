@@ -72,6 +72,7 @@ import * as Cook from "../core/cooking";
 import * as Lang from "../core/languages";
 import * as Skills from "../core/skills";
 import * as Friends from "../core/friends";
+import * as Beats from "../core/beats";
 import * as Story from "../core/storyteller";
 import * as S from "../core/stats";
 import * as Kit from "../core/travelKit";
@@ -911,6 +912,14 @@ export function values(data: GameData): Record<string, string> {
     FIRE_AT: num(Story.FIRE_AT),
     FIRE_MAX_PCT: pct(Story.FIRE_MAX),
     LUCKY_MIN: num(Story.LUCKY_MIN),
+    BEAT_MIN_S: num(Beats.BEAT_MIN_S),
+    BEAT_MAX_S: num(Beats.BEAT_MAX_S),
+    SAY_S: num(Beats.SAY_S),
+    BEAT_COUNT: num((data.beats?.beats.length ?? 0) + (data.beats?.comments.length ?? 0)),
+    LOW_AT: num(Beats.LOW_AT),
+    BEAT_NEAR_M: num(Beats.NEAR_M),
+    COMMENT_PCT: pct(Beats.COMMENT_SHARE),
+    BEAT_RECENT: num(Beats.RECENT),
     WEALTH_PER_H: num(Story.WEALTH_PER_H),
     KEEP_AFTER_GOOD_PCT: pct(Story.KEEP_AFTER_GOOD),
     RECENT_INCIDENTS: num(Story.RECENT),

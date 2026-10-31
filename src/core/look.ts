@@ -8,6 +8,8 @@ import type { Vehicle } from "./speeds";
 import { ATTRS, DIRTY_AT, TIRED_ENERGY, type Action, type Attr, type Meter } from "./stats";
 
 /** Below this much health he looks sick. */
+/** The pose of an action that rests him most: he sleeps (beats.ts leaves him be). */
+export const SLEEP_ICON = "💤";
 export const SICK_AT = 30;
 /** Mood at or above this makes him beam; below LOW_MOOD he looks down. */
 export const HAPPY_MOOD = 75;
@@ -18,7 +20,8 @@ export const POSE_EVERY_S = 60;
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
 /** `mount`: the fantasy mount he rides, beside his face, or ""; `pet`: his pet on his other side, or ""; `aura`: a halo or horns at very good or very bad karma (repute.ts AURA_AT). */
-export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string; aura?: Aura };
+/** `say` is his words in a speech bubble, for a few seconds after a beat (see beats.ts). */
+export type Look = { face: string; bubble: string; pose: Pose | null; mount: string; pet: string; aura?: Aura; say?: string };
 export type Aura = "halo" | "horns";
 
 /** A halo at karma AURA_AT or more, horns at -AURA_AT or less. */
@@ -81,7 +84,7 @@ export function placeIcon(p: Kind): string {
 /** Attribute gains are tenths of a point; this puts them on the meters' scale. */
 const ATTR_SCALE = 50;
 const POSE: Partial<Record<Meter | Attr, Pose>> = {
-  energy: { icon: "💤", motion: "rise" },
+  energy: { icon: SLEEP_ICON, motion: "rise" },
   fullness: { icon: "🍴", motion: "pop" },
   thirst: { icon: "💧", motion: "rise" },
   mood: { icon: "🎵", motion: "rise" },
