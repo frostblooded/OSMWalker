@@ -1,6 +1,6 @@
 # Build one great choice, then grow it
 
-_Game design research report, 2026-11-08. The rules drawn from it are in `CLAUDE.md` under "Game design rules". The open questions at the end were put to the user. Where the user's pick differs from the **Favoured** option, the user's pick wins._
+_Game design research report, 2026-11-08. The rules drawn from it are in `CLAUDE.md` under "Game design rules". The open questions at the end were put to the user, and each one now shows the user's pick, which wins over the **Favoured** option._
 
 The research supports the proposed loop: walk to a place, then pick the next one from a few real nearby places, each showing its reward and its distance. It works best when the pick is a real trade-off and the right answer changes with how he is doing right now. The biggest risk is not too few features. The biggest risk is a pick with one obvious best answer, which turns the game into "always tap the top card". Three rules do most of the work. Offer **3 options** at first. Show each one as an icon, one reward number and a walking time. Make sure going far always has a cost, for example his needs drop on the way, so far places do not always win. Upgrades feel big when they change *which places he can reach or what he can do there*, not when they add a few percent. That means a bike that brings across-the-river places into the list, not "+10% speed". Care should be visible and quick to fix. He slows down, he never dies, and he is glad to see you when you come back. A few things here are not settled by any source: whether 3 or 4 options is better, the "something every minute" pace, and how long catch-up should run after time away. These need a quick prototype and a log of every pick. The last section lists the decisions the user needs to make, with the option the research favours for each.
 
@@ -89,64 +89,79 @@ What the research cannot settle: whether 3 or 4 options plays better, the right 
 
 ## Open design questions
 
-Each question has 2–4 options. **Favoured** marks the option the research leans to, with the reason.
+Each question has 2–4 options. **Favoured** marks the option the research leans to, with the reason. **User's pick** is what the user chose when grilled on 2026-11-08; it wins over Favoured.
 
 **1. How many places to offer at each stop?**
 A) Always 3. B) Always 4. C) Start at 3, with a 4th card as an upgrade. D) 2 to 4, varying.
 **Favoured: C.** Three is the safe start for new players, and turning the 4th card into an unlock makes the number of options part of progression. No source compares 3 with 4 directly.
+**User's pick (2026-11-08): C, 3 cards with a 4th card as an upgrade.**
 
 **2. How is the reward shown on each card?**
 A) Icon only (reward type, like Hades doors). B) Icon plus an exact number. C) Icon plus a range ("2–4"). D) Icon plus a preview on his meters.
 **Favoured: B, with D as a light touch.** The trade-off needs numbers to compare, and Meier says to err toward more information. A small random range (C) can come later, to keep picks from being solved in seconds.
+**User's pick (2026-11-08): B, an icon plus the exact number.**
 
 **3. How is distance shown?**
 A) Metres. B) Walking time in minutes. C) Both.
 **Favoured: B** (my inference). Time is the real cost to the player. Gear that makes him faster then visibly shrinks the times.
+**User's pick (2026-11-08): C, both metres and walking minutes.**
 
 **4. What stops the far, rich place from always winning?**
 A) His needs drop while he walks, so far trips need a fed, rested walker. B) Far places pay less per minute. C) Far rewards are less certain. D) Nothing, the player decides.
 **Favoured: A.** It makes the best pick depend on his state, Meier's "situational" rule, and ties care into every choice. Without some cost, the biggest reward always wins.
+**User's pick (2026-11-08): D, nothing: the player decides, and the distance itself is the trade-off.**
 
 **5. How is each set of cards built?**
 A) Purely random nearby places. B) A guaranteed mix: at least one need place, one job or money place, plus a wild card. C) Weighted toward his lowest need. D) B plus C, with no recent repeats.
 **Favoured: D.** Reigns-style filtering, plus Slay the Spire's advice to mix obvious wins, traps and real trade-offs, keeps every set worth reading.
+**User's pick (2026-11-08): A planned mix with no repeats: one close, small card, one far, big card, and one of a different kind (a shop or a new place).**
 
 **6. How many currencies?**
 A) Money only (plus XP as a separate track). B) Money plus place-specific goods (for example fruit to sell at a market). C) Several currencies from the start.
 **Favoured: A for the base,** with B as the first big upgrade (the bag). Sources treat extra currencies as a later depth tool.
+**User's pick (2026-11-08): A, money only, plus XP.**
 
 **7. What kind of upgrades come first?**
 A) Stat boosts (+speed, +wage). B) Unlocks that change which places appear or what they do (bike radius, bag trade trips, extra card). C) A mix, but every tier must include one unlock.
 **Favoured: B, or C with a strict rule.** Numbers only feel big when they cross a threshold. Keys that open new parts of a known map are what players remember.
+**User's pick (2026-11-08): B, unlocks that change the map (a bike brings farther places, a 4th card, and so on).**
 
 **8. What do levels give?**
 A) Only small stat increases. B) A new place type, job tier or card slot at set levels. C) Cosmetic rewards. D) Nothing on their own; they combine with gear for unlocks.
 **Favoured: B, with D as a mid-term goal** (for example bike plus level 5 opens courier jobs). XP with no visible payoff becomes a number nobody looks at.
+**User's pick (2026-11-08): B, an unlock at set levels.**
 
 **9. What happens if the player does not pick?**
 A) He waits at the place until the player picks. B) After a short wait he picks a plain, modest option himself. C) He wanders randomly.
 **Favoured: B.** The game should still tick along without a choice, but his own pick should be clearly worse than the player's, so the player's choices matter (the Sims lesson).
+**User's pick (2026-11-08): A, he waits until the player picks. There is no auto-pick.**
 
 **10. Who picks during the 10× catch-up after time away?**
 A) He picks automatically, with a summary on return. B) Catch-up pauses at each arrival for the player to pick. C) Catch-up is skipped and replaced by a summary.
 **Favoured: A,** with the player's first live pick right after the summary. Pausing every minute would turn a gift into a chore. Smarter auto-picks can become a later automation upgrade.
+**User's pick (2026-11-08): Does not apply. Time stops while the app is closed: he freezes mid-walk and goes on when it reopens, with no 10× catch-up.**
 
 **11. How long can catch-up run?**
 A) No limit. B) Capped at about 8 hours. C) Capped at about 24 hours. D) Starts short, and the cap is an upgrade.
 **Favoured: C, or D starting near 8 to 24 hours.** A 24-hour cap supports a daily check-in without punishing a missed day. Making the cap upgradable (like Egg Inc silos) gives a natural goal. No source measures which cap retains best.
+**User's pick (2026-11-08): Does not apply, for the same reason as 10.**
 
 **12. What does "stopped" from neglect mean, and how does he recover?**
 A) He stops until one care trip, then walks again at once. B) He recovers slowly over several trips. C) He loses some money or XP as well.
 **Favoured: A.** A visible, mild, quickly fixed setback matches Nintendogs and Animal Crossing. Lost progress turns care into guilt.
+**User's pick (2026-11-08): Not in the base. The base has no needs yet (places give only money or XP), and care comes later.**
 
 **13. How does the game greet a returning player?**
 A) Just the catch-up sprint. B) A "while you were away" card with numbers. C) B plus a short diary from the real streets and places he passed, and a happy greeting.
 **Favoured: C.** Return hooks that show what happened, delivered warmly, are what Neko Atsume, Godville and Animal Crossing get right.
+**User's pick (2026-11-08): Not decided yet.**
 
 **14. Is there a cost to over-caring?**
 A) No, care is always good. B) A small cost (for example a full stomach makes the next walk slower).
 **Favoured: A for the base.** B is an optional later layer that keeps care a choice and not a spammed button.
+**User's pick (2026-11-08): Not in the base, since it has no needs yet.**
 
 **15. Should never-visited places be marked?**
 A) No. B) Yes, a "new" tag on the card plus a small bonus. C) Yes, plus a visited-places count per city.
 **Favoured: B for the base, C soon after.** Wandrer shows that rewarding only new ground reliably gets habitual people to go somewhere new.
+**User's pick (2026-11-08): a new place gives bonus XP, and the only collection is one total count of places visited (not per city).**
