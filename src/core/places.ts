@@ -13,7 +13,7 @@ export const KINDS: Record<Kind, readonly string[]> = {
 };
 const BY_CLASS = new Map(Object.entries(KINDS).flatMap(([k, list]) => list.map((c) => [c, k as Kind])));
 
-/** Cents a shift at a work place pays. */
+/** Cents a work place pays each visit. */
 export const WORK_CENTS = 300;
 /** XP a sight and a green space give. */
 export const SIGHT_XP = 30;

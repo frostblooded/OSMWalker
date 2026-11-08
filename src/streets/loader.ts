@@ -33,7 +33,7 @@ export class StreetLoader {
     private readonly now: () => number = () => performance.now(),
   ) {}
 
-  /** Starts over on a fresh graph (after a trip): pending loads for the old one are dropped. */
+  /** Starts over on a fresh graph (a new city or a loaded save): pending loads for the old one are dropped. */
   setGraph(graph: StreetGraph): void {
     this.graph = graph;
     this.inFlight.clear();

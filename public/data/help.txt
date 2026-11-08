@@ -44,7 +44,7 @@ Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off
 
 Heading: a place straight ahead along his last walk weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after starting he has no heading yet, so every direction counts the same.
 
-Random spots follow the same distance and heading odds, and always stay inside the city box. Debug shows all three numbers for every pick.
+Debug shows all three numbers for every place picked. Random spots follow the same distance and heading odds, and always stay inside the city box.
 
 While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is the planned route at his speed. A 🎯 pin on the map marks the goal. Tap that line to see him and his goal on the map together; tap it again to go back to him.
 ## The map {map}
