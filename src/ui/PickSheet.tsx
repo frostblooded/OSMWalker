@@ -7,7 +7,7 @@ import type { Stats } from "../core/stats";
 import { cardText, dist, walkTime } from "./format";
 import { NextUpgrade } from "./NextUpgrade";
 
-export function PickSheet({ offer, mps, stats, onPick }: { offer: Offer[]; mps: number; stats: Stats; onPick: (i: number) => void }) {
+export function PickSheet({ offer, mps, stats, noShop, onPick }: { offer: Offer[]; mps: number; stats: Stats; noShop: boolean; onPick: (i: number) => void }) {
   return (
     <div class="offers">
       {offer.map((o, i) => {
@@ -32,7 +32,7 @@ export function PickSheet({ offer, mps, stats, onPick }: { offer: Offer[]; mps: 
           </button>
         );
       })}
-      <NextUpgrade stats={stats} />
+      <NextUpgrade stats={stats} noShop={noShop} />
     </div>
   );
 }

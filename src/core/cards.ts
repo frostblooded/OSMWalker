@@ -179,6 +179,8 @@ export class Choice {
   recent: string[] = [];
   /** He stands at a station with a train card: he waits for the player to pick a city. */
   train = false;
+  /** The upgrade he is ready to buy has no shop in reach of the last cards dealt. */
+  noShop = false;
 
   /** The player picks card `i`; returns it, or null when there is no such card. */
   take(i: number): Offer | null {
@@ -191,7 +193,7 @@ export class Choice {
   }
 
   toJSON() {
-    return { offer: this.offer, going: this.going, recent: this.recent, train: this.train };
+    return { offer: this.offer, going: this.going, recent: this.recent, train: this.train, noShop: this.noShop };
   }
 
   static fromJSON(d: unknown): Choice {
@@ -202,6 +204,7 @@ export class Choice {
     if (isOffer(o.going)) c.going = o.going;
     if (Array.isArray(o.recent)) c.recent = o.recent.filter((k) => typeof k === "string");
     c.train = o.train === true;
+    c.noShop = o.noShop === true;
     return c;
   }
 }

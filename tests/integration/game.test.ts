@@ -241,6 +241,22 @@ describe("upgrades", () => {
     expect(again.walker!.speedMps).toBeCloseTo(WALK_MPS * BIKE_SPEED_X, 9);
   });
 
+  it("says when no shop for the ready upgrade is near, and stops saying it once one is", async () => {
+    const { g } = game({ places: [CAFE, PARK, BAKERY] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    for (const id of ["map", "bike", "guide", "bag", "scooter"] as const) g.stats.upgrades.add(id);
+    const metro = upgradeOf("metro")!;
+    g.stats.level = metro.level;
+    g.stats.cents = metro.cents;
+    run(g, 1);
+    expect(g.choice.offer.some((o) => o.upgrade)).toBe(false);
+    expect(g.choice.noShop).toBe(true);
+    g.stats.cents = 0;
+    g.choice.offer = [];
+    run(g, 1);
+    expect(g.choice.noShop).toBe(false);
+  });
+
   it("takes a parcel from its pick-up on to its drop-off and is paid there", async () => {
     const { g } = game({ places: [CAFE, BAKERY] });
     await g.startCity("Sofia, Bulgaria", ...START, null);

@@ -209,7 +209,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           }}
           onResize={fitOffer}
         >
-          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} stats={s} onPick={pick} />
+          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} stats={s} noShop={game.choice.noShop} onPick={pick} />
         </SheetBox>
       )}
       {sheet === "train" && boarding && (
@@ -234,7 +234,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close}>
-          <StatsSheet stats={s} />
+          <StatsSheet stats={s} noShop={game.choice.noShop} />
         </SheetBox>
       )}
       {sheet === "help" && (
