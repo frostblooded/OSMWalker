@@ -3,13 +3,13 @@
 // services for his memory while he walks, and fails if any number in
 // budgets.json is exceeded.
 // Usage: node tests/perf/perf.mjs   (after npm run build)
-// PW_CHROMIUM=/path/to/chrome uses a local Chromium (npm run verify finds the cloud sessions' one).
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mockServices } from "../e2e/mock.ts";
 import { serve } from "./serve.mjs";
+import { chromium as localChromium } from "../../tools/chromium.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "../../dist");
@@ -19,7 +19,7 @@ const PORT = 4174;
 
 const server = await serve(dist, PORT);
 const browser = await chromium.launch({
-  executablePath: process.env.PW_CHROMIUM || undefined,
+  executablePath: localChromium(),
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 

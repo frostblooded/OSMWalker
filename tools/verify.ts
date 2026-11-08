@@ -1,13 +1,13 @@
 // The game's checks, run on this machine (GitHub Actions only deploys).
 //   npm run verify   every check: lint, typecheck, unit and integration tests and the build
-//                    side by side, then the browser e2e, then the perf budgets
+//                    side by side, then the browser e2e and the perf budgets side by side
 //   npm run check    the quick one for while you work: lint, typecheck, and the unit and
 //                    integration tests that the change since master touches
 // A pass is remembered by the git tree it checked, so the pre-push hook (.githooks/pre-push)
 // lets that exact code through without running it again: a branch needs a check, master a
 // verify. After a verify, a change to tests only reruns those tests.
 import { execFileSync, spawn } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 /** Markdown anywhere and everything under docs/ never reach the game, so they need no checks. */
@@ -15,10 +15,12 @@ export function docsOnly(files: string[]): boolean {
   return files.every((f) => f.endsWith(".md") || f.startsWith("docs/"));
 }
 
-const FULL = [["lint", "typecheck", "test", "build"], ["e2e"], ["perf"]];
+// The perf run mostly waits on a throttled page, so it runs beside the e2e tests (verify about
+// 70 s instead of 2 min). E2e then leaves it a quarter of the cores, so it adds no long task.
+const FULL = [["lint", "typecheck", "test", "build"], ["e2e --workers=75%", "perf"]];
 
 /**
- * The checks a change can break, as groups that run one after another (each group side by side).
+ * The checks a change can break, as groups that run one after another (each group side by side), each a script and its arguments.
  * A change to tests only reruns those tests; anything else, or no verified commit to compare with (null), runs all.
  */
 export function scope(files: string[] | null): string[][] {
@@ -71,29 +73,22 @@ function changedSinceVerified(): string[] | null {
   return null;
 }
 
-/** The cloud sessions' headless Chromium (lighter than the full one: e2e about 6% faster), when no other browser is named. */
-function chromium(): string | undefined {
-  if (process.env.PW_CHROMIUM) return process.env.PW_CHROMIUM;
-  const root = "/opt/pw-browsers";
-  const dir = existsSync(root) ? readdirSync(root).find((d) => /^chromium_headless_shell-\d+$/.test(d)) : undefined;
-  const bin = dir && path.join(root, dir, "chrome-headless-shell-linux64", "chrome-headless-shell");
-  return bin && existsSync(bin) ? bin : undefined;
-}
-
 /** Runs npm scripts (with their arguments) side by side; each one's output prints when it ends. */
 function run(scripts: string[][]): Promise<boolean> {
-  const env = { ...process.env, PW_CHROMIUM: chromium() };
   return Promise.all(
     scripts.map(
       ([script = "", ...args]) =>
         new Promise<boolean>((done) => {
           const t0 = Date.now();
-          const child = spawn("npm", ["run", "--silent", script, ...(args.length ? ["--", ...args] : [])], { env, stdio: scripts.length > 1 ? "pipe" : "inherit" });
+          const child = spawn("npm", ["run", "--silent", script, ...(args.length ? ["--", ...args] : [])], { stdio: scripts.length > 1 ? "pipe" : "inherit" });
           let out = "";
           child.stdout?.on("data", (d) => (out += d));
           child.stderr?.on("data", (d) => (out += d));
           child.on("close", (code) => {
-            if (code !== 0 && out) process.stdout.write(out);
+            // The perf table prints on a pass too. Beside e2e its timings run a little high, so
+            // the before and after numbers in a PR come from npm run perf alone.
+            if (script === "perf" && code === 0) console.log("Perf beside e2e (for PR numbers, run npm run perf alone):");
+            if ((code !== 0 || script === "perf") && out) process.stdout.write(out);
             console.log(`${code === 0 ? "✓" : "✗"} ${script} (${Math.round((Date.now() - t0) / 1000)} s)`);
             done(code === 0);
           });
@@ -109,7 +104,7 @@ async function verify(): Promise<boolean> {
   const groups = scope(changedSinceVerified());
   if (groups !== FULL) console.log(`Only tests changed since the last verify: running ${groups.flat().join(", ")}.`);
   for (const group of groups) {
-    if (!(await run(group.map((s) => [s])))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
+    if (!(await run(group.map((s) => s.split(" "))))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
   }
   stamp("verified", tree);
   stamp("checked", tree);
