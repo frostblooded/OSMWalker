@@ -2,15 +2,15 @@
 import { describe, expect, it } from "vitest";
 import { offerFor } from "../../src/core/cards";
 import { distanceM } from "../../src/core/geo";
-import { cellKey } from "../../src/core/graph";
+import { cellKey, cellOf } from "../../src/core/graph";
 import { MONEY_POSE, XP_POSE } from "../../src/core/look";
 import { NEW_PLACE_XP } from "../../src/core/places";
 import type { Place } from "../../src/core/stats";
 import { BIKE_SPEED_X, upgradeOf } from "../../src/core/upgrades";
 import { WALK_MPS } from "../../src/core/walker";
-import { Game, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MAX_CELLS, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { hud, look } from "../../src/game/hud";
-import { CAFE, game, PARK, run, START, tick, WEST } from "../support/game";
+import { CAFE, empty, game, PARK, run, START, tick, WEST } from "../support/game";
 
 const reopened = (g: Game, storage: GameDeps["storage"]) => {
   const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
@@ -151,6 +151,30 @@ describe("game", () => {
     expect(g.stats.xp).toBe(NEW_PLACE_XP);
   });
 
+  it("gets a fresh street map around him past MAX_CELLS cells, still walking to the same card", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.pick(0);
+    run(g, 2);
+    const here = g.walker!.position();
+    const far = (i: number) => ({ x: 9000 + i, y: 6000 });
+    for (let i = 0; i <= MAX_CELLS; i++) g.walker!.graph.addCell(far(i), empty());
+    run(g, 1);
+    const w = g.walker!;
+    expect(w.graph.cells.has(cellKey(far(0)))).toBe(false);
+    expect(w.graph.cells.size).toBeLessThanOrEqual(9);
+    expect(distanceM(...w.position(), ...here)).toBeLessThan(10);
+    expect(w.place?.name).toBe("Cafe Near");
+    // The streets around him come back and he gets there.
+    for (let i = 0; i < 400 && g.stats.cents === 0; i++) {
+      g.step(1);
+      await tick();
+    }
+    expect(g.stats.cents).toBeGreaterThan(0);
+    expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
+  });
+
   it("keeps the cards on offer across a save, so a reload doesn't deal new ones", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
@@ -289,6 +313,26 @@ describe("upgrades", () => {
     const here = g.walker!.position();
     expect(distanceM(here[0], here[1], far.lat, far.lon)).toBeLessThan(300);
     expect(g.stats.history.latest()).toBe("Rode the metro to Far Park");
+  });
+
+  it("rides the metro to a far side whose streets aren't loaded, and waits there for them", async () => {
+    const { g } = game({ places: [CAFE, PARK, STATION] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const far: Place = { ...PARK, name: "Far Park", lat: 42.69, lon: 23.345 };
+    g.walker!.graph.cells.delete(cellKey(cellOf(far.lat, far.lon)));
+    g.choice.offer = [{ ...offerFor(STATION, g.walker!.position(), "metro", true), reward: { cents: 0, xp: 0 }, to: far }];
+    g.pick(0);
+    walk(g);
+    const here = g.walker!.position();
+    expect(distanceM(here[0], here[1], far.lat, far.lon)).toBeLessThan(1);
+    expect(g.walker!.needsData()).toBe(true);
+    for (let i = 0; i < 5; i++) {
+      g.step(1);
+      await tick();
+    }
+    expect(g.walker!.needsData()).toBe(false);
+    const on = g.walker!.position();
+    expect(distanceM(on[0], on[1], far.lat, far.lon)).toBeLessThan(300);
   });
 
   it("takes the train to another city, keeping all he has, or stays", async () => {
