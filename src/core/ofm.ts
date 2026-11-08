@@ -296,11 +296,10 @@ function split(ways: Way[], splits: Splits): Way[] {
  * joinJunctions still joins those of bridges and tunnels.
  */
 export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): Way[] {
-  const segs: [number, number, Pt, Pt, number, number][] = []; // way, segment, its ends in tile units, their node ids
-  let count = 0;
-  for (const w of ways) count += w.ids.length - 1;
-  const box = new Float64Array(count * 4); // per segment: min x, min y, max x, max y, widened by JOIN_TOL
+  // Each segment's box (min x, min y, max x, max y) is widened by JOIN_TOL.
+  const segs: { w: number; i: number; a: Pt; b: Pt; ia: number; ib: number; box: [number, number, number, number] }[] = [];
   const grid = new Map<number, number[]>();
+  // Tile units keep the grid keys small.
   const ox = tile.x * UNITS;
   const oy = tile.y * UNITS;
   const local = (id: number): Pt => {
@@ -311,13 +310,10 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
     for (let i = 0; i < w.ids.length - 1; i++) {
       const a = local(w.ids[i]!);
       const b = local(w.ids[i + 1]!);
-      const s = segs.push([wi, i, a, b, w.ids[i]!, w.ids[i + 1]!]) - 1;
-      box[s * 4] = Math.min(a[0], b[0]) - JOIN_TOL;
-      box[s * 4 + 1] = Math.min(a[1], b[1]) - JOIN_TOL;
-      box[s * 4 + 2] = Math.max(a[0], b[0]) + JOIN_TOL;
-      box[s * 4 + 3] = Math.max(a[1], b[1]) + JOIN_TOL;
-      for (let cx = Math.floor(box[s * 4]! / GRID); cx <= Math.floor(box[s * 4 + 2]! / GRID); cx++) {
-        for (let cy = Math.floor(box[s * 4 + 1]! / GRID); cy <= Math.floor(box[s * 4 + 3]! / GRID); cy++) {
+      const box: [number, number, number, number] = [Math.min(a[0], b[0]) - JOIN_TOL, Math.min(a[1], b[1]) - JOIN_TOL, Math.max(a[0], b[0]) + JOIN_TOL, Math.max(a[1], b[1]) + JOIN_TOL];
+      const s = segs.push({ w: wi, i, a, b, ia: w.ids[i]!, ib: w.ids[i + 1]!, box }) - 1;
+      for (let cx = Math.floor(box[0] / GRID); cx <= Math.floor(box[2] / GRID); cx++) {
+        for (let cy = Math.floor(box[1] / GRID); cy <= Math.floor(box[3] / GRID); cy++) {
           const k = gridKey(cx, cy);
           const list = grid.get(k);
           if (list) list.push(s);
@@ -329,7 +325,7 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
   const splits: Splits = new Map();
   /** Cuts segment `s` at corner `p` (node `id`) when the corner lies on it. */
   const onto = (p: Pt, id: number, s: number) => {
-    const [w, i, q, r] = segs[s]!;
+    const { w, i, a: q, b: r } = segs[s]!;
     const [t, f] = foot(p, q, r);
     if (t <= 0 || t >= 1 || dist(f, p) > JOIN_TOL) return false;
     addSplit(splits, w, i, t, id);
@@ -338,23 +334,23 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
   for (const [k, list] of grid) {
     for (let x = 0; x < list.length; x++) {
       const i = list[x]!;
+      const { w: wi, i: si, a, b, ia, ib, box: p } = segs[i]!;
       for (let y = x + 1; y < list.length; y++) {
         const j = list[y]!;
-        const lx = Math.max(box[i * 4]!, box[j * 4]!);
-        const ly = Math.max(box[i * 4 + 1]!, box[j * 4 + 1]!);
+        const { w: wj, i: sj, a: c, b: d, ia: ic, ib: id, box: q } = segs[j]!;
+        const lx = Math.max(p[0], q[0]);
+        const ly = Math.max(p[1], q[1]);
         // Boxes apart, or the pair is tried in the grid square where their overlap starts.
-        if (lx > Math.min(box[i * 4 + 2]!, box[j * 4 + 2]!) || ly > Math.min(box[i * 4 + 3]!, box[j * 4 + 3]!)) continue;
+        if (lx > Math.min(p[2], q[2]) || ly > Math.min(p[3], q[3])) continue;
         if (gridKey(Math.floor(lx / GRID), Math.floor(ly / GRID)) !== k) continue;
-        const [wi, si, a, b, ia, ib] = segs[i]!;
-        const [wj, sj, c, d, ic, id] = segs[j]!;
         if (ia === ic || ia === id || ib === ic || ib === id) continue;
         if (onto(a, ia, j) || onto(b, ib, j) || onto(c, ic, i) || onto(d, id, i)) continue;
         const at = cross(a, b, c, d);
         if (!at) continue;
         const n = node(at, false, tile, nodes);
-        const p = local(n);
-        addSplit(splits, wi, si, foot(p, a, b)[0], n);
-        addSplit(splits, wj, sj, foot(p, c, d)[0], n);
+        const m = local(n);
+        addSplit(splits, wi, si, foot(m, a, b)[0], n);
+        addSplit(splits, wj, sj, foot(m, c, d)[0], n);
       }
     }
   }
