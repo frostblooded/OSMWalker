@@ -199,7 +199,13 @@ export class Game {
 
   /** He has no goal: he waits while cards are on offer (dealing them if need be); with none to deal he heads for a random spot. */
   private onIdle(): boolean {
-    this.choice.going = null;
+    // Still on the way to a card: he gave up on it (too far round, or he already stood as near as the streets go).
+    const missed = this.choice.going;
+    if (missed) {
+      this.choice.going = null;
+      this.stats.say(`Couldn't get to ${missed.place.name}, so nothing there`);
+      this.changed();
+    }
     return this.choice.offer.length > 0 || this.dealCards();
   }
 
@@ -214,6 +220,8 @@ export class Game {
     const e: Entry = { in_box: places.length, dealt: offer.map((o) => ({ place: o.place.name, kind: o.kind, slot: o.slot, dist_m: Math.round(o.distM), cents: o.reward.cents, xp: o.reward.xp, new: o.isNew })) };
     if (this.forced) e.forced = this.forced;
     this.debugLog.add(e);
+    // Saved at once, so a reload doesn't deal new cards.
+    this.save();
     this.changed();
     return true;
   }

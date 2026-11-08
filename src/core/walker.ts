@@ -153,7 +153,7 @@ export class Walker {
     return len > ARRIVE_M ? [v[0] / len, v[1] / len] : [0, 0];
   }
 
-  /** A spot in the city box, drawn with the same distance and heading odds as places. */
+  /** A spot in the city box at a medium distance, more likely ahead of him (see goals.ts). */
   randomSpot(): LatLon {
     return randomSpot(this.rng, this.bounds ?? cityBounds(0, 0), this.here() ? this.position() : null, this.heading());
   }

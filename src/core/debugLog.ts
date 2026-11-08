@@ -6,7 +6,7 @@ import { euro } from "./money";
 export const SIZE = 50;
 const FORCED: Record<string, string> = { cards: "New cards button" };
 
-/** Info from Walker's picked event. */
+/** A deal, a pick (from the game) or a random spot (from the walker's picked event). */
 export type Entry = Record<string, unknown> & { t?: number };
 
 const num = (v: unknown, d = 0) => (typeof v === "number" ? v : d);
@@ -25,9 +25,10 @@ export class DebugLog {
     return this.entries;
   }
 
+  /** A save's log; entries from before the cards (his own goal picks) are dropped. */
   static fromJSON(a: unknown): DebugLog {
     const log = new DebugLog();
-    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object");
+    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object" && ("dealt" in e || "picked" in e || "fallback" in e));
     return log;
   }
 }
@@ -40,8 +41,7 @@ export function title(e: Entry): string {
   const byButton = "forced" in e ? " (button)" : "";
   if (Array.isArray(e.dealt)) return `🃏 Dealt ${e.dealt.length} card${e.dealt.length === 1 ? "" : "s"}${byButton}`;
   if ("picked" in e) return `🎯 Picked ${num(e.picked)} of ${num(e.of)}: ${str(e.place)}`;
-  if ("fallback" in e) return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "none to offer"}`;
-  return "🎲 Pick";
+  return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "none to offer"}`;
 }
 
 /** What one card promised: "far · 950 m · €8.20 + 20 XP". */

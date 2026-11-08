@@ -109,5 +109,7 @@ describe("the choice", () => {
     expect(back).toEqual(c);
     expect(C.Choice.fromJSON(undefined)).toEqual(new C.Choice());
     expect(C.Choice.fromJSON({ recent: [1, "a"] }).recent).toEqual(["a"]);
+    // A broken card in a save is dropped rather than drawn.
+    expect(C.Choice.fromJSON({ offer: [{ place: { name: "x" } }, c.offer[0]], going: { reward: {} } })).toMatchObject({ offer: [c.offer[0]], going: null });
   });
 });

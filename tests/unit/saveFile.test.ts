@@ -39,7 +39,7 @@ function saved(): Saved {
   stats.addXp(150);
   stats.visited.add("Cafe@42.7000,23.3000");
   const debugLog = new DebugLog();
-  debugLog.add({ place: "Cafe" });
+  debugLog.add({ picked: 1, of: 3, place: "Cafe" });
   const choice = new Choice();
   choice.recent = ["Cafe@42.7000,23.3000"];
   return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, choice };

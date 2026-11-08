@@ -25,24 +25,24 @@ He walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real stree
 
 He walks to the place you picked (see Where next). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
 
-If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it, gets nothing, and you get new cards. After more than {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
+If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it, gets nothing, and you get new cards (the feed says so). After more than {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
 ## Places and rewards {places}
 Only named places that give him something are offered, and each kind gives one thing:
 - 💶 work places pay money: {WORK_LIST},
 - ⭐ sights give XP: {SIGHT_LIST},
 - 🌳 green spaces give less XP: {GREEN_LIST}.
 
-The longer the walk, the bigger the reward, so a close place and a far one pay about the same for each minute of walking. A minute is worth {WORK_PER_MIN} at a work place, {SIGHT_XP_PER_MIN} XP at a sight and {GREEN_XP_PER_MIN} XP in a green space, and a long walk a little extra: a {FAR_EXTRA_MIN}-minute walk pays double for each minute. So a work place {EX_NEAR_M} m away pays {EX_NEAR_EURO} and one {EX_FAR_KM} km away {EX_FAR_EURO}. The top {LANDMARK_RANK} sights in their area are landmarks and give {LANDMARK_X} times the XP.
+The longer the walk, the bigger the reward. A minute is worth {WORK_PER_MIN} at a work place, {SIGHT_XP_PER_MIN} XP at a sight and {GREEN_XP_PER_MIN} XP in a green space, and a long walk a little extra: a {FAR_EXTRA_MIN}-minute walk pays double for each minute. So a work place {EX_NEAR_M} m away pays {EX_NEAR_EURO} and one {EX_FAR_KM} km away {EX_FAR_EURO}. A far place pays a little more for each minute; a close one pays sooner, and you get to pick again sooner. The top {LANDMARK_RANK} sights in their area are landmarks and give {LANDMARK_X} times the XP.
 
 The first time he reaches a place he gets {NEW_PLACE_XP} XP on top, and its card says 🆕 New. A place is remembered by its name and where it is. He counts as arrived when he is within {ARRIVE_M} m of it; what he got shows in the feed under the top card and as a 💶 or ⭐ over him for {POSE_S} seconds.
 
 The reward on a card is fixed when the card is dealt, and it is what he gets there, however the walk turns out.
 ## Where next {goal}
-When he reaches a place he stops, and 🧭 Where next? shows at the bottom of the screen. Tap it to see {CARDS} cards, each a place nearby with what it gives (an icon and the exact number) and how far it is in metres and walking minutes. The same numbers mark the places on the map. Tap a card and he sets off. He waits for you as long as you like; nothing is lost while he waits.
+When he reaches a place he stops, and 🧭 Where next? shows at the bottom of the screen. Tap it to see up to {CARDS} cards, each a place nearby with what it gives (an icon and the exact number) and how far it is in metres and walking minutes. The same numbers mark the places on the map. Tap a card and he sets off. He waits for you as long as you like; nothing is lost while he waits. If he can't get to the place you picked (it is across water, say), he gives up, gets nothing there, and you pick again.
 
 The cards are a planned mix:
-- a close one, at most {CLOSE_MAX_M} m away, which pays less,
-- a far one, at least {FAR_MIN_M} m away, which pays more,
+- a close one, at most {CLOSE_MAX_M} m away when there is one (else the nearest), which pays less,
+- a far one, at least {FAR_MIN_M} m away when there is one (else the farthest left), which pays more,
 - and one of another kind than those two, if there is one (money when they give XP, XP when they pay money), a place he has never been to when possible.
 
 They come from places within {REACH_KM} km of him; when fewer than {CARDS} are, from the {NEAREST} nearest. Places from his last {RECENT} picks don't come back, and important places turn up more often. The walking time is a guess: streets wind, so it counts {ROUTE_FACTOR} times the straight line.
@@ -51,7 +51,7 @@ Until any places have loaded around him (right after starting in a new city), he
 
 While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is the planned route at his speed. A 🎯 pin on the map marks the goal. Tap that line to see him and his goal on the map together; tap it again to go back to him.
 ## The map {map}
-The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face 🙂, with a bubble over his head showing the kind of place he is heading for (☕ a cafe, 🏛 a museum). While he waits for your pick, orange circles numbered 1 to {CARDS} mark the places on the cards.
+The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face 🙂, with a bubble over his head showing the kind of place he is heading for (☕ a cafe, 🏛 a museum). While he waits for your pick, orange circles numbered like the cards mark the places on the cards.
 
 While the camera follows him (the Camera follows him switch in the menu, on at first) the map stays still while he walks around the middle, and glides over to him once he is more than {MIDDLE_PCT}% of the view away from the middle. That way the whole map is only redrawn every so often, which saves battery. Drag the map to look around, then tap "Back to him" to follow him again. With the switch off the map never moves by itself.
 

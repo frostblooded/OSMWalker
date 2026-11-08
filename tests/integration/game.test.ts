@@ -104,6 +104,45 @@ describe("game", () => {
     expect(g.debugLog.entries.some((e) => "fallback" in e)).toBe(true);
   });
 
+  it("says so when he can't get to a picked place, pays nothing and deals again", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.pick(0);
+    run(g, 2);
+    // As if the way round dragged on past the limit: he gives up at the next corner.
+    g.walker!.tripM = 1e9;
+    g.walker!.route = [];
+    g.walker!.routeArrives = false;
+    run(g, 60);
+    expect(g.stats.history.entries.some((e) => e.text === "Couldn't get to Cafe Near, so nothing there")).toBe(true);
+    expect(g.stats.cents).toBe(0);
+    expect(g.choice.going).toBeNull();
+  });
+
+  it("deals new cards where he is on the Debug button, even mid-walk", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.pick(0);
+    run(g, 3);
+    g.debugNewCards();
+    expect(g.walker!.goal).toBeNull();
+    expect(g.choice.offer.length).toBeGreaterThan(0);
+    expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "cards" });
+  });
+
+  it("pays a walk from an older save, with no card, for what he walked", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.pick(0);
+    g.choice.going = null;
+    for (let i = 0; i < 400 && g.walker!.place; i++) g.step(1);
+    expect(g.stats.cents).toBeGreaterThan(0);
+    expect(g.stats.xp).toBe(NEW_PLACE_XP);
+  });
+
   it("keeps the cards on offer across a save, so a reload doesn't deal new ones", async () => {
     const { g, storage } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);

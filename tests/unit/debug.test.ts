@@ -61,6 +61,11 @@ describe("debug log", () => {
     expect(log.entries.at(-1)).toHaveProperty("t");
   });
 
+  it("drops entries from before the cards when a save loads", () => {
+    const again = D.DebugLog.fromJSON([{ place: "Old pick", rank: 2 }, { picked: 1, of: 3, place: "Cafe" }, null]);
+    expect(again.entries.map((e) => e.place)).toEqual(["Cafe"]);
+  });
+
   it("survives a save", () => {
     const log = new D.DebugLog();
     log.add({ fallback: "x" });

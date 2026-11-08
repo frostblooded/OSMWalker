@@ -84,6 +84,12 @@ export function deal(places: readonly Place[], here: LatLon, ctx: DealCtx): Offe
     .map(({ o, slot }) => offerFor(o.p, here, slot, ctx.isNew(o.p)));
 }
 
+/** True for a whole card, as a save should hold it. */
+function isOffer(o: unknown): o is Offer {
+  const c = o as Offer | null;
+  return !!c && typeof c.place?.lat === "number" && typeof c.place.lon === "number" && typeof c.reward?.cents === "number" && typeof c.reward.xp === "number" && typeof c.distM === "number" && typeof c.walkM === "number";
+}
+
 /** The cards on offer, the one he is walking to and his last picks; saved with the game. */
 export class Choice {
   offer: Offer[] = [];
@@ -110,8 +116,8 @@ export class Choice {
     const c = new Choice();
     if (!d || typeof d !== "object") return c;
     const o = d as Partial<ReturnType<Choice["toJSON"]>>;
-    if (Array.isArray(o.offer)) c.offer = o.offer;
-    if (o.going && typeof o.going === "object") c.going = o.going;
+    if (Array.isArray(o.offer)) c.offer = o.offer.filter(isOffer);
+    if (isOffer(o.going)) c.going = o.going;
     if (Array.isArray(o.recent)) c.recent = o.recent.filter((k) => typeof k === "string");
     return c;
   }

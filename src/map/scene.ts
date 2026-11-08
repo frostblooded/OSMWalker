@@ -1,9 +1,10 @@
 // What the map shows and where its camera points. Each tick it puts him (his
 // bubble and pop), his goal pin, the places on the cards, his trail, the
-// route line and the city area on the map, sending a layer to MapLibre only when it changed.
-// The camera follows him; a tap on the goal chip shows him and his goal
-// until he picks a new one; History fits his trail above its sheet. The map
-// itself sits behind MapPort, so tests use a fake.
+// route line and the city area on the map, sending a layer to MapLibre only
+// when it changed. The camera follows him; a tap on the goal chip shows him
+// and his goal until he picks a new one; Where next fits the cards' places
+// and History his trail above their sheets. The map itself sits behind
+// MapPort, so tests use a fake.
 import type { BBox, LatLon } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
