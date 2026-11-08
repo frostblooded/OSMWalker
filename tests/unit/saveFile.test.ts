@@ -33,6 +33,8 @@ function walkerAt(lat: number, lon: number): Walker {
 function saved(): Saved {
   const stats = new Stats();
   stats.cents = 4321;
+  stats.history.moveTo(42.7, 23.3);
+  stats.history.moveTo(42.701, 23.3);
   stats.addXp(150);
   stats.visited.add("Cafe@42.7000,23.3000");
   const debugLog = new DebugLog();
@@ -95,7 +97,7 @@ describe("save file", () => {
     expect(back).not.toHaveProperty("boostS");
   });
 
-  it("puts him in the city an old save was riding to, waiting for its streets", () => {
+  it("puts him in the city an old save was riding to, waiting for its streets, with a break in his trail", () => {
     const back = edited((d) => {
       d.walker.travel = { arrive: [42.15, 24.75], to: { name: "Plovdiv", lat: 42.15, lon: 24.75 } };
     }) as Saved;
@@ -105,6 +107,10 @@ describe("save file", () => {
     expect(back.walker.position()).toEqual([42.15, 24.75]);
     expect(back.walker.goal).toBeNull();
     expect(back.walker.needsData()).toBe(true);
+    // No line is drawn across the jump.
+    back.stats.history.moveTo(42.15, 24.75);
+    back.stats.history.moveTo(42.151, 24.75);
+    expect(back.stats.history.segments()).toHaveLength(2);
   });
 
   it("puts him where an old save's flight was landing, in the same city", () => {

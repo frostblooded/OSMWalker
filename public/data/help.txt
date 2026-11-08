@@ -25,7 +25,7 @@ He walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real stree
 
 He always walks towards a goal (see Places and rewards and His goal). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
 
-If he has walked more than 2.5 times the straight-line distance to his goal plus 2 km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
+If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
 ## Places and rewards {places}
 His goals are named places from the map. Only places that give him something count, and each kind gives one thing:
 - 💶 work places pay {WORK_EURO} a visit: {WORK_LIST},
@@ -59,7 +59,7 @@ Money is shown in euros on the top card. He earns {WORK_EURO} at each work place
 ## XP and levels {xp}
 He gains XP from sights and green spaces, and {NEW_PLACE_XP} XP the first time he reaches any place (see Places and rewards).
 
-Each level needs 100 x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed.
+Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
 The card at the top shows the city, the street he is on, his money and level, and his goal with the distance and the walking time. What he just did pops up under it for a few seconds.

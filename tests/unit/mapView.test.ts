@@ -7,21 +7,20 @@ import { MONEY_POSE, type Look } from "../../src/core/look";
 import { MapView } from "../../src/map/mapView";
 
 /** A MapView with only his marker, no MapLibre. */
-function view(): { v: MapView; face: HTMLElement; bubble: HTMLElement } {
+function view(): { v: MapView; bubble: HTMLElement } {
   const el = document.createElement("div");
-  el.innerHTML = '<span class="face"></span><span class="bubble"></span>';
+  el.innerHTML = '<span class="bubble"></span>';
   const v = new MapView();
   Object.assign(v, { him: { getElement: () => el } });
-  return { v, face: el.querySelector(".face")!, bubble: el.querySelector(".bubble")! };
+  return { v, bubble: el.querySelector(".bubble")! };
 }
 
-const walking: Look = { face: "🙂", bubble: "☕", pose: null };
+const walking: Look = { bubble: "☕", pose: null };
 
 describe("MapView.setLook", () => {
   it("shows the kind of place he heads for, then the pop after a reward", () => {
-    const { v, face, bubble } = view();
+    const { v, bubble } = view();
     v.setLook(walking);
-    expect(face.textContent).toBe("🙂");
     expect(bubble.textContent).toBe("☕");
     expect(bubble.className).toBe("bubble");
     v.setLook({ ...walking, bubble: "", pose: MONEY_POSE });

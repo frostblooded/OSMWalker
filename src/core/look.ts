@@ -1,47 +1,36 @@
-// How he looks on the map: his face, a bubble over his head with the icon
-// of the kind of place he heads for, and for a moment after he reaches it a
-// pop with what he got there.
-
+// How he looks on the map: a bubble over his head with the icon of the
+// kind of place he heads for, and for a moment after he reaches it a pop
+// with what he got there.
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
-export type Look = { face: string; bubble: string; pose: Pose | null };
-type Kind = { class: string; subclass: string };
+export type Look = { bubble: string; pose: Pose | null };
+type PlaceClass = { class: string; subclass: string };
 
-/** His face while he walks. */
-export const FACE = "🙂";
 /** The pop over him after a place pays money, and after one gives XP. */
 export const MONEY_POSE: Pose = { icon: "💶", motion: "rise" };
 export const XP_POSE: Pose = { icon: "⭐", motion: "pop" };
 
 /** Icons by "class/subclass", subclass or class, tried in that order. */
 const PLACE_ICON: Record<string, string> = {
-  cafe: "☕", "shop/coffee": "☕", restaurant: "🍽", fast_food: "🍟", bar: "🍸", "bar/nightclub": "🪩", nightclub: "🪩", beer: "🍺", pub: "🍺",
-  ice_cream: "🍦", bakery: "🥐", butcher: "🥩", "shop/confectionery": "🍬", "shop/chocolate": "🍫", grocery: "🛒", supermarket: "🛒",
-  "shop/kiosk": "🗞", "shop/newsagent": "🗞", "shop/convenience": "🏪", alcohol_shop: "🍷", "shop/tobacco": "🚬",
-  museum: "🏛", art_gallery: "🖼", attraction: "📸", castle: "🏰", monument: "🗿", memorial: "🕯", place_of_worship: "⛪",
-  theatre: "🎭", cinema: "🎬", zoo: "🦁", aquarium: "🐠", library: "📚", music: "🎵", theme_park: "🎢", water_park: "🌊",
-  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", campsite: "⛺", cemetery: "🪦", shelter: "🛖", fountain: "⛲", bridge: "🌉",
-  pitch: "⚽", sports_centre: "🏟", stadium: "🏟", fitness_centre: "🏋", swimming: "🏊", swimming_pool: "🏊", golf: "⛳",
-  yoga: "🧘", climbing: "🧗", boxing: "🥊", billiards: "🎱", ice_rink: "⛸", tennis: "🎾", karting: "🏎", escape_game: "🔐", chess: "♟",
-  harbor: "⚓", ferry_terminal: "⛴", railway: "🚉", bus: "🚌", aerialway: "🚡", bicycle_rental: "🚲", bicycle: "🚲", parking: "🅿",
-  fuel: "⛽", car: "🚗", "car/car": "🚗", "shop/motorcycle": "🏍",
-  lodging: "🏨", hospital: "🏥", doctors: "🩺", dentist: "🦷", pharmacy: "💊", "shop/chemist": "🧴", veterinary: "🐾",
-  bank: "🏦", atm: "🏧", post: "📮", police: "🚓", fire_station: "🚒", town_hall: "🏛", school: "🏫", college: "🎓",
-  office: "🏢", "office/employment_agency": "💼", "office/coworking": "💻", "office/government": "🏛", "office/diplomatic": "🏳",
-  "office/lawyer": "⚖", "office/estate_agent": "🏠", hackerspace: "🛠",
-  laundry: "🧺", "shop/beauty": "💅", hairdresser: "💇", "shop/massage": "💆", "shop/tattoo": "🖋", "shop/optician": "👓",
-  toilets: "🚻", drinking_water: "🚰", information: "ℹ", recycling: "♻",
-  clothing_store: "👕", "shop/shoes": "👟", "shop/sports": "🎽", "shop/outdoor": "🥾", "shop/jewelry": "💍", "shop/watches": "⌚",
-  "shop/gift": "🎁", "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺", "shop/carpet": "🧶",
-  "shop/hardware": "🔨", "shop/doityourself": "🔨", "shop/weapons": "🗡", "shop/hunting": "🏹", "shop/knives": "🔪",
-  "shop/florist": "💐", "shop/pet": "🐾", "shop/tailor": "🧵", "shop/mobile_phone": "📱", shop: "🛍",
+  cafe: "☕", "shop/coffee": "☕", restaurant: "🍽", fast_food: "🍟", bar: "🍸", "bar/nightclub": "🪩", nightclub: "🪩", beer: "🍺", pub: "🍺", ice_cream: "🍦",
+  bakery: "🥐", butcher: "🥩", "shop/confectionery": "🍬", "shop/chocolate": "🍫", grocery: "🛒", supermarket: "🛒", "shop/kiosk": "🗞",
+  "shop/newsagent": "🗞", "shop/convenience": "🏪", alcohol_shop: "🍷", "shop/tobacco": "🚬", museum: "🏛", art_gallery: "🖼", attraction: "📸", castle: "🏰",
+  monument: "🗿", memorial: "🕯", place_of_worship: "⛪", theatre: "🎭", cinema: "🎬", zoo: "🦁", aquarium: "🐠", library: "📚", music: "🎵", theme_park: "🎢",
+  park: "🌳", garden: "🌷", playground: "🛝", dog_park: "🐕", picnic_site: "🧺", fountain: "⛲", bridge: "🌉", stadium: "🏟", fitness_centre: "🏋",
+  bicycle: "🚲", car: "🚗", "shop/motorcycle": "🏍", lodging: "🏨", pharmacy: "💊", "shop/chemist": "🧴", post: "📮", town_hall: "🏛", office: "🏢",
+  "office/employment_agency": "💼", "office/coworking": "💻", "office/government": "🏛", "office/diplomatic": "🏳", "office/lawyer": "⚖",
+  "office/estate_agent": "🏠", laundry: "🧺", "shop/beauty": "💅", hairdresser: "💇", "shop/massage": "💆", "shop/tattoo": "🖋", "shop/optician": "👓",
+  clothing_store: "👕", "shop/shoes": "👟", "shop/sports": "🎽", "shop/outdoor": "🥾", "shop/jewelry": "💍", "shop/watches": "⌚", "shop/gift": "🎁",
+  "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺", "shop/carpet": "🧶", "shop/hardware": "🔨",
+  "shop/doityourself": "🔨", "shop/weapons": "🗡", "shop/hunting": "🏹", "shop/knives": "🔪", "shop/florist": "💐", "shop/pet": "🐾", "shop/tailor": "🧵",
+  "shop/mobile_phone": "📱", shop: "🛍",
 };
 
-export function placeIcon(p: Kind): string {
+export function placeIcon(p: PlaceClass): string {
   return PLACE_ICON[`${p.class}/${p.subclass}`] ?? PLACE_ICON[p.subclass] ?? PLACE_ICON[p.class] ?? "📍";
 }
 
 /** `goal`: the place he heads for, null for a random spot; `pose`: the pop after a reward, or null. */
-export function look(goal: Kind | null, pose: Pose | null): Look {
-  return { face: FACE, bubble: pose ? "" : goal ? placeIcon(goal) : "", pose };
+export function look(goal: PlaceClass | null, pose: Pose | null): Look {
+  return { bubble: pose ? "" : goal ? placeIcon(goal) : "", pose };
 }

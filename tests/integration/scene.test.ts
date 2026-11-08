@@ -93,9 +93,9 @@ describe("map scene", () => {
     expect(map.autoFollow).toBe(false);
   });
 
-  it("shows his face, with the kind of place he heads for over his head", () => {
+  it("shows the kind of place he heads for over his head", () => {
     scene.draw(0.25, 250);
-    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null });
+    expect(map.look).toEqual({ bubble: "", pose: null });
     game.walker!.setGoal(42.0, 23.00135);
     game.walker!.place = { name: "Cafe East", class: "cafe", subclass: "cafe", rank: 1, lat: 42.0, lon: 23.00135 };
     scene.draw(0.25, 250);

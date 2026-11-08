@@ -186,13 +186,12 @@ export class MapView implements MapPort {
     }
   }
 
-  /** His face, bubble and pop, written to the page only when one changes; a new pop plays its CSS animation once. */
+  /** His bubble and pop, written to the page only when one changes; a new pop plays its CSS animation once. */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}`;
+    const key = `${l.bubble}|${l.pose?.icon ?? ""}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
     const el = this.him.getElement();
-    el.querySelector(".face")!.textContent = l.face;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;

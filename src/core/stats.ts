@@ -7,8 +7,9 @@ import { rewardOf, type Reward } from "./places";
 
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
-/** XP from one level to the next. */
-export const xpToNext = (lvl: number) => 100 * lvl;
+/** XP from one level to the next: XP_PER_LEVEL times the level. */
+export const XP_PER_LEVEL = 100;
+export const xpToNext = (lvl: number) => XP_PER_LEVEL * lvl;
 /** The save version of the base loop's economy: older saves start its money afresh. */
 export const ECONOMY = 1;
 
@@ -51,11 +52,10 @@ export class Stats {
     }
   }
 
-  say(line: string): string {
+  say(line: string): void {
     const t = this.now();
     this.history.add(line, t);
     this.onSay?.(line, t);
-    return line;
   }
 
   toJSON() {

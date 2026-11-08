@@ -252,7 +252,7 @@ describe("goals", () => {
   it("picks a new goal when forced", () => {
     walker.startAt(n(2));
     walker.bounds = CITY_BOX;
-    walker.forceNewGoal();
+    walker.pickGoal();
     expect(walker.goal).toHaveLength(2);
   });
 

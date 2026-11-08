@@ -13,7 +13,6 @@
   --accent-dark: #b4531f;
   --coin: #ffd66b;
   --lilac: #e9dcff;
-  /* The shade over the map at night; its opacity follows the sun. */
   --hp: #e5484d;
   --fu: #46a758;
   --error: #c4282e;
@@ -47,7 +46,7 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; font
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; touch-action: manipulation; }
 button:disabled { cursor: default; opacity: 0.5; }
-h1, h2, h3, .btn, .pill, .num, .tile b { font-family: var(--display); font-weight: 600; }
+h1, h2, h3, .btn, .pill, .num { font-family: var(--display); font-weight: 600; }
 
 .btn {
   min-height: var(--tap);
@@ -116,18 +115,12 @@ a.btn { color: inherit; text-decoration: none; }
 .hud { padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
 .hud-head { display: flex; align-items: center; gap: var(--s3); }
 .hud-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; border: var(--edge); background: var(--accent); display: grid; place-items: center; font-size: 22px; }
-.hud .city { display: flex; font-size: var(--small); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
-.hud .city .where { flex-shrink: 0; max-width: 100%; }
+.hud .city { font-size: var(--small); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
 .hud .street { font-family: var(--display); font-weight: 600; font-size: var(--heading); line-height: 1.2; }
 .pills { display: flex; flex-direction: column; gap: var(--s1); align-items: flex-end; }
 .pill { padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; font-size: var(--small); white-space: nowrap; }
 .pill.coins { background: var(--coin); }
 .pill.level { background: var(--lilac); }
-.pill.sky { background: var(--paper); }
-.pill.wanted { background: var(--paper); color: var(--error); }
-/* The boost after time away, under the card: the countdown keeps its width as the digits change. */
-/* One flat layer over the map, none by day: costs a blend, never a map redraw. */
-.menu .pill { margin-left: auto; }
 .chip { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: var(--s2) var(--s3); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); width: 100%; text-align: left; font-size: var(--body); }
 .chip:active { background: var(--line); }
 .chip .eta { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: var(--paper); border: 2px solid var(--ink); font-size: var(--small); white-space: nowrap; }
@@ -137,7 +130,6 @@ a.btn { color: inherit; text-decoration: none; }
 .field { width: 100%; box-sizing: border-box; min-height: var(--tap); padding: 0 var(--s3); font-size: 16px; border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--paper); color: var(--ink); }
 .field:focus { outline: none; box-shadow: 0 0 0 3px var(--accent); }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
-.toast.story { border-color: var(--accent-dark); background: var(--zebra); font-weight: 700; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
 /* Only zoom and the menu sit on the map, at the bottom right in reach of the thumb. */
@@ -159,18 +151,14 @@ a.btn { color: inherit; text-decoration: none; }
 .dialog { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: var(--s3); }
 .dialog input { min-height: var(--tap-big); padding: 0 var(--s4); font-size: 18px; border: var(--edge); border-radius: var(--r-small); letter-spacing: 2px; background: var(--paper); }
 
-/* Map markers: him, his goal and Viktor. */
+/* Map markers: him and his goal. */
 .marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 0 rgba(61, 42, 28, 0.5)); pointer-events: none; }
 /* He glides between game ticks; the loop sets --glide to the time until the next one. */
 .marker.him.glide { transition: transform var(--glide, 0ms) linear; will-change: transform; }
-.marker.police { width: 32px; height: 32px; display: grid; place-items: center; background: var(--paper); border: 3px solid var(--ink); border-radius: 50%; font-size: 18px; }
-.marker.rival { width: 32px; height: 32px; display: grid; place-items: center; background: var(--paper); border: 3px solid var(--ink); border-radius: 50%; font-size: 18px; }
 .marker.him { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; font-size: 22px; }
-/* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
+/* The bubble over his head: his goal's kind; a pop floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
 .him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
 .him .bubble[hidden] { display: none; }
-/* Karma shows on him: a gold halo on his head, or two red horns (core/look.ts aura). Drawn in CSS, nothing animates. */
-/* His words after a beat (core/beats.ts): a speech bubble up and to his right, clear of the emoji bubble over his head; it pops in once and holds still. */
 .him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
 .him .bubble.rise { animation-name: rise; }
 .him .bubble.pop { animation-name: pop; }
@@ -204,7 +192,6 @@ a.btn { color: inherit; text-decoration: none; }
 .fold + .fold { border-top: 2px solid var(--line); }
 .fold-head { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: var(--tap); border: 0; background: none; text-align: left; font-family: var(--display); font-size: var(--heading); font-weight: 600; padding: 0; }
 .fold-body { padding-bottom: var(--s3); }
-/* The family tree (Family.tsx): a drawn node per walker, joined by a line to the next generation's. */
 .alerts { display: flex; flex-direction: column; gap: var(--s2); }
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }

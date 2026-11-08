@@ -1,7 +1,7 @@
 // The game screen: the map with him on it, a compact card on top (where he
 // is, where he goes, his money and level), zoom on the right edge and the
 // menu button at the bottom, in reach of the thumb.
-import type { ComponentChildren, JSX } from "preact";
+import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import { euro } from "../core/money";
@@ -14,6 +14,7 @@ import { dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { settle } from "./snap";
+import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
@@ -92,9 +93,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
               🚶
             </span>
             <div class="grow">
-              <div class="city">
-                <span class="where">{h.city}</span>
-              </div>
+              <div class="city">{h.city}</div>
               <div class="street">{streetLine(h.street)}</div>
             </div>
             <div class="pills">
@@ -171,9 +170,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close}>
-          <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
-            {(m) => <m.StatsSheet stats={s} />}
-          </Lazy>
+          <StatsSheet stats={s} />
         </SheetBox>
       )}
       {sheet === "help" && (
@@ -189,20 +186,6 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {sheet === "reset" && <ResetDialog onCancel={close} onConfirm={onReset} />}
     </div>
   );
-}
-
-/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats). */
-function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
-  const [mod, setMod] = useState<M | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    void load().then(
-      (m) => setMod(() => m),
-      () => setFailed(true),
-    );
-  }, []);
-  if (failed) return <p class="tone-error">Couldn't load {what}. Check your connection and try again.</p>;
-  return mod ? children(mod) : <p class="dim">Loading…</p>;
 }
 
 function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {

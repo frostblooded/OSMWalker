@@ -61,7 +61,7 @@ export function doing(g: Game): string {
   return `heading for ${w.place?.name ?? "a random spot"} ${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (walked ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
 }
 
-/** His face, the bubble with the kind of place he heads for, and the pop after a reward. */
+/** The bubble with the kind of place he heads for, and the pop after a reward. */
 export function look(g: Game): Looks.Look {
   return Looks.look(g.walker!.place, g.pose());
 }

@@ -21,7 +21,7 @@ export class Loop {
   /** Called after every tick, for the screens. */
   onTick: () => void = () => {};
   private readonly onVisibility = () => (document.hidden ? this.pause() : this.start());
-  private readonly onHide = () => this.game.leave();
+  private readonly onHide = () => this.game.save();
 
   constructor(
     private readonly game: Game,
@@ -41,7 +41,7 @@ export class Loop {
   pause(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    this.game.leave();
+    this.game.save();
   }
 
   /** For good (the game screen closed): pauses and stops listening, so the page showing again can't restart it. */

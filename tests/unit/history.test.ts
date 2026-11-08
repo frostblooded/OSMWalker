@@ -35,7 +35,7 @@ describe("history", () => {
     expect(h.trailPoints()).toBe(2);
   });
 
-  it("a trip breaks the trail", () => {
+  it("a jump breaks the trail", () => {
     h.moveTo(42, 23);
     h.moveTo(42.001, 23);
     h.breakTrail();

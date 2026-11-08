@@ -6,7 +6,7 @@ import type { Game } from "../../src/game/game";
 import type { MapScene } from "../../src/map/scene";
 
 const fakes = () => {
-  const game = { step: vi.fn(), wake: vi.fn(async () => {}), leave: vi.fn() };
+  const game = { step: vi.fn(), save: vi.fn() };
   const scene = { pxPerSec: 0, draw: vi.fn() };
   return { game, scene, loop: new Loop(game as unknown as Game, scene as unknown as MapScene) };
 };
@@ -27,6 +27,6 @@ describe("Loop", () => {
     vi.advanceTimersByTime(1000);
     expect(game.step).not.toHaveBeenCalled();
     dispatchEvent(new Event("pagehide"));
-    expect(game.leave).toHaveBeenCalledTimes(1); // the stop's own save, not the page leaving
+    expect(game.save).toHaveBeenCalledTimes(1); // the stop's own save, not the page leaving
   });
 });

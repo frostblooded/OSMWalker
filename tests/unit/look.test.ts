@@ -6,7 +6,7 @@ describe("look", () => {
   const cafe = { class: "cafe", subclass: "cafe" };
 
   it("walking: the goal's icon in the bubble", () => {
-    expect(look(cafe, null)).toEqual({ face: "🙂", bubble: "☕", pose: null });
+    expect(look(cafe, null)).toEqual({ bubble: "☕", pose: null });
   });
 
   it("no bubble on the way to a random spot", () => {
@@ -14,7 +14,7 @@ describe("look", () => {
   });
 
   it("after a reward the pop takes the bubble's place", () => {
-    expect(look(cafe, MONEY_POSE)).toEqual({ face: "🙂", bubble: "", pose: MONEY_POSE });
+    expect(look(cafe, MONEY_POSE)).toEqual({ bubble: "", pose: MONEY_POSE });
     expect(look(null, XP_POSE).pose).toBe(XP_POSE);
   });
 

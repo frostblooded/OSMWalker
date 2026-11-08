@@ -25,19 +25,17 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   const register = () => {
     navigator.serviceWorker.register("./sw.js").catch(() => undefined);
     // What this first visit fetched without the worker (before it ran, or before it took
-    // control of the page), so it is there offline
-    // too. Once the worker controls the page every request goes through it and nothing
-    // more is sent.
+    // control of the page), so that is there offline too. Once the worker controls the
+    // page every request goes through it and nothing more is sent.
     void navigator.serviceWorker.ready.then((reg) => {
       const missed = (list: PerformanceEntryList) => (list as PerformanceResourceTiming[]).filter((e) => !e.workerStart).map((e) => e.name);
       const send = (urls: string[]) => urls.length && reg.active?.postMessage({ cache: urls });
       send([new URL("./", location.href).href, ...missed(performance.getEntriesByType("resource"))]);
       new PerformanceObserver((list) => send(missed(list.getEntries()))).observe({ type: "resource" });
-      // The code that loads only when needed (Help and the Stats sheet) is fetched now too,
-      // so the worker keeps it for offline play after every deploy.
+      // Help, which loads only when needed, is fetched now too, so the worker keeps it
+      // for offline play after every deploy.
       void import("./ui/help").catch(() => undefined);
       void fetch(HELP_URL).catch(() => undefined);
-      void import("./ui/StatsSheet").catch(() => undefined);
     });
   };
   addEventListener("load", () => whenIdle(register));

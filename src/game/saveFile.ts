@@ -96,15 +96,17 @@ export class SaveFile {
       const walker = Walker.fromJSON(d.walker);
       if (walker.fromNode === null || !walker.graph.hasNode(walker.fromNode)) return "The saved game had no spot for him; starting over";
       walker.bounds ??= cityBounds(d.origin[0], d.origin[1]);
-      // An old save on a ride to another city: he is put in that city (see Walker.fromJSON).
+      // An old save on a ride: he is put where it was going (see Walker.fromJSON), so the trail breaks there.
       const to = d.walker.travel?.to;
+      const stats = Stats.fromJSON(d.stats);
+      if (d.walker.travel || d.walker.flight) stats.history.breakTrail();
       return {
         city: to?.name ?? d.city,
         origin: to ? [to.lat, to.lon] : d.origin,
         zoom: d.zoom || DEFAULT_ZOOM,
         walker,
         // Stats.fromJSON keeps what this version has and drops the rest (an old save's needs, gear, quests and so on).
-        stats: Stats.fromJSON(d.stats),
+        stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
       };
     } catch {

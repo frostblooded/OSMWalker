@@ -1,5 +1,5 @@
 // What the map shows and where its camera points. Each tick it puts him (his
-// face, bubble and pose), his goal pin, his trail, the route line and the
+// bubble and pop), his goal pin, his trail, the route line and the
 // city area on the map, sending a layer to MapLibre only when it changed.
 // The camera follows him; a tap on the goal chip shows him and his goal
 // until he picks a new one; History fits his trail above its sheet. The map
@@ -20,7 +20,7 @@ export interface MapPort {
   /** Told when the player drags the map. */
   onUserMove: () => void;
   setHim(at: LatLon, walking: boolean, glideMs: number): void;
-  /** His face, the bubble over his head and his pose. */
+  /** The bubble over his head and his pop. */
   setLook(l: Look): void;
   setGoal(at: LatLon | null): void;
   showTrail(on: boolean): void;

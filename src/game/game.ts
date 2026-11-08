@@ -36,8 +36,6 @@ export type GameDeps = {
   load: LoadFn;
   storage?: KV | null;
   rng?: Rng;
-  /** Unix ms now; tests move it on. */
-  clock?: () => number;
 };
 
 /** The places worth heading for: those that give him something. */
@@ -91,11 +89,6 @@ export class Game {
   changed(): void {
     this.version++;
     for (const fn of this.listeners) fn();
-  }
-
-  /** Unix ms now, by the game's clock. */
-  now(): number {
-    return this.deps.clock?.() ?? Date.now();
   }
 
   search(text: string): Promise<SearchPlace[] | null> {
@@ -214,7 +207,7 @@ export class Game {
   debugNewGoal(): void {
     if (!this.walker) return;
     this.forced = "goal";
-    this.walker.forceNewGoal();
+    this.walker.pickGoal();
     this.forced = "";
   }
 
@@ -271,11 +264,6 @@ export class Game {
     this.origin = d.origin;
     this.changed();
     return true;
-  }
-
-  /** The page is hidden or closed: the game saves, and time stops until it shows again. */
-  leave(): void {
-    this.save();
   }
 
   private loadSettings(): void {
@@ -347,10 +335,4 @@ export class Game {
     return out;
   }
 
-  /** True once every street cell around him is loaded. */
-  areaLoaded(): boolean {
-    const w = this.walker!;
-    const here = w.position();
-    return cellsByPriority(here[0], here[1], STREET_RING).every((c) => w.graph.cells.has(cellKey(c)));
-  }
 }

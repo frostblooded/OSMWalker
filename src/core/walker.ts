@@ -35,7 +35,10 @@ export interface WalkerEvents {
 }
 
 /** Longest a walk to one goal may take before he gives up (it may be across water or behind a fence). */
-export const tripLimitM = (straightM: number) => 2.5 * straightM + 2000;
+/** He gives up once a walk passes TRIP_RATIO times the straight line plus TRIP_EXTRA_M. */
+export const TRIP_RATIO = 2.5;
+export const TRIP_EXTRA_M = 2000;
+export const tripLimitM = (straightM: number) => TRIP_RATIO * straightM + TRIP_EXTRA_M;
 
 /** Where destinations are picked: the searched place's box, grown or shrunk so it is never tiny and never a whole country. */
 export function cityBounds(lat: number, lon: number, box?: BBox | null): BBox {
@@ -151,10 +154,6 @@ export class Walker {
   }
 
   /** Debug: drops the goal and picks the next one right away. */
-  forceNewGoal(): void {
-    this.pickGoal();
-  }
-
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
   aim(): LatLon | null {
     if (this.goal) return this.goal;
