@@ -16,7 +16,7 @@ import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
 import { powers, shopFor, upgradeOf } from "../core/upgrades";
-import { cityBounds, Walker, WALK_MPS, type PickInfo } from "../core/walker";
+import { cityBounds, LONE_NODE, Walker, WALK_MPS, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -286,7 +286,10 @@ export class Game {
   /** The metro takes him to the street nearest `to`, a far part of the city, and the trail breaks there. */
   private rideMetro(to: Place): void {
     const w = this.walker!;
-    const node = w.graph.nearestNode(to.lat, to.lon);
+    // Streets there not loaded (a reload or a fresh map dropped them): he stands right there and waits for them.
+    const loaded = w.graph.cells.has(cellKey(cellOf(to.lat, to.lon)));
+    if (!loaded) w.graph.nodes.set(LONE_NODE, [to.lat, to.lon]);
+    const node = loaded ? w.graph.nearestNode(to.lat, to.lon) : LONE_NODE;
     if (node === null) return this.stats.say(`The metro doesn't go to ${to.name} today`);
     w.startAt(node);
     w.legFrom = null; // no heading along the ride

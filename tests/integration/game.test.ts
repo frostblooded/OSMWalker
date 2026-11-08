@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { offerFor } from "../../src/core/cards";
 import { distanceM } from "../../src/core/geo";
-import { cellKey } from "../../src/core/graph";
+import { cellKey, cellOf } from "../../src/core/graph";
 import { MONEY_POSE, XP_POSE } from "../../src/core/look";
 import { NEW_PLACE_XP } from "../../src/core/places";
 import type { Place } from "../../src/core/stats";
@@ -313,6 +313,26 @@ describe("upgrades", () => {
     const here = g.walker!.position();
     expect(distanceM(here[0], here[1], far.lat, far.lon)).toBeLessThan(300);
     expect(g.stats.history.latest()).toBe("Rode the metro to Far Park");
+  });
+
+  it("rides the metro to a far side whose streets aren't loaded, and waits there for them", async () => {
+    const { g } = game({ places: [CAFE, PARK, STATION] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const far: Place = { ...PARK, name: "Far Park", lat: 42.69, lon: 23.345 };
+    g.walker!.graph.cells.delete(cellKey(cellOf(far.lat, far.lon)));
+    g.choice.offer = [{ ...offerFor(STATION, g.walker!.position(), "metro", true), reward: { cents: 0, xp: 0 }, to: far }];
+    g.pick(0);
+    walk(g);
+    const here = g.walker!.position();
+    expect(distanceM(here[0], here[1], far.lat, far.lon)).toBeLessThan(1);
+    expect(g.walker!.needsData()).toBe(true);
+    for (let i = 0; i < 5; i++) {
+      g.step(1);
+      await tick();
+    }
+    expect(g.walker!.needsData()).toBe(false);
+    const on = g.walker!.position();
+    expect(distanceM(on[0], on[1], far.lat, far.lon)).toBeLessThan(300);
   });
 
   it("takes the train to another city, keeping all he has, or stays", async () => {
