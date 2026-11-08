@@ -96,6 +96,7 @@ describe("save file", () => {
       delete d.choice;
     }) as Saved;
     expect(back.choice.offer).toEqual([]);
+    expect(back.choice.noShop).toBe(false);
     expect(back.stats.cents).toBe(0);
     expect(back.stats).toMatchObject({ xp: 50, level: 2 });
     expect(back.stats.visited.size).toBe(1);
