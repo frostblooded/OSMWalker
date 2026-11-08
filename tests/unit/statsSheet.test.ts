@@ -26,7 +26,7 @@ describe("Stats sheet", () => {
     expect(text).toContain("📍 Places visited1");
   });
 
-  it("shows the next upgrade with what it waits on, and the ladder: owned open, later closed", () => {
+  it("shows the next upgrade with what it waits on, and the rest of the ladder in closed groups", () => {
     const s = new Stats();
     s.upgrades.add("map");
     s.level = LADDER[1]!.level;
@@ -35,10 +35,10 @@ describe("Stats sheet", () => {
     expect(text).toContain(`Next: Bike${euro(LADDER[1]!.cents)}`);
     expect(text).toContain(`💶 Still needs${euro(LADDER[1]!.cents - 500)}`);
     s.cents = LADDER[1]!.cents;
-    expect(shown(s)).toContain("🛍 Sold ata bike shop");
+    expect(shown(s)).toContain("✔ ReadyLook for its shop");
+    expect(shown(s)).toContain("Sold at a bike shop.");
     expect(text).toContain("Upgrades1 / 7");
-    expect(text).toContain("✓ Owned (1) ▾");
-    expect(text).toContain("🗺 City map✓");
+    expect(text).toContain("✓ Owned (1) ▸");
     expect(text).toContain("🔒 Later (5) ▸");
     expect(text).not.toContain("Guidebook");
   });

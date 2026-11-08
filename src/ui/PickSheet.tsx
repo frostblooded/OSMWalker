@@ -5,7 +5,7 @@
 import type { Offer } from "../core/cards";
 import type { Stats } from "../core/stats";
 import { cardText, dist, walkTime } from "./format";
-import { NextUpgrade } from "./StatsSheet";
+import { NextUpgrade } from "./NextUpgrade";
 
 export function PickSheet({ offer, mps, stats, onPick }: { offer: Offer[]; mps: number; stats: Stats; onPick: (i: number) => void }) {
   return (

@@ -1,10 +1,11 @@
 // His character sheet: his level with a bar to the next one, his money and
 // how many places he has been to; the next upgrade with what it still waits
-// on; and the rest of the ladder, owned and later, in groups that open.
+// on; and the rest of the ladder, owned and later, in groups that open on a tap.
 import { euro } from "../core/money";
 import { xpToNext, type Stats } from "../core/stats";
 import { LADDER, nextUpgrade, type Upgrade } from "../core/upgrades";
 import { Bar, Card, Collapsible, KV } from "./kit";
+import { about, NextUpgrade } from "./NextUpgrade";
 
 export function StatsSheet({ stats: s }: { stats: Stats }) {
   const need = xpToNext(s.level);
@@ -22,9 +23,9 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
       <NextUpgrade stats={s} />
       <Card icon="🧰" title="Upgrades" right={`${owned.length} / ${LADDER.length}`}>
         {owned.length > 0 && (
-          <Collapsible title={`✓ Owned (${owned.length})`} open>
+          <Collapsible title={`✓ Owned (${owned.length})`}>
             {owned.map((u) => (
-              <Step key={u.id} u={u} v="✓" />
+              <Step key={u.id} u={u} v="✓" ok />
             ))}
           </Collapsible>
         )}
@@ -41,28 +42,12 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** One step of the ladder: its name and value, and what it does under it. */
-function Step({ u, v }: { u: Upgrade; v: string }) {
+/** One step of the ladder: its name and value, and what it does and where it is sold under it. */
+function Step({ u, v, ok }: { u: Upgrade; v: string; ok?: boolean }) {
   return (
     <div class="upgrade">
-      <KV k={`${u.icon} ${u.name}`} v={v} />
-      <p class="dim">{u.does[0]!.toUpperCase() + u.does.slice(1)}.</p>
+      <KV k={`${u.icon} ${u.name}`} v={v} tone={ok ? "ok" : undefined} />
+      <p class="dim">{about(u)}</p>
     </div>
-  );
-}
-
-/** The next upgrade: its price, what it does, where it is sold and what it still waits on, with a bar for that. Nothing at the top of the ladder. */
-export function NextUpgrade({ stats: s }: { stats: Pick<Stats, "upgrades" | "level" | "cents" | "xp"> }) {
-  const u = nextUpgrade(s.upgrades);
-  if (!u) return null;
-  const open = s.level >= u.level;
-  // What it still waits on: its level, then the money; then only a shop to turn up.
-  const [k, v] = !open ? ["🔒 Opens at", `Level ${u.level}`] : s.cents < u.cents ? ["💶 Still needs", euro(u.cents - s.cents)] : ["🛍 Sold at", u.where];
-  return (
-    <Card icon={u.icon} title={`Next: ${u.name}`} right={euro(u.cents)}>
-      <p class="dim next-does">{u.does[0]!.toUpperCase() + u.does.slice(1)}.</p>
-      <KV k={k} v={v} />
-      {open ? <Bar share={s.cents / u.cents} color="var(--coin)" /> : u.level === s.level + 1 && <Bar share={s.xp / xpToNext(s.level)} color="var(--lilac)" />}
-    </Card>
   );
 }
