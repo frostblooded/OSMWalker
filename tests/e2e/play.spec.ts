@@ -1,6 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
-import { mockServices } from "./mock";
+import { mockServices, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -34,6 +34,20 @@ test("picks a city, then a place from the cards, and walks there", async ({ page
   await expect(page.locator(".chip")).toContainText(`Going to ${name.replace(/^\S+ /, "")}`, { timeout: 10000 });
   await page.screenshot({ path: "test-results/game.png" });
   expect(errors).toEqual([]);
+});
+
+test("at a station with a train ticket, takes the train to the city you pick, keeping his money", async ({ page }) => {
+  await startInSofia(page);
+  await reopenWith(page, "Object.assign(d.walker, { goal: null, goal_node: null, place: null, route: [], route_arrives: false }); d.choice.offer = []; d.choice.train = true; d.stats.cents = 4321;");
+  await expect(page.locator(".hud")).toContainText("He waits at the station", { timeout: 20000 });
+  await page.getByRole("button", { name: /Where to by train/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Where to by train/ });
+  await sheet.getByLabel("City name").fill("Sofia");
+  await sheet.locator(".results button").first().click();
+  await expect(sheet).toBeHidden({ timeout: 20000 });
+  await expect(page.locator(".toast")).toContainText("Took the train to Sofia");
+  await expect(page.locator(".pill.coins")).toHaveText("€43.21");
+  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
 });
 
 test("picks up where he was after a reload", async ({ page }) => {

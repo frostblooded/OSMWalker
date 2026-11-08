@@ -66,18 +66,18 @@ Money is shown in euros on the top card. He earns it at work places, more the fa
 ## XP and levels {xp}
 He gains XP from sights and green spaces, and {NEW_PLACE_XP} XP the first time he reaches any place (see Places and rewards).
 
-Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed. Some levels open the shop for an upgrade, and the feed says which: "Reached level 3: a bike shop now sells a 🚲 Bike".
+Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed. Some levels open the shop for an upgrade, and the feed says which: "Reached level 3: a bike shop now sells a 🚲 Bike (€25)", when it is the next one to buy.
 ## Upgrades {upgrades}
 There are {LADDER_SIZE} upgrades, bought in this order:
 {LADDER}
 
 Each upgrade opens at its level. Once he has the money too, a shop selling it turns up among the cards, with a gold tint and its price. He buys it when he gets there, and it works from the very next cards. A shop of its own kind is used when one is near; otherwise any shop sells it (but only a station sells the metro pass and the train ticket), as far as {SHOP_REACH_KM} km away. The Stats sheet lists them all.
 
-📕 Guidebook: one card is a sight he has never been to, for {GUIDE_XP_X} times its XP.
+📕 Guidebook: one card is a sight he has never been to, for {GUIDE_XP_X} times its XP (and the first-visit bonus on top).
 
 📦 Parcels: he picks the parcel up at a work place close by, then goes on by himself to the drop-off, a work place farther off, and is paid there: {PARCEL_PAY_X} times what the walk from pick-up to drop-off would pay. The card shows both places, and its distance and time count both walks.
 
-🚇 Metro: he goes to a station near him and rides to a far part of the city, at least {METRO_MIN_KM} km away, with fresh places around. The ride takes no time and pays nothing by itself; the card says where it goes.
+🚇 Metro: he goes to a station near him and rides to a far part of the city, at least {METRO_MIN_KM} km away, with fresh places around. The ride takes no time and pays nothing by itself (a station he has never been to gives the first-visit bonus, like shops do); the card says where it goes.
 
 🚆 Train: he goes to a station near him, and there you pick any town or city, as when you started. He keeps his money, level, upgrades and places, and History shows the trip. "Stay in …" keeps him where he is and deals new cards. If the streets there can't load, he stays at the station and you can try again.
 # 📱 Screens and buttons

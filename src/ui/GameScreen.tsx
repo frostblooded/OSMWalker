@@ -213,7 +213,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         </SheetBox>
       )}
       {sheet === "train" && boarding && (
-        <SheetBox title="🚆 Where to by train?" onClose={close} full>
+        <SheetBox title="🚆 Where to by train?" onClose={() => !trainMsg?.busy && close()} full>
           <Picker search={(t) => game.search(t)} choose={(p) => void travel(p)} message={trainMsg} title="" lead="Type a town or city. He keeps his money, level and upgrades." />
           <button
             class="btn stay"

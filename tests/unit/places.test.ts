@@ -39,14 +39,17 @@ describe("rewards", () => {
 });
 
 describe("levels", () => {
-  it("carry extra XP over several levels at once, each said in the feed with the shop it opens", () => {
+  it("carry extra XP over several levels at once, each said in the feed with the shop it opens for the next upgrade", () => {
     const s = new Stats();
     s.addXp(xpToNext(1) + xpToNext(2) + 5);
     expect(s.level).toBe(3);
     expect(s.xp).toBe(5);
-    expect(s.history.entries.map((e) => e.text)).toEqual([`Reached level 2: a bookshop or newsagent now sells a 🗺 City map (${euro(LADDER[0]!.cents)})`, `Reached level 3: a bike shop now sells a 🚲 Bike (${euro(LADDER[1]!.cents)})`]);
-    s.addXp(xpToNext(3) + xpToNext(4) + xpToNext(5));
-    expect(s.history.latest()).toBe("Reached level 6");
+    // No City map yet, so the bike shop isn't named: upgrades are bought in order.
+    expect(s.history.entries.map((e) => e.text)).toEqual([`Reached level 2: a bookshop or newsagent now sells a 🗺 City map (${euro(LADDER[0]!.cents)})`, "Reached level 3"]);
+    const t = new Stats();
+    t.upgrades.add("map");
+    t.addXp(xpToNext(1) + xpToNext(2));
+    expect(t.history.latest()).toBe(`Reached level 3: a bike shop now sells a 🚲 Bike (${euro(LADDER[1]!.cents)})`);
   });
 
   it("are not reached a point short", () => {

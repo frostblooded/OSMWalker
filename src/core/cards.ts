@@ -71,15 +71,6 @@ export function offerFor(place: Place, here: LatLon, slot: Slot, isNew: boolean)
 
 type Option = { p: Place; d: number };
 
-/** The first of `tries` that finds something. */
-function firstOf<T>(tries: (() => T | undefined)[]): T | undefined {
-  for (const t of tries) {
-    const v = t();
-    if (v) return v;
-  }
-  return undefined;
-}
-
 const between = (a: Place, b: Place) => distanceM(a.lat, a.lon, b.lat, b.lon);
 
 /** Deals up to CARDS cards (more with the City map) from `places` around `here`, nearest first; none when no place gives anything. */
@@ -109,6 +100,11 @@ export function deal(places: readonly Place[], here: LatLon, ctx: DealCtx): Offe
   // Notable places (rank 1 is the top of its tile) turn up more often.
   const pick = (list: Option[]) => (list.length ? list[pickIndex(list.map((o) => 1 / Math.max(Math.trunc(o.p.rank ?? 1), 1)), ctx.rng.randf())] : undefined);
   const fresh = (list: Option[]) => list.filter((o) => ctx.isNew(o.p));
+  /** A shop or station card: it pays nothing itself, only the first-visit bonus. */
+  const stop = (p: Place, slot: Slot): Offer => {
+    const isNew = ctx.isNew(p);
+    return { ...offerFor(p, here, slot, isNew), reward: { cents: 0, xp: isNew ? NEW_PLACE_XP : 0 } };
+  };
   const nearest = (match: (p: Place) => boolean, within: number) => all.find((o) => o.d <= within && match(o.p) && !used.has(visitKey(o.p)));
 
   take(card(pick(left.filter((o) => o.d <= CLOSE_MAX_M * pw.reachX)) ?? left[0], "close"));
@@ -120,14 +116,14 @@ export function deal(places: readonly Place[], here: LatLon, ctx: DealCtx): Offe
   if (shop) {
     // Its own kind of shop when one is fairly near, else the nearest that sells it.
     const nearM = FAR_MIN_M * pw.reachX;
-    const o = firstOf(shop.sellers.map((m) => () => nearest(m, nearM))) ?? firstOf(shop.sellers.map((m) => () => nearest(m, Math.max(reach, SHOP_REACH_M))));
-    if (o) take({ ...offerFor(o.p, here, "shop", ctx.isNew(o.p)), reward: { cents: 0, xp: 0 }, upgrade: shop.id });
+    const o = [nearM, Math.max(reach, SHOP_REACH_M)].flatMap((r) => shop.sellers.map((m) => nearest(m, r))).find(Boolean);
+    if (o) take({ ...stop(o.p, "shop"), upgrade: shop.id });
   }
   const extras: (() => Offer | null)[] = [];
   if (pw.guide)
     extras.push(() => {
       const c = card(pick(fresh(left.filter((o) => kindOf(o.p) === "sight"))), "guide");
-      return c && { ...c, reward: { cents: 0, xp: c.reward.xp * GUIDE_XP_X } };
+      return c && { ...c, reward: { cents: 0, xp: (c.reward.xp - NEW_PLACE_XP) * GUIDE_XP_X + NEW_PLACE_XP } };
     });
   if (pw.parcels) extras.push(() => parcel(left, pw, ctx, pick));
   if (pw.metro)
@@ -135,12 +131,12 @@ export function deal(places: readonly Place[], here: LatLon, ctx: DealCtx): Offe
       const st = nearest(isMetroStation, reach);
       const far = pool.filter((o) => o.d >= METRO_MIN_M);
       const to = pick(fresh(far)) ?? pick(far);
-      return st && to ? { ...offerFor(st.p, here, "metro", ctx.isNew(st.p)), reward: { cents: 0, xp: 0 }, to: to.p } : null;
+      return st && to ? { ...stop(st.p, "metro"), to: to.p } : null;
     });
   if (pw.train)
     extras.push(() => {
       const st = nearest(isTrainStation, reach);
-      return st ? { ...offerFor(st.p, here, "train", ctx.isNew(st.p)), reward: { cents: 0, xp: 0 } } : null;
+      return st ? stop(st.p, "train") : null;
     });
   while (extras.length && cards.length < pw.cards) take(extras.splice(Math.floor(ctx.rng.randf() * extras.length), 1)[0]!());
 

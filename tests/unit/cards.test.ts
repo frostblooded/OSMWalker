@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../../src/core/cards";
+import { NEW_PLACE_XP } from "../../src/core/places";
 import { moved } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
 import { visitKey, type Place } from "../../src/core/stats";
@@ -107,7 +108,8 @@ describe("cards from upgrades", () => {
     for (let s = 0; s < 10; s++) {
       const guide = C.deal(CITY, HERE, up(["map", "bike", "guide"], s, fresh)).find((c) => c.slot === "guide")!;
       expect(guide.place.name).toBe("Museum 600");
-      expect(guide.reward.xp).toBe(C.offerFor(guide.place, HERE, "guide", true).reward.xp * GUIDE_XP_X);
+      // The sight's own XP doubles; the first-visit bonus doesn't.
+      expect(guide.reward.xp).toBe(C.offerFor(guide.place, HERE, "guide", false).reward.xp * GUIDE_XP_X + NEW_PLACE_XP);
     }
   });
 

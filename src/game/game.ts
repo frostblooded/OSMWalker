@@ -11,7 +11,7 @@ import { DebugLog, type Entry } from "../core/debugLog";
 import type { BBox, LatLon } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { MONEY_POSE, XP_POSE, type Pose } from "../core/look";
-import { kindOf, rewardOf } from "../core/places";
+import { kindOf, NEW_PLACE_XP, rewardOf } from "../core/places";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
@@ -135,6 +135,8 @@ export class Game {
     const old = this.walker;
     this.boarding = true;
     const w = await this.land(name, lat, lon, bbox, onWait);
+    // New city while the streets loaded: that game wins.
+    if (this.walker !== old || !this.boarding) return "";
     this.boarding = false;
     if (typeof w === "string") {
       if (old) this.loader.setGraph(old.graph);
@@ -155,6 +157,7 @@ export class Game {
   /** He steps off the train idea and stays: new cards are dealt where he stands. */
   stayHere(): void {
     this.choice.train = false;
+    this.save();
     this.changed();
   }
 
@@ -247,10 +250,11 @@ export class Game {
     this.choice.going = null;
     // A parcel is paid at its drop-off, where he goes next.
     if (card?.slot === "parcel" && card.to) {
-      this.stats.reach(place, { cents: 0, xp: 0 });
+      this.stats.reach(place, { cents: 0, xp: this.stats.isNew(place) ? NEW_PLACE_XP : 0 });
       this.stats.say(`Picked up a parcel for ${card.to.name}`);
       this.choice.going = { ...card, place: card.to, to: undefined };
       this.walker!.goTo(card.to);
+      this.save();
       return this.changed();
     }
     this.stats.reach(place, r);
@@ -273,6 +277,7 @@ export class Game {
     const node = w.graph.nearestNode(to.lat, to.lon);
     if (node === null) return this.stats.say(`The metro doesn't go to ${to.name} today`);
     w.startAt(node);
+    w.legFrom = null; // no heading along the ride
     this.stats.history.breakTrail();
     this.track();
     this.stats.say(`Rode the metro to ${to.name}`);
@@ -354,6 +359,7 @@ export class Game {
   /** New city: wipes the save but keeps the settings. */
   reset(): void {
     this.walker = null;
+    this.boarding = false;
     this.stats = new Stats();
     this.debugLog = new DebugLog();
     this.choice = new Choice();

@@ -37,14 +37,14 @@ export function cardText(o: Offer): { name: string; gets: string } {
   return { name: at, gets: rewardText(o.reward) };
 }
 
-/** What the next upgrade needs: "🚲 Bike €80 at a bike shop, from level 3", or "" at the top of the ladder. */
+/** What the next upgrade needs: "🚲 Bike €25 at a bike shop, from level 3", or "" at the top of the ladder. */
 export function nextText(s: Pick<Stats, "upgrades" | "level" | "cents">): string {
   const u = nextUpgrade(s.upgrades);
   if (!u) return "";
   const what = `${u.icon} ${u.name} ${euro(u.cents)} at ${u.where}`;
   if (s.level < u.level) return `${what}, from level ${u.level}`;
   if (s.cents < u.cents) return `${what}: ${euro(u.cents - s.cents)} to go`;
-  return `${what}: on your cards`;
+  return `${what}: you have the money`;
 }
 
 export function streetLine(street: string): string {

@@ -57,7 +57,7 @@ describe("cards and the ladder", () => {
     s.cents = 100;
     expect(F.nextText(s)).toBe(`🗺 City map ${euro(map.cents)} at a bookshop or newsagent: ${euro(map.cents - 100)} to go`);
     s.cents = map.cents;
-    expect(F.nextText(s)).toMatch(/: on your cards$/);
+    expect(F.nextText(s)).toMatch(/: you have the money$/);
     for (const u of LADDER) s.upgrades.add(u.id);
     expect(F.nextText(s)).toBe("");
   });

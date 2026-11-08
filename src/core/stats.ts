@@ -4,7 +4,7 @@
 import { History } from "./history";
 import { euro } from "./money";
 import type { Reward } from "./places";
-import { LADDER, opensAt, type Upgrade, type UpgradeId } from "./upgrades";
+import { LADDER, nextUpgrade, opensAt, type Upgrade, type UpgradeId } from "./upgrades";
 
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -55,7 +55,9 @@ export class Stats {
       this.xp -= xpToNext(this.level);
       this.level++;
       const u = opensAt(this.level);
-      this.say(u ? `Reached level ${this.level}: ${u.where} now sells a ${u.icon} ${u.name} (${euro(u.cents)})` : `Reached level ${this.level}`);
+      // Named only when it is the next to buy: upgrades are bought in order.
+      const open = u && u === nextUpgrade(this.upgrades) ? u : undefined;
+      this.say(open ? `Reached level ${this.level}: ${open.where} now sells a ${open.icon} ${open.name} (${euro(open.cents)})` : `Reached level ${this.level}`);
     }
   }
 
