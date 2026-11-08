@@ -15,8 +15,8 @@ export function docsOnly(files: string[]): boolean {
   return files.every((f) => f.endsWith(".md") || f.startsWith("docs/"));
 }
 
-// The perf run mostly waits on a throttled page, so it runs beside the e2e tests: verify about
-// 75 s instead of 2 min, with timings still far inside their budgets.
+// The perf run mostly waits on a throttled page, so it runs beside the e2e tests (verify about
+// 70 s instead of 2 min). E2e then leaves it a core, so a busy machine adds no long task.
 const FULL = [["lint", "typecheck", "test", "build"], ["e2e", "perf"]];
 
 /**
@@ -102,7 +102,8 @@ async function verify(): Promise<boolean> {
   const groups = scope(changedSinceVerified());
   if (groups !== FULL) console.log(`Only tests changed since the last verify: running ${groups.flat().join(", ")}.`);
   for (const group of groups) {
-    if (!(await run(group.map((s) => [s])))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
+    const args = (s: string) => (s === "e2e" && group.includes("perf") ? [s, "--workers=75%"] : [s]);
+    if (!(await run(group.map(args)))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
   }
   stamp("verified", tree);
   stamp("checked", tree);
