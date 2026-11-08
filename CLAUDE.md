@@ -6,8 +6,8 @@ A tamagotchi-like game played in mobile browsers: a little character walks real 
 
 These mirror the Claude project instructions. Keep both in sync.
 
-- **CLAUDE.md** goes straight to `master`, no PR. **Everything else**: open a PR into `master`, run the review step in `CODING_STANDARDS.md` as a **ponytail review** (user, 2026-10-31: a fresh review agent using the ponytail skill, checking the diff against `CODING_STANDARDS.md` too), and merge by hand once `npm run verify` passed on the branch with the newest `master` merged in. No auto-merge.
-- **Checks run locally, not on GitHub** (user, 2026-10-31): `npm run check` (~25 s) before a branch push, `npm run verify` (~3.5 min: everything incl. e2e and perf) before a merge. The pre-push hook (`.githooks/pre-push`, set up by `npm ci`) refuses unchecked code. Run them yourself with a long Bash timeout before `git push`, so the push is instant. PRs show no CI checks.
+- **CLAUDE.md** goes straight to `master`, no PR. **Everything else**: open a PR into `master`, run the review step in `CODING_STANDARDS.md` as a **ponytail review** (user, 2026-10-31: a fresh review agent following `.claude/skills/ponytail-review/SKILL.md`, checking the diff against `CODING_STANDARDS.md` too, repeated until a round comes back empty; user, 2026-11-08: start it in the background when the PR opens, while `npm run verify` runs), and merge by hand once `npm run verify` passed on the branch with the newest `master` merged in. No auto-merge.
+- **Checks run locally, not on GitHub** (user, 2026-10-31): `npm run check` (~15 s) before a branch push, `npm run verify` (~75 s: everything incl. e2e and perf side by side) before a merge. The pre-push hook (`.githooks/pre-push`, set up by `npm ci`) refuses unchecked code. Run them yourself with a long Bash timeout before `git push`, so the push is instant. PRs show no CI checks.
 - **Deploy**: `.github/workflows/web.yml` only builds and deploys `master`. After each push to `master`, check that it passed. No need to check the live site by hand.
 - **Clarify first**: before acting, grill the user with decision cards (`request_decision`, one per question). Plain-text option lists and HTML widgets can't send answers back.
 - **Tests first** (unit, integration, e2e), and keep the checks fast.
@@ -42,4 +42,4 @@ From the design research report `docs/design-research.md` (user, 2026-11-08). **
 
 - The agent can't change GitHub repo settings (Pages source, environments, branch rules). Ask the user early, with the exact setting and a link to it.
 - reddit.com is blocked from cloud sessions. Ask for the article's own link.
-- Cloud sessions have Chromium under `/opt/pw-browsers`; `npm run verify` finds it. For `npm run e2e` alone, point `PW_CHROMIUM` at its `chrome-headless-shell`. There is no GPU, so frame rate can't be measured there.
+- Cloud sessions have Chromium under `/opt/pw-browsers`; e2e and perf find it (`tools/chromium.ts`). Layout screenshots only come from `npm run screens` (after a build). There is no GPU, so frame rate can't be measured there.
