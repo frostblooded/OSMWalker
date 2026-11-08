@@ -5,7 +5,6 @@
 // The text's address carries a hash of it, so after a deploy that changes Help
 // the service worker can't hand back the old text.
 import { useEffect, useMemo, useState } from "preact/hooks";
-import type { GameData } from "../game/game";
 import type { Section } from "./help";
 
 type Help = typeof import("./help");
@@ -23,7 +22,7 @@ const fetchText = () => {
   return text;
 };
 
-export function HelpSheet({ data, page, onPage }: { data: GameData; page: string; onPage: (id: string) => void }) {
+export function HelpSheet({ page, onPage }: { page: string; onPage: (id: string) => void }) {
   const [sections, setSections] = useState<Section[] | null>(null);
   const [help, setHelp] = useState<Help | null>(null);
   const [error, setError] = useState("");
@@ -34,10 +33,10 @@ export function HelpSheet({ data, page, onPage }: { data: GameData; page: string
     Promise.all([fetchText(), import("./help")])
       .then(([t, h]) => {
         setHelp(h);
-        setSections(h.build(t, data));
+        setSections(h.build(t));
       })
       .catch(() => setError("Couldn't load Help. Check your connection and try again."));
-  }, [data, tries]);
+  }, [tries]);
 
   if (error) {
     return (

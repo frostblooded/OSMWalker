@@ -1,34 +1,12 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { ActionTable } from "../../src/core/activities";
-import * as CC from "../../src/core/cityCards";
-import * as Collection from "../../src/core/collection";
-import { RARITY, SLOTS } from "../../src/core/items";
-import { CRAWLS } from "../../src/core/keepsakes";
-import { ATTRS, METERS } from "../../src/core/stats";
-import { parseAirports, parseCities } from "../../src/core/trips";
+import { KINDS } from "../../src/core/places";
 import * as Help from "../../src/ui/help";
 import { HELP_URL } from "../../src/ui/HelpSheet";
 import { dataFile } from "../support/data";
 
-const data = {
-  actions: JSON.parse(dataFile("actions.json")) as ActionTable,
-  flavour: JSON.parse(dataFile("flavour.json")) as Record<string, ActionTable>,
-  cities: parseCities(dataFile("cities.tsv")),
-  airports: parseAirports(dataFile("airports.tsv")),
-  dex: JSON.parse(dataFile("placedex.json")) as Record<string, string>,
-  forecasts: JSON.parse(dataFile("forecasts.json")),
-  incidents: JSON.parse(dataFile("incidents.json")),
-  quests: (() => { const b = JSON.parse(dataFile("quests.json")); b.quests.push(...JSON.parse(dataFile("city-quests.json"))); return b; })(),
-  creatures: JSON.parse(dataFile("creatures.json")),
-  spells: JSON.parse(dataFile("spells.json")),
-  moments: JSON.parse(dataFile("moments.json")),
-  borders: JSON.parse(dataFile("borders.json")),
-  words: JSON.parse(dataFile("words.json")),
-  beats: JSON.parse(dataFile("beats.json")),
-};
 const raw = dataFile("help.txt");
-const sections = Help.build(raw, data);
+const sections = Help.build(raw);
 const pages = sections.flatMap((s) => s.pages);
 const page = (id: string) => pages.find((p) => p.id === id)!;
 
@@ -60,43 +38,8 @@ describe("the real help", () => {
     expect(left).toEqual([]);
   });
 
-  it("lists each place creature with its three picks and his own", () => {
-    const body = page("creatures").body;
-    expect(body).toContain("- 🧌 Bridge troll, under bridges: Answer its riddle (+20 XP, +1 Wits for 2 h; if it fails, pays €6, -5 mood); Pay the toll (pays €3, +1 Luck for 2 h)");
-    expect(body).toContain("On his own he picks drink from her hands.");
-  });
-
-  it("lists each spell with its cost and what it does", () => {
-    const body = page("spells").body;
-    expect(body).toContain("- 🍲 Warm soup, 20 Magic: +30 fullness");
-    expect(body).toContain("- 💡 Bright mind, 25 Magic: ×1.2 XP for 1 h");
-  });
-
-  it("names the shops that open after midnight from the data, and the enchanted item's modifier cap", () => {
-    const body = page("midnight_shop").body;
-    expect(body).toContain("those who knock: antiques, second hand.");
-    expect(body).toContain("at most 2 other modifiers");
-  });
-
-  it("lists the quirks' places in plain plurals", () => {
-    const body = page("quirks").body;
-    expect(body).toContain("times at bakeries");
-    expect(body).toContain("times at ice cream parlours");
-  });
-
-  it("takes the nap threshold from the data", () => {
-    expect(Help.values(data).NAP_BELOW).toMatch(/^\d+$/);
-  });
-
-  it("lists every sky event with its odds and mood", () => {
-    const sky = page("sky_events").body;
-    expect(sky).toContain("- 🌝 Full moon: 8% of nights, mood +1 an hour for 3 hours");
-    expect(sky).toContain("- 🌒 Lunar eclipse: 0.5% of nights, mood +3 an hour for 6 hours");
-    expect(sky).toContain("about 17.3% of nights have one");
-  });
-
   it("has no unused values", () => {
-    const unused = Object.keys(Help.values(data)).filter((k) => !raw.includes(`{${k}}`));
+    const unused = Object.keys(Help.values()).filter((k) => !raw.includes(`{${k}}`));
     expect(unused).toEqual([]);
   });
 
@@ -105,83 +48,23 @@ describe("the real help", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has a page for every meter and attribute", () => {
-    for (const k of [...METERS, ...ATTRS]) expect(page(k), k).toBeDefined();
-  });
-
-  it("names every gear slot and rarity", () => {
-    for (const s of SLOTS) expect(page("items").body).toContain(s);
-    for (const r of RARITY) expect(page("modifiers").body).toContain(r);
-  });
-
   it("uses the game's real numbers", () => {
     expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
-    expect(page("speed").body).toContain("bike: 15 km/h");
-    expect(page("trips").body).toMatch(/^- 2.5%: he travels to a city in another country/m);
-    expect(page("trips").body).toMatch(/^- 10%: he travels to another city in the same country/m);
-    expect(page("stations").body).toContain("rides go 10 times faster and never take longer than 15 minutes");
-    expect(page("stations").body).toContain("100 km by bus takes about 8 minutes, and 300 km by bus about 15.");
-    expect(page("fares").body).toContain("300 km by bus costs about €31.20");
-    expect(page("coins").body).toContain("He starts with €200.");
-    expect(page("fainting").body).toContain("Waking up costs €60, but never more than 50% of his money.");
-    expect(page("wages").body).toContain("10% more for every rank above 1 in the job's career");
-    expect(page("wages").body).toContain("pays 1.2 times its listed wage at rank 3, and 1.4 times at the top rank");
-    expect(page("careers").body).toContain("There are 9 careers, each with 5 ranks:");
-    expect(page("careers").body).toMatch(/^- ☕ Café \(cafe, bakery\): Dishwasher, Barista, Head barista, Café manager, Café owner$/m);
-    expect(page("careers").body).toContain("rank 2 after 1 shift in a career, rank 3 after 12 shifts, rank 4 after 60 and the top rank after 150");
-    expect(page("careers").body).toContain('such as "Run the morning rush" for a Head barista. It lists 1.25x, 1.5x, 1.8x, 2.2x the career\'s base wage at ranks 2 to 5, and gets the rank pay above on top');
-    expect(page("careers").body).toContain("its jobs weigh 1.5 times as much");
-    expect(page("careers").body).toContain("- 🔧 Transport (bicycle, parking, fuel, car, harbor, ferry terminal):");
-    expect(page("needs").body).toContain("- Career rank: a rank's own shift needs exactly that rank");
-    expect(page("sheet").body).toContain("- Careers: each career he has worked in");
-    expect(page("choosing").body).toContain("- A job in his best career: x1.5 (see Careers).");
-    expect(page("wages").body).toContain("with charm 10 it pays 20% more");
-    expect(page("saving").body).toContain("on foot, a Bike for €150");
-    expect(page("cards").body).toContain("0.5% of cards are Gold and 5% are Foil");
-    expect(page("placedex").body).toContain("Legendary: +200 XP");
-    expect(page("citycards").body).toContain("He also buys packs at kiosks, newsagents and gift shops: \"Buy a city card pack\" costs €5.");
-    // "the biggest: Rare" is written for RARE_UP_TO = 1.
-    expect(CC.RARE_UP_TO).toBe(1);
-    expect(page("citycards").body).toContain("- the biggest: Rare,");
-    expect(page("cha").body).toContain("A finished city card set adds 1 while he is in that country");
-    expect(page("xp").body).toContain("He also gets a free pack of city cards");
-    expect(page("citycards").body).toContain("Rare 5% of the time, Uncommon 25% and Common 70%");
-    expect(page("citycards").body).toContain("he gets Charm +1 while he is in that country");
-    expect(page("placedex").body).toContain("It knows 330 kinds, bridges among them");
-    expect(page("souvenirs").body).toContain("there is a 30% chance he finds it there");
-    expect(page("souvenirs").body).toContain("every 5 souvenirs make his fares 2% cheaper, up to 10%");
-    expect(page("crawls").body).toMatch(/^- ☕ Coffee crawl: 4 different cafes or coffee shops in a day, then \+2 energy at each one he visits,$/m);
-    expect(page("stories").body).toContain("worn through 3 or more countries");
-    expect(page("saving").body).toContain("on a scooter or motorbike, a Hatchback for €7,500");
-    expect(page("modifiers").body).toContain("Common, no modifiers: 60% of items");
-    expect(page("map").body).toContain("more than 20% of the view away from the middle");
-    expect(page("menu").body).toContain("Camera follows him");
-    expect(page("map").body).toContain("ⓘ");
-    expect(page("away").body).toContain("at least 1 minute");
-    expect(page("away").body).toContain("divided by 9");
-    expect(page("away").body).toContain("8 hours away give 53 min of 10× speed");
-    expect(page("offline").body).toContain("Welcome back and the boost");
-    expect(page("postcards").body).toContain("up to 24 letters");
-    expect(page("moments").body).toContain("5 seconds at first");
-    expect(page("moments").body).toContain("(3, 5, 10, 20 seconds, or Off; remembered)");
-    expect(page("moments").body).toMatch(/\(\d+ kinds of places, \d+ of them with a mini-game/);
-    expect(page("moments").body).toContain("work 50% of the time, plus 5% for each point of Luck above 1, up to 90%");
-    expect(page("minigames").body).toContain("tap 12 times");
-    expect(page("care").body).toContain("after at least 1 hour away earns 1 ☘ clover");
-    expect(page("care").body).toMatch(/^- 📖 City guide, 2 ☘: \+2 Wits for 4 h$/m);
+    const places = page("places").body;
+    expect(places).toContain("- 💶 work places pay €3 a visit: cafe, bakery, restaurant, fast food,");
+    expect(places).toContain("- ⭐ sights give 30 XP: attraction, museum,");
+    expect(places).toContain("- 🌳 green spaces give 15 XP: park, garden, playground, picnic site, dog park.");
+    expect(places).toContain("he gets 20 XP on top");
+    expect(page("xp").body).toContain("100 XP from level 1 to 2, 200 XP from 2 to 3, 1000 XP from 10 to 11");
   });
 
-  it("lists every feat with its tiers and title", () => {
-    for (const f of Collection.FEATS) expect(page("badges").body, f.id).toContain(`${f.icon} ${f.name}: `);
-    expect(page("badges").body).toMatch(/^- 🌍 Passport stamps: 3, 10 and 30 countries visited; Gold gives the title Globetrotter,$/m);
-  });
-
-  it("words every crawl's kinds", () => {
-    for (const c of CRAWLS) expect(Collection.CRAWL_KINDS[c.id], c.id).toBeTruthy();
+  it("names every rewarding kind of place", () => {
+    const body = page("places").body;
+    for (const c of Object.values(KINDS).flat()) expect(body, c).toContain(c.replace(/_/g, " "));
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "diary", "collection", "care", "postcards", "sheet", "history", "explored", "debug", "new_city", "help", "map", "screen", "stages", "retire", "family"]) expect(page(id), id).toBeDefined();
+    for (const id of ["menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
   });
 });
 
@@ -222,6 +105,11 @@ describe("search", () => {
     expect(hit!.snip).toEqual(["", "Cafés", " are goals."]);
   });
 
+  it("marks the right letters after an emoji", () => {
+    const [hit] = Help.search(Help.parse("# A\n## B {b}\nHe is 🙂 and saves battery."), "battery");
+    expect(hit!.snip[1]).toBe("battery");
+  });
+
   it("cuts long lines around the match", () => {
     const long = Help.parse(`# A\n## B {b}\n${"x ".repeat(60)}needle${" y".repeat(60)}`);
     const [before, match, after] = Help.search(long, "needle")[0]!.snip;
@@ -232,49 +120,11 @@ describe("search", () => {
   });
 
   it("finds real pages by their filled numbers", () => {
-    expect(Help.search(sections, "€150").length).toBeGreaterThan(0);
-    expect(Help.search(sections, "hygiene")[0]!.page.id).toBe("hygiene");
+    expect(Help.search(sections, "€3").length).toBeGreaterThan(0);
+    expect(Help.search(sections, "levels")[0]!.page.id).toBe("xp");
   });
 
   it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
     expect(HELP_URL).toMatch(new RegExp(`data/help\\.txt\\?v=${createHash("sha1").update(raw).digest("hex").slice(0, 8)}$`));
-  });
-
-  it("words the street collector from code", () => {
-    const text = page("streets").body;
-    expect(text).toContain("Every 50 new streets in a city");
-  });
-
-  it("words the sight notes from code", () => {
-    const text = page("notes").body;
-    expect(text).toContain("map rank 2 or better");
-    expect(text).toContain("within 200 m");
-    expect(text).toContain("at most 6 an hour");
-  });
-
-  it("counts the local words from the word list", () => {
-    const text = page("words").body;
-    expect(text).toMatch(/^In \d{3} countries he picks up everyday words in the local language \(41 languages, about 14 words each\)/);
-  });
-
-  it("lists shoplifting under Karma, not with the rascal deeds (it costs STEAL_KARMA, not DEED_STEP)", () => {
-    const v = Help.values(data);
-    expect(v.RASCAL_DEEDS).not.toContain("pocket something");
-    expect(v.RASCAL_DEEDS!.length).toBeGreaterThan(0);
-  });
-});
-
-
-describe("side income pages", () => {
-  it("list every business, the share's pay and the lottery's prizes from code", () => {
-    const biz = page("business").body;
-    expect(biz).toContain("- ☕ a coffee cart: €300, bringing in about €10.80 a day");
-    expect(biz).toContain("- 🧪 a potion stall");
-    expect(biz).toContain("pays for itself in about 28 days");
-    expect(page("shares").body).toContain("at most €5.50 a day");
-    const lot = page("lottery").body;
-    expect(lot).toContain("- 6 numbers: €100,000, one ticket in 14,000,000");
-    expect(lot).toContain("every day at 20:00");
-    expect(lot).toMatch(/about €0\.\d+ at Luck 1, and €0\.\d+ at the most/);
   });
 });

@@ -1,25 +1,22 @@
-// Which screen shows: the picker for a new player, the game for a saved one;
-// a postcard in the link opens on top of either.
+// Which screen shows: the picker for a new player, the game for a saved one.
 import { useEffect, useState } from "preact/hooks";
-import { loadData, whenIdle, yieldNow } from "../app/data";
-import { decode, type Postcard } from "../core/postcard";
+import { whenIdle, yieldNow } from "../app/idle";
 import { Game } from "../game/game";
 import { SaveFile } from "../game/saveFile";
 import { Api, type SearchPlace } from "../net/api";
 import { StreetClient } from "../streets/client";
 import { GameScreen } from "./GameScreen";
 import { Picker } from "./Picker";
-import { ReceivedSheet } from "./PostcardSheet";
 
 const api = new Api();
 let game: Promise<Game> | null = null;
 
-/** The game, made once the data has arrived; the streets worker starts with it. Each step is its own task, so none is long. */
+/** The game, made once; the streets worker starts with it. Each step is its own task, so none is long. */
 function getGame(): Promise<Game> {
-  game ??= loadData().then(async (data) => {
+  game ??= yieldNow().then(async () => {
     const streets = new StreetClient();
     await yieldNow();
-    const g = new Game({ api, load: streets.load, data });
+    const g = new Game({ api, load: streets.load });
     streets.onProblem = (t) => g.problems.warn(t);
     return g;
   });
@@ -30,15 +27,7 @@ const hasSave = () => new SaveFile().has();
 
 type Msg = { text: string; busy?: boolean; error?: boolean } | undefined;
 
-/** A postcard in the link this page was opened with; the link is cleaned so a reload doesn't show it again. */
-function takePostcard(): Postcard | null {
-  const card = decode(location.hash);
-  if (card) history.replaceState(null, "", location.pathname + location.search);
-  return card;
-}
-
 export function App() {
-  const [received, setReceived] = useState(takePostcard);
   const [g, setGame] = useState<Game | null>(null);
   const [playing, setPlaying] = useState(false);
   const [resuming, setResuming] = useState(hasSave);
@@ -52,7 +41,7 @@ export function App() {
         setResuming(false);
       });
     } else {
-      // The picker needs none of it, so fetch it once the page is up.
+      // The picker needs none of it, so make it once the page is up.
       whenIdle(() => void getGame().then(setGame));
     }
   }, []);
@@ -82,8 +71,6 @@ export function App() {
     return (
       <GameScreen
         game={g}
-        received={received}
-        onReceivedDone={() => setReceived(null)}
         onReset={() => {
           g.reset();
           setPlaying(false);
@@ -91,16 +78,5 @@ export function App() {
       />
     );
   }
-  return (
-    <>
-      <Picker search={(t) => api.searchPlaces(t)} choose={(p) => void choose(p)} message={msg} />
-      {received && (
-        <div class="dialog-bg">
-          <div class="dialog" role="dialog" aria-label="Postcard">
-            <ReceivedSheet card={received} onDone={() => setReceived(null)} />
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return <Picker search={(t) => api.searchPlaces(t)} choose={(p) => void choose(p)} message={msg} />;
 }

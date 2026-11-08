@@ -41,18 +41,17 @@ describe("goal weights", () => {
     expect(G.pickIndex([], 0.5)).toBe(-1);
   });
 
-  it("multiply rank, distance, heading and need", () => {
+  it("multiply rank, distance and heading", () => {
     const p: Place = { name: "Cafe", class: "cafe", subclass: "cafe", rank: 2, lat: 42.0045, lon: 23 };
-    const w = G.weigh(p, [42, 23], [0, 1], 0.5);
+    const w = G.weigh(p, [42, 23], [0, 1]);
     expect(w.rank_w).toBe(0.5);
-    expect(w.need_w).toBe(0.5);
-    expect(w.weight).toBeCloseTo(w.rank_w * w.dist_w * w.heading_w * w.need_w, 9);
+    expect(w.weight).toBeCloseTo(w.rank_w * w.dist_w * w.heading_w, 9);
     expect(w.heading_w).toBeGreaterThan(1);
   });
 
-  it("weigh only rank and need without a position", () => {
+  it("weigh only rank without a position", () => {
     const p: Place = { name: "Cafe", class: "cafe", subclass: "cafe", rank: 4, lat: 42, lon: 23 };
-    expect(G.weigh(p, null, [0, 0], 2)).toEqual({ rank_w: 0.25, dist_m: 0, dist_w: 1, heading_w: 1, need_w: 2, weight: 0.5 });
+    expect(G.weigh(p, null, [0, 0])).toEqual({ rank_w: 0.25, dist_m: 0, dist_w: 1, heading_w: 1, weight: 0.25 });
   });
 
   it("draw random spots inside the box", () => {

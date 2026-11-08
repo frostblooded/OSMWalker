@@ -1,8 +1,8 @@
 // His history: the last SIZE things that happened, each with when and where,
-// and the trail he walked since the oldest of them. Trips break the trail.
-import { distanceM, type BBox } from "./geo";
+// and the trail he walked since the oldest of them. A jump (an old save's
+// ride, put where it was going) breaks the trail.
+import { distanceM, type BBox, type LatLon } from "./geo";
 
-export type LatLon = [number, number];
 export type Entry = { text: string; t: number; at: LatLon | null; ti: number };
 export type Marker = { at: LatLon; label: string; first: number };
 
@@ -73,7 +73,7 @@ export class History {
     return this.trail.filter(Boolean).length;
   }
 
-  /** The trail as runs of points, split where he travelled. */
+  /** The trail as runs of points, split at each jump. */
   segments(): LatLon[][] {
     const out: LatLon[][] = [];
     let run: LatLon[] = [];

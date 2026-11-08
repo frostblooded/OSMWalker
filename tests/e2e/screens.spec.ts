@@ -1,6 +1,6 @@
-// The sheets: Help, Stats, Collection, History and Debug, with fake map services.
+// The sheets: Help, Stats, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { KEEPSAKES, mockServices, reopenWith } from "./mock";
+import { mockServices, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -34,15 +34,7 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await expect(help).not.toContainText("{");
   expect(await smallButtons(page)).toEqual([]);
   await help.getByRole("button", { name: "Back" }).click();
-  await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
-});
-
-test("The top card shows today's forecast once the game data is in", async ({ page }) => {
-  await startInSofia(page);
-  const line = page.locator(".hud .forecast");
-  await expect(line).toBeVisible();
-  await expect(line).not.toContainText("quiet day");
-  await expect(line).not.toContainText("{n}");
+  await expect(help.getByRole("button", { name: "Money" })).toBeVisible();
 });
 
 test("Help that couldn't load offers Try again", async ({ page }) => {
@@ -64,142 +56,36 @@ test("Help search finds pages by their text and keeps the results after Back", a
   await page.getByRole("button", { name: /Help/ }).click();
   const help = page.getByRole("dialog", { name: /Help/ });
   const box = help.getByRole("searchbox", { name: "Search Help" });
-  await box.fill("hospital");
+  await box.fill("battery");
   const results = help.getByRole("region", { name: /Results/ });
-  await expect(results.locator("mark").first()).toHaveText(/hospital/i);
-  await expect(help.getByRole("button", { name: "Fares" })).toBeHidden();
+  await expect(results.locator("mark").first()).toHaveText(/battery/i);
+  await expect(help.getByRole("button", { name: "Money" })).toBeHidden();
   expect(await smallButtons(page)).toEqual([]);
-  await results.getByRole("button", { name: /^Health/ }).click();
-  await expect(help.locator(".page-title")).toHaveText("Health");
+  await results.getByRole("button", { name: /^The map/ }).click();
+  await expect(help.locator(".page-title")).toHaveText("The map");
   await help.getByRole("button", { name: "Back" }).click();
-  await expect(box).toHaveValue("hospital");
+  await expect(box).toHaveValue("battery");
   await box.fill("zzzqqq");
   await expect(help).toContainText("Nothing found");
   await help.getByRole("button", { name: "Clear search" }).click();
   await expect(box).toHaveValue("");
-  await expect(help.getByRole("button", { name: "Fares" })).toBeVisible();
+  await expect(help.getByRole("button", { name: "Money" })).toBeVisible();
 });
 
-test("Stats shows his level, meters, attributes, skills, languages and gear", async ({ page }) => {
+test("Stats shows his level, XP, money and places visited", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "Saving for", "Bike", "Side income", "⏭ Next", "🎟 Lottery", "Vitals", "Health", "🔮 Magic", "Spells", "none yet", "Attributes", "Strength", "Skills", "📷 Photography", "Languages", "English", "Gear", "Vehicle", "Bag", "🧺 Pantry", "Effects"]) await expect(sheet).toContainText(t);
-  // In Sofia, Bulgarian is his own language: fluent, and the one spoken here.
-  await expect(sheet).toContainText("Bulgarian · herefluent");
-  // He starts with €200, more than a €150 bike plus his €20 reserve.
-  await expect(sheet).toContainText("✔ €170 / €170");
+  for (const t of ["Level 1", "XP0 / 100", "Money€0", "Places visited0"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
 });
 
-test("A wanted walker shows his stars on the top card, a halo of good karma, and his Reputation on the Stats sheet", async ({ page }) => {
-  await startInSofia(page);
-  await expect(page.locator(".pill.wanted")).toHaveCount(0);
-  await reopenWith(page, "d.stats.law = { heat: 45, topStars: 2 }; d.stats.bond.lean = 80;");
-  await expect(page.locator(".pill.wanted")).toHaveText("🚨 ★★", { timeout: 20000 });
-  await expect(page.locator(".marker.him .aura.halo")).toBeVisible();
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Stats/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Reputation", "😇 Kind (+80 of ±100)", "Fame here", "Stranger", "−5%", "The police", "2 of 5 stars", "Paying it off"]) await expect(sheet).toContainText(t);
-});
-
-test("Collection shows his cards, places, world, gear and badges in tabs", async ({ page }) => {
-  await startInSofia(page);
-  await reopenWith(page, `${KEEPSAKES} d.stats.keepsakes.title = "Globetrotter";`);
-  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Collection/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Collection/ });
-  for (const t of ["Completion", "Globetrotter", "Landmark cards", "City cards"]) await expect(sheet).toContainText(t);
-  await expect(sheet.locator(".dex-tile.gold")).toContainText("Alexander Nevsky Cathedral");
-  // No word on a tile is split across lines.
-  const split = await sheet.locator(".dex-tile .small").evaluateAll((spans) =>
-    spans.flatMap((el) => {
-      const text = el.firstChild!;
-      const words: string[] = [];
-      for (const m of (text.textContent ?? "").matchAll(/\S+/g)) {
-        const r = document.createRange();
-        r.setStart(text, m.index!);
-        r.setEnd(text, m.index! + m[0].length);
-        if (r.getClientRects().length > 1) words.push(m[0]);
-      }
-      return words;
-    }),
-  );
-  expect(split).toEqual([]);
-  await sheet.getByRole("tab", { name: /Places/ }).click();
-  for (const t of ["Placedex", "Crawls", "Coffee crawl"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("tab", { name: /World/ }).click();
-  // The Souvenirs card's All, after the Countries card's.
-  await sheet.getByRole("button", { name: /^All/ }).nth(1).click();
-  await expect(sheet).toContainText("bottle of rose oil");
-  await sheet.getByRole("button", { name: /Not found yet: Found in France/ }).click();
-  await expect(sheet.locator(".dex-pick")).toHaveText("❓ Found in France");
-  for (const t of ["Monuments", "🧱 Golden bricks", "Saving for"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("tab", { name: /Gear/ }).click();
-  for (const t of ["Item bases", "Materials", "Vehicles"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("tab", { name: /Feats/ }).click();
-  for (const t of ["Passport stamps", "Builder", "His life", "Set out from Sofia"]) await expect(sheet).toContainText(t);
-  expect(await smallButtons(page)).toEqual([]);
-  await sheet.getByRole("button", { name: /Close/ }).click();
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Stats/ }).click();
-  await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("🎖 TitleGlobetrotter");
-});
-
-test("Suggest a line opens a pre-filled GitHub issue", async ({ page }) => {
-  await startInSofia(page);
-  await page.getByRole("button", { name: "Menu" }).click();
-  const link = page.getByRole("link", { name: /Suggest a line/ });
-  await expect(link).toHaveAttribute("href", /^https:\/\/github\.com\/frostblooded\/OSMWalker\/issues\/new\?title=Line.*Your%20name%20for%20the%20credit/);
-  await expect(link).toHaveAttribute("target", "_blank");
-});
-
-test("Stats tells a bought item's story", async ({ page }) => {
-  await startInSofia(page);
-  await reopenWith(page, KEEPSAKES);
-  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Stats/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Stats/ });
-  await sheet.getByRole("button", { name: /Lucky Cap/ }).click();
-  for (const t of ["🛒 Bought", "Sofia", "🌍 Countries", "3: BGR, FRA, ITA", "42 km", "💎 Treasured", "he won't sell it"]) await expect(sheet).toContainText(t);
-  expect(await smallButtons(page)).toEqual([]);
-});
-
-test("The ruin crawl rooms load at idle once the game is up", async ({ page }) => {
-  const crawl = page.waitForRequest(/\/crawl-[\w-]+\.js$/);
-  await startInSofia(page);
-  await crawl;
-});
-
-test("Collection's Places tab keeps his ruin crawl logs, room by room", async ({ page }) => {
-  await startInSofia(page);
-  await reopenWith(
-    page,
-    `d.stats.ruins = { last: {}, count: 1, logs: [{ name: "Tsarevets", city: "Sofia", t: 1, of: 3, found: { name: "Bronze Ring", rarity: "Rare", slot: "trinket" },
-      rooms: [{ text: "a stuck oak door", won: true, how: "he shouldered it open" }, { text: "a ghost in a torn cloak", won: false, how: "it wailed and he fled" }] }] };`,
-  );
-  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Collection/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Collection/ });
-  await sheet.getByRole("tab", { name: /Places/ }).click();
-  await sheet.getByRole("button", { name: /Tsarevets/ }).click();
-  for (const t of ["1 / 3 rooms", "he shouldered it open", "it wailed and he fled", "💍 Rare Bronze Ring"]) await expect(sheet).toContainText(t);
-  expect(await smallButtons(page)).toEqual([]);
-});
-
 test("History lists what he did and shows it on the map", async ({ page }) => {
   await startInSofia(page);
-  // The test tiles have no places of note, so a Debug trip makes the first event.
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Debug/ }).click();
-  await page.getByRole("button", { name: /New city/ }).click();
+  // Setting off is the first event.
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });
@@ -215,7 +101,7 @@ test("Debug shows the city, problems and buttons that work", async ({ page }) =>
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Debug/ }).click();
   const sheet = page.getByRole("dialog", { name: /Debug/ });
-  for (const t of ["City", "Loaded", "Street squares", "Trip dice", "Problems", "Goal picks"]) await expect(sheet).toContainText(t);
+  for (const t of ["City", "Loaded", "Street squares", "Problems", "Goal picks"]) await expect(sheet).toContainText(t);
   await sheet.getByRole("button", { name: /Goal picks/ }).click();
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /New goal/ }).click();
@@ -270,33 +156,11 @@ test("He glides between steps instead of hopping", async ({ page }) => {
   await expect.poll(() => him.evaluate((e) => parseFloat(getComputedStyle(e).transitionDuration))).toBeGreaterThan(0);
 });
 
-test("His face shows on the map, with his need or his goal over his head", async ({ page }) => {
+test("His face shows on the map, with the kind of place he heads for over his head", async ({ page }) => {
   await startInSofia(page);
-  await expect(page.locator(".marker.him .face")).toHaveText(/^(🤒|😩|😖|😞|😄|🙂)$/u);
-  // Hungry, he wants food over everything. The save is edited as the page loads, after the old page saved on leaving.
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem("hungry")) return;
-    sessionStorage.setItem("hungry", "1");
-    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
-    d.stats.meters.fullness = 5;
-    localStorage.setItem("osmwalker.save", JSON.stringify(d));
-  });
-  await page.reload();
-  await expect(page.locator(".marker.him .bubble")).toHaveText("🍔", { timeout: 20000 });
-});
-
-test("City sound is off at first, and the switch is remembered", async ({ page }) => {
-  await startInSofia(page);
-  await page.getByRole("button", { name: "Menu" }).click();
-  const sw = page.getByRole("switch", { name: /City sound/ });
-  await expect(sw).toHaveAttribute("aria-checked", "false");
-  await sw.click();
-  await expect(sw).toHaveAttribute("aria-checked", "true");
-  await page.reload();
-  await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: "Menu" }).click();
-  await expect(page.getByRole("switch", { name: /City sound/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".marker.him .face")).toHaveText("🙂");
+  // The test tiles' only places of note are bridges, which are sights.
+  await expect(page.locator(".marker.him .bubble")).toHaveText("🌉", { timeout: 20000 });
 });
 
 /** Drags the map well away from him with a finger (the test phone is touch only). */
@@ -352,15 +216,6 @@ test("City area switch is remembered", async ({ page }) => {
   await expect(page.getByRole("switch", { name: /City area/ })).toHaveAttribute("aria-checked", "true");
 });
 
-test("A city gets its made-up places, saved, and the game's icons load for the map", async ({ page }) => {
-  const icons = page.waitForResponse(/\/icons-[\w-]+\.js$/, { timeout: 30000 });
-  await startInSofia(page);
-  await expect
-    .poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("osmwalker.save") ?? "{}").made_places ?? {}).flat().length), { timeout: 30000 })
-    .toBeGreaterThan(0);
-  expect((await icons).ok()).toBe(true);
-});
-
 /** Drags a sheet's title bar by dy px with touch-like pointer moves. */
 async function dragTitle(page: Page, name: RegExp, dy: number) {
   const head = page.getByRole("dialog", { name }).locator("header h2");
@@ -393,11 +248,11 @@ test("a sheet stays where its title bar is let go, and closes below 30% of the s
 test("a full-screen sheet drags down to show the map", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("button", { name: /Stats/ }).click();
-  const stats = page.getByRole("dialog", { name: /Stats/ });
+  await page.getByRole("button", { name: /Help/ }).click();
+  const help = page.getByRole("dialog", { name: /Help/ });
   const screen = page.viewportSize()!.height;
-  await dragTitle(page, /Stats/, screen * 0.5);
-  await expect.poll(async () => (await stats.boundingBox())!.height).toBeLessThan(screen * 0.55);
+  await dragTitle(page, /Help/, screen * 0.5);
+  await expect.poll(async () => (await help.boundingBox())!.height).toBeLessThan(screen * 0.55);
   const hud = (await page.locator(".hud").boundingBox())!;
   expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".hud"), [hud.x + hud.width / 2, hud.y + 20])).toBe(true);
 });
@@ -405,7 +260,7 @@ test("a full-screen sheet drags down to show the map", async ({ page }) => {
 test("History fits the map to the room left above its sheet after a drag", async ({ page }) => {
   await startInSofia(page);
   // A long History, so its sheet is tall enough to drag down without closing.
-  await reopenWith(page, 'for (let i = 0; i < 30; i++) d.stats.history.entries.push({ text: "Had a coffee at Cafe " + i, t: Math.floor(Date.now() / 1000) - 3600 + i * 60, at: [42.687 + i * 0.0002, 23.319], ti: 0 });');
+  await reopenWith(page, 'for (let i = 0; i < 30; i++) d.stats.history.entries.push({ text: "Found Cafe " + i, t: Math.floor(Date.now() / 1000) - 3600 + i * 60, at: [42.687 + i * 0.0002, 23.319], ti: 0 });');
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });

@@ -68,21 +68,15 @@ things at a time. A block full of lines is the most common mistake here.
 ## 4. Colour and icons
 
 - One meaning per colour, used the same way everywhere:
-  - red `--error` / `--hp`: error, danger, health
-  - amber `--warning` / `--en`: warning, energy
-  - green `--ok` / `--fu`: OK, good, gains, fullness (also the explored
-    squares layer, `map/mapView.ts`)
+  - red `--error` / `--hp`: error, danger
+  - amber `--warning`: warning
+  - green `--ok` / `--fu`: OK, good, gains, a switch that is on
   - orange `--accent`: him, his route, the main button
-  - gold `--coin`: money; lilac `--lilac`: level
-  - pale gold `--halo`: his halo at good karma (red `--hp` draws his horns)
-  - indigo `--magic`: Magic, ley lines and other magic (also the magic map
-    icons, `map/icons.ts`, and the ley line layer, `map/mapView.ts`)
-- Rarity follows the colours players know from other games: grey common,
-  green uncommon, blue rare, orange legendary (`RARITY_COLOR`).
+  - gold `--coin`: money; lilac `--lilac`: level and XP
 - Colour is never the only signal. Pair it with an icon or a word (⚠
   Warning, ✖ Error, ✔ OK).
 - The same thing always has the same icon (🏙 city, 📍 place, 🎲 dice,
-  ✈ trip, 🎯 goal, 📜 log, ⚠ warning). One icon per item, only where it
+  🎯 goal, 📜 log, ⚠ warning). One icon per item, only where it
   helps recognition. No decoration.
 - Text needs at least 4.5:1 contrast. Over the map it always sits on a
   card.

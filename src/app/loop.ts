@@ -1,8 +1,7 @@
 // Runs the game while the page is visible. Ticks come a few times a second;
 // between them his figure glides (a CSS transition), so steps can be a few
-// pixels without looking jumpy, and an idle main thread saves battery. When
-// the page shows again, Game.wake turns the time it was hidden into a boost
-// (see core/boost.ts).
+// pixels without looking jumpy, and an idle main thread saves battery. Time
+// stops while the page is hidden: he goes on from where he was.
 import type { Game } from "../game/game";
 import type { MapScene } from "../map/scene";
 
@@ -22,7 +21,7 @@ export class Loop {
   /** Called after every tick, for the screens. */
   onTick: () => void = () => {};
   private readonly onVisibility = () => (document.hidden ? this.pause() : this.start());
-  private readonly onHide = () => this.game.leave();
+  private readonly onHide = () => this.game.save();
 
   constructor(
     private readonly game: Game,
@@ -34,7 +33,6 @@ export class Loop {
 
   start(): void {
     if (this.timer !== null || document.hidden) return;
-    void this.game.wake();
     this.last = performance.now();
     this.schedule(0);
   }
@@ -43,7 +41,7 @@ export class Loop {
   pause(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
-    this.game.leave();
+    this.game.save();
   }
 
   /** For good (the game screen closed): pauses and stops listening, so the page showing again can't restart it. */

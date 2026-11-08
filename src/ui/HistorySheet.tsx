@@ -1,6 +1,7 @@
 // His last events, newest first. Each row has the number of its marker on
 // the map and the time; tapping it shows where it happened.
-import type { History, LatLon } from "../core/history";
+import type { LatLon } from "../core/geo";
+import type { History } from "../core/history";
 import { biasMin, historyTime } from "./format";
 
 export function HistorySheet({ history: h, onFocus }: { history: History; onFocus: (at: LatLon) => void }) {

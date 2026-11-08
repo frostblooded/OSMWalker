@@ -50,15 +50,6 @@ describe("problems", () => {
     expect(text.indexOf("new warning")).toBeLessThan(text.indexOf("old warning"));
   });
 
-  it("keep severe problems apart, with details", () => {
-    log.addSevere("Can't leave Sofia", ["No bus station"]);
-    log.warn("w");
-    expect(log.severe[0]!.text).toBe("Can't leave Sofia");
-    expect(log.severe[0]!.details).toEqual(["No bus station"]);
-    const e = log.entries();
-    expect(e[0]!.level).toBe("severe");
-    expect(e[1]!.level).toBe("warning");
-  });
 });
 
 describe("debug log", () => {
@@ -78,41 +69,26 @@ describe("debug log", () => {
     expect(again.entries[0]!.fallback).toBe("x");
   });
 
-  it("shows both rolls and the odds for a place", () => {
-    const text = D.lines({ t: 0, roll: 0.4312, outcome: "stay", in_box: 37, too_close: 2, total_weight: 10, r: 0.612, place: "Cafe East", class: "cafe", rank: 4 }, 0).join("\n");
-    for (const s of ["0.4312", "stay", "37 places", "2 within 30 m", "0.6120", "Cafe East", "rank 4", "2.5%"]) expect(text).toContain(s);
+  it("shows the roll and the odds for a place", () => {
+    const text = D.lines({ t: 0, in_box: 37, too_close: 2, total_weight: 10, r: 0.612, place: "Cafe East", class: "cafe", rank: 4 }, 0).join("\n");
+    for (const s of ["37 places", "2 within 30 m", "0.6120", "Cafe East", "rank 4", "2.5%"]) expect(text).toContain(s);
   });
 
   it("explains the weight parts", () => {
-    const text = D.lines({ t: 0, in_box: 1, place: "A", rank: 1, weight: 0.5, total_weight: 1, rank_w: 1, dist_w: 0.5, dist_m: 812.4, heading_w: 1, need_w: 1 }, 0).join("\n");
+    const text = D.lines({ t: 0, in_box: 1, place: "A", rank: 1, weight: 0.5, total_weight: 1, rank_w: 1, dist_w: 0.5, dist_m: 812.4, heading_w: 1 }, 0).join("\n");
     expect(text).toContain("distance 0.50 (812 m away)");
-    expect(text).toContain("× need 1.00");
+    expect(text).toContain("× heading 1.00");
   });
 
   it("says why a random spot was used", () => {
-    const text = D.lines({ t: 0, skipped: "first pick in a new city", in_box: 0, too_close: 0, fallback: "no places loaded in the city box yet", spot: [42.01, 23.02], cells: 3 }, 0).join("\n");
-    for (const s of ["first pick in a new city", "Random spot", "no places loaded in the city box yet", "42.01", "3 street cells"]) expect(text).toContain(s);
-  });
-
-  it("shows where a trip went and its odds", () => {
-    const text = D.lines({ t: 0, forced: "country", trip: "Paris, France", options: 120, chance: 0.041, by: "plane from Sofia Airport" }, 0).join("\n");
-    for (const s of ["button", "Paris, France", "120 cities", "4.1%", "Going by plane from Sofia Airport"]) expect(text).toContain(s);
-  });
-
-  it("shows the odds abroad raised when his visa runs out", () => {
-    expect(D.lines({ t: 0, roll: 0.05, outcome: "country", abroad: 4 }, 0).join("\n")).toContain("country below 0.10, city below 0.20, else stay); trips abroad 4 times likelier");
-  });
-
-  it("doubles the shown odds when boosted", () => {
-    expect(D.lines({ t: 0, roll: 0.2, outcome: "city", boost: 2 }, 0).join("\n")).toContain("city below 0.25, else stay); odds doubled");
+    const text = D.lines({ t: 0, in_box: 0, too_close: 0, fallback: "no places loaded in the city box yet", spot: [42.01, 23.02], cells: 3 }, 0).join("\n");
+    for (const s of ["Random spot", "no places loaded in the city box yet", "42.01", "3 street cells"]) expect(text).toContain(s);
   });
 
   it("gives each pick a short title", () => {
     expect(D.title({ place: "Cafe East", in_box: 3 })).toBe("🎯 Chosen: Cafe East");
     expect(D.title({ fallback: "x", in_box: 0 })).toBe("⚠ Random spot: no places loaded");
     expect(D.title({ fallback: "x", in_box: 2 })).toBe("⚠ Random spot: all places too close");
-    expect(D.title({ trip: "Paris, France" })).toBe("✈ Trip: Paris, France");
-    expect(D.title({ trip: "Paris, France", forced: "country" })).toBe("✈ Trip: Paris, France (button)");
-    expect(D.title({ forced: "city", no_trip: "no other city to go to" })).toBe("✖ No trip: no other city to go to");
+    expect(D.title({ place: "Cafe East", forced: "goal" })).toBe("🎯 Chosen: Cafe East (button)");
   });
 });

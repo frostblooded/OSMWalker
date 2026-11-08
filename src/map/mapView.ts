@@ -1,29 +1,21 @@
 // The map: MapLibre with OpenFreeMap's Liberty style, him as a marker (a
-// face with a bubble over his head), his goal as a pin, Viktor while he is
-// about, his trail and the ride line as lines. MapLibre only draws when something changes, so the
-// game moves the camera a few times a second instead of every frame (see
-// app/loop.ts): the main thread stays idle.
+// face with a bubble over his head), his goal as a pin and his trail as a
+// line. MapLibre only draws when something changes, so the game moves the
+// camera a few times a second instead of every frame (see app/loop.ts): the
+// main thread stays idle.
 import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
-import type { BBox } from "../core/geo";
+import type { BBox, LatLon } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
-import { POSE_EVERY_S, type Look } from "../core/look";
-import type { MapIcon } from "../core/mapIcons";
-import { RIVAL_ICON } from "../core/rival";
-import type { LatLon } from "../core/trips";
-import type { MapPort, Padding } from "./scene";
+import type { Look } from "../core/look";
+import type { MapPort, Padding, RouteLine } from "./scene";
 
 export const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const MIN_ZOOM = 3;
 export const MAX_ZOOM = 19;
 const TRAIL_COLOR = "#1a5fb4";
-const TRIP_COLOR = "#c01c28";
 const AREA_COLOR = "#e8730c";
 const OUTLINE_COLOR = "#7b3fbf";
 const ROUTE_COLOR = "#ff7a3d";
-/** Indigo `--magic` (app.css), as the magic icons (map/icons.ts); MapLibre can't read CSS tokens. */
-const LEY_COLOR = "#3d2a8a";
-/** Green `--ok` (app.css): the squares he explored are a gain. */
-const EXPLORED_COLOR = "#2f8a3e";
 /** Liberty's own font, so the event numbers need no extra download. */
 const FONT = ["Noto Sans Bold"];
 
@@ -43,9 +35,6 @@ export function lightStyle(style: StyleSpecification): StyleSpecification {
   return { ...style, layers: style.layers.filter((l) => l.type !== "fill-extrusion") };
 }
 
-/** Tile layers whose features' class names a kind of land (see landAt). */
-const LAND_LAYERS = new Set(["landcover", "landuse", "transportation"]);
-
 const none: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 const line = (coords: LatLon[][]): GeoJSON.Feature => ({
@@ -58,8 +47,6 @@ export class MapView implements MapPort {
   map!: MlMap;
   private him!: Marker;
   private pin!: Marker;
-  private rival!: Marker;
-  private police!: Marker;
   private following = true;
   /** The camera follows him by itself (the menu switch). Off, it moves only when the player moves it. */
   autoFollow = true;
@@ -67,23 +54,12 @@ export class MapView implements MapPort {
   private size = { width: 0, height: 0 };
   private ready!: Promise<void>;
   private trailKey = "";
-  private tripKey = "";
-  private leyKey = "";
-  private exploredKey = "";
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
   private lookKey = "";
-  /** His pose ("icon motion", "" for none) and performance.now() when it last moved. */
-  private poseKey = "";
-  private poseAt = 0;
-  private iconKey = "";
-  /** The icon pictures and layer, added the first time there is an icon to show. */
-  private iconLayer: Promise<boolean> | null = null;
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
-  /** Told the `id` of a game icon the player taps. */
-  onIconTap: (id: string) => void = () => {};
 
   static async create(container: HTMLElement, center: LatLon, zoom: number): Promise<MapView> {
     const v = new MapView();
@@ -120,8 +96,6 @@ export class MapView implements MapPort {
     this.map.touchZoomRotate.disableRotation();
     this.him = new ml.Marker({ element: himMarker(), anchor: "center" }).setLngLat([center[1], center[0]]).addTo(this.map);
     this.pin = new ml.Marker({ element: markerEl("pin", "📍"), anchor: "bottom" }).setLngLat([center[1], center[0]]);
-    this.rival = new ml.Marker({ element: markerEl("rival", RIVAL_ICON), anchor: "center" }).setLngLat([center[1], center[0]]);
-    this.police = new ml.Marker({ element: markerEl("police", "🚓"), anchor: "center" }).setLngLat([center[1], center[0]]);
     const stop = () => {
       if (this.following) {
         this.following = false;
@@ -150,8 +124,6 @@ export class MapView implements MapPort {
       source: "area",
       paint: { "line-color": ["match", ["get", "kind"], "box", AREA_COLOR, OUTLINE_COLOR], "line-width": 3, "line-opacity": 0.8 },
     });
-    this.map.addSource("explored", { type: "geojson", data: none });
-    this.map.addLayer({ id: "explored", type: "fill", source: "explored", paint: { "fill-color": EXPLORED_COLOR, "fill-opacity": 0.3, "fill-outline-color": EXPLORED_COLOR } });
     // His planned route: solid along the streets, dashed in a straight line where they are not loaded yet.
     this.map.addSource("route", { type: "geojson", data: none });
     for (const [id, kind, dash] of [["route", "streets", undefined], ["route-rest", "rest", [1, 1.5]]] as const) {
@@ -166,8 +138,6 @@ export class MapView implements MapPort {
     }
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
     this.map.setLayoutProperty("trail", "visibility", "none");
-    this.addLine("trip", TRIP_COLOR, 4, 0.85, [2, 1]);
-    this.addLine("leys", LEY_COLOR, 3, 0.6, [1, 2]);
     this.map.addSource("events", { type: "geojson", data: none });
     this.map.addLayer({ id: "events", type: "circle", source: "events", paint: { "circle-radius": 11, "circle-color": TRAIL_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
     this.map.addLayer({
@@ -179,14 +149,14 @@ export class MapView implements MapPort {
     });
   }
 
-  private addLine(id: string, color: string, width: number, opacity: number, dash?: number[]): void {
+  private addLine(id: string, color: string, width: number, opacity: number): void {
     this.map.addSource(id, { type: "geojson", data: line([]) });
     this.map.addLayer({
       id,
       type: "line",
       source: id,
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": color, "line-width": width, "line-opacity": opacity, ...(dash ? { "line-dasharray": dash } : {}) },
+      paint: { "line-color": color, "line-width": width, "line-opacity": opacity },
     });
   }
 
@@ -216,46 +186,16 @@ export class MapView implements MapPort {
     }
   }
 
-  /**
-   * His face, bubble and pose, written to the page only when one changes. A
-   * new pose plays its CSS animation a few times and then holds still, so the
-   * GPU is idle in between; while he stays it plays again each POSE_EVERY_S.
-   */
+  /** His bubble and pop, written to the page only when one changes; a new pop plays its CSS animation once. */
   setLook(l: Look): void {
-    const key = `${l.face}|${l.bubble}|${l.pose?.icon ?? ""}|${l.mount}|${l.pet}|${l.aura ?? ""}|${l.say ?? ""}`;
-    if (key === this.lookKey) {
-      if (!l.pose || performance.now() - this.poseAt < POSE_EVERY_S * 1000) return;
-      // Dropping the pose's class and a reflow restart its CSS animation.
-      this.poseAt = performance.now();
-      const bubble = this.him.getElement().querySelector<HTMLElement>(".bubble")!;
-      const cls = bubble.className;
-      bubble.className = "bubble";
-      void bubble.offsetWidth;
-      bubble.className = cls;
-      return;
-    }
+    const key = `${l.bubble}|${l.pose?.icon ?? ""}`;
+    if (key === this.lookKey) return;
     this.lookKey = key;
-    // Only a new pose plays from the start; a new face keeps the pose's minute running.
-    const pose = l.pose ? `${l.pose.icon} ${l.pose.motion}` : "";
-    if (pose !== this.poseKey) [this.poseKey, this.poseAt] = [pose, performance.now()];
     const el = this.him.getElement();
-    el.querySelector(".face")!.textContent = l.face;
-    const aura = el.querySelector<HTMLElement>(".aura")!;
-    aura.className = `aura ${l.aura ?? ""}`;
-    aura.hidden = !l.aura;
-    const mount = el.querySelector<HTMLElement>(".mount")!;
-    mount.textContent = l.mount;
-    mount.hidden = !l.mount;
-    const pet = el.querySelector<HTMLElement>(".pet")!;
-    pet.textContent = l.pet;
-    pet.hidden = !l.pet;
     const bubble = el.querySelector<HTMLElement>(".bubble")!;
     bubble.textContent = l.pose?.icon ?? l.bubble;
     bubble.className = `bubble${l.pose ? ` pose ${l.pose.motion}` : ""}`;
     bubble.hidden = !bubble.textContent;
-    const say = el.querySelector<HTMLElement>(".say")!;
-    say.textContent = l.say ?? "";
-    say.hidden = !l.say;
   }
 
   /** Whether `at` is within the middle of what the player can see (the panels left out). */
@@ -276,22 +216,6 @@ export class MapView implements MapPort {
     this.pin.setLngLat([at[1], at[0]]).addTo(this.map);
   }
 
-  setRival(at: LatLon | null): void {
-    if (!at) {
-      this.rival.remove();
-      return;
-    }
-    this.rival.setLngLat([at[1], at[0]]).addTo(this.map);
-  }
-
-  setPolice(at: LatLon | null): void {
-    if (!at) {
-      this.police.remove();
-      return;
-    }
-    this.police.setLngLat([at[1], at[0]]).addTo(this.map);
-  }
-
   /** Shows or hides his trail and the History markers. */
   showTrail(on: boolean): void {
     if (on === this.trailOn) return;
@@ -308,31 +232,8 @@ export class MapView implements MapPort {
     (this.map.getSource("trail") as GeoJSONSource | undefined)?.setData(line(segments()));
   }
 
-  /** The ley lines, or none when `key` is ""; only sent to MapLibre when `key` changes. */
-  setLeys(key: string, lines: () => LatLon[][]): void {
-    if (key === this.leyKey) return;
-    this.leyKey = key;
-    (this.map.getSource("leys") as GeoJSONSource | undefined)?.setData(line(key ? lines() : []));
-  }
-
-  /** The squares he walked (runs of them in a row as one box), or none when `key` is ""; only sent to MapLibre when `key` changes. */
-  setExplored(key: string, boxes: () => BBox[]): void {
-    if (key === this.exploredKey) return;
-    this.exploredKey = key;
-    const features: GeoJSON.Feature[] = (key ? boxes() : []).map(([s, w, n, e]) => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } }));
-    (this.map.getSource("explored") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
-  }
-
-  /** The line he rides along on a trip, or none. */
-  setTrip(path: LatLon[] | null): void {
-    const key = path ? `${path.length}:${path[0]}:${path.at(-1)}` : "";
-    if (key === this.tripKey) return;
-    this.tripKey = key;
-    (this.map.getSource("trip") as GeoJSONSource | undefined)?.setData(line(path ? [path] : []));
-  }
-
   /** His planned route to the goal, or none; only sent to MapLibre when `key` changes. */
-  setRoute(key: string, route: () => { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null): void {
+  setRoute(key: string, route: () => RouteLine): void {
     if (key === this.routeKey) return;
     this.routeKey = key;
     const r = key ? route() : null;
@@ -349,36 +250,6 @@ export class MapView implements MapPort {
     (this.map.getSource("events") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
       features: markers.map((m) => ({ type: "Feature", properties: { label: m.label }, geometry: { type: "Point", coordinates: [m.at[1], m.at[0]] } })),
-    });
-  }
-
-  /**
-   * The game's icons (made-up places, travel hubs, quests); only sent to
-   * MapLibre when `key` changes. The pictures load as their own chunk the
-   * first time there is one to show.
-   */
-  setMapIcons(key: string, icons: () => MapIcon[]): void {
-    if (key === this.iconKey) return;
-    this.iconKey = key;
-    const list = icons();
-    if (!list.length && !this.iconLayer) return;
-    const data: GeoJSON.FeatureCollection = {
-      type: "FeatureCollection",
-      features: list.map((i) => ({
-        type: "Feature",
-        properties: { id: i.id, icon: i.icon, label: i.label, kind: i.kind ?? "place", pulse: !!i.pulse, ends_at: i.ends_at ?? -1 },
-        geometry: { type: "Point", coordinates: [i.at[1], i.at[0]] },
-      })),
-    };
-    // A chunk that can't load (offline before it was cached) leaves the map without icons until the game is opened again.
-    this.iconLayer ??= import("./icons")
-      .then((m) => m.addIconLayer(this.map, (id) => this.onIconTap(id)))
-      .then(
-        () => true,
-        () => false,
-      );
-    void this.iconLayer.then((ok) => {
-      if (ok && this.iconKey === key) (this.map.getSource("icons") as GeoJSONSource | undefined)?.setData(data);
     });
   }
 
@@ -435,34 +306,9 @@ export class MapView implements MapPort {
     return { x: p.x, y: p.y };
   }
 
-  /** On-screen pixels per meter at the current zoom, near `lat`. */
-  pxPerMeter(lat: number): number {
-    return (512 * 2 ** this.map.getZoom()) / (40075016.7 * Math.cos((lat * Math.PI) / 180));
-  }
-
   /** Tiles MapLibre still waits for, for the loading details. */
   loaded(): boolean {
     return this.map.areTilesLoaded();
-  }
-
-  /**
-   * The kinds of land the map draws in a square `m` metres either side of `at` (see core/comforts.ts):
-   * water and parks by their tile layer, the rest by their class (wood, industrial,
-   * motorway...). Only what is drawn on screen counts, so off screen it is none.
-   */
-  landAt(at: LatLon, m: number): string[] {
-    const p = this.map.project([at[1], at[0]]);
-    const r = Math.max(4, m * this.pxPerMeter(at[0]));
-    const out = new Set<string>();
-    for (const f of this.map.queryRenderedFeatures([
-      [p.x - r, p.y - r],
-      [p.x + r, p.y + r],
-    ])) {
-      const layer = f.sourceLayer ?? "";
-      if (layer === "water" || layer === "park") out.add(layer);
-      else if (LAND_LAYERS.has(layer)) out.add(String(f.properties?.class ?? ""));
-    }
-    return [...out];
   }
 
   destroy(): void {
@@ -485,7 +331,7 @@ function creditControl(ml: Ml, map: MlMap): void {
   map.on("sourcedata", fold);
 }
 
-/** Him: a face in an orange disc, with a bubble over his head, his fantasy mount, if any, at his side, his pet, if any, at the other, and a halo or horns at very good or bad karma. */
+/** Him: a face in an orange disc, with a bubble over his head. */
 function himMarker(): HTMLElement {
   const el = markerEl("him", "");
   const face = document.createElement("span");
@@ -494,19 +340,7 @@ function himMarker(): HTMLElement {
   const bubble = document.createElement("span");
   bubble.className = "bubble";
   bubble.hidden = true;
-  const mount = document.createElement("span");
-  mount.className = "mount";
-  mount.hidden = true;
-  const pet = document.createElement("span");
-  pet.className = "pet";
-  pet.hidden = true;
-  const aura = document.createElement("span");
-  aura.className = "aura";
-  aura.hidden = true;
-  const say = document.createElement("span");
-  say.className = "say";
-  say.hidden = true;
-  el.append(face, bubble, mount, pet, aura, say);
+  el.append(face, bubble);
   return el;
 }
 
