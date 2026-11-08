@@ -17,10 +17,10 @@ export function docsOnly(files: string[]): boolean {
 
 // The perf run mostly waits on a throttled page, so it runs beside the e2e tests (verify about
 // 70 s instead of 2 min). E2e then leaves it a quarter of the cores, so it adds no long task.
-const FULL = [["lint", "typecheck", "test", "build"], ["e2e", "perf"]];
+const FULL = [["lint", "typecheck", "test", "build"], ["e2e --workers=75%", "perf"]];
 
 /**
- * The checks a change can break, as groups that run one after another (each group side by side).
+ * The checks a change can break, as groups that run one after another (each group side by side), each a script and its arguments.
  * A change to tests only reruns those tests; anything else, or no verified commit to compare with (null), runs all.
  */
 export function scope(files: string[] | null): string[][] {
@@ -103,8 +103,7 @@ async function verify(): Promise<boolean> {
   const groups = scope(changedSinceVerified());
   if (groups !== FULL) console.log(`Only tests changed since the last verify: running ${groups.flat().join(", ")}.`);
   for (const group of groups) {
-    const args = (s: string) => (s === "e2e" && group.includes("perf") ? [s, "--workers=75%"] : [s]);
-    if (!(await run(group.map(args)))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
+    if (!(await run(group.map((s) => s.split(" "))))) return console.log("Checks failed: fix them and run npm run verify again (npm run e2e:failed reruns just the failed e2e tests)."), false;
   }
   stamp("verified", tree);
   stamp("checked", tree);
