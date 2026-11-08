@@ -80,14 +80,13 @@ async function run() {
   };
 }
 
-/** His memory after he starts in Sofia (the fixture streets), picks a card and walks for 10 s, after a garbage collection. */
+/** His memory after he starts in Sofia (the fixture streets), and rides about for 10 s, after a garbage collection. */
 async function play() {
   const { context, page, cdp, metric } = await phone(true);
   await page.goto(`http://localhost:${PORT}/`);
   await page.getByLabel("City name").fill("Sofia");
   await page.getByRole("button", { name: /Sofia/ }).click();
-  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 60000 });
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  await page.locator(".chip").waitFor({ timeout: 60000 });
   await page.waitForTimeout(10000);
   await cdp.send("HeapProfiler.collectGarbage");
   const m = await metric();

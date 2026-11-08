@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { cellKey } from "../../src/core/graph";
 import { MONEY_POSE } from "../../src/core/look";
-import { ORDER_WAIT_S, payOf } from "../../src/core/orders";
-import { OPENS_AFTER, upgradeOf } from "../../src/core/upgrades";
+import { payOf } from "../../src/core/orders";
+import { OPENS_AFTER, upgradeOf, waitX } from "../../src/core/upgrades";
 import { BIKE_MPS } from "../../src/core/walker";
 import { Game, MAX_CELLS, POSE_S, RETRY_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { hud, look } from "../../src/game/hud";
@@ -194,9 +194,8 @@ describe("the Shop", () => {
     g.stats.cents = 1e6;
     for (let i = 0; i < OPENS_AFTER; i++) g.buy("speed");
     expect(g.walker!.speedMps).toBeCloseTo(BIKE_MPS * 1.1 ** OPENS_AFTER, 6);
-    g.job.waitLeftS = ORDER_WAIT_S * 100;
     expect(g.buy("orders")).toBe(true);
-    expect(g.job.waitLeftS).toBeCloseTo(ORDER_WAIT_S * 90, 6);
+    expect(waitX(g.stats.upgrades)).toBeCloseTo(0.9, 6);
     expect(g.stats.history.latest()).toMatch(/^Bought 📱 Delivery app boost #1 for €[\d.]+: orders come 10% sooner$/);
   });
 

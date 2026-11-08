@@ -13,7 +13,7 @@ import { addressOf, FOOD, homePlace, Job, makeOrder, waitS, type Home } from "..
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
-import { speedX, upgradeOf, WAIT_STEP, waitX, type UpgradeId } from "../core/upgrades";
+import { speedX, upgradeOf, waitX, type UpgradeId } from "../core/upgrades";
 import { BIKE_MPS, cityBounds, Walker } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -254,6 +254,7 @@ export class Game {
     const o = makeOrder(this.rng, here, places, doors);
     if (!o) {
       this.job.waitLeftS = RETRY_S;
+      this.forced = "";
       return;
     }
     const corner = w.graph.nearestNode(o.to.lat, o.to.lon);
@@ -270,14 +271,19 @@ export class Game {
     this.changed();
   }
 
-  /** Up to STREET_DOORS street corners in the box, as doors with only a street name. */
+  /** Up to STREET_DOORS street corners in the box, picked at random, as doors with only a street name. */
   private streetDoors(box: BBox): Home[] {
     const g = this.walker!.graph;
+    const ids: number[] = [];
+    for (const [id, p] of g.nodes) if (p[0] >= box[0] && p[0] <= box[2] && p[1] >= box[1] && p[1] <= box[3] && g.neighbors(id).length) ids.push(id);
     const out: Home[] = [];
-    for (const [id, p] of g.nodes) {
-      if (p[0] < box[0] || p[0] > box[2] || p[1] < box[1] || p[1] > box[3] || !g.neighbors(id).length) continue;
+    for (let i = 0; i < STREET_DOORS && ids.length; i++) {
+      const k = Math.floor(this.rng.randf() * ids.length);
+      const id = ids[k]!;
+      ids[k] = ids.at(-1)!;
+      ids.pop();
+      const p = g.nodes.get(id)!;
       out.push({ street: g.streetAt(id), number: "", lat: p[0], lon: p[1] });
-      if (out.length >= STREET_DOORS) break;
     }
     return out;
   }
@@ -304,8 +310,6 @@ export class Game {
     const u = upgradeOf(id);
     if (!u || !this.stats.buy(u)) return false;
     this.equip();
-    // The wait under way gets shorter too.
-    if (id === "orders") this.job.waitLeftS *= WAIT_STEP;
     this.save();
     this.changed();
     return true;

@@ -3,7 +3,7 @@
 // far (re-planning as more load), and the game hears when he arrives. With
 // none he wanders: at each corner he takes a random street, rarely back the
 // way he came. Pure logic: no DOM, no networking, so it is easy to test.
-import { bboxAround, distanceM, offsetM, type BBox, type LatLon } from "./geo";
+import { bboxAround, distanceM, type BBox, type LatLon } from "./geo";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
@@ -22,8 +22,6 @@ export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
 /** Where an old save had him on a ride, until the streets there load. Never a tile or OSM id. */
 export const LONE_NODE = Number.MAX_SAFE_INTEGER;
-/** An east, north direction. */
-export type Vec = [number, number];
 
 export interface WalkerEvents {
   /** Reached a place of note. */
@@ -83,8 +81,6 @@ export class Walker {
   tripStartM = 0;
   /** The place of note he is heading to, null for a random spot. */
   place: Place | null = null;
-  /** Where the current leg started, for his heading. */
-  legFrom: LatLon | null = null;
 
   constructor(public graph: StreetGraph = new StreetGraph()) {}
 
@@ -111,7 +107,6 @@ export class Walker {
     if (this.here()) {
       const p = this.position();
       this.tripStartM = distanceM(p[0], p[1], lat, lon);
-      this.legFrom = p;
     }
   }
 
@@ -125,15 +120,6 @@ export class Walker {
   aim(): LatLon | null {
     if (this.goal) return this.goal;
     return this.toNode !== null ? (this.graph.nodes.get(this.toNode) ?? null) : null;
-  }
-
-  /** Direction (east, north unit vector) of his last leg, from where it started to where he is now; zero when there is none. */
-  heading(): Vec {
-    if (!this.legFrom || !this.here()) return [0, 0];
-    const p = this.position();
-    const v = offsetM(this.legFrom[0], this.legFrom[1], p[0], p[1]);
-    const len = Math.hypot(v[0], v[1]);
-    return len > ARRIVE_M ? [v[0] / len, v[1] / len] : [0, 0];
   }
 
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
@@ -187,7 +173,6 @@ export class Walker {
   private wander(): number {
     const all = this.graph.neighbors(this.fromNode!);
     const ahead = all.filter((n) => n !== this.prevNode);
-    this.legFrom ??= this.position();
     return this.rng.pick(ahead.length ? ahead : all);
   }
 
@@ -327,7 +312,6 @@ export class Walker {
       trip_m: this.tripM,
       trip_start_m: this.tripStartM,
       place: this.place,
-      leg_from: this.legFrom,
     };
   }
 
@@ -347,7 +331,6 @@ export class Walker {
     w.tripM = d.trip_m;
     w.tripStartM = d.trip_start_m;
     w.place = d.place;
-    w.legFrom = d.leg_from;
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
       if (id !== null && p && !graph.nodes.has(id)) graph.nodes.set(id, [p[0], p[1]]);
     }
@@ -383,7 +366,6 @@ export type WalkerSave = {
   trip_m: number;
   trip_start_m: number;
   place: Place | null;
-  leg_from: LatLon | null;
   /** Saves from before the base loop: a ride to another city or across town under way. */
   travel?: { arrive: LatLon; to?: { name: string; lat: number; lon: number; bounds?: BBox } } | null;
   flight?: { to: LatLon } | null;

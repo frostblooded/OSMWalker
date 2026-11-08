@@ -50,9 +50,17 @@ export function makeOrder(rng: Rng, here: LatLon, places: readonly Place[], home
   const pool = near(food.length ? food : places, here).slice(0, NEAREST_FOOD);
   if (!pool.length || !homes.length) return null;
   const from = rng.pick(pool).p;
-  const doors = near(homes, [from.lat, from.lon]);
-  const ring = doors.filter((h) => h.d >= DROP_MIN_M && h.d <= DROP_MAX_M);
-  const to = ring.length ? rng.pick(ring) : (doors.find((h) => h.d >= DROP_MIN_M) ?? doors.at(-1)!);
+  // One pass, no sort: there can be thousands of doors.
+  const ring: { p: Home; d: number }[] = [];
+  let past: { p: Home; d: number } | null = null;
+  let far: { p: Home; d: number } | null = null;
+  for (const p of homes) {
+    const d = distanceM(from.lat, from.lon, p.lat, p.lon);
+    if (d >= DROP_MIN_M && d <= DROP_MAX_M) ring.push({ p, d });
+    else if (d > DROP_MAX_M && (!past || d < past.d)) past = { p, d };
+    if (!far || d > far.d) far = { p, d };
+  }
+  const to = ring.length ? rng.pick(ring) : (past ?? far!);
   return { from, to: to.p, cents: payOf(to.d), dropM: to.d, picked: false };
 }
 

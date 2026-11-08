@@ -122,6 +122,11 @@ const EX_NEAR_M = 500;
 const EX_FAR_M = 1500;
 const pct = (x: number) => String(Math.round(Math.abs(x - 1) * 100));
 /** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4.50: he rides 10% faster." */
+/** "restaurant, cafe or pizza": the kinds of food place, from orders.ts. */
+const foodKinds = () => {
+  const k = [...O.FOOD].map((c) => c.replace("_", " "));
+  return `${k.slice(0, -1).join(", ")} or ${k.at(-1)}`;
+};
 const upgrades = () => U.UPGRADES.map((u) => `- ${u.icon} ${u.name}, from ${euro(u.cents)}: ${u.does}.`).join("\n");
 
 export function values(): Record<string, string> {
@@ -142,6 +147,7 @@ export function values(): Record<string, string> {
     ORDER_WAIT_S: num(O.ORDER_WAIT_S),
     MIN_WAIT_S: num(O.MIN_WAIT_S),
     NEAREST_FOOD: String(O.NEAREST_FOOD),
+    FOOD_KINDS: foodKinds(),
     DROP_MIN_M: num(O.DROP_MIN_M),
     DROP_MAX_KM: km(O.DROP_MAX_M),
     BASE_EURO: euro(O.BASE_CENTS),

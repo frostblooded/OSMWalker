@@ -29,7 +29,7 @@ If he has ridden more than {TRIP_RATIO} times the straight-line distance to a st
 ## Orders {orders}
 An order comes after about {ORDER_WAIT_S} seconds of riding about on average, sometimes sooner, sometimes later (never under {MIN_WAIT_S} seconds). Each 📱 Delivery app boost makes the wait {WAIT_STEP_PCT}% shorter. The wait only runs while he rides, not while streets load.
 
-He takes each order by himself. He picks up at one of the {NEAREST_FOOD} food places nearest him (a restaurant, fast food, cafe, bakery or ice cream place; any place of note where there is none) and delivers to a real house number {DROP_MIN_M} m to {DROP_MAX_KM} km from it. Where the map has no house numbers, a corner of a street there stands in for the door. On the map, an orange 1 marks the restaurant and a 2 the door.
+He takes each order by himself. He picks up at one of the {NEAREST_FOOD} food places nearest him (a {FOOD_KINDS} place; any place of note where there is none) and delivers to a real house number {DROP_MIN_M} m to {DROP_MAX_KM} km from it. Where the map has no house numbers, a corner of a street there stands in for the door. On the map, an orange 1 marks the restaurant and a 2 the door.
 
 The top card shows the order: "🍽 Picking up at …", then "🏠 Delivering to …", with the distance, the riding time and the pay. Tap that line to see him and his stop together; tap it again to go back to him.
 ## Pay {places}

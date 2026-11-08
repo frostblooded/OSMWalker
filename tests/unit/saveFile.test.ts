@@ -101,7 +101,7 @@ describe("save file", () => {
     expect(back.job.order).toBeNull();
     expect(back.stats).toMatchObject({ cents: 0, deliveries: 0, upgrades: {} });
     expect(back.stats.visited.size).toBe(1);
-    expect(back.stats.history.entries.length).toBeGreaterThanOrEqual(0);
+    expect(back.stats.history.toJSON().trail.length).toBeGreaterThan(0);
     expect(back.stats).not.toHaveProperty("xp");
     expect(back.stats).not.toHaveProperty("meters");
     expect(back).not.toHaveProperty("boostS");

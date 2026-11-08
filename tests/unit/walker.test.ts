@@ -352,13 +352,6 @@ describe("saves", () => {
     walker.advance(10);
     expect(roundTrip(walker).place).toEqual(CAFE_EAST);
   });
-
-  it("keep his last leg", () => {
-    walker.startAt(n(1));
-    walker.setGoal(42.001, 23.0);
-    const back = roundTrip(walker);
-    expect(back.legFrom).toEqual(walker.legFrom);
-  });
 });
 
 describe("city bounds", () => {
@@ -383,7 +376,7 @@ describe("city bounds", () => {
   });
 });
 
-describe("heading", () => {
+describe("offsets", () => {
   it("offsets go there and back", () => {
     const v = offsetM(42, 23, 42.001, 23.00135);
     expect(Math.hypot(v[0], v[1])).toBeCloseTo(distanceM(42, 23, 42.001, 23.00135), 0);
@@ -392,24 +385,6 @@ describe("heading", () => {
     const back = moved(42, 23, v);
     expect(back[0]).toBeCloseTo(42.001, 6);
     expect(back[1]).toBeCloseTo(23.00135, 6);
-  });
-
-  function atCross(): W.Walker {
-    const w = metres(new Walker(fixture()));
-    w.rng = new Rng(1);
-    w.bounds = [41.9, 22.9, 42.1, 23.1];
-    w.startAt(n(1));
-    return w;
-  }
-
-  it("take his heading from where his last leg started", () => {
-    const w = atCross();
-    expect(w.heading()).toEqual([0, 0]);
-    w.setGoal(42.001, 23.0);
-    expect(w.legFrom).toEqual(w.position());
-    w.legFrom = moved(42, 23, [-400, 0]);
-    expect(w.heading()[0]).toBeCloseTo(1, 3);
-    expect(w.heading()[1]).toBeCloseTo(0, 3);
   });
 
 });
