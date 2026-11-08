@@ -75,7 +75,7 @@ Each upgrade opens at its level. Once he has the money too, a shop selling it tu
 
 📕 Guidebook: one card is a sight he has never been to, for {GUIDE_XP_X} times its XP (and the first-visit bonus on top).
 
-📦 Parcels: he picks the parcel up at a work place close by, then goes on by himself to the drop-off, a work place farther off, and is paid there: {PARCEL_PAY_X} times what the walk from pick-up to drop-off would pay. The card shows both places, and its distance and time count both walks.
+📦 Parcels: he picks the parcel up at a work place close by, then goes on by himself to the drop-off, a work place farther off, and is paid there: {PARCEL_PAY_X} times what the walk from pick-up to drop-off would pay. The card shows both places, and its distance and time count both walks. First-visit bonuses for both places are paid at the drop-off, and 🆕 shows if either is new.
 
 🚇 Metro: he goes to a station near him and rides to a far part of the city, at least {METRO_MIN_KM} km away, with fresh places around. The ride takes no time and pays nothing by itself (a station he has never been to gives the first-visit bonus, like shops do); the card says where it goes.
 
