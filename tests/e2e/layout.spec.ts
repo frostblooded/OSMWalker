@@ -168,7 +168,8 @@ for (const width of [360, 412]) {
       await check(page, "shop");
       await page.getByRole("dialog", { name: /Shop/ }).getByRole("button", { name: /Close/ }).click();
       // Rich, with the order upgrade open, and delivering to a door with a long street name.
-      await reopenWith(page, `d.stats.cents = 9999999; d.stats.upgrades = { speed: 10, orders: 3 }; d.job.order.picked = true; d.job.order.to.street = "Boulevard of the Liberators of the Old Town Quarter";`);
+      await reopenWith(page, `d.stats.cents = 9999999; d.stats.upgrades = { speed: 10, orders: 3 }; d.job.order.picked = true; d.job.order.to.street = "Boulevard of the Liberators of the Old Town Quarter"; d.job.order.to.number = "112"; d.job.order.to.lat += 0.01;`);
+      // The door is moved about 1 km off, so he is still on his way when the screenshot is taken.
       await expect(page.locator(".chip")).toContainText("Delivering to Boulevard", { timeout: 20000 });
       await check(page, "game-delivering");
       await page.getByRole("button", { name: /Shop/ }).click();

@@ -1,6 +1,6 @@
 // The sheets: Help, Stats, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { mockServices, reopenWith } from "./mock";
+import { mockServices, orderNow, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -29,7 +29,7 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
   const help = page.getByRole("dialog", { name: /Help/ });
-  await help.getByRole("button", { name: "How he walks" }).click();
+  await help.getByRole("button", { name: "How he rides" }).click();
   await expect(help).toContainText("5 km/h");
   await expect(help).not.toContainText("{");
   expect(await smallButtons(page)).toEqual([]);
@@ -47,7 +47,7 @@ test("Help that couldn't load offers Try again", async ({ page }) => {
   await expect(help).toContainText("Couldn't load Help");
   fail = false;
   await help.getByRole("button", { name: /Try again/ }).click();
-  await expect(help.getByRole("button", { name: "How he walks" })).toBeVisible();
+  await expect(help.getByRole("button", { name: "How he rides" })).toBeVisible();
 });
 
 test("Help search finds pages by their text and keeps the results after Back", async ({ page }) => {
@@ -165,8 +165,7 @@ test("His face shows on the map, with the kind of place he heads for over his he
   await startInSofia(page);
   await expect(page.locator(".marker.him .face")).toHaveText("🙂");
   // The test tiles' only places of note are bridges, which are sights.
-  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  await orderNow(page);
   await expect(page.locator(".marker.him .bubble")).toHaveText("🌉", { timeout: 20000 });
 });
 
