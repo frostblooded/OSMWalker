@@ -31,6 +31,8 @@ export const SAVE_EVERY_S = 5;
 export const MAX_STEP_S = 1;
 /** Cells kept loaded around him: 1 means 3 x 3 z14 tiles, about 5 x 4 km. */
 export const STREET_RING = 1;
+/** Past this many street cells (about 2.4 MB each) in one city, he gets a fresh map of just the cells around him, so memory stays flat on long walks. */
+export const MAX_CELLS = 25;
 /** Seconds the pop over him shows after a reward. */
 export const POSE_S = 2;
 
@@ -222,12 +224,22 @@ export class Game {
     if (this.checkTimer >= 1) {
       this.checkTimer = 0;
       this.checkCity();
+      if (w.graph.cells.size > MAX_CELLS) this.freshMap();
     }
     this.saveTimer += dt;
     if (this.saveTimer >= SAVE_EVERY_S) {
       this.saveTimer = 0;
       this.save();
     }
+  }
+
+  /** Drops the streets he has left behind: a walker rebuilt from his own save on an empty graph, so he walks on to the same goal while the cells around him reload (mostly from the cache). */
+  private freshMap(): void {
+    const popped = this.popped;
+    const w = Walker.fromJSON(this.walker!.toJSON());
+    this.attach(w);
+    this.popped = popped;
+    this.loader.setGraph(w.graph);
   }
 
   /** His spot goes in the history and extends the trail. */

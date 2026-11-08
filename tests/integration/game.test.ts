@@ -8,9 +8,9 @@ import { NEW_PLACE_XP } from "../../src/core/places";
 import type { Place } from "../../src/core/stats";
 import { BIKE_SPEED_X, upgradeOf } from "../../src/core/upgrades";
 import { WALK_MPS } from "../../src/core/walker";
-import { Game, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
+import { Game, MAX_CELLS, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { hud, look } from "../../src/game/hud";
-import { CAFE, game, PARK, run, START, tick, WEST } from "../support/game";
+import { CAFE, empty, game, PARK, run, START, tick, WEST } from "../support/game";
 
 const reopened = (g: Game, storage: GameDeps["storage"]) => {
   const again = new Game({ ...(g as unknown as { deps: GameDeps }).deps, storage });
@@ -149,6 +149,30 @@ describe("game", () => {
     for (let i = 0; i < 400 && g.walker!.place; i++) g.step(1);
     expect(g.stats.cents).toBeGreaterThan(0);
     expect(g.stats.xp).toBe(NEW_PLACE_XP);
+  });
+
+  it("gets a fresh street map around him past MAX_CELLS cells, still walking to the same card", async () => {
+    const { g } = game({ places: [CAFE] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.pick(0);
+    run(g, 2);
+    const here = g.walker!.position();
+    const far = (i: number) => ({ x: 9000 + i, y: 6000 });
+    for (let i = 0; i <= MAX_CELLS; i++) g.walker!.graph.addCell(far(i), empty());
+    run(g, 1);
+    const w = g.walker!;
+    expect(w.graph.cells.has(cellKey(far(0)))).toBe(false);
+    expect(w.graph.cells.size).toBeLessThanOrEqual(9);
+    expect(distanceM(...w.position(), ...here)).toBeLessThan(10);
+    expect(w.place?.name).toBe("Cafe Near");
+    // The streets around him come back and he gets there.
+    for (let i = 0; i < 400 && g.stats.cents === 0; i++) {
+      g.step(1);
+      await tick();
+    }
+    expect(g.stats.cents).toBeGreaterThan(0);
+    expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
   });
 
   it("keeps the cards on offer across a save, so a reload doesn't deal new ones", async () => {
