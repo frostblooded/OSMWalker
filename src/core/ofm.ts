@@ -71,12 +71,15 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
   const t = layers.transportation;
   const scale = UNITS / (t?.extent ?? UNITS);
   const nodes = new Map<number, Pt>();
-  let ways: Way[] = [];
+  // Only streets on the ground are joined where they cross: bridges, tunnels and other layers pass over or under.
+  const ground: Way[] = [];
+  const raised: Way[] = [];
   for (const f of t?.features ?? []) {
     if (!WALKABLE.has(String(f.tags.class)) || NOT_WALKABLE_SUBCLASS.has(String(f.tags.subclass))) continue;
-    for (const line of f.lines ?? []) addLine(line, scale, tile, names, nodes, ways);
+    const onGround = (f.tags.brunnel === undefined || f.tags.brunnel === "ford") && !f.tags.layer;
+    for (const line of f.lines ?? []) addLine(line, scale, tile, names, nodes, onGround ? ground : raised);
   }
-  ways = joinJunctions(ways);
+  const ways = joinJunctions([...joinCrossings(ground, tile, nodes), ...raised]);
   const found = places(layers.poi, tile);
   const ids = new Float64Array(nodes.size);
   const coords = new Float64Array(nodes.size * 2);
@@ -190,13 +193,14 @@ export function places(layer: Layer | undefined, tile: Tile): Place[] {
   return out;
 }
 
-function closestOnSegment(p: Pt, a: Pt, b: Pt): Pt {
+/** The point of segment a-b closest to p, and how far along it that is (0 at a, 1 at b). */
+function foot(p: Pt, a: Pt, b: Pt): [number, Pt] {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const l2 = dx * dx + dy * dy;
-  if (l2 === 0) return a;
+  if (l2 === 0) return [0, a];
   const t = Math.min(Math.max(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2, 0), 1);
-  return [a[0] + dx * t, a[1] + dy * t];
+  return [t, [a[0] + dx * t, a[1] + dy * t]];
 }
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -241,38 +245,127 @@ export function joinJunctions(ways: Way[]): Way[] {
           for (const n of grid.get(gridKey(cx, cy)) ?? []) {
             if (n === u || n === v) continue;
             const p = posOf(n);
-            const q = closestOnSegment(p, a, b);
+            const [t, q] = foot(p, a, b);
             const d = dist(q, p);
-            if (d <= JOIN_TOL && d < (best.get(n)?.[0] ?? Infinity)) best.set(n, [d, wi, i, dist(a, q) / Math.max(dist(a, b), 0.001), u, v]);
+            if (d <= JOIN_TOL && d < (best.get(n)?.[0] ?? Infinity)) best.set(n, [d, wi, i, t, u, v]);
           }
         }
       }
     }
   });
-  const splits = new Map<number, [number, number][]>(); // way * 2^20 + segment -> [t, id]
+  const splits: Splits = new Map();
   const extra: Way[] = [];
   for (const [n, e] of best) {
     const t = e[3];
-    if (t < 0.01 || t > 0.99) {
-      extra.push({ name: "", ids: [n, t < 0.5 ? e[4] : e[5]] }); // next to its end: just link them
-    } else {
-      const key = e[1] * 2 ** 20 + e[2];
-      const list = splits.get(key);
-      if (list) list.push([t, n]);
-      else splits.set(key, [[t, n]]);
-    }
+    if (t < 0.01 || t > 0.99) extra.push({ name: "", ids: [n, t < 0.5 ? e[4] : e[5]] }); // next to its end: just link them
+    else addSplit(splits, e[1], e[2], t, n);
   }
-  if (splits.size === 0) return [...ways, ...extra];
-  const out = ways.map((w, wi) => {
+  return [...split(ways, splits), ...extra];
+}
+
+/** Way index * 2^20 + segment index -> the points [t along it, node id] it is cut at. */
+type Splits = Map<number, [number, number][]>;
+
+function addSplit(splits: Splits, way: number, seg: number, t: number, id: number): void {
+  const key = way * 2 ** 20 + seg;
+  const list = splits.get(key);
+  if (list) list.push([t, id]);
+  else splits.set(key, [[t, id]]);
+}
+
+/** The ways with each segment cut at its splits, in order along it. */
+function split(ways: Way[], splits: Splits): Way[] {
+  if (splits.size === 0) return ways;
+  return ways.map((w, wi) => {
     const joined = [w.ids[0]!];
     for (let i = 0; i < w.ids.length - 1; i++) {
+      const end = w.ids[i + 1]!;
       const cut = (splits.get(wi * 2 ** 20 + i) ?? []).sort((x, y) => x[0] - y[0]);
-      for (const c of cut) if (c[1] !== joined[joined.length - 1]) joined.push(c[1]);
-      joined.push(w.ids[i + 1]!);
+      for (const c of cut) if (c[1] !== joined[joined.length - 1] && c[1] !== end) joined.push(c[1]);
+      joined.push(end);
     }
     return { name: w.name, ids: joined };
   });
-  return [...out, ...extra];
+}
+
+/**
+ * Tiles drop the shared node where streets cross without bending, so two
+ * streets can cross with no node in common, or one street's corner can lie
+ * on the other's segment. Cuts both at the crossing (a new node), or the
+ * segment at the corner, so they connect. Dead ends are joined here too;
+ * joinJunctions still joins those of bridges and tunnels.
+ */
+export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): Way[] {
+  // Each segment's box (min x, min y, max x, max y) is widened by JOIN_TOL.
+  const segs: { w: number; i: number; a: Pt; b: Pt; ia: number; ib: number; box: [number, number, number, number] }[] = [];
+  const grid = new Map<number, number[]>();
+  // Tile units keep the grid keys small.
+  const ox = tile.x * UNITS;
+  const oy = tile.y * UNITS;
+  const local = (id: number): Pt => {
+    const p = posOf(id);
+    return [p[0] - ox, p[1] - oy];
+  };
+  ways.forEach((w, wi) => {
+    for (let i = 0; i < w.ids.length - 1; i++) {
+      const a = local(w.ids[i]!);
+      const b = local(w.ids[i + 1]!);
+      const box: [number, number, number, number] = [Math.min(a[0], b[0]) - JOIN_TOL, Math.min(a[1], b[1]) - JOIN_TOL, Math.max(a[0], b[0]) + JOIN_TOL, Math.max(a[1], b[1]) + JOIN_TOL];
+      const s = segs.push({ w: wi, i, a, b, ia: w.ids[i]!, ib: w.ids[i + 1]!, box }) - 1;
+      for (let cx = Math.floor(box[0] / GRID); cx <= Math.floor(box[2] / GRID); cx++) {
+        for (let cy = Math.floor(box[1] / GRID); cy <= Math.floor(box[3] / GRID); cy++) {
+          const k = gridKey(cx, cy);
+          const list = grid.get(k);
+          if (list) list.push(s);
+          else grid.set(k, [s]);
+        }
+      }
+    }
+  });
+  const splits: Splits = new Map();
+  /** Cuts segment `s` at corner `p` (node `id`) when the corner lies on it. */
+  const onto = (p: Pt, id: number, s: number) => {
+    const { w, i, a: q, b: r } = segs[s]!;
+    const [t, f] = foot(p, q, r);
+    if (t <= 0 || t >= 1 || dist(f, p) > JOIN_TOL) return false;
+    addSplit(splits, w, i, t, id);
+    return true;
+  };
+  for (const [k, list] of grid) {
+    for (let x = 0; x < list.length; x++) {
+      const i = list[x]!;
+      const { w: wi, i: si, a, b, ia, ib, box: p } = segs[i]!;
+      for (let y = x + 1; y < list.length; y++) {
+        const j = list[y]!;
+        const { w: wj, i: sj, a: c, b: d, ia: ic, ib: id, box: q } = segs[j]!;
+        const lx = Math.max(p[0], q[0]);
+        const ly = Math.max(p[1], q[1]);
+        // Boxes apart, or the pair is tried in the grid square where their overlap starts.
+        if (lx > Math.min(p[2], q[2]) || ly > Math.min(p[3], q[3])) continue;
+        if (gridKey(Math.floor(lx / GRID), Math.floor(ly / GRID)) !== k) continue;
+        if (ia === ic || ia === id || ib === ic || ib === id) continue;
+        if (onto(a, ia, j) || onto(b, ib, j) || onto(c, ic, i) || onto(d, id, i)) continue;
+        const at = cross(a, b, c, d);
+        if (!at) continue;
+        const n = node(at, false, tile, nodes);
+        const m = local(n);
+        addSplit(splits, wi, si, foot(m, a, b)[0], n);
+        addSplit(splits, wj, sj, foot(m, c, d)[0], n);
+      }
+    }
+  }
+  return split(ways, splits);
+}
+
+/** Where segments a-b and c-d cross between their ends, or null. */
+function cross(a: Pt, b: Pt, c: Pt, d: Pt): Pt | null {
+  const r: Pt = [b[0] - a[0], b[1] - a[1]];
+  const s: Pt = [d[0] - c[0], d[1] - c[1]];
+  const den = r[0] * s[1] - r[1] * s[0];
+  if (den === 0) return null;
+  const t = ((c[0] - a[0]) * s[1] - (c[1] - a[1]) * s[0]) / den;
+  const u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den;
+  return t > 0 && t < 1 && u > 0 && u < 1 ? [a[0] + r[0] * t, a[1] + r[1] * t] : null;
 }
 
 /** Segment key (either direction) -> street name, for every segment of every named line. */
