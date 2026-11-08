@@ -1,14 +1,13 @@
-// How he looks on the map: a bubble over his head with the icon of the
-// kind of place he heads for, and for a moment after he reaches it a pop
-// with what he got there.
+// How he looks on the map: a bubble over his head with the icon of where he
+// heads (the food place, or a house for the customer's door), and for a
+// moment after he is paid a pop with the money.
 export type Motion = "rise" | "pop";
 export type Pose = { icon: string; motion: Motion };
 export type Look = { bubble: string; pose: Pose | null };
 type PlaceClass = { class: string; subclass: string };
 
-/** The pop over him after a place pays money, and after one gives XP. */
+/** The pop over him when he is paid. */
 export const MONEY_POSE: Pose = { icon: "💶", motion: "rise" };
-export const XP_POSE: Pose = { icon: "⭐", motion: "pop" };
 
 /** Icons by "class/subclass", subclass or class, tried in that order. */
 const PLACE_ICON: Record<string, string> = {
@@ -23,14 +22,14 @@ const PLACE_ICON: Record<string, string> = {
   clothing_store: "👕", "shop/shoes": "👟", "shop/sports": "🎽", "shop/outdoor": "🥾", "shop/jewelry": "💍", "shop/watches": "⌚", "shop/gift": "🎁",
   "shop/second_hand": "♻", "shop/charity": "♻", "shop/pawnbroker": "💰", "shop/antiques": "🏺", "shop/carpet": "🧶", "shop/hardware": "🔨",
   "shop/doityourself": "🔨", "shop/weapons": "🗡", "shop/hunting": "🏹", "shop/knives": "🔪", "shop/florist": "💐", "shop/pet": "🐾", "shop/tailor": "🧵",
-  "shop/mobile_phone": "📱", shop: "🛍",
+  "shop/mobile_phone": "📱", shop: "🛍", home: "🏠", pizza: "🍕",
 };
 
 export function placeIcon(p: PlaceClass): string {
   return PLACE_ICON[`${p.class}/${p.subclass}`] ?? PLACE_ICON[p.subclass] ?? PLACE_ICON[p.class] ?? "📍";
 }
 
-/** `goal`: the place he heads for, null for a random spot; `pose`: the pop after a reward, or null. */
+/** `goal`: the place he heads for, null while he wanders; `pose`: the pop when he is paid, or null. */
 export function look(goal: PlaceClass | null, pose: Pose | null): Look {
   return { bubble: pose ? "" : goal ? placeIcon(goal) : "", pose };
 }

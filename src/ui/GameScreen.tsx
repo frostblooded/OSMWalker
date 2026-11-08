@@ -1,30 +1,27 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, his money and level), zoom on the right edge, and at the
-// bottom, in reach of the thumb, the menu button and, while he waits at a
-// place, the Where next button that opens the cards.
+// is, his order and its pay, his money), zoom on the right edge, and at the
+// bottom, in reach of the thumb, the menu button and the Shop button.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import { euro } from "../core/money";
-import { ride } from "../core/upgrades";
+import { addressOf } from "../core/orders";
 import type { Game } from "../game/game";
-import type { SearchPlace } from "../net/api";
-import { hud, type Goal, type Hud } from "../game/hud";
+import { hud, type Hud } from "../game/hud";
 import { MapScene, type Padding } from "../map/scene";
 import { MapView } from "../map/mapView";
 import { DebugSheet } from "./DebugSheet";
-import { dist, isResetWord, streetLine, walkTime } from "./format";
+import { dist, isResetWord, rideTime, streetLine } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
-import { PickSheet } from "./PickSheet";
-import { Picker } from "./Picker";
+import { canBuy, ShopSheet } from "./ShopSheet";
 import { settle } from "./snap";
 import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "next" | "train" | "history" | "stats" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "shop" | "history" | "stats" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -35,7 +32,6 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
-  const [trainMsg, setTrainMsg] = useState<{ text: string; busy?: boolean; error?: boolean }>();
 
   useEffect(() => {
     let loop: Loop | null = null;
@@ -82,11 +78,6 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
-  // Where next shows him and the cards' places above its sheet (again when it is dragged).
-  const fitOffer = () => {
-    if (sheet === "next") scene.current?.showOffer(document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0);
-  };
-  useEffect(fitOffer, [sheet]);
 
   const close = () => setSheet(null);
   const zoom = (step: number) => scene.current?.zoomBy(step);
@@ -94,22 +85,6 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const h = hud(game);
   if (!h) return null;
   const s = game.stats;
-  const picking = h.waiting === "pick";
-  const boarding = h.waiting === "train";
-  const pick = (i: number) => {
-    game.pick(i);
-    close();
-    scene.current?.backToHim();
-  };
-  const travel = async (p: SearchPlace) => {
-    const name = p.name.split(",")[0]!;
-    setTrainMsg({ text: `Riding to ${name}…`, busy: true });
-    const err = await game.travel(p.name, p.lat, p.lon, p.bbox, (state) => setTrainMsg({ text: `Riding to ${name}… (${state})`, busy: true }));
-    if (err) return setTrainMsg({ text: err, error: true });
-    setTrainMsg(undefined);
-    close();
-    scene.current?.backToHim();
-  };
   return (
     <div class="game">
       <div class="map" ref={mapEl} />
@@ -117,7 +92,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {ride(s.upgrades)}
+              🚲
             </span>
             <div class="grow">
               <div class="city">{h.city}</div>
@@ -125,10 +100,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
-              <span class="pill level">Lv {s.level}</span>
             </div>
           </div>
-          <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
+          <OrderChip hud={h} onTap={() => scene.current?.toggleGoal()} />
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
         </section>
@@ -146,14 +120,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           −
         </button>
       </div>
-      {picking && sheet !== "next" && (
-        <button class="btn primary next" onClick={() => setSheet("next")}>
-          🧭 Where next?
-        </button>
-      )}
-      {boarding && sheet !== "train" && (
-        <button class="btn primary next" onClick={() => setSheet("train")}>
-          🚆 Where to by train?
+      {sheet !== "shop" && (
+        <button class="btn primary next" onClick={() => setSheet("shop")}>
+          🛒 Shop{canBuy(s) && <span class="dot" role="img" aria-label="something to buy" />}
         </button>
       )}
       {!following && game.cameraFollows && (
@@ -200,31 +169,9 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           </div>
         </SheetBox>
       )}
-      {sheet === "next" && picking && (
-        <SheetBox
-          title="🧭 Where next?"
-          onClose={() => {
-            close();
-            scene.current?.backToHim();
-          }}
-          onResize={fitOffer}
-        >
-          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} stats={s} noShop={game.choice.noShop} onPick={pick} />
-        </SheetBox>
-      )}
-      {sheet === "train" && boarding && (
-        <SheetBox title="🚆 Where to by train?" onClose={() => !trainMsg?.busy && close()} full>
-          <Picker search={(t) => game.search(t)} choose={(p) => void travel(p)} message={trainMsg} title="" lead="Type a town or city. He keeps his money, level and upgrades." />
-          <button
-            class="btn stay"
-            disabled={!!trainMsg?.busy}
-            onClick={() => {
-              game.stayHere();
-              close();
-            }}
-          >
-            🚶 Stay in {h.city}
-          </button>
+      {sheet === "shop" && (
+        <SheetBox title="🛒 Shop" onClose={close}>
+          <ShopSheet stats={s} onBuy={(id) => game.buy(id)} />
         </SheetBox>
       )}
       {sheet === "history" && (
@@ -234,7 +181,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       )}
       {sheet === "stats" && (
         <SheetBox title="🧍 Stats" onClose={close}>
-          <StatsSheet stats={s} noShop={game.choice.noShop} />
+          <StatsSheet stats={s} />
         </SheetBox>
       )}
       {sheet === "help" && (
@@ -252,23 +199,24 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   );
 }
 
-function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
-  if (!goal) return null;
+/** His order: where he rides now, how far and how long, and the pay; or that he rides about waiting for one. */
+function OrderChip({ hud: h, onTap }: { hud: Hud; onTap: () => void }) {
+  const o = h.order;
+  const g = h.goal;
+  if (!o || !g) return <div class="chip idle">🛎 Riding about, waiting for an order</div>;
   return (
-    <button class="chip" onClick={onTap} aria-label="Show him and his goal">
-      <span class="grow">🎯 Going to {goal.name || "a random spot"}</span>
+    <button class="chip" onClick={onTap} aria-label="Show him and where he is going">
+      <span class="grow">{o.picked ? `🏠 Delivering to ${addressOf(o.to)}` : `🍽 Picking up at ${o.from.name}`}</span>
       <span class="eta">
-        {dist(goal.distM)}
-        {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
+        {dist(g.distM)}
+        {g.walkLeftM !== null && ` · ${rideTime(g.walkLeftM, g.mps)}`} · 💶 {euro(o.cents)}
       </span>
     </button>
   );
 }
 
-/** Why he is standing still: streets still loading, the map server out of reach, or your pick. */
+/** Why he is standing still: streets still loading, or the map server out of reach. */
 function Waiting({ hud: h }: { hud: Hud }) {
-  if (h.waiting === "pick") return <div class="notice">⏳ He waits for you to pick where next</div>;
-  if (h.waiting === "train") return <div class="notice">🚆 He waits at the station for you to pick a city</div>;
   if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
   if (h.waiting === "streets") {
     return (
@@ -362,13 +310,13 @@ function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     <div class="dialog-bg">
       <div class="card dialog" role="alertdialog" aria-label="New city">
         <h2>🔄 Start over in a new city?</h2>
-        <p class="dim">He forgets everything: his money, level, places and history. Type RESET to confirm.</p>
+        <p class="dim">He forgets everything: his money, upgrades, places and history. Type RESET to confirm.</p>
         <input value={word} aria-label="Type RESET" autocapitalize="characters" onInput={(e) => setWord((e.target as HTMLInputElement).value)} />
         <button class="btn danger" disabled={!isResetWord(word)} onClick={onConfirm}>
           Start over
         </button>
         <button class="btn" onClick={onCancel}>
-          Keep walking
+          Keep riding
         </button>
       </div>
     </div>

@@ -72,12 +72,12 @@ test("Help search finds pages by their text and keeps the results after Back", a
   await expect(help.getByRole("button", { name: "Money" })).toBeVisible();
 });
 
-test("Stats shows his level, XP, money and places visited", async ({ page }) => {
+test("Stats shows his money, deliveries, places and upgrades", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "XP0 / 100", "Money€0", "Places visited0"]) await expect(sheet).toContainText(t);
+  for (const t of ["Money€0", "Deliveries0", "Places visited0", "Bike tune-up×0", "Speed45 km/h"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
@@ -101,24 +101,23 @@ test("Debug shows the city, problems and buttons that work", async ({ page }) =>
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Debug/ }).click();
   const sheet = page.getByRole("dialog", { name: /Debug/ });
-  for (const t of ["City", "Loaded", "Street squares", "Problems", "Cards and picks"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("button", { name: /Cards and picks/ }).click();
-  await expect(sheet).toContainText(/Dealt \d cards?/);
+  for (const t of ["City", "Loaded", "Street squares", "Problems", "Orders"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
-  await sheet.getByRole("button", { name: /New cards/ }).click();
+  await sheet.getByRole("button", { name: /New order/ }).click();
   await expect(sheet).toBeHidden();
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible();
+  await expect(page.locator(".chip")).toContainText("Picking up at");
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Debug/ }).click();
+  await sheet.getByRole("button", { name: /Orders/ }).click();
+  await expect(sheet).toContainText(/🛎 Order \(button\): /);
 });
 
-test("Only zoom, the menu and Where next sit on the map", async ({ page }) => {
+test("Only zoom, the menu and the Shop sit on the map", async ({ page }) => {
   await startInSofia(page);
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
   const onMap = () => page.locator(".game > button, .game > .zoom > button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()));
-  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out", "🧭 Where next?"]);
-  await page.getByRole("button", { name: /Where next/ }).click();
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out", "🛒 Shop"]);
+  await page.getByRole("button", { name: /Shop/ }).click();
   expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out"]);
-  await expect(page.locator(".chip .eta")).toContainText(/~\d+ min|<1 min/, { timeout: 20000 });
 });
 
 test("Map credit is a folded ⓘ bottom left that opens on tap", async ({ page }) => {

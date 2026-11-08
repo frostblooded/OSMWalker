@@ -1,14 +1,15 @@
 // What the screens show about him, worked out once from the game: his look
-// on the map, the top card (where he goes, how far it is, why he waits:
-// streets loading or the player's pick) and the facts Debug lists. Plain
+// on the map, the top card (his order: where he rides, how far, the pay; or
+// that he is waiting for one, or for streets to load) and the facts Debug lists. Plain
 // data, so the screens only lay it out and the numbers are tested without a
 // browser.
 import { distanceM, type BBox, type LatLon } from "../core/geo";
 import * as Looks from "../core/look";
+import { addressOf, type Order } from "../core/orders";
 import { tripLimitM } from "../core/walker";
 import type { Game } from "./game";
 
-/** Walking to a place or a random spot. */
+/** Riding to the restaurant or the customer's door. */
 export type Goal = { name: string; distM: number; walkLeftM: number | null; mps: number };
 
 export type Hud = {
@@ -16,8 +17,10 @@ export type Hud = {
   city: string;
   street: string;
   goal: Goal | null;
-  /** Why he stands still: streets loading, the map server out of reach, the player's pick, or a city for his train. */
-  waiting: "" | "streets" | "failing" | "pick" | "train";
+  /** The order he is on, or null while he waits for one. */
+  order: Order | null;
+  /** Why he stands still: streets loading, or the map server out of reach. */
+  waiting: "" | "streets" | "failing";
 };
 
 export function hud(g: Game): Hud | null {
@@ -25,9 +28,7 @@ export function hud(g: Game): Hud | null {
   if (!w) return null;
   let waiting: Hud["waiting"] = "";
   if (w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
-  else if (!w.goal && g.choice.train) waiting = "train";
-  else if (!w.goal && g.choice.offer.length) waiting = "pick";
-  return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), waiting };
+  return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), order: g.job.order, waiting };
 }
 
 function goal(g: Game): Goal | null {
@@ -59,12 +60,13 @@ export function doing(g: Game): string {
   const w = g.walker;
   if (!w) return "not started";
   const target = g.goalTarget();
-  if (!target) return "no goal yet";
+  const o = g.job.order;
+  if (!target || !o) return `wandering; next order in about ${Math.ceil(g.job.waitLeftS)} s`;
   const here = w.position();
-  return `heading for ${w.place?.name ?? "a random spot"} ${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (walked ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
+  return `${o.picked ? `delivering to ${addressOf(o.to)}` : `picking up at ${o.from.name}`} `+ `${distanceM(here[0], here[1], target[0], target[1]).toFixed(0)} m away (rode ${w.tripM.toFixed(0)} m of at most ${tripLimitM(w.tripStartM).toFixed(0)} m)`;
 }
 
-/** The bubble with the kind of place he heads for, and the pop after a reward. */
+/** The bubble with where he heads (the food place, or 🏠 for the door), and the pop when he is paid. */
 export function look(g: Game): Looks.Look {
   return Looks.look(g.walker!.place, g.pose());
 }

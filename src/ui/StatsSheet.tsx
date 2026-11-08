@@ -1,53 +1,28 @@
-// His character sheet: his level with a bar to the next one, his money and
-// how many places he has been to; the next upgrade with what it still waits
-// on; and the rest of the ladder, owned and later, in groups that open on a tap.
+// His character sheet: his money, the deliveries he made and the places he
+// has been to; and what his upgrades add up to: how fast he rides and how
+// long an order takes to come, on average.
 import { euro } from "../core/money";
-import { xpToNext, type Stats } from "../core/stats";
-import { LADDER, nextUpgrade, type Upgrade } from "../core/upgrades";
-import { Bar, Card, Collapsible, KV } from "./kit";
-import { about, does, NextUpgrade } from "./NextUpgrade";
+import { ORDER_WAIT_S } from "../core/orders";
+import type { Stats } from "../core/stats";
+import { count, speedX, UPGRADES, waitX } from "../core/upgrades";
+import { BIKE_MPS } from "../core/walker";
+import { Card, KV } from "./kit";
 
-export function StatsSheet({ stats: s, noShop = false }: { stats: Stats; noShop?: boolean }) {
-  const need = xpToNext(s.level);
-  const next = nextUpgrade(s.upgrades);
-  const owned = LADDER.filter((u) => s.upgrades.has(u.id));
-  const later = LADDER.filter((u) => !s.upgrades.has(u.id) && u !== next);
+export function StatsSheet({ stats: s }: { stats: Stats }) {
   return (
     <>
-      <Card icon="⭐" title={`Level ${s.level}`}>
-        <KV k="XP" v={`${s.xp} / ${need}`} />
-        <Bar share={s.xp / need} color="var(--lilac)" />
+      <Card icon="🚲" title="His work">
         <KV k="💶 Money" v={euro(s.cents)} />
+        <KV k="📦 Deliveries" v={s.deliveries} />
         <KV k="📍 Places visited" v={s.visited.size} />
       </Card>
-      <NextUpgrade stats={s} noShop={noShop} />
-      <Card icon="🧰" title="Upgrades" right={`${owned.length} / ${LADDER.length}`}>
-        {owned.length > 0 && (
-          <Collapsible title={`✓ Owned (${owned.length})`}>
-            {owned.map((u) => (
-              <Step key={u.id} u={u} v="✓" ok />
-            ))}
-          </Collapsible>
-        )}
-        {later.length > 0 && (
-          <Collapsible title={`🔒 Later (${later.length})`}>
-            {later.map((u) => (
-              <Step key={u.id} u={u} v={`Lv ${u.level} · ${euro(u.cents)}`} />
-            ))}
-          </Collapsible>
-        )}
-        {!later.length && !next && <p class="dim">All bought.</p>}
+      <Card icon="🧰" title="Upgrades">
+        {UPGRADES.map((u) => (
+          <KV key={u.id} k={`${u.icon} ${u.name}`} v={`×${count(s.upgrades, u.id)}`} />
+        ))}
+        <KV k="🚲 Speed" v={`${Math.round(BIKE_MPS * 3.6 * speedX(s.upgrades))} km/h`} />
+        <KV k="🛎 Order wait" v={`~${Math.round(ORDER_WAIT_S * waitX(s.upgrades))} s`} />
       </Card>
     </>
-  );
-}
-
-/** One step of the ladder: its name and value, and under it what it does, plus where it is sold if he doesn't own it yet. */
-function Step({ u, v, ok }: { u: Upgrade; v: string; ok?: boolean }) {
-  return (
-    <div class="upgrade">
-      <KV k={`${u.icon} ${u.name}`} v={v} tone={ok ? "ok" : undefined} />
-      <p class="dim">{ok ? does(u) : about(u)}</p>
-    </div>
   );
 }

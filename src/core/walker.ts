@@ -1,36 +1,35 @@
-// The character's walk along the street graph: he heads for the place the
-// player picked by the shortest route over the streets loaded so far
-// (re-planning as more load). On arrival the game hears of it. With no goal
-// he asks the game whether to wait (for the player's pick); if not (no
-// places loaded yet), he heads for a random spot near and ahead of him.
-// Pure logic: no DOM, no networking, so it is easy to test.
+// The character's walk along the street graph: with a goal (a restaurant or
+// a customer's door) he takes the shortest route over the streets loaded so
+// far (re-planning as more load), and the game hears when he arrives. With
+// none he wanders: at each corner he takes a random street, rarely back the
+// way he came. Pure logic: no DOM, no networking, so it is easy to test.
 import { bboxAround, distanceM, offsetM, type BBox, type LatLon } from "./geo";
-import { randomSpot, type Vec } from "./goals";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
 
-/** Walking speed in meters per second: a door-to-door city average, counting lights and traffic. */
-export const WALK_MPS = 5 / 3.6;
+/** A real city bike, door to door, counting lights and traffic: 15 km/h (Copenhagen's cyclists average about 15.5 km/h). */
+export const REAL_BIKE_KMH = 15;
+/** Every movement is this many times its real-world speed, on purpose, so the game plays better. */
+export const GAME_SPEED_X = 3;
+/** His speed on his bike, in meters per second. */
+export const BIKE_MPS = (REAL_BIKE_KMH * GAME_SPEED_X) / 3.6;
 /** Close enough to a destination to call it reached. */
 export const ARRIVE_M = 30;
 /** Destinations come from the searched place's box, kept between these sizes. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
-/** Goals given up on in a row before he just walks down a street, so a city where no goal can be reached never hangs. */
-export const MAX_SKIPS = 3;
 /** Where an old save had him on a ride, until the streets there load. Never a tile or OSM id. */
 export const LONE_NODE = Number.MAX_SAFE_INTEGER;
-export type PickInfo = Record<string, unknown>;
+/** An east, north direction. */
+export type Vec = [number, number];
 
 export interface WalkerEvents {
   /** Reached a place of note. */
   arrived?(place: Place): void;
-  /** He has no goal: true makes him wait where he is (the player is picking); false sends him to a random spot. */
-  idle?(): boolean;
-  /** Picked a random spot, and why. */
-  picked?(info: PickInfo): void;
+  /** He has no goal and is about to wander down a street: the game may give him one now. */
+  idle?(): void;
   /** Something odd that the debug panel should show. */
   problem?(text: string): void;
 }
@@ -59,8 +58,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export class Walker {
   rng = new Rng();
   events: WalkerEvents = {};
-  /** How fast he walks, in meters per second. */
-  speedMps = WALK_MPS;
+  /** How fast he rides, in meters per second. */
+  speedMps = BIKE_MPS;
 
   prevNode: number | null = null;
   fromNode: number | null = null;
@@ -69,7 +68,7 @@ export class Walker {
   /** Meters walked from fromNode towards toNode. */
   progressM = 0;
   totalM = 0;
-  /** Where destinations are picked. */
+  /** The city's box, for Debug and the city area. */
   bounds: BBox | null = null;
   goal: LatLon | null = null;
   /** Street corner the goal snapped to, once streets there load. */
@@ -86,7 +85,6 @@ export class Walker {
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
-  private skips = 0;
 
   constructor(public graph: StreetGraph = new StreetGraph()) {}
 
@@ -117,25 +115,10 @@ export class Walker {
     }
   }
 
-  /** Heads for `place` (the player's pick). */
+  /** Heads for `place`. */
   goTo(place: Place): void {
     this.setGoal(place.lat, place.lon);
     this.place = place;
-  }
-
-  /** Heads for a random spot near and ahead of him, while no place can be offered (none loaded yet). */
-  pickGoal(): void {
-    if (!this.bounds && this.here()) {
-      const p = this.position();
-      this.bounds = cityBounds(p[0], p[1]);
-    }
-    const info: PickInfo = { in_box: this.graph.placesIn(this.bounds ?? cityBounds(0, 0)).length, cells: this.graph.cells.size };
-    const spot = this.randomSpot();
-    this.setGoal(spot[0], spot[1]);
-    info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : "no place worth going to within reach";
-    this.events.problem?.(`Picked a random spot: ${info.fallback}`);
-    this.events.picked?.(info);
   }
 
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
@@ -151,11 +134,6 @@ export class Walker {
     const v = offsetM(this.legFrom[0], this.legFrom[1], p[0], p[1]);
     const len = Math.hypot(v[0], v[1]);
     return len > ARRIVE_M ? [v[0] / len, v[1] / len] : [0, 0];
-  }
-
-  /** A spot in the city box at a medium distance, more likely ahead of him (see goals.ts). */
-  randomSpot(): LatLon {
-    return randomSpot(this.rng, this.bounds ?? cityBounds(0, 0), this.here() ? this.position() : null, this.heading());
   }
 
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
@@ -182,15 +160,9 @@ export class Walker {
           this.startAt(near);
           continue;
         }
-        if (!this.goal && this.events.idle?.()) return 0;
-        this.toNode = this.nextStep();
-        if (this.toNode === null && this.skips > MAX_SKIPS) {
-          // Already as close as he gets to every goal tried: wander a street instead.
-          this.events.problem?.(`Gave up on ${this.skips} goals in a row; wandering down a street instead`);
-          this.skips = 0;
-          this.toNode = this.rng.pick(this.graph.neighbors(this.fromNode));
-        }
-        if (this.toNode === null) continue; // arrived or moved on: he picks again on the next turn
+        if (!this.goal) this.events.idle?.();
+        this.toNode = this.goal ? this.nextStep() : this.wander();
+        if (this.toNode === null) continue; // arrived or gave up: he goes on from here on the next turn
       }
       const remaining = this.graph.edgeLength(this.fromNode, this.toNode) - this.progressM;
       if (meters < remaining) {
@@ -206,21 +178,27 @@ export class Walker {
       this.fromNode = this.toNode;
       this.toNode = null;
       this.progressM = 0;
-      this.skips = 0;
       if (this.routeArrives && this.route.length === 0) this.arrive();
     }
     return 0;
   }
 
+  /** A random street from this corner, back the way he came only at a dead end. */
+  private wander(): number {
+    const all = this.graph.neighbors(this.fromNode!);
+    const ahead = all.filter((n) => n !== this.prevNode);
+    this.legFrom ??= this.position();
+    return this.rng.pick(ahead.length ? ahead : all);
+  }
+
   /** Next node on the way to the goal, or null after arriving or giving up. */
   private nextStep(): number | null {
-    if (!this.goal) this.pickGoal();
     const from = this.fromNode!;
     const next = this.route[0];
     if (next !== undefined && next !== from && this.graph.adjacency.get(from)?.has(next)) return this.route.shift()!;
     if (this.tripM > tripLimitM(this.tripStartM)) {
+      this.events.problem?.(`Gave up on ${this.place?.name ?? "a goal"} after ${Math.round(this.tripM)} m`);
       this.dropGoal();
-      this.skips++;
       return null;
     }
     if (this.routeArrives) {
@@ -235,18 +213,11 @@ export class Walker {
     return this.route.shift()!;
   }
 
-  /**
-   * At a place the game hears of it; a random spot is only a waypoint, and so
-   * is a place he got to without a step (he already stood as near as the
-   * streets go), so it can't pay again and again. Either way he asks for his
-   * next goal on the next step.
-   */
+  /** At the goal (or as near as the streets go) the game hears of it, and may give him the next one. */
   private arrive(): void {
     const place = this.place;
-    const walked = this.tripM > 0;
     this.dropGoal();
-    if (place && walked) this.events.arrived?.(place);
-    else this.skips++;
+    if (place) this.events.arrived?.(place);
   }
 
   /** Drops his goal: he finishes this bit of street, then asks for a new one. */

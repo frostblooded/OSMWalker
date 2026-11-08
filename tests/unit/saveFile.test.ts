@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Choice } from "../../src/core/cards";
 import { DebugLog } from "../../src/core/debugLog";
 import { StreetGraph } from "../../src/core/graph";
+import { Job } from "../../src/core/orders";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
 import { LONE_NODE, Walker } from "../../src/core/walker";
@@ -36,13 +36,14 @@ function saved(): Saved {
   stats.cents = 4321;
   stats.history.moveTo(42.7, 23.3);
   stats.history.moveTo(42.701, 23.3);
-  stats.addXp(150);
+  stats.deliveries = 3;
+  stats.upgrades = { speed: 2 };
   stats.visited.add("Cafe@42.7000,23.3000");
   const debugLog = new DebugLog();
-  debugLog.add({ picked: 1, of: 3, place: "Cafe" });
-  const choice = new Choice();
-  choice.recent = ["Cafe@42.7000,23.3000"];
-  return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, choice };
+  debugLog.add({ order: true, from: "Cafe", to: "Vitosha 12" });
+  const job = new Job();
+  job.order = { from: { name: "Cafe", class: "cafe", subclass: "cafe", rank: 1, lat: 42.7, lon: 23.3 }, to: { street: "Vitosha", number: "12", lat: 42.704, lon: 23.3 }, cents: 260, dropM: 445, picked: true };
+  return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, job };
 }
 
 /** Writes `saved()`, lets `edit` change the stored JSON, and reads it back. */
@@ -72,36 +73,39 @@ describe("save file", () => {
     expect(back).toMatchObject({ city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15 });
     expect(back.walker.totalM).toBe(123);
     expect(back.walker.position()).toEqual([42.7, 23.3]);
-    expect(back.stats).toMatchObject({ cents: 4321, xp: 50, level: 2 });
+    expect(back.stats).toMatchObject({ cents: 4321, deliveries: 3, upgrades: { speed: 2 } });
     expect([...back.stats.visited]).toEqual(["Cafe@42.7000,23.3000"]);
-    expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
-    expect(back.choice.recent).toEqual(["Cafe@42.7000,23.3000"]);
+    expect(back.debugLog.entries).toMatchObject([{ from: "Cafe" }]);
+    expect(back.job.order).toMatchObject({ to: { number: "12" }, picked: true, cents: 260 });
   });
 
   it("keeps the stored format that older versions wrote", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["choice", "city", "debug_log", "origin", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["city", "debug_log", "job", "origin", "stats", "walker", "zoom"]);
   });
 
-  it("loads a save from before the base loop: XP, level and places kept, money from afresh, the rest dropped", () => {
+  it("loads a save from before the deliveries: places and history kept, money and upgrades afresh, cards, XP and the rest dropped", () => {
     const back = edited((d) => {
       const st = d.stats!;
-      delete st.economy;
+      st.economy = 1;
+      st.xp = 50;
+      st.level = 2;
+      st.upgrades = ["map", "bike"];
       st.meters = { energy: 3 };
-      st.bag = [{ name: "Bike" }];
       d.boost_s = 900;
-      d.country = "BGR";
-      delete d.choice;
+      delete d.job;
+      d.choice = { offer: [{ place: { name: "Cafe" } }], recent: [] };
     }) as Saved;
-    expect(back.choice.offer).toEqual([]);
-    expect(back.choice.noShop).toBe(false);
-    expect(back.stats.cents).toBe(0);
-    expect(back.stats).toMatchObject({ xp: 50, level: 2 });
+    expect(back.job.order).toBeNull();
+    expect(back.stats).toMatchObject({ cents: 0, deliveries: 0, upgrades: {} });
     expect(back.stats.visited.size).toBe(1);
+    expect(back.stats.history.entries.length).toBeGreaterThanOrEqual(0);
+    expect(back.stats).not.toHaveProperty("xp");
     expect(back.stats).not.toHaveProperty("meters");
     expect(back).not.toHaveProperty("boostS");
+    expect(back).not.toHaveProperty("choice");
   });
 
   it("puts him in the city an old save was riding to, waiting for its streets, with a break in his trail", () => {

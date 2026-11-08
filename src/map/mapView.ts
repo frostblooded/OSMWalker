@@ -7,7 +7,7 @@ import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "ma
 import type { BBox, LatLon } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
-import type { MapPort, Padding, RouteLine } from "./scene";
+import type { MapPort, Padding, RouteLine, Stop } from "./scene";
 
 export const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const MIN_ZOOM = 3;
@@ -137,7 +137,7 @@ export class MapView implements MapPort {
         paint: { "line-color": ROUTE_COLOR, "line-width": 5, "line-opacity": 0.9, ...(dash ? { "line-dasharray": [...dash] } : {}) },
       });
     }
-    // The places on the cards, numbered as the cards are.
+    // His order's stops: 1 the restaurant, 2 the customer's door.
     this.map.addSource("offer", { type: "geojson", data: none });
     this.map.addLayer({ id: "offer", type: "circle", source: "offer", paint: { "circle-radius": 13, "circle-color": ROUTE_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 3 } });
     this.map.addLayer({
@@ -256,14 +256,14 @@ export class MapView implements MapPort {
     (this.map.getSource("route") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
   }
 
-  /** The places on the cards, numbered 1, 2, 3 as the cards are; only sent to MapLibre when they change. */
-  setOffer(points: LatLon[]): void {
-    const key = points.map((p) => p.join()).join(";");
+  /** His order's stops, each with its label; only sent to MapLibre when they change. */
+  setStops(stops: Stop[]): void {
+    const key = stops.map((s) => `${s.label}${s.at.join()}`).join(";");
     if (key === this.offerKey) return;
     this.offerKey = key;
     (this.map.getSource("offer") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
-      features: points.map((p, i) => ({ type: "Feature", properties: { label: String(i + 1) }, geometry: { type: "Point", coordinates: [p[1], p[0]] } })),
+      features: stops.map((s) => ({ type: "Feature", properties: { label: s.label }, geometry: { type: "Point", coordinates: [s.at[1], s.at[0]] } })),
     });
   }
 

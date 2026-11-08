@@ -3,15 +3,12 @@ import { distanceM, moved, offsetM } from "../../src/core/geo";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
-const { Walker, WALK_MPS } = W;
-type PickInfo = W.PickInfo;
+const { Walker, BIKE_MPS } = W;
 const n = (osm: number) => -osm; // node ids of the "+" fixture
 const SMALL_BOX: [number, number, number, number] = [41.995, 22.995, 42.005, 23.005];
-const CITY_BOX: [number, number, number, number] = [41.99, 22.99, 42.01, 23.01];
 const cafe = (name: string, lat: number, lon: number, rank = 1): Place => ({ name, class: "cafe", subclass: "cafe", rank, lat, lon });
 const CAFE_EAST = cafe("Cafe East", 42.0, 23.00135);
 
@@ -34,7 +31,6 @@ beforeEach(() => {
 
 const len = (a: number, b: number) => graph.edgeLength(n(a), n(b));
 const roundTrip = (w: W.Walker, g = new StreetGraph()) => Walker.fromJSON(JSON.parse(JSON.stringify(w)), g);
-const setPlaces = (g: StreetGraph, places: Place[]) => g.places.set(cellKey(cellOf(42, 23)), places);
 
 /** Heads for a place of note at node 3: only places make him stop. */
 function headForCafe(): void {
@@ -54,8 +50,9 @@ function longStreet(count: number): StreetGraph {
 }
 
 describe("walking", () => {
-  it("walks at 5 km/h", () => {
-    expect(WALK_MPS * 3.6).toBeCloseTo(5, 6);
+  it("rides 3 times as fast as a real city bike's 15 km/h", () => {
+    expect(BIKE_MPS * 3.6).toBeCloseTo(45, 6);
+    expect(new Walker().speedMps).toBe(BIKE_MPS);
   });
 
   it("walks partway along the street", () => {
@@ -130,35 +127,27 @@ describe("arriving", () => {
     expect(walker.place).toBeNull();
   });
 
-  it("picks a new goal inside the city on the next step", () => {
-    walker.bounds = SMALL_BOX;
+  it("lets the game give the next goal right away, as at a pick-up", () => {
+    const next = cafe("Door", 42.0, 22.99865);
+    walker.events.arrived = () => walker.goTo(next);
     walker.startAt(n(2));
     headForCafe();
-    const picked: PickInfo[] = [];
-    walker.events.picked = (info) => picked.push(info);
-    walker.advance((len(2, 1) + len(1, 3) + 1));
-    expect(picked.length).toBeGreaterThan(0);
-    expect(walker.place).toBeNull();
+    walker.advance(len(2, 1) + len(1, 3) + 1);
+    expect(walker.place).toBe(next);
+  });
+
+  it("counts a place he is already at, so an order at his own corner still goes on", () => {
+    const seen: Place[] = [];
+    walker.events.arrived = (p) => seen.push(p);
+    walker.startAt(n(2));
+    const p = graph.nodes.get(n(2))!;
+    walker.goTo(cafe("Here", p[0], p[1]));
+    walker.advance(1);
+    expect(seen.map((x) => x.name)).toEqual(["Here"]);
   });
 });
 
 describe("goals", () => {
-  it("spreads random goals over the city", () => {
-    walker.bounds = [41, 22, 43, 24];
-    let north = 0;
-    for (let s = 0; s < 100; s++) {
-      walker.rng = new Rng(s);
-      walker.pickGoal();
-      expect(walker.goal![0]).toBeGreaterThanOrEqual(41);
-      expect(walker.goal![0]).toBeLessThanOrEqual(43);
-      expect(walker.goal![1]).toBeGreaterThanOrEqual(22);
-      expect(walker.goal![1]).toBeLessThanOrEqual(24);
-      if (walker.goal![0] > 42) north++;
-    }
-    expect(north).toBeGreaterThan(30);
-    expect(north).toBeLessThan(70);
-  });
-
   it("ends an unreachable place at the closest street", () => {
     walker.startAt(n(4));
     walker.setGoal(42.05, 23.0);
@@ -185,11 +174,14 @@ describe("goals", () => {
     walker.setGoal(42.0, 23.00135);
     walker.place = cafe("Far", 42.0, 23.00135);
     walker.tripM = W.tripLimitM(walker.tripStartM) + 1;
-    const picked: PickInfo[] = [];
-    walker.events.picked = (info) => picked.push(info);
+    const problems: string[] = [];
+    const idle: number[] = [];
+    walker.events.problem = (t) => problems.push(t);
+    walker.events.idle = () => idle.push(1);
     walker.advance(1);
-    expect(picked.length).toBeGreaterThan(0);
-    expect(walker.place?.name).not.toBe("Far");
+    expect(problems[0]).toMatch(/^Gave up on Far/);
+    expect(walker.place).toBeNull();
+    expect(idle.length).toBeGreaterThan(0);
   });
 
   it("walks past a random spot without stopping", () => {
@@ -203,15 +195,6 @@ describe("goals", () => {
     expect(walker.goal).not.toEqual([42.0, 23.00135]);
   });
 
-  it("does not hang on random spots he cannot get closer to", () => {
-    const problems: string[] = [];
-    walker.events.problem = (t) => problems.push(t);
-    walker.bounds = [43.0, 24.0, 43.1, 24.1];
-    walker.startAt(n(1));
-    walker.advance(5000);
-    expect(problems.some((t) => t.startsWith("Gave up on"))).toBe(true);
-  });
-
   it("heads for a picked place", () => {
     walker.startAt(n(2));
     walker.goTo(CAFE_EAST);
@@ -220,41 +203,28 @@ describe("goals", () => {
     expect(walker.tripStartM).toBeGreaterThan(0);
   });
 
-  it("waits where he is while the game says so, then walks on", () => {
-    let waiting = true;
-    const picks: PickInfo[] = [];
-    walker.events.idle = () => waiting;
-    walker.events.picked = (i) => picks.push(i);
-    walker.bounds = CITY_BOX;
-    walker.startAt(n(2));
-    walker.advance(500);
-    expect(walker.position()).toEqual(graph.nodes.get(n(2)));
-    expect(walker.goal).toBeNull();
-    waiting = false;
-    walker.advance(1);
-    expect(picks).toHaveLength(1);
-    expect(walker.goal).not.toBeNull();
+  it("wanders with no goal: a random street at each corner, back only at a dead end", () => {
+    const visited = new Set<number>();
+    walker.startAt(n(1));
+    for (let i = 0; i < 40; i++) {
+      walker.advance(60);
+      visited.add(walker.fromNode!);
+      expect(walker.goal).toBeNull();
+    }
+    // All four arms of the cross, and he never stood still.
+    for (const arm of [2, 3, 4, 5]) expect(visited.has(n(arm))).toBe(true);
+    expect(walker.totalM).toBeCloseTo(2400, 0);
   });
 
-  it("tells why a random spot was picked", () => {
-    const picks: W.PickInfo[] = [];
-    walker.events.picked = (i) => picks.push(i);
+  it("asks the game at each corner while he has no goal", () => {
+    let asks = 0;
+    walker.events.idle = () => {
+      if (++asks === 2) walker.goTo(CAFE_EAST);
+    };
     walker.startAt(n(2));
-    walker.bounds = CITY_BOX;
-    walker.pickGoal();
-    expect(picks[0]!.fallback).toBe("no places loaded in the city box yet");
-    expect(picks[0]!.spot).toEqual(walker.goal);
-    const here = graph.nodes.get(n(2))!;
-    setPlaces(graph, [cafe("Here", here[0], here[1])]);
-    walker.pickGoal();
-    expect(picks[1]!.fallback).toBe("no place worth going to within reach");
-  });
-
-  it("picks a new goal when forced", () => {
-    walker.startAt(n(2));
-    walker.bounds = CITY_BOX;
-    walker.pickGoal();
-    expect(walker.goal).toHaveLength(2);
+    walker.advance(len(2, 1) + 1);
+    expect(asks).toBe(2);
+    expect(walker.place).toBe(CAFE_EAST);
   });
 
 });
@@ -413,7 +383,7 @@ describe("city bounds", () => {
   });
 });
 
-describe("goal weights", () => {
+describe("heading", () => {
   it("offsets go there and back", () => {
     const v = offsetM(42, 23, 42.001, 23.00135);
     expect(Math.hypot(v[0], v[1])).toBeCloseTo(distanceM(42, 23, 42.001, 23.00135), 0);
@@ -442,40 +412,6 @@ describe("goal weights", () => {
     expect(w.heading()[1]).toBeCloseTo(0, 3);
   });
 
-  it("draw random spots near and ahead", () => {
-    const w = atCross();
-    let east = 0;
-    const dists: number[] = [];
-    for (let s = 0; s < 200; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.legFrom = moved(42, 23, [-500, 0]);
-      w.pickGoal();
-      const v = offsetM(42, 23, w.goal![0], w.goal![1]);
-      dists.push(Math.hypot(v[0], v[1]));
-      if (v[0] > 0) east++;
-      expect(w.goal![0]).toBeGreaterThanOrEqual(41.9);
-      expect(w.goal![0]).toBeLessThanOrEqual(42.1);
-    }
-    dists.sort((a, b) => a - b);
-    expect(dists[100]).toBeGreaterThan(0.7 * G.GOAL_PEAK_M);
-    expect(dists[100]).toBeLessThan(1.4 * G.GOAL_PEAK_M);
-    expect(east).toBeGreaterThan(115);
-    expect(east).toBeLessThan(160);
-  });
-
-  it("keep random spots in a small city box", () => {
-    const w = atCross();
-    w.bounds = [41.999, 22.999, 42.001, 23.001];
-    for (let s = 0; s < 50; s++) {
-      w.rng = new Rng(s);
-      w.pickGoal();
-      expect(w.goal![0]).toBeGreaterThanOrEqual(41.999);
-      expect(w.goal![0]).toBeLessThanOrEqual(42.001);
-      expect(w.goal![1]).toBeGreaterThanOrEqual(22.999);
-      expect(w.goal![1]).toBeLessThanOrEqual(23.001);
-    }
-  });
 });
 
 
@@ -488,15 +424,3 @@ describe("commands", () => {
   });
 });
 
-describe("standing still", () => {
-  it("doesn't count a place he reaches without a step, so it can't pay over and over", () => {
-    const seen: Place[] = [];
-    walker.events.arrived = (p) => seen.push(p);
-    walker.startAt(n(2));
-    const p = graph.nodes.get(n(2))!;
-    walker.setGoal(p[0], p[1]);
-    walker.place = cafe("Here", p[0], p[1]);
-    walker.advance(1);
-    expect(seen).toEqual([]);
-  });
-});

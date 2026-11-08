@@ -1,13 +1,12 @@
 // The map scene with a real game and walker on the "+" streets, and a fake map
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
-import { offerFor } from "../../src/core/cards";
 import type { BBox } from "../../src/core/geo";
 import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
 import { Game } from "../../src/game/game";
-import { EVENT_ZOOM, MapScene, type MapPort, type Padding } from "../../src/map/scene";
+import { EVENT_ZOOM, MapScene, type MapPort, type Padding, type Stop } from "../../src/map/scene";
 import { Api } from "../../src/net/api";
 import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
@@ -37,9 +36,9 @@ class FakeMap implements MapPort {
   setTrail() {}
   setRoute() {}
   setArea() {}
-  offer: [number, number][] = [];
-  setOffer(points: [number, number][]) {
-    this.offer = points;
+  stops: Stop[] = [];
+  setStops(stops: Stop[]) {
+    this.stops = stops;
   }
   setEvents() {
     this.calls.push("events");
@@ -98,7 +97,7 @@ describe("map scene", () => {
     expect(map.autoFollow).toBe(false);
   });
 
-  it("shows the kind of place he heads for over his head", () => {
+  it("shows where he heads over his head", () => {
     scene.draw(0.25, 250);
     expect(map.look).toEqual({ bubble: "", pose: null });
     game.walker!.setGoal(42.0, 23.00135);
@@ -114,19 +113,17 @@ describe("map scene", () => {
     expect(scene.pxPerSec).toBeGreaterThan(10);
   });
 
-  it("marks the places on the cards, and fits them and him above the Where next sheet", () => {
+  it("marks his order's stops: the restaurant until he has the food, and the door", () => {
     const cafe = { name: "Cafe East", class: "cafe", subclass: "cafe", rank: 1, lat: 42.0, lon: 23.00135 };
-    game.choice.offer = [offerFor(cafe, game.walker!.position(), "close", true)];
+    game.job.order = { from: cafe, to: { street: "Main", number: "3", lat: 42.001, lon: 23.0 }, cents: 300, dropM: 150, picked: false };
     scene.draw(0.25, 250);
-    expect(map.offer).toEqual([[42.0, 23.00135]]);
-    scene.showOffer(300);
-    const fit = map.fits.at(-1)!;
-    expect(fit.box).toEqual([42.0, 23.0, 42.001, 23.00135]);
-    expect(fit.padding.bottom).toBe(324);
-    expect(following.at(-1)).toBe(false);
-    game.choice.offer = [];
+    expect(map.stops).toEqual([{ at: [42.0, 23.00135], label: "1" }, { at: [42.001, 23.0], label: "2" }]);
+    game.job.order.picked = true;
     scene.draw(0.25, 250);
-    expect(map.offer).toEqual([]);
+    expect(map.stops).toEqual([{ at: [42.001, 23.0], label: "2" }]);
+    game.job.order = null;
+    scene.draw(0.25, 250);
+    expect(map.stops).toEqual([]);
   });
 
   it("shows him and his goal on a tap, then follows him again on the next", () => {

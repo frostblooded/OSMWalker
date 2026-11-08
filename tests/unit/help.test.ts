@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { KINDS } from "../../src/core/places";
 import * as Help from "../../src/ui/help";
 import { HELP_URL } from "../../src/ui/HelpSheet";
 import { dataFile } from "../support/data";
@@ -49,27 +48,24 @@ describe("the real help", () => {
   });
 
   it("uses the game's real numbers", () => {
-    expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
-    const places = page("places").body;
-    expect(places).toContain("- 💶 work places pay money: cafe, bakery, restaurant, fast food,");
-    expect(places).toContain("A minute of walking is worth €0.60 at a work place, 10 XP at a sight and 5 XP in a green space, and every stop is worth 3 minutes on top");
-    expect(places).toMatch(/a work place 300 m away pays €[\d.]+ and one 1.2 km away €[\d.]+\./);
-    expect(places).toContain("he gets 20 XP on top");
-    expect(page("goal").body).toContain("each a place nearby");
-    expect(page("goal").body).toContain("at most 200 m away");
-    expect(page("goal").body).toContain("3 cards (4 with the 🗺 City map)");
-    expect(page("upgrades").body).toContain("- 🚲 Bike, from level 3 for €25 at a bike shop: cards reach 2 times as far and he rides 3 times as fast.");
-    expect(page("walking").body).toContain("rides at 15 km/h");
-    expect(page("xp").body).toContain("100 XP from level 1 to 2, 200 XP from 2 to 3, 1000 XP from 10 to 11");
-  });
-
-  it("names every rewarding kind of place", () => {
-    const body = page("places").body;
-    for (const c of Object.values(KINDS).flat()) expect(body, c).toContain(c.replace(/_/g, " "));
+    const riding = page("walking").body;
+    expect(riding).toContain("He rides his bike at 45 km/h, about 750 m a minute");
+    expect(riding).toContain("3 times a real city bike's 15 km/h");
+    expect(riding).toContain("Each 🔧 Bike tune-up makes him 10% faster");
+    const orders = page("orders").body;
+    expect(orders).toContain("after about 60 seconds of riding about on average");
+    expect(orders).toContain("Each 📱 Delivery app boost makes the wait 10% shorter");
+    expect(orders).toContain("one of the 5 food places nearest him");
+    expect(orders).toContain("300 m to 1.5 km from it");
+    expect(page("places").body).toMatch(/An order pays €2 plus €1 per km .* a door 500 m from the restaurant pays €[\d.]+ and one 1.5 km off pays €[\d.]+\./);
+    const up = page("upgrades").body;
+    expect(up).toContain("costs 15% more each time");
+    expect(up).toContain("- 🔧 Bike tune-up, from €4.50: he rides 10% faster.");
+    expect(up).toContain("opens once he has 10 Bike tune-ups");
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["goal", "menu", "sheet", "history", "debug", "new_city", "help", "map", "screen", "upgrades"]) expect(page(id), id).toBeDefined();
+    for (const id of ["orders", "menu", "sheet", "history", "debug", "new_city", "help", "map", "screen", "upgrades"]) expect(page(id), id).toBeDefined();
   });
 });
 
@@ -125,8 +121,8 @@ describe("search", () => {
   });
 
   it("finds real pages by their filled numbers", () => {
-    expect(Help.search(sections, "€25").length).toBeGreaterThan(0);
-    expect(Help.search(sections, "levels")[0]!.page.id).toBe("xp");
+    expect(Help.search(sections, "€4.50")[0]!.page.id).toBe("upgrades");
+    expect(Help.search(sections, "orders")[0]!.page.id).toBe("orders");
   });
 
   it("is fetched from an address that changes with its text, so no cache serves an old Help", () => {
