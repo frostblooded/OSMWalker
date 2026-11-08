@@ -156,6 +156,40 @@ describe("ofm streets", () => {
     expect(g.neighbors(mid)).toHaveLength(3);
   });
 
+  // Tiles drop a straight street's junction points, so two streets can cross with no node in common.
+  const graphOf = (...features: Feature[]) => {
+    const g = new StreetGraph();
+    g.addCell(WEST, fromLayers({ transportation: { extent: 4096, features } }, WEST));
+    return g;
+  };
+  const at = (x: number, y: number) => nodeId(WEST.x * 4096 + x, WEST.y * 4096 + y);
+
+  it("joins two streets that cross with no node in common", () => {
+    const g = graphOf(minor([100, 100, 300, 100]), { tags: { class: "path", subclass: "pedestrian" }, lines: [[200, 0, 200, 300]] });
+    expect(g.neighbors(at(200, 100)).sort()).toEqual([at(100, 100), at(200, 0), at(200, 300), at(300, 100)].sort());
+  });
+
+  it("joins a street whose bend lies on another street's segment", () => {
+    const g = graphOf(minor([100, 100, 300, 100]), minor([150, 0, 200, 100, 250, 300]));
+    expect(g.neighbors(at(200, 100))).toHaveLength(4);
+  });
+
+  it("keeps a bridge or a tunnel apart from the street it crosses", () => {
+    for (const tags of [{ brunnel: "bridge" }, { brunnel: "tunnel" }, { layer: 1 }] as Record<string, string | number>[]) {
+      const g = graphOf(minor([100, 100, 300, 100]), { tags: { class: "minor", ...tags }, lines: [[200, 0, 200, 300]] });
+      expect(g.hasNode(at(200, 100)), JSON.stringify(tags)).toBe(false);
+    }
+  });
+
+  it("links the crossings of a real tile's streets", () => {
+    // These junctions are on neither street's line in the tile.
+    const g = new StreetGraph();
+    g.addCell(WEST, fromPbf(pbf(WEST), WEST));
+    const meet = (x: string, y: string) => [...g.adjacency.values()].some((m) => [...m.values()].includes(x) && [...m.values()].includes(y));
+    expect(meet("Княз Борис I", "Неофит Рилски")).toBe(true);
+    expect(meet("бул. Витоша", "Неофит Рилски")).toBe(true);
+  });
+
   it("keeps named places inside the tile", () => {
     const poi: Layer = {
       extent: 4096,
