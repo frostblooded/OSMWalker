@@ -193,13 +193,14 @@ export function places(layer: Layer | undefined, tile: Tile): Place[] {
   return out;
 }
 
-function closestOnSegment(p: Pt, a: Pt, b: Pt): Pt {
+/** The point of segment a-b closest to p, and how far along it that is (0 at a, 1 at b). */
+function foot(p: Pt, a: Pt, b: Pt): [number, Pt] {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const l2 = dx * dx + dy * dy;
-  if (l2 === 0) return a;
+  if (l2 === 0) return [0, a];
   const t = Math.min(Math.max(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2, 0), 1);
-  return [a[0] + dx * t, a[1] + dy * t];
+  return [t, [a[0] + dx * t, a[1] + dy * t]];
 }
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -244,9 +245,9 @@ export function joinJunctions(ways: Way[]): Way[] {
           for (const n of grid.get(gridKey(cx, cy)) ?? []) {
             if (n === u || n === v) continue;
             const p = posOf(n);
-            const q = closestOnSegment(p, a, b);
+            const [t, q] = foot(p, a, b);
             const d = dist(q, p);
-            if (d <= JOIN_TOL && d < (best.get(n)?.[0] ?? Infinity)) best.set(n, [d, wi, i, dist(a, q) / Math.max(dist(a, b), 0.001), u, v]);
+            if (d <= JOIN_TOL && d < (best.get(n)?.[0] ?? Infinity)) best.set(n, [d, wi, i, t, u, v]);
           }
         }
       }
@@ -288,14 +289,13 @@ function split(ways: Way[], splits: Splits): Way[] {
 }
 
 /**
- * Tiles also drop the junction point of streets that run straight through
- * it, so two streets can cross with no node in common, or one street's
+ * Tiles also drop the shared node where streets cross without bending, so two streets can cross with no node in common, or one street's
  * corner can lie on the other's segment. Cuts both at the crossing (a new
  * node), or the segment at the corner, so they connect. For streets on the
  * ground only: a bridge meets nothing it crosses.
  */
 export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): Way[] {
-  const segs: [number, number, Pt, Pt][] = []; // way, segment, its ends in tile units
+  const segs: [number, number, Pt, Pt, number, number][] = []; // way, segment, its ends in tile units, their node ids
   let n = 0;
   for (const w of ways) n += w.ids.length - 1;
   const box = new Float64Array(n * 4); // per segment: min x, min y, max x, max y, widened by JOIN_TOL
@@ -310,8 +310,11 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
     for (let i = 0; i < w.ids.length - 1; i++) {
       const a = local(w.ids[i]!);
       const b = local(w.ids[i + 1]!);
-      const s = segs.push([wi, i, a, b]) - 1;
-      box.set([Math.min(a[0], b[0]) - JOIN_TOL, Math.min(a[1], b[1]) - JOIN_TOL, Math.max(a[0], b[0]) + JOIN_TOL, Math.max(a[1], b[1]) + JOIN_TOL], s * 4);
+      const s = segs.push([wi, i, a, b, w.ids[i]!, w.ids[i + 1]!]) - 1;
+      box[s * 4] = Math.min(a[0], b[0]) - JOIN_TOL;
+      box[s * 4 + 1] = Math.min(a[1], b[1]) - JOIN_TOL;
+      box[s * 4 + 2] = Math.max(a[0], b[0]) + JOIN_TOL;
+      box[s * 4 + 3] = Math.max(a[1], b[1]) + JOIN_TOL;
       for (let cx = Math.floor(box[s * 4]! / GRID); cx <= Math.floor(box[s * 4 + 2]! / GRID); cx++) {
         for (let cy = Math.floor(box[s * 4 + 1]! / GRID); cy <= Math.floor(box[s * 4 + 3]! / GRID); cy++) {
           const k = gridKey(cx, cy);
@@ -326,8 +329,8 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
   /** Cuts segment `s` at corner `p` (node `id`) when the corner lies on it. */
   const onto = (p: Pt, id: number, s: number) => {
     const [w, i, q, r] = segs[s]!;
-    const t = along(p, q, r);
-    if (t <= 0 || t >= 1 || dist(closestOnSegment(p, q, r), p) > JOIN_TOL) return false;
+    const [t, f] = foot(p, q, r);
+    if (t <= 0 || t >= 1 || dist(f, p) > JOIN_TOL) return false;
     addSplit(splits, w, i, t, id);
     return true;
   };
@@ -341,12 +344,8 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
         // Boxes apart, or the pair is tried in the grid square where their overlap starts.
         if (lx > Math.min(box[i * 4 + 2]!, box[j * 4 + 2]!) || ly > Math.min(box[i * 4 + 3]!, box[j * 4 + 3]!)) continue;
         if (gridKey(Math.floor(lx / GRID), Math.floor(ly / GRID)) !== k) continue;
-        const [wi, si, a, b] = segs[i]!;
-        const [wj, sj, c, d] = segs[j]!;
-        const ia = ways[wi]!.ids[si]!;
-        const ib = ways[wi]!.ids[si + 1]!;
-        const ic = ways[wj]!.ids[sj]!;
-        const id = ways[wj]!.ids[sj + 1]!;
+        const [wi, si, a, b, ia, ib] = segs[i]!;
+        const [wj, sj, c, d, ic, id] = segs[j]!;
         if (ia === ic || ia === id || ib === ic || ib === id) continue;
         if (onto(a, ia, j) || onto(b, ib, j) || onto(c, ic, i) || onto(d, id, i)) continue;
         const at = cross(a, b, c, d);
@@ -354,16 +353,13 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
         const p: Pt = [Math.round(at[0]), Math.round(at[1])];
         const node = nodeId(ox + p[0], oy + p[1]);
         if (!nodes.has(node)) nodes.set(node, [pxToLat(oy + p[1], UNIT_ZOOM), pxToLon(ox + p[0], UNIT_ZOOM)]);
-        addSplit(splits, wi, si, along(p, a, b), node);
-        addSplit(splits, wj, sj, along(p, c, d), node);
+        addSplit(splits, wi, si, foot(p, a, b)[0], node);
+        addSplit(splits, wj, sj, foot(p, c, d)[0], node);
       }
     }
   }
   return split(ways, splits);
 }
-
-/** Where p's foot falls along segment a-b, from 0 at a to 1 at b. */
-const along = (p: Pt, a: Pt, b: Pt) => ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / Math.max((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2, 1e-6);
 
 /** Where segments a-b and c-d cross between their ends, or null. */
 function cross(a: Pt, b: Pt, c: Pt, d: Pt): Pt | null {
