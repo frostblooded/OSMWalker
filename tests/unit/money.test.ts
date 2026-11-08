@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { euro, signed, toCents } from "../../src/core/money";
+import { euro, toCents } from "../../src/core/money";
 
 describe("money", () => {
   it("turns euros from the data into whole cents", () => {
@@ -14,9 +14,5 @@ describe("money", () => {
     expect(euro(7)).toBe("€0.07");
     expect(euro(0)).toBe("€0");
     expect(euro(1234567)).toBe("€12,345.67");
-  });
-  it("shows a change with its sign", () => {
-    expect(signed(550)).toBe("+€5.50");
-    expect(signed(-300)).toBe("-€3");
   });
 });

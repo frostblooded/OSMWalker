@@ -2,7 +2,7 @@
 // CELL_ZOOM, one OpenFreeMap vector tile each), so downloads never overlap,
 // add up, and can be cached by name. Node ids are numbers: tile grid ids are
 // positive (see ofm.ts) and OSM node ids from Overpass are negated.
-import { bboxAround, distanceM, latToPx, lonToPx, tileBbox, tileOf, TILE_SIZE, type BBox, type Tile } from "./geo";
+import { bboxAround, distanceM, latToPx, lonToPx, tileOf, TILE_SIZE, type BBox, type Tile } from "./geo";
 import type { Place } from "./stats";
 
 /** A z14 tile is about 1.8 x 2.4 km at 42°N. */
@@ -23,19 +23,6 @@ const inBox = (p: Place, box: BBox) => p.lat >= box[0] && p.lat <= box[2] && p.l
 
 export const cellKey = (c: Tile) => c.x * 2 ** CELL_ZOOM + c.y;
 export const cellOf = (lat: number, lon: number): Tile => tileOf(lat, lon, CELL_ZOOM);
-
-/** Box around a set of cells. */
-export function cellsBbox(list: Tile[]): BBox {
-  const box: BBox = [Infinity, Infinity, -Infinity, -Infinity];
-  for (const c of list) {
-    const b = tileBbox(c, CELL_ZOOM);
-    box[0] = Math.min(box[0], b[0]);
-    box[1] = Math.min(box[1], b[1]);
-    box[2] = Math.max(box[2], b[2]);
-    box[3] = Math.max(box[3], b[3]);
-  }
-  return box;
-}
 
 /**
  * Cells within `ring` cells of the point, most urgent first: his own cell,
@@ -151,22 +138,6 @@ export class StreetGraph {
     }
     this.places.set(cellKey(cell), data.places);
     this.cells.add(cellKey(cell));
-  }
-
-  /** Merges an Overpass response covering `bbox`. Only cells entirely inside it count as loaded. */
-  addOverpass(data: OverpassData, bbox: BBox): Map<number, Cell> {
-    const nw = cellOf(bbox[2], bbox[1]);
-    const se = cellOf(bbox[0], bbox[3]);
-    const inside: Tile[] = [];
-    for (let y = nw.y; y <= se.y; y++) {
-      for (let x = nw.x; x <= se.x; x++) {
-        const b = tileBbox({ x, y }, CELL_ZOOM);
-        if (b[0] >= bbox[0] && b[1] >= bbox[1] && b[2] <= bbox[2] && b[3] <= bbox[3]) inside.push({ x, y });
-      }
-    }
-    const compact = compactCells(data, inside);
-    for (const c of inside) this.addCell(c, compact.get(cellKey(c))!);
-    return compact;
   }
 
   /** Places of note in loaded cells inside the box. */

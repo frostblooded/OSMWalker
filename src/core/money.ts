@@ -11,6 +11,3 @@ export function euro(cents: number): string {
   const rest = c % 100;
   return `${cents < 0 ? "-" : ""}€${whole}${rest ? `.${String(rest).padStart(2, "0")}` : ""}`;
 }
-
-/** "+€5.50" or "-€3". */
-export const signed = (cents: number) => (cents >= 0 ? "+" : "") + euro(cents);

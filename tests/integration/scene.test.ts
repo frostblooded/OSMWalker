@@ -9,7 +9,7 @@ import { Walker } from "../../src/core/walker";
 import { Game } from "../../src/game/game";
 import { EVENT_ZOOM, MapScene, type MapPort, type Padding } from "../../src/map/scene";
 import { Api } from "../../src/net/api";
-import { plus, PLUS_BBOX } from "../support/osm";
+import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
 const n = (osm: number) => -osm;
 const PANELS: Padding = { top: 100, bottom: 80, left: 0, right: 0 };
@@ -75,7 +75,7 @@ beforeEach(() => {
   game = new Game({ api: new Api(async () => new Response("", { status: 503 })), load: async () => ({ error: "offline" }), storage: null });
   game.problems.quiet = true;
   const g = new StreetGraph();
-  g.addOverpass(plus(), PLUS_BBOX);
+  addOverpass(g, plus(), PLUS_BBOX);
   const w = new Walker(g);
   w.startAt(n(2));
   game.walker = w;

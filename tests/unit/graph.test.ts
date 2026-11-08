@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { tileBbox } from "../../src/core/geo";
-import { CELL_ZOOM, cellKey, cellOf, cellsBbox, cellsByPriority, compactCells, StreetGraph } from "../../src/core/graph";
-import { plus, PLUS_BBOX } from "../support/osm";
+import { CELL_ZOOM, cellKey, cellOf, cellsByPriority, compactCells, StreetGraph } from "../../src/core/graph";
+import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
 const id = (osm: number) => -osm;
 
 function loaded(): StreetGraph {
   const g = new StreetGraph();
-  g.addOverpass(plus(), PLUS_BBOX);
+  addOverpass(g, plus(), PLUS_BBOX);
   return g;
 }
 
@@ -38,14 +38,14 @@ describe("StreetGraph", () => {
 
   it("only counts cells fully inside the box as loaded", () => {
     const g = new StreetGraph();
-    g.addOverpass(plus(), [41.9995, 22.999, 42.0005, 23.001]);
+    addOverpass(g, plus(), [41.9995, 22.999, 42.0005, 23.001]);
     expect(g.cells.size).toBe(0);
     expect(g.isComplete(id(1))).toBe(false);
   });
 
   it("merges overlapping downloads without duplicates", () => {
     const g = loaded();
-    g.addOverpass(plus(), PLUS_BBOX);
+    addOverpass(g, plus(), PLUS_BBOX);
     expect(g.nodes.size).toBe(5);
     expect(g.neighbors(id(1))).toHaveLength(4);
   });
@@ -134,12 +134,5 @@ describe("cells", () => {
     expect(east[0]).toEqual(home);
     expect(at(east, 1)).toBeLessThan(at(east, -1));
     expect(at(west, -1)).toBeLessThan(at(west, 1));
-  });
-
-  it("boxes a set of cells", () => {
-    const a = cellOf(42, 23);
-    const box = cellsBbox([a, { x: a.x + 1, y: a.y + 1 }]);
-    expect(box[0]).toBe(tileBbox({ x: a.x, y: a.y + 1 }, CELL_ZOOM)[0]);
-    expect(box[3]).toBe(tileBbox({ x: a.x + 1, y: a.y }, CELL_ZOOM)[3]);
   });
 });
