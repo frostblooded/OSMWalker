@@ -29,6 +29,7 @@ From the design research report `docs/design-research.md` (user, 2026-11-08). **
 8. Returning feels like a gift (a summary, a diary), not a punishment.
 9. Prefer real, notable OSM places as free content over hand-made arcs.
 10. Log picks and measure; simulate the economy; check UI clarity before retuning numbers.
+11. About one upgrade every 5 minutes of play, early and later (user, 2026-11-08). `npm run sim` checks it (`tests/unit/economy.test.ts`); when a change breaks it, advise the user on new numbers.
 
 ## Where to look
 
