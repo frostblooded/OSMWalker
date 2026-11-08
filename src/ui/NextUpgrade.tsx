@@ -5,8 +5,10 @@ import { xpToNext, type Stats } from "../core/stats";
 import { nextUpgrade, type Upgrade } from "../core/upgrades";
 import { Bar, Card, KV } from "./kit";
 
-/** What an upgrade does and who sells it: "A 4th card at every stop. Sold at a bookshop or newsagent." */
-export const about = (u: Upgrade) => `${u.does[0]!.toUpperCase() + u.does.slice(1)}. Sold at ${u.where}.`;
+/** What an upgrade does: "A 4th card at every stop." */
+export const does = (u: Upgrade) => `${u.does[0]!.toUpperCase() + u.does.slice(1)}.`;
+/** What it does and who sells it: "A 4th card at every stop. Sold at a bookshop or newsagent." */
+export const about = (u: Upgrade) => `${does(u)} Sold at ${u.where}.`;
 
 /** Nothing at the top of the ladder. */
 export function NextUpgrade({ stats: s }: { stats: Pick<Stats, "upgrades" | "level" | "cents" | "xp"> }) {

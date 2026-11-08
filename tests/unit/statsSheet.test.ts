@@ -43,11 +43,17 @@ describe("Stats sheet", () => {
     expect(text).not.toContain("Guidebook");
   });
 
-  it("says what level the next upgrade waits for, and nothing once all are bought", () => {
+  it("says what level the next upgrade waits for, and nothing once all are bought, nor where owned ones are sold", async () => {
     const s = new Stats();
     expect(shown(s)).toContain(`🔒 Opens atLevel ${LADDER[0]!.level}`);
     for (const u of LADDER) s.upgrades.add(u.id);
     expect(shown(s)).not.toContain("Next:");
     expect(shown(s)).toContain("Upgrades7 / 7");
+    const root = document.createElement("div");
+    render(h(StatsSheet, { stats: s }), root);
+    root.querySelector<HTMLButtonElement>(".fold-head")!.click();
+    await new Promise((r) => setTimeout(r));
+    expect(root.textContent).toContain("A 4th card at every stop.");
+    expect(root.textContent).not.toContain("Sold at");
   });
 });

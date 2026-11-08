@@ -5,7 +5,7 @@ import { euro } from "../core/money";
 import { xpToNext, type Stats } from "../core/stats";
 import { LADDER, nextUpgrade, type Upgrade } from "../core/upgrades";
 import { Bar, Card, Collapsible, KV } from "./kit";
-import { about, NextUpgrade } from "./NextUpgrade";
+import { about, does, NextUpgrade } from "./NextUpgrade";
 
 export function StatsSheet({ stats: s }: { stats: Stats }) {
   const need = xpToNext(s.level);
@@ -42,12 +42,12 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
   );
 }
 
-/** One step of the ladder: its name and value, and what it does and where it is sold under it. */
+/** One step of the ladder: its name and value, and under it what it does, plus where it is sold if he doesn't own it yet. */
 function Step({ u, v, ok }: { u: Upgrade; v: string; ok?: boolean }) {
   return (
     <div class="upgrade">
       <KV k={`${u.icon} ${u.name}`} v={v} tone={ok ? "ok" : undefined} />
-      <p class="dim">{about(u)}</p>
+      <p class="dim">{ok ? does(u) : about(u)}</p>
     </div>
   );
 }
