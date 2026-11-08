@@ -21,10 +21,6 @@ export class Stats {
   history = new History();
   /** Places he has reached, by visitKey. */
   visited = new Set<string>();
-  /** Unix seconds, for history entries; tests replace it. */
-  now = () => Math.floor(Date.now() / 1000);
-  /** Hears every feed line as it is said; tests collect them. */
-  onSay: ((line: string, t: number) => void) | null = null;
 
   /** True when he has never reached `place`. */
   isNew(place: Pick<Place, "name" | "lat" | "lon">): boolean {
@@ -53,9 +49,7 @@ export class Stats {
   }
 
   say(line: string): void {
-    const t = this.now();
-    this.history.add(line, t);
-    this.onSay?.(line, t);
+    this.history.add(line, Math.floor(Date.now() / 1000));
   }
 
   toJSON() {

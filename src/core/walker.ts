@@ -34,8 +34,7 @@ export interface WalkerEvents {
   problem?(text: string): void;
 }
 
-/** Longest a walk to one goal may take before he gives up (it may be across water or behind a fence). */
-/** He gives up once a walk passes TRIP_RATIO times the straight line plus TRIP_EXTRA_M. */
+/** He gives up on a goal once the walk passes TRIP_RATIO times the straight line plus TRIP_EXTRA_M (it may be across water or behind a fence). */
 export const TRIP_RATIO = 2.5;
 export const TRIP_EXTRA_M = 2000;
 export const tripLimitM = (straightM: number) => TRIP_RATIO * straightM + TRIP_EXTRA_M;
@@ -153,7 +152,6 @@ export class Walker {
     this.events.picked?.(info);
   }
 
-  /** Debug: drops the goal and picks the next one right away. */
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
   aim(): LatLon | null {
     if (this.goal) return this.goal;

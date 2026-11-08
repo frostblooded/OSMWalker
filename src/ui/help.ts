@@ -119,6 +119,9 @@ export const build = (text: string) => parse(fill(text, values()));
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const pct = (share: number) => `${num(share * 100)}%`;
 const km = (m: number) => num(m / 1000);
+/** Sample distances Help shows the goal odds for. */
+const NEAR_M = 150;
+const FAR_M = 2000;
 /** A kind's place classes as words: "cafe, fast food, ice cream". */
 const kinds = (k: Places.Kind) => Places.KINDS[k].map((c) => c.replace(/_/g, " ")).join(", ");
 
@@ -144,10 +147,10 @@ export function values(): Record<string, string> {
     SIGHT_LIST: kinds("sight"),
     GREEN_LIST: kinds("green"),
     GOAL_PEAK_M: num(Goals.GOAL_PEAK_M),
-    NEAR_M: "150",
-    NEAR_PCT: pct(Goals.distanceWeight(150)),
-    FAR_KM: "2",
-    FAR_PCT: pct(Goals.distanceWeight(2000)),
+    NEAR_M: num(NEAR_M),
+    NEAR_PCT: pct(Goals.distanceWeight(NEAR_M)),
+    FAR_KM: km(FAR_M),
+    FAR_PCT: pct(Goals.distanceWeight(FAR_M)),
     HEADING_RATIO: num(Goals.HEADING_RATIO),
     XP_PER_LEVEL: num(S.XP_PER_LEVEL),
     XP_LV1: String(S.xpToNext(1)),

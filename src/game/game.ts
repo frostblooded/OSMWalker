@@ -334,5 +334,4 @@ export class Game {
     if (b && (lat < b[0] || lon < b[1] || lat > b[2] || lon > b[3])) out.push({ level: "warning", text: "He is outside the city box" });
     return out;
   }
-
 }

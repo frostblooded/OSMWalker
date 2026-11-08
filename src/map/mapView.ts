@@ -7,7 +7,7 @@ import type { GeoJSONSource, Map as MlMap, Marker, StyleSpecification } from "ma
 import type { BBox, LatLon } from "../core/geo";
 import type { Marker as EventMarker } from "../core/history";
 import type { Look } from "../core/look";
-import type { MapPort, Padding } from "./scene";
+import type { MapPort, Padding, RouteLine } from "./scene";
 
 export const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const MIN_ZOOM = 3;
@@ -149,14 +149,14 @@ export class MapView implements MapPort {
     });
   }
 
-  private addLine(id: string, color: string, width: number, opacity: number, dash?: number[]): void {
+  private addLine(id: string, color: string, width: number, opacity: number): void {
     this.map.addSource(id, { type: "geojson", data: line([]) });
     this.map.addLayer({
       id,
       type: "line",
       source: id,
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": color, "line-width": width, "line-opacity": opacity, ...(dash ? { "line-dasharray": dash } : {}) },
+      paint: { "line-color": color, "line-width": width, "line-opacity": opacity },
     });
   }
 
@@ -233,7 +233,7 @@ export class MapView implements MapPort {
   }
 
   /** His planned route to the goal, or none; only sent to MapLibre when `key` changes. */
-  setRoute(key: string, route: () => { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null): void {
+  setRoute(key: string, route: () => RouteLine): void {
     if (key === this.routeKey) return;
     this.routeKey = key;
     const r = key ? route() : null;

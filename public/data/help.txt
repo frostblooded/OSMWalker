@@ -25,7 +25,7 @@ He walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real stree
 
 He always walks towards a goal (see Places and rewards and His goal). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
 
-If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
+If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After more than {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
 ## Places and rewards {places}
 His goals are named places from the map. Only places that give him something count, and each kind gives one thing:
 - 💶 work places pay {WORK_EURO} a visit: {WORK_LIST},
