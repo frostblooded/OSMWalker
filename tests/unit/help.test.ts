@@ -121,7 +121,7 @@ describe("search", () => {
   });
 
   it("finds real pages by their filled numbers", () => {
-    expect(Help.search(sections, "€4")[0]!.page.id).toBe("upgrades");
+    expect(Help.search(sections, "€13")[0]!.page.id).toBe("upgrades");
     expect(Help.search(sections, "orders")[0]!.page.id).toBe("orders");
   });
 
