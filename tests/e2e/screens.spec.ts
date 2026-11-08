@@ -268,10 +268,12 @@ test("History fits the map to the room left above its sheet after a drag", async
   // A long History, so its sheet is tall enough to drag down without closing.
   await reopenWith(page, 'for (let i = 0; i < 30; i++) d.stats.history.entries.push({ text: "Found Cafe " + i, t: Math.floor(Date.now() / 1000) - 3600 + i * 60, at: [42.687 + i * 0.0002, 23.319], ti: 0 });');
   await page.getByRole("button", { name: "Menu" }).click();
+  // With the camera off his ride is the only other thing that moves him on screen, a few px a second.
+  await page.getByRole("switch", { name: /Camera follows him/ }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });
   await expect.poll(async () => (await sheet.boundingBox())?.height ?? 0, { timeout: 10000 }).toBeGreaterThan(page.viewportSize()!.height * 0.5);
-  // He walks a px or so a second; the fit moves him far more. Wait for the fit to end.
+  // The fit moves him far more than his ride does. Wait for the fit to end.
   const him = page.locator(".marker.him");
   const y = async () => (await him.boundingBox())!.y;
   let before = -1;
@@ -280,12 +282,12 @@ test("History fits the map to the room left above its sheet after a drag", async
       const last = before;
       await page.waitForTimeout(300);
       before = await y();
-      return Math.abs(before - last) < 3;
+      return Math.abs(before - last) < 8;
     }, { timeout: 10000 })
     .toBe(true);
   await dragTitle(page, /History/, 150);
   await expect(sheet).toBeVisible();
-  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(20);
+  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(40);
 });
 
 test("the map credit stays under an open sheet's buttons", async ({ page }) => {
