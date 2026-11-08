@@ -71,7 +71,7 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
   const t = layers.transportation;
   const scale = UNITS / (t?.extent ?? UNITS);
   const nodes = new Map<number, Pt>();
-  // Bridges, tunnels and other layers cross streets without meeting them.
+  // Only streets on the ground are joined where they cross: bridges, tunnels and other layers pass over or under.
   const ground: Way[] = [];
   const raised: Way[] = [];
   for (const f of t?.features ?? []) {
@@ -289,16 +289,17 @@ function split(ways: Way[], splits: Splits): Way[] {
 }
 
 /**
- * Tiles also drop the shared node where streets cross without bending, so two streets can cross with no node in common, or one street's
- * corner can lie on the other's segment. Cuts both at the crossing (a new
- * node), or the segment at the corner, so they connect. For streets on the
- * ground only: a bridge meets nothing it crosses.
+ * Tiles drop the shared node where streets cross without bending, so two
+ * streets can cross with no node in common, or one street's corner can lie
+ * on the other's segment. Cuts both at the crossing (a new node), or the
+ * segment at the corner, so they connect. Dead ends are joined here too;
+ * joinJunctions still joins those of bridges and tunnels.
  */
 export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): Way[] {
   const segs: [number, number, Pt, Pt, number, number][] = []; // way, segment, its ends in tile units, their node ids
-  let n = 0;
-  for (const w of ways) n += w.ids.length - 1;
-  const box = new Float64Array(n * 4); // per segment: min x, min y, max x, max y, widened by JOIN_TOL
+  let count = 0;
+  for (const w of ways) count += w.ids.length - 1;
+  const box = new Float64Array(count * 4); // per segment: min x, min y, max x, max y, widened by JOIN_TOL
   const grid = new Map<number, number[]>();
   const ox = tile.x * UNITS;
   const oy = tile.y * UNITS;
@@ -350,11 +351,10 @@ export function joinCrossings(ways: Way[], tile: Tile, nodes: Map<number, Pt>): 
         if (onto(a, ia, j) || onto(b, ib, j) || onto(c, ic, i) || onto(d, id, i)) continue;
         const at = cross(a, b, c, d);
         if (!at) continue;
-        const p: Pt = [Math.round(at[0]), Math.round(at[1])];
-        const node = nodeId(ox + p[0], oy + p[1]);
-        if (!nodes.has(node)) nodes.set(node, [pxToLat(oy + p[1], UNIT_ZOOM), pxToLon(ox + p[0], UNIT_ZOOM)]);
-        addSplit(splits, wi, si, foot(p, a, b)[0], node);
-        addSplit(splits, wj, sj, foot(p, c, d)[0], node);
+        const n = node(at, false, tile, nodes);
+        const p = local(n);
+        addSplit(splits, wi, si, foot(p, a, b)[0], n);
+        addSplit(splits, wj, sj, foot(p, c, d)[0], n);
       }
     }
   }
