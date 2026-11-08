@@ -73,7 +73,7 @@ export class History {
     return this.trail.filter(Boolean).length;
   }
 
-  /** The trail as runs of points, split where he travelled. */
+  /** The trail as runs of points, split at each jump. */
   segments(): LatLon[][] {
     const out: LatLon[][] = [];
     let run: LatLon[] = [];
