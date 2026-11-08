@@ -44,10 +44,11 @@ export function title(e: Entry): string {
   return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "none to offer"}`;
 }
 
-/** What one card promised: "far · 950 m · €8.20 + 20 XP". */
+/** What one card promised: "far · 950 m · €8.20 + 20 XP", with what a shop sells ("· sells bike") or where a parcel or the metro goes ("· to Bakery"). */
 function card(c: Record<string, unknown>): string {
   const got = [num(c.cents) ? euro(num(c.cents)) : "", num(c.xp) ? `${num(c.xp)} XP` : ""].filter(Boolean).join(" + ");
-  return `${str(c.slot)} · ${Math.round(num(c.dist_m))} m · ${got || "nothing"}${c.new ? " · new" : ""}`;
+  const extra = (c.upgrade ? ` · sells ${str(c.upgrade)}` : "") + (c.to ? ` · to ${str(c.to)}` : "");
+  return `${str(c.slot)} · ${Math.round(num(c.dist_m))} m · ${got || "nothing"}${c.new ? " · new" : ""}${extra}`;
 }
 
 /** The lines that explain one entry. */

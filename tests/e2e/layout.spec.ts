@@ -2,7 +2,7 @@
 // pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
 // saved as a screenshot in screens/ so a PR can be eyeballed.
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { mockServices } from "./mock";
+import { mockServices, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -167,6 +167,36 @@ for (const width of [360, 412]) {
       await openMenuItem(page, /Stats/);
       await check(page, "stats");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+    });
+
+    test("no upgrade card, train picker or upgrades list has overlapping text or sideways scroll", async ({ page }) => {
+      test.setTimeout(120_000);
+      await startInSofia(page);
+      // As if he stood at a place with every kind of upgrade card dealt, high enough and rich enough for the bike.
+      const stand = "Object.assign(d.walker, { goal: null, goal_node: null, place: null, route: [], route_arrives: false });";
+      await reopenWith(
+        page,
+        `const c = d.choice.going; ${stand} d.choice.going = null; d.stats.level = 9; d.stats.cents = 99999; d.stats.upgrades = ["map", "bike", "guide", "bag", "scooter", "metro"];
+        d.choice.offer = [{ ...c, slot: "shop", upgrade: "train" }, { ...c, slot: "parcel", to: { ...c.place, name: "Bakery at the far end of a long street name" } }, { ...c, slot: "metro", to: c.place }, { ...c, slot: "train" }];`,
+      );
+      await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
+      await expect(page.getByRole("dialog", { name: /Where next/ }).locator("button.offer.shop")).toBeVisible();
+      await check(page, "where-next-upgrades");
+      await page.getByRole("dialog", { name: /Where next/ }).getByRole("button", { name: /Close/ }).click();
+      await openMenuItem(page, /Stats/);
+      await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Upgrades 6 / 7");
+      await check(page, "stats-upgrades");
+      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
+
+      await reopenWith(page, `${stand} d.choice.offer = []; d.choice.train = true;`, "train-save");
+      await page.getByRole("button", { name: /Where to by train/ }).click({ timeout: 20000 });
+      const train = page.getByRole("dialog", { name: /Where to by train/ });
+      await expect(train.getByLabel("City name")).toBeVisible();
+      await train.getByLabel("City name").fill("Sofia");
+      await expect(train.locator(".results button").first()).toBeVisible();
+      await check(page, "train");
+      await train.getByRole("button", { name: /Stay in/ }).click();
+      await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
     });
 
     test("no Debug or History screen has overlapping text or sideways scroll", async ({ page }) => {

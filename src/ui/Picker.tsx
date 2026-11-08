@@ -12,9 +12,12 @@ type Props = {
   choose: (p: SearchPlace) => void;
   /** What happens after a tap ("Finding streets in Sofia…"), or an error. */
   message?: { text: string; busy?: boolean; error?: boolean };
+  /** The heading (none when "", as in a sheet with its own) and the line under it; a new player's by default. */
+  title?: string;
+  lead?: string;
 };
 
-export function Picker({ search, choose, message }: Props) {
+export function Picker({ search, choose, message, title = "🏙 Where does he start?", lead = "Type a town or city. He walks its real streets." }: Props) {
   const [text, setText] = useState("");
   const [results, setResults] = useState<SearchPlace[]>([]);
   const [status, setStatus] = useState<{ text: string; busy?: boolean; error?: boolean }>({ text: "" });
@@ -42,8 +45,8 @@ export function Picker({ search, choose, message }: Props) {
   const shown = message ?? status;
   return (
     <section class="picker" aria-label="Pick a city">
-      <h1>🏙 Where does he start?</h1>
-      <p class="lead">Type a town or city. He walks its real streets.</p>
+      {title && <h1>{title}</h1>}
+      <p class="lead">{lead}</p>
       <form
         class="search"
         role="search"

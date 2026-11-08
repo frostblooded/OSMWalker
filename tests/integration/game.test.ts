@@ -1,8 +1,13 @@
 // The game loop with real Sofia streets, fake servers and fixed dice: cards, walking, rewards, levels and saves.
 import { describe, expect, it } from "vitest";
+import { offerFor } from "../../src/core/cards";
+import { distanceM } from "../../src/core/geo";
 import { cellKey } from "../../src/core/graph";
 import { MONEY_POSE, XP_POSE } from "../../src/core/look";
 import { NEW_PLACE_XP } from "../../src/core/places";
+import type { Place } from "../../src/core/stats";
+import { BIKE_SPEED_X, upgradeOf } from "../../src/core/upgrades";
+import { WALK_MPS } from "../../src/core/walker";
 import { Game, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
 import { hud, look } from "../../src/game/hud";
 import { CAFE, game, PARK, run, START, tick, WEST } from "../support/game";
@@ -203,3 +208,97 @@ describe("game", () => {
     expect(again.problems.warnings.map((w) => w.text)).toContain("kept");
   });
 });
+
+describe("upgrades", () => {
+  const BIKES: Place = { name: "Bike Shop", class: "bicycle", subclass: "bicycle", rank: 1, lat: 42.6878, lon: 23.3205 };
+  const STATION: Place = { name: "Serdika", class: "railway", subclass: "subway", rank: 1, lat: 42.6878, lon: 23.3205 };
+  const BAKERY: Place = { name: "Bakery Far", class: "bakery", subclass: "bakery", rank: 1, lat: 42.6905, lon: 23.3262 };
+  /** Walks until he has no goal left. */
+  const walk = (g: Game) => {
+    for (let i = 0; i < 900 && (g.walker!.place || g.walker!.toNode !== null); i++) g.step(1);
+  };
+
+  it("deals the bike shop once he has the level and money, buys the bike there and rides faster", async () => {
+    const { g, storage } = game({ places: [CAFE, PARK, BIKES] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    const bike = upgradeOf("bike")!;
+    g.stats.upgrades.add("map");
+    g.stats.level = bike.level;
+    g.stats.cents = bike.cents + 100;
+    run(g, 1);
+    const i = g.choice.offer.findIndex((o) => o.upgrade === "bike");
+    expect(g.choice.offer[i]!.place.name).toBe("Bike Shop");
+    g.pick(i);
+    walk(g);
+    expect(g.stats.upgrades.has("bike")).toBe(true);
+    expect(g.stats.cents).toBe(100);
+    expect(g.walker!.speedMps).toBeCloseTo(WALK_MPS * BIKE_SPEED_X, 9);
+    expect(g.stats.history.latest()).toMatch(/^Bought a 🚲 Bike at Bike Shop/);
+    // A reload keeps the bike.
+    g.save();
+    const again = reopened(g, storage);
+    again.load();
+    expect(again.walker!.speedMps).toBeCloseTo(WALK_MPS * BIKE_SPEED_X, 9);
+  });
+
+  it("takes a parcel from its pick-up on to its drop-off and is paid there", async () => {
+    const { g } = game({ places: [CAFE, BAKERY] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.choice.offer = [{ ...offerFor(CAFE, g.walker!.position(), "parcel", true), reward: { cents: 900, xp: 0 }, to: BAKERY }];
+    g.pick(0);
+    for (let i = 0; i < 900 && g.walker!.place?.name !== "Bakery Far"; i++) g.step(1);
+    expect(g.stats.history.latest()).toBe("Picked up a parcel for Bakery Far");
+    expect(g.stats.cents).toBe(0);
+    walk(g);
+    expect(g.stats.cents).toBe(900);
+    expect(g.stats.visited.size).toBe(2);
+  });
+
+  it("rides the metro from the station to the far side and deals cards there", async () => {
+    const { g } = game({ places: [CAFE, PARK, STATION] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    // The streets east load too, as the city's places do.
+    for (let i = 0; i < 5; i++) {
+      run(g, 1);
+      await tick();
+    }
+    expect(g.walker!.graph.cells.has(cellKey({ x: 9254, y: 6039 }))).toBe(true);
+    const far: Place = { ...PARK, name: "Far Park", lat: 42.69, lon: 23.345 };
+    g.choice.offer = [{ ...offerFor(STATION, g.walker!.position(), "metro", true), reward: { cents: 0, xp: 0 }, to: far }];
+    g.pick(0);
+    walk(g);
+    const here = g.walker!.position();
+    expect(distanceM(here[0], here[1], far.lat, far.lon)).toBeLessThan(300);
+    expect(g.stats.history.latest()).toBe("Rode the metro to Far Park");
+  });
+
+  it("takes the train to another city, keeping all he has, or stays", async () => {
+    const { g } = game({ places: [CAFE, PARK, STATION] });
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.choice.offer = [{ ...offerFor(STATION, g.walker!.position(), "train", true), reward: { cents: 0, xp: 0 } }];
+    g.stats.cents = 1234;
+    g.pick(0);
+    walk(g);
+    run(g, 5);
+    expect(g.choice.train).toBe(true);
+    expect(hud(g)!.waiting).toBe("train");
+    expect(g.choice.offer).toEqual([]);
+    // Nowhere to walk there: he stays at the station.
+    const old = g.walker;
+    expect(await g.travel("Nowhere", 10, 10, null)).not.toBe("");
+    expect(g.walker).toBe(old);
+    expect(g.choice.train).toBe(true);
+    expect(await g.travel("Sofia East, Bulgaria", 42.69, 23.345, null)).toBe("");
+    expect(g.city).toBe("Sofia East, Bulgaria");
+    expect(g.stats.cents).toBe(1234);
+    expect(g.choice.train).toBe(false);
+    expect(g.stats.history.latest()).toBe("Took the train to Sofia East");
+    // At a station again, he can stay instead.
+    g.choice.train = true;
+    g.stayHere();
+    expect(g.choice.train).toBe(false);
+  });
+});
+

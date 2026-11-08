@@ -1,9 +1,10 @@
-// His progress: money, XP and level, the places he has been to, and his
-// history (the feed and the trail he walked). Reaching a place gives the
-// reward its card promised (see cards.ts).
+// His progress: money, XP and level, the upgrades he bought, the places he
+// has been to, and his history (the feed and the trail he walked). Reaching a
+// place gives the reward its card promised (see cards.ts).
 import { History } from "./history";
 import { euro } from "./money";
 import type { Reward } from "./places";
+import { LADDER, opensAt, type Upgrade, type UpgradeId } from "./upgrades";
 
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -21,6 +22,8 @@ export class Stats {
   history = new History();
   /** Places he has reached, by visitKey. */
   visited = new Set<string>();
+  /** Upgrades he owns, by id. */
+  upgrades = new Set<UpgradeId>();
 
   /** True when he has never reached `place`. */
   isNew(place: Pick<Place, "name" | "lat" | "lon">): boolean {
@@ -37,12 +40,22 @@ export class Stats {
     this.addXp(r.xp);
   }
 
+  /** Buys `u` if he can afford it; false when he can't (or has it). */
+  buy(u: Upgrade, at: Place): boolean {
+    if (this.upgrades.has(u.id) || this.cents < u.cents) return false;
+    this.cents -= u.cents;
+    this.upgrades.add(u.id);
+    this.say(`Bought a ${u.icon} ${u.name} at ${at.name} for ${euro(u.cents)}: ${u.does}`);
+    return true;
+  }
+
   addXp(n: number): void {
     this.xp += n;
     while (this.xp >= xpToNext(this.level)) {
       this.xp -= xpToNext(this.level);
       this.level++;
-      this.say(`Reached level ${this.level}`);
+      const u = opensAt(this.level);
+      this.say(u ? `Reached level ${this.level}: ${u.where} now sells a ${u.icon} ${u.name} (${euro(u.cents)})` : `Reached level ${this.level}`);
     }
   }
 
@@ -51,7 +64,7 @@ export class Stats {
   }
 
   toJSON() {
-    return { economy: ECONOMY, cents: this.cents, xp: this.xp, level: this.level, history: this.history.toJSON(), visited: [...this.visited] };
+    return { economy: ECONOMY, cents: this.cents, xp: this.xp, level: this.level, history: this.history.toJSON(), visited: [...this.visited], upgrades: [...this.upgrades] };
   }
 
   /** A save, from this version or an older one: what the game no longer has is left out, and money from before the base loop starts at 0. */
@@ -62,6 +75,8 @@ export class Stats {
     if (typeof d.level === "number") s.level = d.level;
     if (d.history) s.history = History.fromJSON(d.history);
     s.visited = new Set(d.visited ?? []);
+    // In ladder order, so an unknown id from a newer version is left out.
+    s.upgrades = new Set(LADDER.filter((u) => d.upgrades?.includes(u.id)).map((u) => u.id));
     return s;
   }
 }
