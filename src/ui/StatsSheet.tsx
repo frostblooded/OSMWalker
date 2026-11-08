@@ -7,7 +7,7 @@ import { LADDER, nextUpgrade, type Upgrade } from "../core/upgrades";
 import { Bar, Card, Collapsible, KV } from "./kit";
 import { about, does, NextUpgrade } from "./NextUpgrade";
 
-export function StatsSheet({ stats: s }: { stats: Stats }) {
+export function StatsSheet({ stats: s, noShop = false }: { stats: Stats; noShop?: boolean }) {
   const need = xpToNext(s.level);
   const next = nextUpgrade(s.upgrades);
   const owned = LADDER.filter((u) => s.upgrades.has(u.id));
@@ -20,7 +20,7 @@ export function StatsSheet({ stats: s }: { stats: Stats }) {
         <KV k="💶 Money" v={euro(s.cents)} />
         <KV k="📍 Places visited" v={s.visited.size} />
       </Card>
-      <NextUpgrade stats={s} />
+      <NextUpgrade stats={s} noShop={noShop} />
       <Card icon="🧰" title="Upgrades" right={`${owned.length} / ${LADDER.length}`}>
         {owned.length > 0 && (
           <Collapsible title={`✓ Owned (${owned.length})`}>

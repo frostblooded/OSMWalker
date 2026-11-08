@@ -306,9 +306,11 @@ export class Game {
     const here = w.position();
     const places = w.graph.placesIn(w.bounds ?? cityBounds(here[0], here[1]));
     const s = this.stats;
-    const offer = deal(places, here, { rng: this.rng, isNew: (p) => s.isNew(p), recent: new Set(this.choice.recent), powers: powers(s.upgrades), shop: shopFor(s.upgrades, s.level, s.cents) });
+    const shop = shopFor(s.upgrades, s.level, s.cents);
+    const offer = deal(places, here, { rng: this.rng, isNew: (p) => s.isNew(p), recent: new Set(this.choice.recent), powers: powers(s.upgrades), shop });
     if (!offer.length) return false;
     this.choice.offer = offer;
+    this.choice.noShop = !!shop && !offer.some((o) => o.upgrade);
     const e: Entry = { in_box: places.length, dealt: offer.map(logged) };
     if (this.forced) e.forced = this.forced;
     this.forced = "";

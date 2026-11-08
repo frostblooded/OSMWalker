@@ -47,7 +47,7 @@ The cards are a planned mix:
 - a far one, at least {FAR_MIN_M} m away when there is one (else the farthest left), which pays more,
 - and one of a kind the other two aren't, if there is one (a green space when they are a cafe and a sight), a place he has never been to when possible.
 
-Upgrades bring cards of their own, which take the place of that last card: a shop selling the next upgrade first, then a 📕 never-seen sight, a 📦 parcel, a 🚇 metro ride or a 🚆 train, in a random order (see Upgrades). Under the cards, a card shows the next upgrade: its price, what it does, where it is sold, and what it still waits on (a level, then money), with a bar. Once it has both it says ✔ Ready: its shop turns up on the cards when one is near.
+Upgrades bring cards of their own, which take the place of that last card: a shop selling the next upgrade first, then a 📕 never-seen sight, a 📦 parcel, a 🚇 metro ride or a 🚆 train, in a random order (see Upgrades). Under the cards, a card shows the next upgrade: its price, what it does, where it is sold, and what it still waits on (a level, then money), with a bar. Once it has both it says ✔ Ready: its shop turns up on the cards when one is near. When the last cards found none in reach, it says so ("No station near here"); walk on, as one may turn up farther along.
 
 They come from places within {REACH_KM} km of him ({BIKE_REACH_KM} km on a bike, {SCOOTER_REACH_KM} km on a scooter, and the close and far distances stretch the same way); when fewer than {CARDS} are, from the {NEAREST} nearest. Places from his last {RECENT} picks don't come back, and important places turn up more often. The walking time is a guess: streets wind, so it counts {ROUTE_FACTOR} times the straight line.
 

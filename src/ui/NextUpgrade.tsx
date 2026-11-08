@@ -10,13 +10,14 @@ export const does = (u: Upgrade) => `${u.does[0]!.toUpperCase() + u.does.slice(1
 /** What it does and who sells it: "A 4th card at every stop. Sold at a bookshop or newsagent." */
 export const about = (u: Upgrade) => `${does(u)} Sold at ${u.where}.`;
 
-/** Nothing at the top of the ladder. */
-export function NextUpgrade({ stats: s }: { stats: Pick<Stats, "upgrades" | "level" | "cents" | "xp"> }) {
+/** Nothing at the top of the ladder. `noShop`: the last cards found no shop for it in reach. */
+export function NextUpgrade({ stats: s, noShop = false }: { stats: Pick<Stats, "upgrades" | "level" | "cents" | "xp">; noShop?: boolean }) {
   const u = nextUpgrade(s.upgrades);
   if (!u) return null;
   const open = s.level >= u.level;
   // What it still waits on: its level, then the money; then only its shop turning up on the cards.
-  const [k, v] = !open ? ["🔒 Opens at", `Level ${u.level}`] : s.cents < u.cents ? ["💶 Still needs", euro(u.cents - s.cents)] : ["✔ Ready", "Look for its shop"];
+  const shop = noShop ? `No ${u.where.replace(/^an? /, "")} near here` : "Look for its shop";
+  const [k, v] = !open ? ["🔒 Opens at", `Level ${u.level}`] : s.cents < u.cents ? ["💶 Still needs", euro(u.cents - s.cents)] : ["✔ Ready", shop];
   return (
     <Card icon={u.icon} title={`Next: ${u.name}`} right={euro(u.cents)}>
       <p class="dim next-does">{about(u)}</p>

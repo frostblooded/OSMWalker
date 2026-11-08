@@ -7,9 +7,9 @@ import { Stats } from "../../src/core/stats";
 import { LADDER } from "../../src/core/upgrades";
 import { StatsSheet } from "../../src/ui/StatsSheet";
 
-const shown = (stats: Stats) => {
+const shown = (stats: Stats, noShop = false) => {
   const root = document.createElement("div");
-  render(h(StatsSheet, { stats }), root);
+  render(h(StatsSheet, { stats, noShop }), root);
   return root.textContent ?? "";
 };
 
@@ -36,6 +36,7 @@ describe("Stats sheet", () => {
     expect(text).toContain(`💶 Still needs${euro(LADDER[1]!.cents - 500)}`);
     s.cents = LADDER[1]!.cents;
     expect(shown(s)).toContain("✔ ReadyLook for its shop");
+    expect(shown(s, true)).toContain("✔ ReadyNo bike shop near here");
     expect(shown(s)).toContain("Sold at a bike shop.");
     expect(text).toContain("Upgrades1 / 7");
     expect(text).toContain("✓ Owned (1) ▸");
