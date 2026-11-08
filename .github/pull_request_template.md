@@ -11,6 +11,6 @@
 
 ## Help pages
 
-## Screens (from `screens/` after `npm run screens`)
+## Screens (from `screens/` after `npm run build && npm run screens`)
 
 ## Review (CODING_STANDARDS.md)

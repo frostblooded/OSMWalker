@@ -87,6 +87,7 @@ function run(scripts: string[][]): Promise<boolean> {
           child.on("close", (code) => {
             // The perf table prints on a pass too. Beside e2e its timings run a little high, so
             // the before and after numbers in a PR come from npm run perf alone.
+            if (script === "perf" && code === 0) console.log("Perf beside e2e (for PR numbers, run npm run perf alone):");
             if ((code !== 0 || script === "perf") && out) process.stdout.write(out);
             console.log(`${code === 0 ? "✓" : "✗"} ${script} (${Math.round((Date.now() - t0) / 1000)} s)`);
             done(code === 0);
