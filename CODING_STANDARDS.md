@@ -8,11 +8,12 @@ make.
 
 Every PR gets a review before it is merged:
 
-1. With the PR open and `npm run verify` passed on its head (pushes to a
-   branch only need `npm run check`), start a fresh review agent (Agent tool,
-   general-purpose) for a **ponytail review**: it uses the ponytail skill
-   (level `full`), or where the skill isn't loaded, reviews in its spirit
-   (lean, simple, nothing redundant, clear wording). Give it only
+1. Once the PR is open (pushes to a branch only need `npm run check`), start
+   a fresh review agent in the background (Agent tool, general-purpose) and
+   run `npm run verify` while it works (user, 2026-11-08). The agent does a
+   **ponytail review**: it follows `.claude/skills/ponytail-review/SKILL.md`
+   (a copy of the ponytail plugin's review skill, level `full`, so no clone
+   is needed). Give it only
    `git diff origin/master...HEAD`, this file and the PR body. Ask for
    ponytail findings and violations of the rules below, each with file,
    line and the rule or reason, and nothing else.

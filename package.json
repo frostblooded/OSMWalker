@@ -15,6 +15,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "check": "node tools/verify.ts --check",
     "e2e:failed": "playwright test --last-failed",
+    "screens": "SHOTS=1 playwright test layout",
     "sim": "SIM=1 vitest run tests/unit/economy.test.ts"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 // Layout guardrail: on every screen, at small and large phone widths, no two
-// pieces of text or controls overlap and nothing scrolls sideways. Each screen is also
-// saved as a screenshot in screens/ so a PR can be eyeballed.
+// pieces of text or controls overlap and nothing scrolls sideways. npm run screens also
+// saves each screen in screens/ so a PR can be eyeballed (off by default: it costs
+// about 12 s of every e2e run).
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { mockServices, orderNow, reopenWith } from "./mock";
 
@@ -96,7 +97,7 @@ async function check(page: Page, name: string) {
     ),
   );
   const width = page.viewportSize()!.width;
-  await page.screenshot({ path: `screens/${width}-${name}.png` });
+  if (process.env.SHOTS) await page.screenshot({ path: `screens/${width}-${name}.png` });
   expect.soft(await overlaps(page), `${name} at ${width} px: overlapping text or controls`).toEqual([]);
   expect.soft(await sideways(page), `${name} at ${width} px: sideways scroll`).toBeLessThanOrEqual(0);
 }

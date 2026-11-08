@@ -24,7 +24,7 @@ describe("verify before a push", () => {
   });
 
   it("runs only the checks a change can break", () => {
-    const full = [["lint", "typecheck", "test", "build"], ["e2e"], ["perf"]];
+    const full = [["lint", "typecheck", "test", "build"], ["e2e --workers=75%", "perf"]];
     expect(scope(["tests/unit/walker.test.ts", "tests/support/game.ts", "tests/integration/game.test.ts"])).toEqual([["lint", "typecheck", "test"]]);
     expect(scope(["tests/e2e/play.spec.ts", "tests/e2e/mock.ts"])).toEqual([["lint", "typecheck", "build"], ["e2e"]]);
     expect(scope(["tests/e2e/play.spec.ts", "tests/unit/walker.test.ts"])).toEqual([["lint", "typecheck", "test", "build"], ["e2e"]]);
