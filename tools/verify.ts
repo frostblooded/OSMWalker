@@ -16,7 +16,7 @@ export function docsOnly(files: string[]): boolean {
 }
 
 // The perf run mostly waits on a throttled page, so it runs beside the e2e tests (verify about
-// 70 s instead of 2 min). E2e then leaves it a core, so a busy machine adds no long task.
+// 70 s instead of 2 min). E2e then leaves it a quarter of the cores, so it adds no long task.
 const FULL = [["lint", "typecheck", "test", "build"], ["e2e", "perf"]];
 
 /**
