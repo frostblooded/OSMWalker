@@ -57,6 +57,7 @@ export class MapView implements MapPort {
   private trailOn = false;
   private areaKey = "";
   private routeKey = "";
+  private offerKey = "";
   private lookKey = "";
   /** Told when the player drags the map, so the game stops following him. */
   onUserMove: () => void = () => {};
@@ -136,6 +137,16 @@ export class MapView implements MapPort {
         paint: { "line-color": ROUTE_COLOR, "line-width": 5, "line-opacity": 0.9, ...(dash ? { "line-dasharray": [...dash] } : {}) },
       });
     }
+    // The places on the cards, numbered as the cards are.
+    this.map.addSource("offer", { type: "geojson", data: none });
+    this.map.addLayer({ id: "offer", type: "circle", source: "offer", paint: { "circle-radius": 13, "circle-color": ROUTE_COLOR, "circle-stroke-color": "#fff", "circle-stroke-width": 3 } });
+    this.map.addLayer({
+      id: "offer-labels",
+      type: "symbol",
+      source: "offer",
+      layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 14, "text-allow-overlap": true, "text-ignore-placement": true },
+      paint: { "text-color": "#fff" },
+    });
     this.addLine("trail", TRAIL_COLOR, 4, 0.7);
     this.map.setLayoutProperty("trail", "visibility", "none");
     this.map.addSource("events", { type: "geojson", data: none });
@@ -243,6 +254,17 @@ export class MapView implements MapPort {
       if (r.rest) features.push({ ...line([r.rest]), properties: { kind: "rest" } });
     }
     (this.map.getSource("route") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features });
+  }
+
+  /** The places on the cards, numbered 1, 2, 3 as the cards are; only sent to MapLibre when they change. */
+  setOffer(points: LatLon[]): void {
+    const key = points.map((p) => p.join()).join(";");
+    if (key === this.offerKey) return;
+    this.offerKey = key;
+    (this.map.getSource("offer") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: points.map((p, i) => ({ type: "Feature", properties: { label: String(i + 1) }, geometry: { type: "Point", coordinates: [p[1], p[0]] } })),
+    });
   }
 
   /** Numbered markers where things in his History happened. */

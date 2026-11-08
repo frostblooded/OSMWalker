@@ -1,29 +1,18 @@
-// How the walker weighs his next goal: places of note by importance, by a
-// medium walking distance and by lying ahead along his last leg; random
-// spots are drawn with the same distance and heading odds. Pure functions,
-// used by the walker.
-import { distanceM, moved, offsetM, type BBox, type LatLon } from "./geo";
+// Dice for goals: random spots near him (at a medium walking distance, more
+// often ahead along his last leg than behind) for when no place can be
+// offered, and a weighted pick for the cards. Pure functions.
+import { moved, type BBox, type LatLon } from "./geo";
 import type { Rng } from "./rng";
-import type { Place } from "./stats";
 
-/** Goals this far away weigh most; the weight falls off smoothly on a log scale both ways. */
+/** Random spots are most often this far away, falling off smoothly on a log scale both ways. */
 export const GOAL_PEAK_M = 200;
 export const GOAL_SPREAD = 0.6;
-/** A goal straight ahead (along his last leg) weighs this many times one straight behind. */
+/** A spot straight ahead (along his last leg) is this many times as likely as one straight behind. */
 export const HEADING_RATIO = 3;
 /** Tries at a random spot near and ahead of him before taking any spot in the box. */
 export const SPOT_TRIES = 30;
 
 export type Vec = [number, number];
-export type Weights = { rank_w: number; dist_m: number; dist_w: number; heading_w: number; weight: number };
-
-const rankWeight = (p: Place) => 1 / Math.max(Math.trunc(p.rank ?? 1), 1);
-
-/** 1 at GOAL_PEAK_M, falling off smoothly (log-normal) nearer and further. */
-export function distanceWeight(dM: number): number {
-  const x = Math.log(Math.max(dM, 1) / GOAL_PEAK_M) / GOAL_SPREAD;
-  return Math.exp(-0.5 * x * x);
-}
 
 /** 1 sideways, more ahead along `heading` (a unit vector), less behind, ahead / behind = HEADING_RATIO. */
 export function headingWeight(heading: Vec, to: Vec): number {
@@ -43,17 +32,7 @@ export function pickIndex(weights: number[], r: number): number {
   return weights.length - 1;
 }
 
-/** How much `p` weighs as his next goal from `here` (null: no position yet), and why. */
-export function weigh(p: Place, here: LatLon | null, heading: Vec): Weights {
-  const rank_w = rankWeight(p);
-  if (!here) return { rank_w, dist_m: 0, dist_w: 1, heading_w: 1, weight: rank_w };
-  const dist_m = distanceM(here[0], here[1], p.lat, p.lon);
-  const dist_w = distanceWeight(dist_m);
-  const heading_w = headingWeight(heading, offsetM(here[0], here[1], p.lat, p.lon));
-  return { rank_w, dist_m, dist_w, heading_w, weight: rank_w * dist_w * heading_w };
-}
-
-/** A spot in `box`, drawn with the same distance and heading odds as places; anywhere in the box when `here` is null or out of luck. */
+/** A spot in `box` at a medium distance, more likely ahead; anywhere in the box when `here` is null or out of luck. */
 export function randomSpot(rng: Rng, box: BBox, here: LatLon | null, heading: Vec): LatLon {
   if (here) {
     const top = headingWeight(heading, heading);

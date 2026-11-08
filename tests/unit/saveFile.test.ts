@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Choice } from "../../src/core/cards";
 import { DebugLog } from "../../src/core/debugLog";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
@@ -39,7 +40,9 @@ function saved(): Saved {
   stats.visited.add("Cafe@42.7000,23.3000");
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog };
+  const choice = new Choice();
+  choice.recent = ["Cafe@42.7000,23.3000"];
+  return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, choice };
 }
 
 /** Writes `saved()`, lets `edit` change the stored JSON, and reads it back. */
@@ -72,13 +75,14 @@ describe("save file", () => {
     expect(back.stats).toMatchObject({ cents: 4321, xp: 50, level: 2 });
     expect([...back.stats.visited]).toEqual(["Cafe@42.7000,23.3000"]);
     expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
+    expect(back.choice.recent).toEqual(["Cafe@42.7000,23.3000"]);
   });
 
   it("keeps the stored format that older versions wrote", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["city", "debug_log", "origin", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["choice", "city", "debug_log", "origin", "stats", "walker", "zoom"]);
   });
 
   it("loads a save from before the base loop: XP, level and places kept, money from afresh, the rest dropped", () => {
@@ -89,7 +93,9 @@ describe("save file", () => {
       st.bag = [{ name: "Bike" }];
       d.boost_s = 900;
       d.country = "BGR";
+      delete d.choice;
     }) as Saved;
+    expect(back.choice.offer).toEqual([]);
     expect(back.stats.cents).toBe(0);
     expect(back.stats).toMatchObject({ xp: 50, level: 2 });
     expect(back.stats.visited.size).toBe(1);

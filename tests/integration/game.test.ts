@@ -1,11 +1,10 @@
-// The game loop with real Sofia streets, fake servers and fixed dice: walking, rewards, levels and saves.
+// The game loop with real Sofia streets, fake servers and fixed dice: cards, walking, rewards, levels and saves.
 import { describe, expect, it } from "vitest";
 import { cellKey } from "../../src/core/graph";
 import { MONEY_POSE, XP_POSE } from "../../src/core/look";
-import { xpToNext } from "../../src/core/stats";
-import { GREEN_XP, NEW_PLACE_XP, WORK_CENTS } from "../../src/core/places";
+import { NEW_PLACE_XP } from "../../src/core/places";
 import { Game, POSE_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
-import { look } from "../../src/game/hud";
+import { hud, look } from "../../src/game/hud";
 import { CAFE, game, PARK, run, START, tick, WEST } from "../support/game";
 
 const reopened = (g: Game, storage: GameDeps["storage"]) => {
@@ -22,8 +21,21 @@ describe("game", () => {
     expect(g.walker!.graph.cells.has(cellKey(WEST))).toBe(true);
     expect(g.stats.history.latest()).toBe("Set off in Sofia");
     await tick();
+    run(g, 2);
+    g.pick(0);
     run(g, 30);
     expect(g.walker!.totalM).toBeCloseTo(30 * (5 / 3.6), 3); // 5 km/h on foot
+  });
+
+  it("deals cards where he stands and waits for your pick", async () => {
+    const { g } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 60);
+    expect(g.walker!.totalM).toBe(0);
+    expect(g.choice.offer.map((o) => o.place.name).sort()).toEqual(["Cafe Near", "City Garden"]);
+    expect(hud(g)!.waiting).toBe("pick");
+    const dealt = g.debugLog.entries.filter((e) => Array.isArray(e.dealt));
+    expect(dealt).toHaveLength(1);
   });
 
   it("says when the streets can't load", async () => {
@@ -32,52 +44,84 @@ describe("game", () => {
     expect(g.problems.warnings.map((w) => w.text)).toContain("Couldn't load the streets where he starts in Sofia, Bulgaria");
   });
 
-  it("walks to a work place and is paid, with a money pop over him", async () => {
+  it("walks to the picked work place and is paid what its card said, with a money pop", async () => {
     const { g } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    const card = g.choice.offer[0]!;
+    expect(card.reward.cents).toBeGreaterThan(0);
+    expect(card.reward.xp).toBe(NEW_PLACE_XP);
+    g.pick(0);
+    expect(g.choice.offer).toEqual([]);
+    expect(g.walker!.place?.name).toBe("Cafe Near");
     let popped = false;
     for (let i = 0; i < 400 && !popped; i++) {
       g.step(1);
       popped = g.pose() === MONEY_POSE;
     }
     expect(popped).toBe(true);
-    expect(g.stats.cents).toBe(WORK_CENTS);
+    expect(g.stats.cents).toBe(card.reward.cents);
     expect(g.stats.xp).toBe(NEW_PLACE_XP);
-    expect(g.stats.history.latest()).toBe("Found Cafe Near (+€3, +20 XP)");
-    expect(g.debugLog.entries.some((e) => e.place === "Cafe Near")).toBe(true);
+    expect(g.stats.history.latest()).toMatch(/^Found Cafe Near \(\+€[\d.]+, \+20 XP\)$/);
+    expect(g.debugLog.entries.some((e) => e.picked === 1 && e.place === "Cafe Near")).toBe(true);
     expect(look(g).pose).toBe(MONEY_POSE);
     run(g, POSE_S);
     expect(g.pose()).toBeNull();
   });
 
-  it("gets XP at a green space, and the bonus only the first time", async () => {
+  it("gets XP at a green space, the bonus only the first time", async () => {
     const { g } = game({ places: [PARK] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
-    run(g, 900);
-    expect(g.stats.visited.size).toBe(1);
+    const visit = () => {
+      run(g, 1);
+      const card = g.choice.offer[0]!;
+      g.pick(0);
+      for (let i = 0; i < 600 && g.walker!.place; i++) g.step(1);
+      return card;
+    };
+    const first = visit();
+    expect(first.isNew).toBe(true);
+    expect(g.stats.xp).toBe(first.reward.xp);
     expect(g.stats.cents).toBe(0);
-    const found = g.stats.history.entries.filter((e) => e.text.startsWith("Found City Garden")).length;
-    const reached = g.stats.history.entries.filter((e) => e.text.startsWith("Reached City Garden")).length;
-    expect(found).toBe(1);
-    let total = g.stats.xp;
-    for (let l = 1; l < g.stats.level; l++) total += xpToNext(l);
-    expect(total).toBe(NEW_PLACE_XP + GREEN_XP * (found + reached));
-    expect(g.pose() === null || g.pose() === XP_POSE).toBe(true);
+    expect(g.pose() === XP_POSE).toBe(true);
+    // A recent pick isn't dealt again; forget it, as after a few other picks.
+    g.choice.recent = [];
+    g.debugNewCards();
+    const second = visit();
+    expect(second.isNew).toBe(false);
+    expect(first.reward.xp - second.reward.xp).toBeGreaterThanOrEqual(NEW_PLACE_XP - 5);
+    expect(g.stats.visited.size).toBe(1);
   });
 
-  it("never heads for a place that gives nothing", async () => {
+  it("deals no card for a place that gives nothing, and walks to a random spot", async () => {
     const bench = { ...CAFE, name: "A Bench", class: "bench", subclass: "" };
     const { g } = game({ places: [bench] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     run(g, 60);
+    expect(g.choice.offer).toEqual([]);
     expect(g.walker!.place).toBeNull();
-    expect(g.debugLog.entries.every((e) => e.place !== "A Bench")).toBe(true);
+    expect(g.walker!.totalM).toBeGreaterThan(0);
+    expect(g.debugLog.entries.some((e) => "fallback" in e)).toBe(true);
+  });
+
+  it("keeps the cards on offer across a save, so a reload doesn't deal new ones", async () => {
+    const { g, storage } = game();
+    await g.startCity("Sofia, Bulgaria", ...START, null);
+    run(g, 1);
+    g.save();
+    const again = reopened(g, storage);
+    again.load();
+    expect(again.choice.offer).toEqual(g.choice.offer);
+    run(again, 5);
+    expect(again.debugLog.entries.filter((e) => Array.isArray(e.dealt))).toHaveLength(1);
   });
 
   it("keeps the walk, money and places across a save", async () => {
     const { g, storage } = game({ places: [CAFE] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
-    run(g, 400);
+    run(g, 1);
+    g.pick(0);
+    run(g, 60);
     g.save();
     const again = reopened(g, storage);
     expect(again.load()).toBe(true);
@@ -87,6 +131,7 @@ describe("game", () => {
     expect(again.stats.cents).toBe(g.stats.cents);
     expect(again.stats.visited).toEqual(g.stats.visited);
     expect(again.stats.history.entries.length).toBe(g.stats.history.entries.length);
+    expect(again.choice.going).toEqual(g.choice.going);
   });
 
   it("starts with the route line off and remembers the switch", () => {

@@ -101,17 +101,23 @@ test("Debug shows the city, problems and buttons that work", async ({ page }) =>
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Debug/ }).click();
   const sheet = page.getByRole("dialog", { name: /Debug/ });
-  for (const t of ["City", "Loaded", "Street squares", "Problems", "Goal picks"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("button", { name: /Goal picks/ }).click();
+  for (const t of ["City", "Loaded", "Street squares", "Problems", "Cards and picks"]) await expect(sheet).toContainText(t);
+  await sheet.getByRole("button", { name: /Cards and picks/ }).click();
+  await expect(sheet).toContainText(/Dealt \d cards?/);
   expect(await smallButtons(page)).toEqual([]);
-  await sheet.getByRole("button", { name: /New goal/ }).click();
+  await sheet.getByRole("button", { name: /New cards/ }).click();
   await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible();
 });
 
-test("Only zoom and the menu sit on the map", async ({ page }) => {
+test("Only zoom, the menu and Where next sit on the map", async ({ page }) => {
   await startInSofia(page);
-  const onMap = await page.locator(".game > button, .game > .zoom > button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()));
-  expect(onMap.sort()).toEqual(["Menu", "Zoom in", "Zoom out"]);
+  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
+  const onMap = () => page.locator(".game > button, .game > .zoom > button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()));
+  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out", "🧭 Where next?"]);
+  await page.getByRole("button", { name: /Where next/ }).click();
+  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out"]);
   await expect(page.locator(".chip .eta")).toContainText(/~\d+ min|<1 min/, { timeout: 20000 });
 });
 
@@ -160,6 +166,8 @@ test("His face shows on the map, with the kind of place he heads for over his he
   await startInSofia(page);
   await expect(page.locator(".marker.him .face")).toHaveText("🙂");
   // The test tiles' only places of note are bridges, which are sights.
+  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
+  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
   await expect(page.locator(".marker.him .bubble")).toHaveText("🌉", { timeout: 20000 });
 });
 

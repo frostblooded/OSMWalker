@@ -1,6 +1,7 @@
 // The game screen: the map with him on it, a compact card on top (where he
-// is, where he goes, his money and level), zoom on the right edge and the
-// menu button at the bottom, in reach of the thumb.
+// is, where he goes, his money and level), zoom on the right edge, and at the
+// bottom, in reach of the thumb, the menu button and, while he waits at a
+// place, the Where next button that opens the cards.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
@@ -13,13 +14,14 @@ import { DebugSheet } from "./DebugSheet";
 import { dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
+import { PickSheet } from "./PickSheet";
 import { settle } from "./snap";
 import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "next" | "history" | "stats" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -76,6 +78,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
+  // Where next shows him and the cards' places above its sheet (again when it is dragged).
+  const fitOffer = () => {
+    if (sheet === "next") scene.current?.showOffer(document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0);
+  };
+  useEffect(fitOffer, [sheet]);
 
   const close = () => setSheet(null);
   const zoom = (step: number) => scene.current?.zoomBy(step);
@@ -83,6 +90,12 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const h = hud(game);
   if (!h) return null;
   const s = game.stats;
+  const picking = h.waiting === "pick";
+  const pick = (i: number) => {
+    game.pick(i);
+    close();
+    scene.current?.backToHim();
+  };
   return (
     <div class="game">
       <div class="map" ref={mapEl} />
@@ -119,6 +132,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           −
         </button>
       </div>
+      {picking && sheet !== "next" && (
+        <button class="btn primary next" onClick={() => setSheet("next")}>
+          🧭 Where next?
+        </button>
+      )}
       {!following && game.cameraFollows && (
         <button class="btn back" onClick={() => scene.current?.backToHim()}>
           🙂 Back to him
@@ -163,6 +181,18 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           </div>
         </SheetBox>
       )}
+      {sheet === "next" && picking && (
+        <SheetBox
+          title="🧭 Where next?"
+          onClose={() => {
+            close();
+            scene.current?.backToHim();
+          }}
+          onResize={fitOffer}
+        >
+          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} onPick={pick} />
+        </SheetBox>
+      )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
           <HistorySheet history={s.history} onFocus={(at) => scene.current?.focusEvent(at)} />
@@ -201,8 +231,9 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   );
 }
 
-/** Why he is standing still: streets still loading, or the map server out of reach. */
+/** Why he is standing still: streets still loading, the map server out of reach, or your pick. */
 function Waiting({ hud: h }: { hud: Hud }) {
+  if (h.waiting === "pick") return <div class="notice">⏳ He waits for you to pick where next</div>;
   if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
   if (h.waiting === "streets") {
     return (

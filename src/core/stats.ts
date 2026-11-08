@@ -1,9 +1,9 @@
 // His progress: money, XP and level, the places he has been to, and his
-// history (the feed and the trail he walked). Reaching a place gives its
-// reward (see places.ts).
+// history (the feed and the trail he walked). Reaching a place gives the
+// reward its card promised (see cards.ts).
 import { History } from "./history";
 import { euro } from "./money";
-import { rewardOf, type Reward } from "./places";
+import type { Reward } from "./places";
 
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
@@ -27,16 +27,14 @@ export class Stats {
     return !this.visited.has(visitKey(place));
   }
 
-  /** He reached `place`: its reward lands and the feed says so. Returns the reward. */
-  reach(place: Place): Reward {
+  /** He reached `place`: reward `r` (its card's) lands and the feed says so. */
+  reach(place: Place, r: Reward): void {
     const isNew = this.isNew(place);
-    const r = rewardOf(place, isNew);
     this.visited.add(visitKey(place));
     this.cents += r.cents;
     const got = [r.cents ? `+${euro(r.cents)}` : "", r.xp ? `+${r.xp} XP` : ""].filter(Boolean).join(", ");
     this.say(`${isNew ? "Found" : "Reached"} ${place.name}${got ? ` (${got})` : ""}`);
     this.addXp(r.xp);
-    return r;
   }
 
   addXp(n: number): void {

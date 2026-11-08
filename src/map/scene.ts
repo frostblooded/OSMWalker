@@ -1,6 +1,6 @@
 // What the map shows and where its camera points. Each tick it puts him (his
-// bubble and pop), his goal pin, his trail, the route line and the
-// city area on the map, sending a layer to MapLibre only when it changed.
+// bubble and pop), his goal pin, the places on the cards, his trail, the
+// route line and the city area on the map, sending a layer to MapLibre only when it changed.
 // The camera follows him; a tap on the goal chip shows him and his goal
 // until he picks a new one; History fits his trail above its sheet. The map
 // itself sits behind MapPort, so tests use a fake.
@@ -26,6 +26,8 @@ export interface MapPort {
   showTrail(on: boolean): void;
   setTrail(key: string, segments: () => LatLon[][]): void;
   setRoute(key: string, route: () => RouteLine): void;
+  /** The places on the cards on offer, numbered in card order. */
+  setOffer(points: LatLon[]): void;
   setArea(box: BBox | null, outline: LatLon[][]): void;
   setEvents(markers: EventMarker[]): void;
   follow(zoom?: number): void;
@@ -79,6 +81,7 @@ export class MapScene {
     const routeOn = g.showRoute && !!w.goal;
     v.setRoute(routeOn ? `${w.goal}:${w.toNode}:${w.route.length}:${Math.floor(performance.now() / 1000)}` : "", () => w.routeLine());
     v.setArea(g.showCityArea ? w.bounds : null, g.cityOutline);
+    v.setOffer(g.choice.offer.map((o) => [o.place.lat, o.place.lon]));
     this.keepView();
     this.drawEvents();
     const p = v.screenPoint(at);
@@ -104,6 +107,17 @@ export class MapScene {
     this.drawEvents();
     const box = this.game.stats.history.bounds();
     if (box) v.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 32, right: 32 }, EVENT_ZOOM);
+    this.onFollowing(false);
+  }
+
+  /** Where next opens: shows him and the places on the cards together, above its sheet (`sheetH` px tall). */
+  showOffer(sheetH: number): void {
+    const w = this.game.walker;
+    const offer = this.game.choice.offer;
+    if (!w || !offer.length) return;
+    const pts = [w.position(), ...offer.map((o): LatLon => [o.place.lat, o.place.lon])];
+    const box: BBox = [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
+    this.map.fit(box, { ...this.panels(), bottom: sheetH + 24, left: 40, right: 40 }, this.game.zoom);
     this.onFollowing(false);
   }
 

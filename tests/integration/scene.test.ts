@@ -1,6 +1,7 @@
 // The map scene with a real game and walker on the "+" streets, and a fake map
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
+import { offerFor } from "../../src/core/cards";
 import type { BBox } from "../../src/core/geo";
 import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
@@ -36,6 +37,10 @@ class FakeMap implements MapPort {
   setTrail() {}
   setRoute() {}
   setArea() {}
+  offer: [number, number][] = [];
+  setOffer(points: [number, number][]) {
+    this.offer = points;
+  }
   setEvents() {
     this.calls.push("events");
   }
@@ -107,6 +112,21 @@ describe("map scene", () => {
     game.walker!.advance(50);
     scene.draw(1, 100);
     expect(scene.pxPerSec).toBeGreaterThan(10);
+  });
+
+  it("marks the places on the cards, and fits them and him above the Where next sheet", () => {
+    const cafe = { name: "Cafe East", class: "cafe", subclass: "cafe", rank: 1, lat: 42.0, lon: 23.00135 };
+    game.choice.offer = [offerFor(cafe, game.walker!.position(), "close", true)];
+    scene.draw(0.25, 250);
+    expect(map.offer).toEqual([[42.0, 23.00135]]);
+    scene.showOffer(300);
+    const fit = map.fits.at(-1)!;
+    expect(fit.box).toEqual([42.0, 23.0, 42.001, 23.00135]);
+    expect(fit.padding.bottom).toBe(324);
+    expect(following.at(-1)).toBe(false);
+    game.choice.offer = [];
+    scene.draw(0.25, 250);
+    expect(map.offer).toEqual([]);
   });
 
   it("shows him and his goal on a tap, then follows him again on the next", () => {

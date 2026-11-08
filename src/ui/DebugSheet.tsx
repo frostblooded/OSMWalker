@@ -1,6 +1,6 @@
-// Debug: what looks wrong with the city, what has loaded, a button that picks
-// a new goal at once, and two logs (problems, goal picks) whose entries open
-// into their detail.
+// Debug: what looks wrong with the city, what has loaded, a button that deals
+// new cards at once, and two logs (problems, cards and picks) whose entries
+// open into their detail.
 import { useEffect } from "preact/hooks";
 import * as DebugLog from "../core/debugLog";
 import { timeText } from "../core/history";
@@ -40,8 +40,8 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
         <KV k="Where" v={f.where.map((x) => x.toFixed(5)).join(", ")} />
         <p class="small dim">Doing: {f.doing}</p>
         <div class="buttons">
-          <button class="btn" onClick={act(() => g.debugNewGoal())}>
-            🎯 New goal
+          <button class="btn" onClick={act(() => g.debugNewCards())}>
+            🃏 New cards
           </button>
         </div>
       </Card>
@@ -68,7 +68,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
             <p class="small dim">✔ No problems so far.</p>
           )}
         </Collapsible>
-        <Collapsible title="🎯 Goal picks" right={picks.length}>
+        <Collapsible title="🃏 Cards and picks" right={picks.length}>
           {picks.length ? (
             <div class="zebra">
               {picks.map((e, i) => (

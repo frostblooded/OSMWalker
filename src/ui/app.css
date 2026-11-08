@@ -136,6 +136,17 @@ a.btn { color: inherit; text-decoration: none; }
 .burger { position: absolute; right: var(--s3); bottom: calc(var(--s3) + var(--safe-bottom)); background: var(--accent); color: #fff; }
 .back { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--s3) + var(--safe-bottom)); border-radius: 999px; }
 .back:active:not(:disabled) { transform: translateX(-50%) translateY(3px); }
+/* Where next: the main action, just above the bottom row (the map credit, Back to him and ☰), left of zoom, in reach of the thumb. */
+.next { position: absolute; left: var(--s3); right: calc(var(--s3) + var(--tap) + var(--s3)); bottom: calc(var(--s3) + var(--tap) + var(--s3) + var(--safe-bottom)); }
+.offers { display: flex; flex-direction: column; gap: var(--s3); }
+.offer { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: var(--tap-big); padding: var(--s3); text-align: left; border: var(--edge); border-radius: var(--r-small); background: var(--paper); box-shadow: var(--lip); font: inherit; color: var(--ink); }
+.offer:active { transform: translateY(3px); box-shadow: none; }
+.offer-n { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-family: var(--display); font-weight: 600; }
+.offer-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-family: var(--display); font-weight: 600; font-size: var(--heading); }
+.offer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); margin-top: var(--s1); font-size: var(--body); }
+.offer .grow { display: flex; flex-direction: column; }
+.offer-reward { font-weight: 800; }
+.pill.new { background: var(--lilac); }
 
 /* Sheets over the map: bottom half, so he stays visible above. z-index 3 keeps them over MapLibre's corner controls (z-index 2), so the ⓘ credit can't sit on their buttons. */
 .sheet { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; max-height: 60%; display: flex; flex-direction: column; background: var(--paper); border: var(--edge); border-bottom: 0; border-radius: 24px 24px 0 0; padding-bottom: var(--safe-bottom); }

@@ -90,7 +90,8 @@ things at a time. A block full of lines is the most common mistake here.
 - **Thumb zone**: the main actions go at the bottom of the screen, where
   the thumb rests. On the map only zoom (+ −) and ☰ sit at the bottom
   right; "Back to him" appears at the bottom when the map isn't following
-  him. Everything else is in the ☰ menu, which opens as a bottom sheet.
+  him, and 🧭 Where next (the main button) just above the bottom row while
+  he waits for a pick. Everything else is in the ☰ menu, which opens as a bottom sheet.
 - Destructive actions are kept apart from frequent ones and need a
   confirmation (New city asks for RESET).
 - Keep controls **12** or more from the screen edges, plus the safe-area

@@ -2,6 +2,7 @@
 // saves are repaired on the way back in, and why one can't be read. The game
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
 // apart under SETTINGS_KEY, so New city keeps them.
+import { Choice } from "../core/cards";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { LatLon } from "../core/geo";
 import { Problems } from "../core/problems";
@@ -27,6 +28,7 @@ export type Saved = {
   walker: Walker;
   stats: Stats;
   debugLog: DebugLog;
+  choice: Choice;
 };
 
 export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; problems: Problems };
@@ -39,6 +41,8 @@ type Stored = {
   walker: WalkerSave;
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
+  /** The cards on offer; saves from before the cards have none. */
+  choice?: ReturnType<Choice["toJSON"]>;
 };
 type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
 
@@ -64,7 +68,7 @@ export class SaveFile {
   /** Returns "" when saved (or when there is nowhere to save), else what went wrong. */
   write(g: Saved): string {
     if (!this.kv) return "";
-    const d: Stored = { city: g.city, origin: g.origin, zoom: g.zoom, walker: g.walker.toJSON(), stats: g.stats.toJSON(), debug_log: g.debugLog.toJSON() };
+    const d: Stored = { city: g.city, origin: g.origin, zoom: g.zoom, walker: g.walker.toJSON(), stats: g.stats.toJSON(), debug_log: g.debugLog.toJSON(), choice: g.choice.toJSON() };
     try {
       for (const k of OLD_KEYS) this.kv.removeItem(k);
       this.kv.setItem(SAVE_KEY, JSON.stringify(d));
@@ -108,6 +112,7 @@ export class SaveFile {
         // Stats.fromJSON keeps what this version has and drops the rest (an old save's needs, gear, quests and so on).
         stats,
         debugLog: DebugLog.fromJSON(d.debug_log),
+        choice: Choice.fromJSON(d.choice),
       };
     } catch {
       return "The saved game was unreadable; starting over";

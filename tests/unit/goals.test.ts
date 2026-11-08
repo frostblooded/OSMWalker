@@ -1,21 +1,8 @@
 import { describe, expect, it } from "vitest";
 import * as G from "../../src/core/goals";
 import { Rng } from "../../src/core/rng";
-import type { Place } from "../../src/core/stats";
 
-describe("goal weights", () => {
-  it("weigh medium distances most", () => {
-    expect(G.distanceWeight(G.GOAL_PEAK_M)).toBeCloseTo(1, 6);
-    expect(G.GOAL_PEAK_M).toBe(200);
-    expect(G.distanceWeight(40)).toBeLessThan(0.2);
-    expect(G.distanceWeight(800)).toBeLessThan(0.12);
-    expect(G.distanceWeight(800)).toBeGreaterThan(0.03);
-    expect(G.distanceWeight(2000)).toBeLessThan(0.01);
-    expect(G.distanceWeight(120)).toBeGreaterThan(0.6);
-    expect(G.distanceWeight(360)).toBeGreaterThan(0.6);
-    expect(G.distanceWeight(0)).toBe(G.distanceWeight(1));
-  });
-
+describe("goal dice", () => {
   it("weigh straight ahead three times straight back", () => {
     expect(G.HEADING_RATIO).toBe(3);
     const north: G.Vec = [0, 1];
@@ -39,19 +26,6 @@ describe("goal weights", () => {
     expect(G.pickIndex([1, 0.25], 0.79)).toBe(0);
     expect(G.pickIndex([1, 0.25], 0.81)).toBe(1);
     expect(G.pickIndex([], 0.5)).toBe(-1);
-  });
-
-  it("multiply rank, distance and heading", () => {
-    const p: Place = { name: "Cafe", class: "cafe", subclass: "cafe", rank: 2, lat: 42.0045, lon: 23 };
-    const w = G.weigh(p, [42, 23], [0, 1]);
-    expect(w.rank_w).toBe(0.5);
-    expect(w.weight).toBeCloseTo(w.rank_w * w.dist_w * w.heading_w, 9);
-    expect(w.heading_w).toBeGreaterThan(1);
-  });
-
-  it("weigh only rank without a position", () => {
-    const p: Place = { name: "Cafe", class: "cafe", subclass: "cafe", rank: 4, lat: 42, lon: 23 };
-    expect(G.weigh(p, null, [0, 0])).toEqual({ rank_w: 0.25, dist_m: 0, dist_w: 1, heading_w: 1, weight: 0.25 });
   });
 
   it("draw random spots inside the box", () => {

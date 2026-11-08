@@ -1,5 +1,7 @@
 // Short texts the screens show, in one place so they stay consistent.
 import { timeText, type History } from "../core/history";
+import { euro } from "../core/money";
+import type { Reward } from "../core/places";
 
 /** "850 m" or "1.2 km". */
 export function dist(m: number): string {
@@ -11,6 +13,11 @@ export function walkTime(meters: number, mps: number): string {
   const mins = Math.round(meters / mps / 60);
   if (mins < 1) return "<1 min";
   return mins < 60 ? `~${mins} min` : `~${Math.floor(mins / 60)} h ${mins % 60} min`;
+}
+
+/** What a card gives: "💶 €3.40", "⭐ 30 XP" or both. */
+export function rewardText(r: Reward): string {
+  return [r.cents ? `💶 ${euro(r.cents)}` : "", r.xp ? `⭐ ${r.xp} XP` : ""].filter(Boolean).join(" · ") || "nothing";
 }
 
 export function streetLine(street: string): string {

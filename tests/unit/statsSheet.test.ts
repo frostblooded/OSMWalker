@@ -16,7 +16,7 @@ describe("Stats sheet", () => {
     const s = new Stats();
     s.cents = 900;
     s.addXp(130);
-    s.reach({ name: "Cafe Rila", class: "cafe", subclass: "", rank: 1, lat: 42.69, lon: 23.32 });
+    s.reach({ name: "Cafe Rila", class: "cafe", subclass: "", rank: 1, lat: 42.69, lon: 23.32 }, { cents: 300, xp: 20 });
     const text = shown(s);
     expect(text).toContain("Level 2");
     expect(text).toContain("XP50 / 200");

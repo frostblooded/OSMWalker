@@ -212,23 +212,28 @@ describe("goals", () => {
     expect(problems.some((t) => t.startsWith("Gave up on"))).toBe(true);
   });
 
-  it("tells how a place was picked", () => {
-    const picks: W.PickInfo[] = [];
-    walker.events.picked = (i) => picks.push(i);
+  it("heads for a picked place", () => {
     walker.startAt(n(2));
+    walker.goTo(CAFE_EAST);
+    expect(walker.place).toBe(CAFE_EAST);
+    expect(walker.goal).toEqual([CAFE_EAST.lat, CAFE_EAST.lon]);
+    expect(walker.tripStartM).toBeGreaterThan(0);
+  });
+
+  it("waits where he is while the game says so, then walks on", () => {
+    let waiting = true;
+    const picks: PickInfo[] = [];
+    walker.events.idle = () => waiting;
+    walker.events.picked = (i) => picks.push(i);
     walker.bounds = CITY_BOX;
-    const here = graph.nodes.get(n(2))!;
-    setPlaces(graph, [CAFE_EAST, cafe("Here", here[0], here[1])]);
-    walker.pickGoal();
+    walker.startAt(n(2));
+    walker.advance(500);
+    expect(walker.position()).toEqual(graph.nodes.get(n(2)));
+    expect(walker.goal).toBeNull();
+    waiting = false;
+    walker.advance(1);
     expect(picks).toHaveLength(1);
-    const info = picks[0]!;
-    expect(info.place).toBe("Cafe East");
-    expect(info.in_box).toBe(2);
-    expect(info.too_close).toBe(1);
-    expect(info.total_weight).toBeCloseTo(info.weight as number, 6);
-    expect(info.dist_w).toBeCloseTo(G.distanceWeight(info.dist_m as number), 6);
-    expect(info.heading_w).toBe(1);
-    expect(info).toHaveProperty("r");
+    expect(walker.goal).not.toBeNull();
   });
 
   it("tells why a random spot was picked", () => {
@@ -242,11 +247,7 @@ describe("goals", () => {
     const here = graph.nodes.get(n(2))!;
     setPlaces(graph, [cafe("Here", here[0], here[1])]);
     walker.pickGoal();
-    expect(picks[1]!.fallback).toBe("every loaded place is within 30 m of him");
-  });
-
-  it("weighs places by rank alone before he stands anywhere", () => {
-    expect(walker.weigh(cafe("Cafe East", 42.0, 23.00135, 2)).weight).toBe(0.5);
+    expect(picks[1]!.fallback).toBe("no place worth going to within reach");
   });
 
   it("picks a new goal when forced", () => {
@@ -256,17 +257,6 @@ describe("goals", () => {
     expect(walker.goal).toHaveLength(2);
   });
 
-  it("heads only for places he wants", () => {
-    walker.startAt(n(2));
-    walker.bounds = CITY_BOX;
-    setPlaces(graph, [CAFE_EAST, { ...CAFE_EAST, name: "Bench", class: "bench" }]);
-    walker.wants = (p) => p.class === "cafe";
-    for (let s = 0; s < 20; s++) {
-      walker.rng = new Rng(s);
-      walker.pickGoal();
-      expect(walker.place?.name).toBe("Cafe East");
-    }
-  });
 });
 
 
@@ -442,19 +432,6 @@ describe("goal weights", () => {
     return w;
   }
 
-  it("multiply rank, distance and heading", () => {
-    const w = atCross();
-    w.legFrom = moved(42, 23, [0, -500]);
-    const ahead = moved(42, 23, [0, 500]);
-    const p = cafe("Ahead", ahead[0], ahead[1], 2);
-    const parts = w.weigh(p);
-    expect(parts.rank_w).toBeCloseTo(0.5, 6);
-    expect(Math.abs(parts.dist_m - 500)).toBeLessThan(2);
-    expect(parts.dist_w).toBeCloseTo(G.distanceWeight(parts.dist_m), 6);
-    expect(parts.heading_w).toBeCloseTo(G.headingWeight([0, 1], [0, 500]), 3);
-    expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
-  });
-
   it("take his heading from where his last leg started", () => {
     const w = atCross();
     expect(w.heading()).toEqual([0, 0]);
@@ -463,27 +440,6 @@ describe("goal weights", () => {
     w.legFrom = moved(42, 23, [-400, 0]);
     expect(w.heading()[0]).toBeCloseTo(1, 3);
     expect(w.heading()[1]).toBeCloseTo(0, 3);
-  });
-
-  it("mostly pick medium-distance places ahead", () => {
-    const w = atCross();
-    const specs: [string, number][] = [["Near east", 50], ["Mid east", 500], ["Mid west", -500], ["Far east", 4000]];
-    setPlaces(w.graph, specs.map(([name, east]) => {
-      const ll = moved(42, 23, [east, 0]);
-      return cafe(name, ll[0], ll[1]);
-    }));
-    const counts: Record<string, number> = {};
-    for (let s = 0; s < 400; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.legFrom = moved(42, 23, [-500, 0]);
-      w.pickGoal();
-      counts[w.place!.name] = (counts[w.place!.name] ?? 0) + 1;
-    }
-    const c = (k: string) => counts[k] ?? 0;
-    expect(c("Mid east")).toBeGreaterThan(c("Mid west"));
-    expect(c("Mid west")).toBeGreaterThan(c("Near east"));
-    expect(c("Mid west")).toBeGreaterThan(c("Far east"));
   });
 
   it("draw random spots near and ahead", () => {
