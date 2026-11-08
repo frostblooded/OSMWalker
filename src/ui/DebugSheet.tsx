@@ -1,6 +1,6 @@
 // Debug: what looks wrong with the city, what has loaded, a button that deals
-// new cards at once, and two logs (problems, cards and picks) whose entries
-// open into their detail.
+// new cards at the next corner, and two logs (problems, cards and picks)
+// whose entries open into their detail.
 import { useEffect } from "preact/hooks";
 import * as DebugLog from "../core/debugLog";
 import { timeText } from "../core/history";

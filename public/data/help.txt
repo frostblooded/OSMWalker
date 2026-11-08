@@ -85,7 +85,7 @@ While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km),
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 
-At the top, coloured boxes list what looks wrong with the city right now. Cards below show the city (its box, where he is and what he is doing) and what has loaded. 🃏 New cards stops him and deals new cards where he is.
+At the top, coloured boxes list what looks wrong with the city right now. Cards below show the city (its box, where he is and what he is doing) and what has loaded. 🃏 New cards drops his goal and deals new cards at the next corner.
 
 Then come two logs, closed at first: Problems (the last {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Cards and picks (the last {DEBUG_SIZE} deals, picks and random spots). Each entry is a short title, such as "🎯 Picked 2 of 3: Cafe East". Tap it to see the detail: each card's place, kind, distance and reward, or why a random spot was used. A random spot counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
 
