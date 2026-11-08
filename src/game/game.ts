@@ -11,7 +11,7 @@ import { DebugLog, type Entry } from "../core/debugLog";
 import type { BBox, LatLon } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { MONEY_POSE, XP_POSE, type Pose } from "../core/look";
-import { kindOf, NEW_PLACE_XP, rewardOf } from "../core/places";
+import { kindOf, rewardOf } from "../core/places";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
@@ -250,7 +250,7 @@ export class Game {
     this.choice.going = null;
     // A parcel is paid at its drop-off, where he goes next.
     if (card?.slot === "parcel" && card.to) {
-      this.stats.reach(place, { cents: 0, xp: this.stats.isNew(place) ? NEW_PLACE_XP : 0 });
+      this.stats.reach(place, { cents: 0, xp: 0 });
       this.stats.say(`Picked up a parcel for ${card.to.name}`);
       this.choice.going = { ...card, place: card.to, to: undefined };
       this.walker!.goTo(card.to);

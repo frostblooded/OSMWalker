@@ -96,6 +96,9 @@ describe("cards from upgrades", () => {
     expect(shop.place.name).toBe("Bikes");
     expect(shop.upgrade).toBe("bike");
     expect(shop.reward).toEqual({ cents: 0, xp: 0 });
+    // A shop or station he has never been to gives the first-visit bonus, and says so.
+    const fresh = C.deal(city, HERE, { ...up([], 1, (p) => p.name === "Bikes"), shop: bike }).find((c) => c.slot === "shop")!;
+    expect(fresh).toMatchObject({ isNew: true, reward: { cents: 0, xp: NEW_PLACE_XP } });
     // No bike shop near: any shop sells it.
     const far = [...CITY, at("Gifts", "shop", 150, 5, "gift"), at("Bikes", "bicycle", -2500, 5, "bicycle")];
     expect(C.deal(far, HERE, { ...up([]), shop: bike }).find((c) => c.slot === "shop")!.place.name).toBe("Gifts");
@@ -124,8 +127,12 @@ describe("cards from upgrades", () => {
       expect(p.distM).toBeGreaterThan(C.offerFor(p.place, HERE, "close", false).distM);
       const leg = C.offerFor(p.to!, [p.place.lat, p.place.lon], "far", false);
       expect(p.reward.cents).toBe(leg.reward.cents * PARCEL_PAY_X);
+      expect(p.reward.xp).toBe(0);
     }
     expect(seen).toBeGreaterThan(0);
+    // Both places new: both bonuses, paid at the drop-off.
+    const both = Array.from({ length: 20 }, (_, s) => C.deal(CITY, HERE, up(["bag"], s, () => true)).find((c) => c.slot === "parcel")).find(Boolean)!;
+    expect(both.reward.xp).toBe(2 * NEW_PLACE_XP);
   });
 
   it("deals a metro ride from a station near him to a place far off", () => {

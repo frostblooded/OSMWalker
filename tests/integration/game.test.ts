@@ -245,13 +245,15 @@ describe("upgrades", () => {
     const { g } = game({ places: [CAFE, BAKERY] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     run(g, 1);
-    g.choice.offer = [{ ...offerFor(CAFE, g.walker!.position(), "parcel", true), reward: { cents: 900, xp: 0 }, to: BAKERY }];
+    g.choice.offer = [{ ...offerFor(CAFE, g.walker!.position(), "parcel", true), reward: { cents: 900, xp: 40 }, to: BAKERY }];
     g.pick(0);
     for (let i = 0; i < 900 && g.walker!.place?.name !== "Bakery Far"; i++) g.step(1);
     expect(g.stats.history.latest()).toBe("Picked up a parcel for Bakery Far");
     expect(g.stats.cents).toBe(0);
+    expect(g.stats.xp).toBe(0);
     walk(g);
     expect(g.stats.cents).toBe(900);
+    expect(g.stats.xp).toBe(40);
     expect(g.stats.visited.size).toBe(2);
   });
 
@@ -295,6 +297,13 @@ describe("upgrades", () => {
     expect(g.stats.cents).toBe(1234);
     expect(g.choice.train).toBe(false);
     expect(g.stats.history.latest()).toBe("Took the train to Sofia East");
+    // New city while the train's streets load: the new game wins.
+    const riding = g.travel("Sofia, Bulgaria", ...START, null);
+    g.reset();
+    expect(await riding).toBe("");
+    expect(g.walker).toBeNull();
+    expect(g.stats.cents).toBe(0);
+    await g.startCity("Sofia, Bulgaria", ...START, null);
     // At a station again, he can stay instead.
     g.choice.train = true;
     g.stayHere();

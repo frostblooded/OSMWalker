@@ -158,9 +158,10 @@ function parcel(left: Option[], pw: Powers, ctx: DealCtx, pick: (l: Option[]) =>
   if (!to) return null;
   const legM = between(from.p, to.p);
   const distM = from.d + legM;
-  const isNew = ctx.isNew(to.p);
+  // First visits to either place give their bonus, paid with the rest at the drop-off.
+  const bonus = (ctx.isNew(from.p) ? NEW_PLACE_XP : 0) + (ctx.isNew(to.p) ? NEW_PLACE_XP : 0);
   const pay = rewardOf(to.p, footMin(legM * ROUTE_FACTOR), false).cents * PARCEL_PAY_X;
-  return { place: from.p, kind: "work", slot: "parcel", distM, walkM: distM * ROUTE_FACTOR, reward: { cents: pay, xp: isNew ? NEW_PLACE_XP : 0 }, isNew, to: to.p };
+  return { place: from.p, kind: "work", slot: "parcel", distM, walkM: distM * ROUTE_FACTOR, reward: { cents: pay, xp: bonus }, isNew: bonus > 0, to: to.p };
 }
 
 /** True for a whole card, as a save should hold it. */

@@ -66,7 +66,7 @@ Money is shown in euros on the top card. He earns it at work places, more the fa
 ## XP and levels {xp}
 He gains XP from sights and green spaces, and {NEW_PLACE_XP} XP the first time he reaches any place (see Places and rewards).
 
-Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed. Some levels open the shop for an upgrade, and the feed says which: "Reached level 3: a bike shop now sells a 🚲 Bike (€25)", when it is the next one to buy.
+Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2, {XP_LV2} XP from 2 to 3, {XP_LV10} XP from 10 to 11. Extra XP carries over to the next level, and each level-up shows in the feed. Some levels open the shop for an upgrade, and the feed says which: "Reached level {BIKE_LEVEL}: a bike shop now sells a 🚲 Bike ({BIKE_EURO})", when it is the next one to buy.
 ## Upgrades {upgrades}
 There are {LADDER_SIZE} upgrades, bought in this order:
 {LADDER}

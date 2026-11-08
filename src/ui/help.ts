@@ -159,6 +159,8 @@ export function values(): Record<string, string> {
     NEAREST: String(Cards.NEAREST),
     SHOP_REACH_KM: km(Cards.SHOP_REACH_M),
     LADDER: ladder(),
+    BIKE_LEVEL: String(U.upgradeOf("bike")!.level),
+    BIKE_EURO: euro(U.upgradeOf("bike")!.cents),
     LADDER_SIZE: String(U.LADDER.length),
     MAP_CARDS: String(U.powers(new Set(["map"])).cards),
     BIKE_KMH: String(Math.round(W.WALK_MPS * 3.6 * U.BIKE_SPEED_X)),
