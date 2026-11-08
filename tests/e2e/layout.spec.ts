@@ -101,12 +101,18 @@ async function check(page: Page, name: string) {
   expect.soft(await sideways(page), `${name} at ${width} px: sideways scroll`).toBeLessThanOrEqual(0);
 }
 
-/** Picks Sofia and waits for its streets and his first goal. */
+/** Picks Sofia, waits for its streets, and picks his first place from the cards. */
 async function startInSofia(page: Page) {
   await page.goto("./");
   await page.getByLabel("City name").fill("Sofia");
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+  await pickFirst(page);
+}
+
+async function pickFirst(page: Page) {
+  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
+  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
   await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
 }
 
@@ -129,6 +135,12 @@ for (const width of [360, 412]) {
       await check(page, "picker-results");
       await page.getByRole("button", { name: /Sofia/ }).click();
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
+      await check(page, "game-waiting");
+      await page.getByRole("button", { name: /Where next/ }).click();
+      await expect(page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first()).toBeVisible();
+      await check(page, "where-next");
+      await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
       await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
       await check(page, "game");
 
@@ -163,8 +175,8 @@ for (const width of [360, 412]) {
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });
       await check(page, "debug");
-      await debug.getByRole("button", { name: /Goal picks/ }).click();
-      await check(page, "debug-goal-picks");
+      await debug.getByRole("button", { name: /Cards and picks/ }).click();
+      await check(page, "debug-cards");
       await debug.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /History/);

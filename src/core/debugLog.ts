@@ -1,17 +1,16 @@
-// Debug log: how each of his last SIZE goals was picked, with every roll,
-// the odds and why a random spot was used.
+// Debug log: his last SIZE card deals, the player's picks (which card, how
+// far, what it promised) and why a random spot was used.
 import { timeText } from "./history";
-import { ARRIVE_M } from "./walker";
+import { euro } from "./money";
 
 export const SIZE = 50;
-const FORCED: Record<string, string> = { goal: "New goal button" };
+const FORCED: Record<string, string> = { cards: "New cards button" };
 
-/** Info from Walker's picked event. */
+/** A deal, a pick (from the game) or a random spot (from the walker's picked event). */
 export type Entry = Record<string, unknown> & { t?: number };
 
 const num = (v: unknown, d = 0) => (typeof v === "number" ? v : d);
 const str = (v: unknown) => (typeof v === "string" ? v : "");
-const pct = (f: number) => `${(f * 100).toFixed(1)}%`;
 
 export class DebugLog {
   entries: Entry[] = [];
@@ -26,43 +25,44 @@ export class DebugLog {
     return this.entries;
   }
 
+  /** A save's log; entries from before the cards (his own goal picks) are dropped. */
   static fromJSON(a: unknown): DebugLog {
     const log = new DebugLog();
-    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object");
+    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object" && ("dealt" in e || "picked" in e || "fallback" in e));
     return log;
   }
 }
 
-/** True for a pick worth a warning: a random spot. */
+/** True for an entry worth a warning: a random spot. */
 export const isWarning = (e: Entry) => "fallback" in e;
 
-/** A short title for one pick, such as "🎯 Chosen: Cafe East". */
+/** A short title for one entry, such as "🎯 Picked 2 of 3: Cafe East". */
 export function title(e: Entry): string {
   const byButton = "forced" in e ? " (button)" : "";
-  if ("place" in e) return `🎯 Chosen: ${str(e.place)}${byButton}`;
-  if ("fallback" in e) return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "all places too close"}${byButton}`;
-  return "🎲 Pick";
+  if (Array.isArray(e.dealt)) return `🃏 Dealt ${e.dealt.length} card${e.dealt.length === 1 ? "" : "s"}${byButton}`;
+  if ("picked" in e) return `🎯 Picked ${num(e.picked)} of ${num(e.of)}: ${str(e.place)}`;
+  return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "none to offer"}`;
 }
 
-/** The lines that explain one pick. */
+/** What one card promised: "far · 950 m · €8.20 + 20 XP". */
+function card(c: Record<string, unknown>): string {
+  const got = [num(c.cents) ? euro(num(c.cents)) : "", num(c.xp) ? `${num(c.xp)} XP` : ""].filter(Boolean).join(" + ");
+  return `${str(c.slot)} · ${Math.round(num(c.dist_m))} m · ${got || "nothing"}${c.new ? " · new" : ""}`;
+}
+
+/** The lines that explain one entry. */
 export function lines(e: Entry, biasMin: number): string[] {
   let head = timeText(num(e.t), biasMin);
   if ("forced" in e) head += ` · forced by the ${FORCED[str(e.forced)] ?? str(e.forced)}`;
   const out = [head];
-  if (!("in_box" in e)) return out;
-  out.push(`${num(e.in_box)} places in the city box, ${num(e.too_close)} within ${ARRIVE_M} m of him skipped`);
-  if ("place" in e) {
-    const rank = num(e.rank, 1);
-    const w = num(e.weight, 1 / Math.max(rank, 1));
-    const total = num(e.total_weight);
-    out.push(`Place dice ${num(e.r).toFixed(4)} → ${str(e.place)} (${str(e.class)}, rank ${rank}, weight ${w.toFixed(3)} of ${total.toFixed(3)} = ${pct(w / Math.max(total, 0.0001))})`);
-    if ("dist_w" in e) {
-      out.push(
-        `Weight = rank ${num(e.rank_w, 1).toFixed(2)} × distance ${num(e.dist_w).toFixed(2)} (${Math.trunc(num(e.dist_m))} m away) × heading ${num(e.heading_w, 1).toFixed(2)}`,
-      );
-    }
+  if (Array.isArray(e.dealt)) {
+    out.push(`From ${num(e.in_box)} places in the city box`);
+    e.dealt.forEach((c: Record<string, unknown>, i) => out.push(`${i + 1}. ${str(c.place)} (${str(c.kind)}): ${card(c)}`));
+  } else if ("picked" in e) {
+    out.push(`${str(e.kind)}: ${card(e)}`);
   } else if ("fallback" in e) {
     const spot = Array.isArray(e.spot) ? (e.spot as number[]) : [0, 0];
+    out.push(`${num(e.in_box)} places in the city box`);
     out.push(`Random spot ${spot[0]!.toFixed(5)}, ${spot[1]!.toFixed(5)} because ${str(e.fallback)} (${num(e.cells)} street cells loaded)`);
   }
   return out;

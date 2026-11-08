@@ -61,6 +61,11 @@ describe("debug log", () => {
     expect(log.entries.at(-1)).toHaveProperty("t");
   });
 
+  it("drops entries from before the cards when a save loads", () => {
+    const again = D.DebugLog.fromJSON([{ place: "Old pick", rank: 2 }, { picked: 1, of: 3, place: "Cafe" }, null]);
+    expect(again.entries.map((e) => e.place)).toEqual(["Cafe"]);
+  });
+
   it("survives a save", () => {
     const log = new D.DebugLog();
     log.add({ fallback: "x" });
@@ -69,15 +74,15 @@ describe("debug log", () => {
     expect(again.entries[0]!.fallback).toBe("x");
   });
 
-  it("shows the roll and the odds for a place", () => {
-    const text = D.lines({ t: 0, in_box: 37, too_close: 2, total_weight: 10, r: 0.612, place: "Cafe East", class: "cafe", rank: 4 }, 0).join("\n");
-    for (const s of ["37 places", "2 within 30 m", "0.6120", "Cafe East", "rank 4", "2.5%"]) expect(text).toContain(s);
+  it("lists the cards dealt, with what each promised", () => {
+    const e = { t: 0, in_box: 37, dealt: [{ place: "Cafe East", kind: "work", slot: "close", dist_m: 312, cents: 340, xp: 20, new: true }, { place: "Museum", kind: "sight", slot: "far", dist_m: 950, cents: 0, xp: 61, new: false }] };
+    const text = D.lines(e, 0).join("\n");
+    for (const s of ["37 places", "1. Cafe East (work): close · 312 m · €3.40 + 20 XP · new", "2. Museum (sight): far · 950 m · 61 XP"]) expect(text).toContain(s);
   });
 
-  it("explains the weight parts", () => {
-    const text = D.lines({ t: 0, in_box: 1, place: "A", rank: 1, weight: 0.5, total_weight: 1, rank_w: 1, dist_w: 0.5, dist_m: 812.4, heading_w: 1 }, 0).join("\n");
-    expect(text).toContain("distance 0.50 (812 m away)");
-    expect(text).toContain("× heading 1.00");
+  it("shows a pick: which card and what it promised", () => {
+    const text = D.lines({ t: 0, picked: 2, of: 3, place: "Museum", kind: "sight", slot: "far", dist_m: 950, cents: 0, xp: 61 }, 0).join("\n");
+    expect(text).toContain("sight: far · 950 m · 61 XP");
   });
 
   it("says why a random spot was used", () => {
@@ -85,10 +90,11 @@ describe("debug log", () => {
     for (const s of ["Random spot", "no places loaded in the city box yet", "42.01", "3 street cells"]) expect(text).toContain(s);
   });
 
-  it("gives each pick a short title", () => {
-    expect(D.title({ place: "Cafe East", in_box: 3 })).toBe("🎯 Chosen: Cafe East");
+  it("gives each entry a short title", () => {
+    expect(D.title({ dealt: [{}, {}, {}] })).toBe("🃏 Dealt 3 cards");
+    expect(D.title({ dealt: [{}], forced: "cards" })).toBe("🃏 Dealt 1 card (button)");
+    expect(D.title({ picked: 2, of: 3, place: "Cafe East" })).toBe("🎯 Picked 2 of 3: Cafe East");
     expect(D.title({ fallback: "x", in_box: 0 })).toBe("⚠ Random spot: no places loaded");
-    expect(D.title({ fallback: "x", in_box: 2 })).toBe("⚠ Random spot: all places too close");
-    expect(D.title({ place: "Cafe East", forced: "goal" })).toBe("🎯 Chosen: Cafe East (button)");
+    expect(D.title({ fallback: "x", in_box: 2 })).toBe("⚠ Random spot: none to offer");
   });
 });

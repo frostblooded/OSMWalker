@@ -1,16 +1,18 @@
 // The game: picks a city, keeps the walker moving in real time while the app
 // is open, and loads streets as he nears new ground. At each place he gets
-// its reward (see core/places.ts). Time stops while the game is closed: he
-// goes on from where he was. No DOM here: the app calls step() and the
-// screens read the state.
+// the reward its card promised, then waits while the player picks the next
+// of the cards dealt there (see core/cards.ts). Time stops while the game is
+// closed: he goes on from where he was. No DOM here: the app calls step()
+// and the screens read the state.
+import { Choice, deal, footMin } from "../core/cards";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { BBox, LatLon } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { MONEY_POSE, XP_POSE, type Pose } from "../core/look";
-import { kindOf } from "../core/places";
+import { kindOf, rewardOf } from "../core/places";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
-import { Stats, type Place } from "../core/stats";
+import { Stats, visitKey, type Place } from "../core/stats";
 import { cityBounds, Walker, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
@@ -45,6 +47,8 @@ export class Game {
   walker: Walker | null = null;
   stats = new Stats();
   debugLog = new DebugLog();
+  /** The cards on offer and the one he walks to. */
+  choice = new Choice();
   readonly problems = new Problems();
   readonly loader: StreetLoader;
   city = "";
@@ -122,6 +126,7 @@ export class Game {
     w.bounds = cityBounds(lat, lon, bbox);
     this.stats = new Stats();
     this.debugLog = new DebugLog();
+    this.choice = new Choice();
     this.attach(w);
     this.city = name;
     this.origin = [lat, lon];
@@ -136,9 +141,9 @@ export class Game {
     this.walker = w;
     this.popped = null;
     w.rng = this.rng;
-    w.wants = rewarding;
     w.events = {
       arrived: (p) => this.onArrived(p),
+      idle: () => this.onIdle(),
       picked: (i) => this.onPicked(i),
       problem: (t) => this.problems.warn(t),
     };
@@ -176,10 +181,13 @@ export class Game {
     this.stats.history.moveTo(p[0], p[1]);
   }
 
-  /** At a place: its reward lands, with a pop over him. */
+  /** At a place: its card's reward lands, with a pop over him. (A walk from an older save, with no card, is paid for what he walked.) */
   private onArrived(place: Place): void {
     this.track();
-    const r = this.stats.reach(place);
+    const card = this.choice.going;
+    const r = card && visitKey(card.place) === visitKey(place) ? card.reward : rewardOf(place, footMin(this.walker!.tripM), this.stats.isNew(place));
+    this.choice.going = null;
+    this.stats.reach(place, r);
     if (r.cents || r.xp) this.popped = { pose: r.cents ? MONEY_POSE : XP_POSE, leftS: POSE_S };
     this.changed();
   }
@@ -189,10 +197,53 @@ export class Game {
     return this.popped?.pose ?? null;
   }
 
-  /** Each pick goes in the debug log. */
+  /** He has no goal: he waits while cards are on offer (dealing them if need be); with none to deal he heads for a random spot. */
+  private onIdle(): boolean {
+    // Still on the way to a card: he gave up on it (too far round, or he already stood as near as the streets go).
+    const missed = this.choice.going;
+    if (missed) {
+      this.choice.going = null;
+      this.stats.say(`Couldn't get to ${missed.place.name}, so nothing there`);
+      this.changed();
+    }
+    return this.choice.offer.length > 0 || this.dealCards();
+  }
+
+  /** Deals the cards where he stands and logs them; false when no place nearby gives anything. */
+  private dealCards(): boolean {
+    const w = this.walker!;
+    const here = w.position();
+    const places = w.graph.placesIn(w.bounds ?? cityBounds(here[0], here[1]));
+    const offer = deal(places, here, { rng: this.rng, isNew: (p) => this.stats.isNew(p), recent: new Set(this.choice.recent) });
+    if (!offer.length) return false;
+    this.choice.offer = offer;
+    const e: Entry = { in_box: places.length, dealt: offer.map((o) => ({ place: o.place.name, kind: o.kind, slot: o.slot, dist_m: Math.round(o.distM), cents: o.reward.cents, xp: o.reward.xp, new: o.isNew })) };
+    if (this.forced) e.forced = this.forced;
+    this.forced = "";
+    this.debugLog.add(e);
+    // Saved at once, so a reload doesn't deal new cards.
+    this.save();
+    this.changed();
+    return true;
+  }
+
+  /** The player picks card `i`: he sets off for it. */
+  pick(i: number): void {
+    const w = this.walker;
+    const of = this.choice.offer.length;
+    const card = w ? this.choice.take(i) : null;
+    if (!w || !card) return;
+    w.goTo(card.place);
+    this.debugLog.add({ picked: i + 1, of, place: card.place.name, slot: card.slot, kind: card.kind, dist_m: Math.round(card.distM), cents: card.reward.cents, xp: card.reward.xp });
+    this.save();
+    this.changed();
+  }
+
+  /** A random spot goes in the debug log. */
   private onPicked(info: PickInfo): void {
     const e: Entry = { ...info };
     if (this.forced) e.forced = this.forced;
+    this.forced = "";
     this.debugLog.add(e);
     this.changed();
   }
@@ -203,12 +254,14 @@ export class Game {
     return !!w?.bounds && w.graph.placesIn(w.bounds).filter(rewarding).length === 0;
   }
 
-  /** Debug button: picks a new goal now. */
-  debugNewGoal(): void {
+  /** Debug button: he stops at the end of this bit of street, where new cards are dealt. */
+  debugNewCards(): void {
     if (!this.walker) return;
-    this.forced = "goal";
-    this.walker.pickGoal();
-    this.forced = "";
+    this.walker.stop();
+    this.choice.offer = [];
+    this.choice.going = null;
+    this.forced = "cards";
+    this.changed();
   }
 
   /** New city: wipes the save but keeps the settings. */
@@ -216,6 +269,7 @@ export class Game {
     this.walker = null;
     this.stats = new Stats();
     this.debugLog = new DebugLog();
+    this.choice = new Choice();
     this.city = "";
     this.file.clear();
     this.changed();
@@ -242,7 +296,7 @@ export class Game {
     this.saveSettings();
     const w = this.walker;
     if (!w) return;
-    const err = this.file.write({ city: this.city, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog });
+    const err = this.file.write({ city: this.city, origin: this.origin, zoom: this.zoom, walker: w, stats: this.stats, debugLog: this.debugLog, choice: this.choice });
     if (err) this.problems.error(err);
   }
 
@@ -258,6 +312,7 @@ export class Game {
     this.attach(w);
     this.stats = d.stats;
     this.debugLog = d.debugLog;
+    this.choice = d.choice;
     this.loader.setGraph(w.graph);
     this.city = d.city;
     this.zoom = d.zoom;

@@ -3,7 +3,7 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as DebugLog from "../core/debugLog";
-import * as Goals from "../core/goals";
+import * as Cards from "../core/cards";
 import * as History from "../core/history";
 import { euro } from "../core/money";
 import * as Places from "../core/places";
@@ -117,11 +117,11 @@ export const build = (text: string) => parse(fill(text, values()));
 
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
-const pct = (share: number) => `${num(share * 100)}%`;
 const km = (m: number) => num(m / 1000);
-/** Sample distances Help shows the goal odds for. */
-const NEAR_M = 150;
-const FAR_M = 2000;
+/** Sample walks Help shows the pay for. */
+const EX_NEAR_M = 300;
+const EX_FAR_M = 1200;
+const workPay = (m: number) => euro(Places.rewardOf({ class: "cafe", rank: 1 }, Cards.footMin(m * Cards.ROUTE_FACTOR), false).cents);
 /** A kind's place classes as words: "cafe, fast food, ice cream". */
 const kinds = (k: Places.Kind) => Places.KINDS[k].map((c) => c.replace(/_/g, " ")).join(", ");
 
@@ -139,19 +139,27 @@ export function values(): Record<string, string> {
     MAX_SKIPS: String(W.MAX_SKIPS),
     TRIP_RATIO: num(W.TRIP_RATIO),
     TRIP_EXTRA_KM: km(W.TRIP_EXTRA_M),
-    WORK_EURO: euro(Places.WORK_CENTS),
-    SIGHT_XP: num(Places.SIGHT_XP),
-    GREEN_XP: num(Places.GREEN_XP),
+    WORK_PER_MIN: euro(Places.WORK_CENTS_PER_MIN),
+    SIGHT_XP_PER_MIN: num(Places.SIGHT_XP_PER_MIN),
+    GREEN_XP_PER_MIN: num(Places.GREEN_XP_PER_MIN),
+    FAR_EXTRA_MIN: num(Places.FAR_EXTRA_MIN),
+    LANDMARK_RANK: num(Places.LANDMARK_RANK),
+    LANDMARK_X: num(Places.LANDMARK_BONUS),
+    EX_NEAR_M: num(EX_NEAR_M),
+    EX_NEAR_EURO: workPay(EX_NEAR_M),
+    EX_FAR_KM: km(EX_FAR_M),
+    EX_FAR_EURO: workPay(EX_FAR_M),
+    CARDS: String(Cards.CARDS),
+    CLOSE_MAX_M: num(Cards.CLOSE_MAX_M),
+    FAR_MIN_M: num(Cards.FAR_MIN_M),
+    REACH_KM: km(Cards.REACH_M),
+    NEAREST: String(Cards.NEAREST),
+    RECENT: String(Cards.RECENT),
+    ROUTE_FACTOR: num(Cards.ROUTE_FACTOR),
     NEW_PLACE_XP: num(Places.NEW_PLACE_XP),
     WORK_LIST: kinds("work"),
     SIGHT_LIST: kinds("sight"),
     GREEN_LIST: kinds("green"),
-    GOAL_PEAK_M: num(Goals.GOAL_PEAK_M),
-    NEAR_M: num(NEAR_M),
-    NEAR_PCT: pct(Goals.distanceWeight(NEAR_M)),
-    FAR_KM: km(FAR_M),
-    FAR_PCT: pct(Goals.distanceWeight(FAR_M)),
-    HEADING_RATIO: num(Goals.HEADING_RATIO),
     XP_PER_LEVEL: num(S.XP_PER_LEVEL),
     XP_LV1: String(S.xpToNext(1)),
     XP_LV2: String(S.xpToNext(2)),

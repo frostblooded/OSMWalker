@@ -1,7 +1,8 @@
 // What the screens show about him, worked out once from the game: his look
-// on the map, the top card (where he goes, how far it is, why he waits) and
-// the facts Debug lists. Plain data, so the screens only lay it out and the
-// numbers are tested without a browser.
+// on the map, the top card (where he goes, how far it is, why he waits:
+// streets loading or the player's pick) and the facts Debug lists. Plain
+// data, so the screens only lay it out and the numbers are tested without a
+// browser.
 import { distanceM, type BBox, type LatLon } from "../core/geo";
 import * as Looks from "../core/look";
 import { tripLimitM } from "../core/walker";
@@ -15,8 +16,8 @@ export type Hud = {
   city: string;
   street: string;
   goal: Goal | null;
-  /** Why he stands still. */
-  waiting: "" | "streets" | "failing";
+  /** Why he stands still: streets loading, the map server out of reach, or the player's pick. */
+  waiting: "" | "streets" | "failing" | "pick";
 };
 
 export function hud(g: Game): Hud | null {
@@ -24,6 +25,7 @@ export function hud(g: Game): Hud | null {
   if (!w) return null;
   let waiting: Hud["waiting"] = "";
   if (w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
+  else if (!w.goal && g.choice.offer.length) waiting = "pick";
   return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), waiting };
 }
 

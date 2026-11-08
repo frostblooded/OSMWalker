@@ -51,10 +51,12 @@ describe("the real help", () => {
   it("uses the game's real numbers", () => {
     expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
     const places = page("places").body;
-    expect(places).toContain("- 💶 work places pay €3 a visit: cafe, bakery, restaurant, fast food,");
-    expect(places).toContain("- ⭐ sights give 30 XP: attraction, museum,");
-    expect(places).toContain("- 🌳 green spaces give 15 XP: park, garden, playground, picnic site, dog park.");
+    expect(places).toContain("- 💶 work places pay money: cafe, bakery, restaurant, fast food,");
+    expect(places).toContain("A minute is worth €0.60 at a work place, 6 XP at a sight and 3 XP in a green space");
+    expect(places).toMatch(/a work place 300 m away pays €[\d.]+ and one 1.2 km away €[\d.]+\./);
     expect(places).toContain("he gets 20 XP on top");
+    expect(page("goal").body).toContain("each a place nearby");
+    expect(page("goal").body).toContain("at most 400 m away");
     expect(page("xp").body).toContain("100 XP from level 1 to 2, 200 XP from 2 to 3, 1000 XP from 10 to 11");
   });
 
@@ -64,7 +66,7 @@ describe("the real help", () => {
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
+    for (const id of ["goal", "menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
   });
 });
 

@@ -1,6 +1,6 @@
 # ℹ Getting started
 ## What OSM Walker is {about}
-OSM Walker is a little character you watch walk the real streets of a real city, taken from OpenStreetMap. He walks to a place, gets what it gives him, and heads for the next one. Work places pay him money; sights and green spaces give him XP, and enough XP takes him up a level.
+OSM Walker is a little character who walks the real streets of a real city, taken from OpenStreetMap. The whole game is one choice, made again and again: where does he go next? At each place he gets what it gives him, and you pick his next place from {CARDS} cards. Work places pay him money; sights and green spaces give him XP, and enough XP takes him up a level.
 
 The game runs while it is open on screen. While it is closed, time stops and he waits where he was (see Real time).
 
@@ -12,7 +12,7 @@ If the search servers can't be reached, it says "Couldn't reach the search serve
 
 The game then downloads the streets around that spot. He starts on the street corner nearest to the result and stays inside that city.
 
-The area of the result decides the city box he picks goals in. It is grown or shrunk so that it reaches at least {MIN_CITY_KM} km and at most {MAX_CITY_KM} km from the centre, so a tiny village still has room to walk and a whole country never counts as one city.
+The area of the result decides the city box his cards come from. It is grown or shrunk so that it reaches at least {MIN_CITY_KM} km and at most {MAX_CITY_KM} km from the centre, so a tiny village still has room to walk and a whole country never counts as one city.
 ## Real time {offline}
 While the game is open on screen he lives in real time: one minute on your clock is one minute for him. A single step never counts for more than {MAX_STEP_S} second of your time, so a stall or a hidden tab can't make him jump ahead.
 
@@ -23,39 +23,42 @@ The game saves every {SAVE_EVERY_S} seconds and when you leave, on this device o
 ## How he walks {walking}
 He walks at {WALK_KMH} km/h, about {WALK_M_PER_MIN} m a minute, along real streets, paths and footways. Motorways and other roads you can't walk on are left out.
 
-He always walks towards a goal (see Places and rewards and His goal). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
+He walks to the place you picked (see Where next). He plans the shortest route over the streets that are loaded so far, and plans again as more streets load. If the streets ahead of him are not downloaded yet, he stands at the edge and "Loading streets…" shows at the top until they arrive.
 
-If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it and picks another. After more than {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
+If he has walked more than {TRIP_RATIO} times the straight-line distance to his goal plus {TRIP_EXTRA_KM} km and still isn't there, the goal is probably across water or behind a fence, so he gives up on it, gets nothing, and you get new cards (the feed says so). After more than {MAX_SKIPS} give-ups in a row he just walks down a random street for a while.
 ## Places and rewards {places}
-His goals are named places from the map. Only places that give him something count, and each kind gives one thing:
-- 💶 work places pay {WORK_EURO} a visit: {WORK_LIST},
-- ⭐ sights give {SIGHT_XP} XP: {SIGHT_LIST},
-- 🌳 green spaces give {GREEN_XP} XP: {GREEN_LIST}.
+Only named places that give him something are offered, and each kind gives one thing:
+- 💶 work places pay money: {WORK_LIST},
+- ⭐ sights give XP: {SIGHT_LIST},
+- 🌳 green spaces give less XP: {GREEN_LIST}.
 
-The first time he reaches a place he gets {NEW_PLACE_XP} XP on top. A place is remembered by its name and where it is. He counts as arrived when he is within {ARRIVE_M} m of it, and what he got shows in the feed under the top card and as a 💶 or ⭐ over him for {POSE_S} seconds.
+The longer the walk, the bigger the reward. A minute is worth {WORK_PER_MIN} at a work place, {SIGHT_XP_PER_MIN} XP at a sight and {GREEN_XP_PER_MIN} XP in a green space, and a long walk a little extra: a {FAR_EXTRA_MIN}-minute walk pays double for each minute. So a work place {EX_NEAR_M} m away pays {EX_NEAR_EURO} and one {EX_FAR_KM} km away {EX_FAR_EURO}. A far place pays a little more for each minute; a close one pays sooner, and you get to pick again sooner. The top {LANDMARK_RANK} sights in their area are landmarks and give {LANDMARK_X} times the XP.
 
-Only places inside the city box count, and places closer than {ARRIVE_M} m to him are skipped so he always really walks somewhere. If none have loaded yet, he heads for a random spot in the city box instead and gets nothing there.
-## His goal {goal}
-For now he picks his next goal himself. Every rewarding place in the city box gets a weight, and the bigger its weight the likelier it is picked. The weight is three numbers multiplied together:
+The first time he reaches a place he gets {NEW_PLACE_XP} XP on top, and its card says 🆕 New. A place is remembered by its name and where it is. He counts as arrived when he is within {ARRIVE_M} m of it; what he got shows in the feed under the top card and as a 💶 or ⭐ over him for {POSE_S} seconds.
 
-Rank: 1 / rank, where rank 1 is the most important place in its area, so a rank 4 place weighs 0.25.
+The reward on a card is fixed when the card is dealt, and it is what he gets there, however the walk turns out.
+## Where next {goal}
+When he reaches a place he stops, and 🧭 Where next? shows at the bottom of the screen. Tap it to see up to {CARDS} cards, each a place nearby with what it gives (an icon and the exact number) and how far it is in metres and walking minutes. Orange pins numbered like the cards mark their places on the map. Tap a card and he sets off. He waits for you as long as you like; nothing is lost while he waits. If he can't get to the place you picked (it is across water, say), he gives up, gets nothing there, and you pick again.
 
-Distance: places about {GOAL_PEAK_M} m away weigh most (1). The weight falls off smoothly both ways: a place {NEAR_M} m away weighs {NEAR_PCT} as much, one {FAR_KM} km away {FAR_PCT}.
+The cards are a planned mix:
+- a close one, at most {CLOSE_MAX_M} m away when there is one (else the nearest), which pays less,
+- a far one, at least {FAR_MIN_M} m away when there is one (else the farthest left), which pays more,
+- and one of a kind the other two aren't, if there is one (a green space when they are a cafe and a sight), a place he has never been to when possible.
 
-Heading: a place straight ahead along his last walk weighs {HEADING_RATIO} times one straight behind him, with places to the side in between. Right after starting he has no heading yet, so every direction counts the same.
+They come from places within {REACH_KM} km of him; when fewer than {CARDS} are, from the {NEAREST} nearest. Places from his last {RECENT} picks don't come back, and important places turn up more often. The walking time is a guess: streets wind, so it counts {ROUTE_FACTOR} times the straight line.
 
-Debug shows all three numbers for every place picked. Random spots follow the same distance and heading odds, and always stay inside the city box.
+When there is no card to deal (right after starting in a new city, before any places have loaded, or when every place near him was one of his last {RECENT} picks), he walks to a random spot near him instead, more likely ahead than behind, and gets nothing there.
 
 While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is the planned route at his speed. A 🎯 pin on the map marks the goal. Tap that line to see him and his goal on the map together; tap it again to go back to him.
 ## The map {map}
-The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face 🙂, with a bubble over his head showing the kind of place he is heading for (☕ a cafe, 🏛 a museum).
+The map is drawn from OpenStreetMap data by OpenFreeMap; the ⓘ at the bottom left shows the credits when you tap it. He is the round orange face 🙂, with a bubble over his head showing the kind of place he is heading for (☕ a cafe, 🏛 a museum). While he waits for your pick, orange circles numbered like the cards mark the places on the cards.
 
 While the camera follows him (the Camera follows him switch in the menu, on at first) the map stays still while he walks around the middle, and glides over to him once he is more than {MIDDLE_PCT}% of the view away from the middle. That way the whole map is only redrawn every so often, which saves battery. Drag the map to look around, then tap "Back to him" to follow him again. With the switch off the map never moves by itself.
 
 Use the + and − buttons on the right to zoom in and out; the zoom is remembered. Streets are downloaded in squares around him, {STREET_SQUARES} by {STREET_SQUARES} map tiles of about {TILE_KM} km each (smaller far from the equator), and the squares in the direction he is heading load first. Streets he has seen are kept on the device for {CACHE_DAYS} days, so the same city loads faster next time and works with a weak connection.
 # ⭐ Progress
 ## Money {coins}
-Money is shown in euros on the top card. He earns {WORK_EURO} at each work place he reaches (see Places and rewards). For now money only adds up; spending it comes later.
+Money is shown in euros on the top card. He earns it at work places, more the farther he walked (see Places and rewards). For now money only adds up; spending it comes later.
 ## XP and levels {xp}
 He gains XP from sights and green spaces, and {NEW_PLACE_XP} XP the first time he reaches any place (see Places and rewards).
 
@@ -64,7 +67,7 @@ Each level needs {XP_PER_LEVEL} x his level in XP: {XP_LV1} XP from level 1 to 2
 ## The top card and buttons {screen}
 The card at the top shows the city, the street he is on, his money and level, and his goal with the distance and the walking time. What he just did pops up under it for a few seconds.
 
-Only three buttons sit on the map, at the bottom right in reach of your thumb: + and − to zoom, and ☰ for the menu. "Back to him" shows up at the bottom when the map has moved away from him while the camera follows him.
+Only a few buttons sit on the map, at the bottom in reach of your thumb: + and − to zoom and ☰ for the menu on the right, and 🧭 Where next? while he waits for your pick (see Where next). "Back to him" shows up at the bottom when the map has moved away from him while the camera follows him.
 ## The menu {menu}
 ☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Help, Debug, the Route to goal, Camera follows him and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
@@ -82,13 +85,13 @@ While it is open, the map shows the trail he walked (up to about {TRAIL_KM} km),
 ## Debug {debug}
 Debug (in the menu) is for testing and curious players.
 
-At the top, coloured boxes list what looks wrong with the city right now. Cards below show the city (its box, where he is and what he is doing) and what has loaded. 🎯 New goal makes him pick a new goal now.
+At the top, coloured boxes list what looks wrong with the city right now. Cards below show the city (its box, where he is and what he is doing) and what has loaded. 🃏 New cards drops his goal and deals new cards at the next corner.
 
-Then come two logs, closed at first: Problems (the last {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Goal picks (his last {DEBUG_SIZE} goals). Each entry is a short title, such as "🎯 Chosen: Cafe East". Tap it to see how it happened: the odds and why. A random spot counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
+Then come two logs, closed at first: Problems (the last {MAX_ERRORS} errors and {MAX_WARNINGS} warnings from anywhere in the game) and Cards and picks (the last {DEBUG_SIZE} deals, picks and random spots). Each entry is a short title, such as "🎯 Picked 2 of 3: Cafe East". Tap it to see the detail: each card's place, kind, distance and reward, or why a random spot was used. A random spot counts as a warning. A red dot on ☰ and Debug means there are problems you haven't looked at yet. Problems are kept even through New city.
 
-City area (a switch in the menu) shades the box his goals are picked from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
+City area (a switch in the menu) shades the box his cards come from in orange and draws the city's real border from OpenStreetMap in purple, so you can see where the two differ. The switch is remembered.
 ## New city {new_city}
-New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (money, level, places visited, History and the goal-pick log), you have to type RESET in capitals and confirm.
+New city (in the menu) starts the whole game over in a city you choose. Because it wipes everything (money, level, places visited, History, the cards and their log), you have to type RESET in capitals and confirm.
 ## About Help {help}
 Help (in the menu) explains every part of the game on its own page. Tap a topic to open it and Back to return to the list.
 

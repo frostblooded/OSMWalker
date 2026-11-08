@@ -13,14 +13,25 @@ async function startInSofia(page: import("@playwright/test").Page) {
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
 }
 
-test("picks a city and walks its streets", async ({ page }) => {
+test("picks a city, then a place from the cards, and walks there", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await startInSofia(page);
   await expect(page.locator(".hud .city")).toContainText("Sofia");
   await expect(page.locator(".marker.him")).toBeVisible();
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
-  await expect(page.locator(".chip")).toContainText(/Going to/, { timeout: 10000 });
+  await expect(page.locator(".hud")).toContainText("He waits for you to pick where next", { timeout: 10000 });
+  await page.getByRole("button", { name: /Where next/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Where next/ });
+  const cards = sheet.locator("button.offer");
+  await expect(cards).toHaveCount(3);
+  // Each card says what it gives and how far it is.
+  for (const t of await cards.allTextContents()) expect(t).toMatch(/(💶 €[\d.]+|⭐ \d+ XP).*\d+(\.\d)? k?m · (~\d+ min|<1 min)/);
+  const name = (await cards.first().locator(".offer-name").textContent())!.replace(/🆕 New/, "").trim();
+  await cards.first().click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: /Where next/ })).toBeHidden();
+  await expect(page.locator(".chip")).toContainText(`Going to ${name.replace(/^\S+ /, "")}`, { timeout: 10000 });
   await page.screenshot({ path: "test-results/game.png" });
   expect(errors).toEqual([]);
 });
