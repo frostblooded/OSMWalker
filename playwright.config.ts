@@ -1,9 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { chromium } from "./tools/chromium";
 
-// E2E against the production build. PW_CHROMIUM points at a local Chromium
-// (npm run verify finds the cloud sessions' one); otherwise Playwright's own
-// (npx playwright install chromium). LIVE_URL plays the deployed site instead,
-// with no local server.
+// E2E against the production build, in the Chromium tools/chromium.ts picks.
+// LIVE_URL plays the deployed site instead, with no local server.
 const live = process.env.LIVE_URL;
 export default defineConfig({
   testDir: "tests/e2e",
@@ -14,7 +13,7 @@ export default defineConfig({
   use: {
     ...devices["Pixel 7"],
     launchOptions: {
-      executablePath: process.env.PW_CHROMIUM || undefined,
+      executablePath: chromium(),
       args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
     },
     baseURL: live ? live.replace(/\/?$/, "/") : "http://localhost:4173/",
