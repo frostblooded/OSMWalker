@@ -38,16 +38,16 @@ The first time he reaches a place he gets {NEW_PLACE_XP} XP on top, and its card
 
 The reward on a card is fixed when the card is dealt, and it is what he gets there, however the walk turns out.
 ## Where next {goal}
-When he reaches a place he stops, and 🧭 Where next? shows at the bottom of the screen. Tap it to see up to {CARDS} cards, each a place nearby with what it gives (an icon and the exact number) and how far it is in metres and walking minutes. The same numbers mark the places on the map. Tap a card and he sets off. He waits for you as long as you like; nothing is lost while he waits. If he can't get to the place you picked (it is across water, say), he gives up, gets nothing there, and you pick again.
+When he reaches a place he stops, and 🧭 Where next? shows at the bottom of the screen. Tap it to see up to {CARDS} cards, each a place nearby with what it gives (an icon and the exact number) and how far it is in metres and walking minutes. Orange pins numbered like the cards mark their places on the map. Tap a card and he sets off. He waits for you as long as you like; nothing is lost while he waits. If he can't get to the place you picked (it is across water, say), he gives up, gets nothing there, and you pick again.
 
 The cards are a planned mix:
 - a close one, at most {CLOSE_MAX_M} m away when there is one (else the nearest), which pays less,
 - a far one, at least {FAR_MIN_M} m away when there is one (else the farthest left), which pays more,
-- and one of another kind than those two, if there is one (money when they give XP, XP when they pay money), a place he has never been to when possible.
+- and one of a kind the other two aren't, if there is one (a green space when they are a cafe and a sight), a place he has never been to when possible.
 
 They come from places within {REACH_KM} km of him; when fewer than {CARDS} are, from the {NEAREST} nearest. Places from his last {RECENT} picks don't come back, and important places turn up more often. The walking time is a guess: streets wind, so it counts {ROUTE_FACTOR} times the straight line.
 
-Until any places have loaded around him (right after starting in a new city), he walks to a random spot near him instead, more likely ahead than behind, and gets nothing there.
+When there is no card to deal (right after starting in a new city, before any places have loaded, or when every place near him was one of his last {RECENT} picks), he walks to a random spot near him instead, more likely ahead than behind, and gets nothing there.
 
 While he walks, the card at the top shows where he is going, how far it is and how long the walk will take, for example "🎯 Going to Central Market · 1.2 km · ~14 min". The time is the planned route at his speed. A 🎯 pin on the map marks the goal. Tap that line to see him and his goal on the map together; tap it again to go back to him.
 ## The map {map}

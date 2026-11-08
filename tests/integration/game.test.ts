@@ -73,7 +73,7 @@ describe("game", () => {
     const { g } = game({ places: [PARK] });
     await g.startCity("Sofia, Bulgaria", ...START, null);
     const visit = () => {
-      run(g, 1);
+      for (let i = 0; i < 120 && !g.choice.offer.length; i++) g.step(1);
       const card = g.choice.offer[0]!;
       g.pick(0);
       for (let i = 0; i < 600 && g.walker!.place; i++) g.step(1);
@@ -120,7 +120,7 @@ describe("game", () => {
     expect(g.choice.going).toBeNull();
   });
 
-  it("deals new cards where he is on the Debug button, even mid-walk", async () => {
+  it("deals new cards at the next corner on the Debug button, even mid-walk", async () => {
     const { g } = game();
     await g.startCity("Sofia, Bulgaria", ...START, null);
     run(g, 1);
@@ -128,6 +128,9 @@ describe("game", () => {
     run(g, 3);
     g.debugNewCards();
     expect(g.walker!.goal).toBeNull();
+    expect(g.choice.offer).toEqual([]);
+    run(g, 60);
+    expect(g.walker!.toNode).toBeNull();
     expect(g.choice.offer.length).toBeGreaterThan(0);
     expect(g.debugLog.entries.at(-1)).toMatchObject({ forced: "cards" });
   });

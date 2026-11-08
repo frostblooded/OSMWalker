@@ -219,6 +219,7 @@ export class Game {
     this.choice.offer = offer;
     const e: Entry = { in_box: places.length, dealt: offer.map((o) => ({ place: o.place.name, kind: o.kind, slot: o.slot, dist_m: Math.round(o.distM), cents: o.reward.cents, xp: o.reward.xp, new: o.isNew })) };
     if (this.forced) e.forced = this.forced;
+    this.forced = "";
     this.debugLog.add(e);
     // Saved at once, so a reload doesn't deal new cards.
     this.save();
@@ -242,6 +243,7 @@ export class Game {
   private onPicked(info: PickInfo): void {
     const e: Entry = { ...info };
     if (this.forced) e.forced = this.forced;
+    this.forced = "";
     this.debugLog.add(e);
     this.changed();
   }
@@ -252,15 +254,14 @@ export class Game {
     return !!w?.bounds && w.graph.placesIn(w.bounds).filter(rewarding).length === 0;
   }
 
-  /** Debug button: he stops and new cards are dealt where he stands. */
+  /** Debug button: he stops at the end of this bit of street, where new cards are dealt. */
   debugNewCards(): void {
     if (!this.walker) return;
     this.walker.stop();
     this.choice.offer = [];
     this.choice.going = null;
     this.forced = "cards";
-    if (!this.dealCards()) this.changed();
-    this.forced = "";
+    this.changed();
   }
 
   /** New city: wipes the save but keeps the settings. */
