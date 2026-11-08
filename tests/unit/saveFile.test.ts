@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { TRUST_START } from "../../src/core/bond";
 import { DebugLog } from "../../src/core/debugLog";
-import { hall } from "../../src/core/hall";
-import { LONG_H } from "../../src/core/mind";
 import { StreetGraph } from "../../src/core/graph";
 import { Problems } from "../../src/core/problems";
 import { Stats } from "../../src/core/stats";
-import { Walker } from "../../src/core/walker";
-import { BAD_SAVE_KEY, DEFAULT_ZOOM, HOLIDAYS_KEY, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
+import { LONE_NODE, Walker } from "../../src/core/walker";
+import { BAD_SAVE_KEY, DEFAULT_ZOOM, OLD_KEYS, SAVE_KEY, SETTINGS_KEY, SaveFile, type Saved } from "../../src/game/saveFile";
 
 class MemStorage {
   m = new Map<string, string>();
@@ -33,14 +30,26 @@ function walkerAt(lat: number, lon: number): Walker {
   return w;
 }
 
-const INN = { name: "Sofia inn", class: "lodging", subclass: "guest_house", rank: 1, lat: 42.7, lon: 23.3, id: "sofia:guest_house:0", made: true };
-
 function saved(): Saved {
   const stats = new Stats();
   stats.cents = 4321;
+  stats.addXp(150);
+  stats.visited.add("Cafe@42.7000,23.3000");
   const debugLog = new DebugLog();
   debugLog.add({ place: "Cafe" });
-  return { city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog, savedAt: 1_800_000_000_000, boostS: 1234, made: { "Sofia, Bulgaria": [INN] } };
+  return { city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15, walker: walkerAt(42.7, 23.3), stats, debugLog };
+}
+
+/** Writes `saved()`, lets `edit` change the stored JSON, and reads it back. */
+type Raw = Record<string, unknown> & { stats: Record<string, unknown> | null; walker: Record<string, unknown> };
+function edited(edit: (d: Raw) => void): Saved | string | null {
+  const kv = new MemStorage();
+  const f = new SaveFile(kv);
+  f.write(saved());
+  const d = JSON.parse(kv.getItem(SAVE_KEY)!) as Raw;
+  edit(d);
+  kv.setItem(SAVE_KEY, JSON.stringify(d));
+  return f.read();
 }
 
 describe("save file", () => {
@@ -55,520 +64,71 @@ describe("save file", () => {
     expect(f.write(saved())).toBe("");
     expect(f.has()).toBe(true);
     const back = f.read() as Saved;
-    expect(back).toMatchObject({ city: "Sofia, Bulgaria", country: "BGR", skipRoll: true, origin: [42.7, 23.3], zoom: 15, savedAt: 1_800_000_000_000, boostS: 1234 });
+    expect(back).toMatchObject({ city: "Sofia, Bulgaria", origin: [42.7, 23.3], zoom: 15 });
     expect(back.walker.totalM).toBe(123);
     expect(back.walker.position()).toEqual([42.7, 23.3]);
-    expect(back.stats.cents).toBe(4321);
+    expect(back.stats).toMatchObject({ cents: 4321, xp: 50, level: 2 });
+    expect([...back.stats.visited]).toEqual(["Cafe@42.7000,23.3000"]);
     expect(back.debugLog.entries).toMatchObject([{ place: "Cafe" }]);
-    expect(back.made).toEqual({ "Sofia, Bulgaria": [INN] });
-  });
-
-  it("loads saves from before the boost, with none left", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.boost_s;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).boostS).toBe(0);
-  });
-
-  it("loads saves from before made-up places, with none made yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.made_places;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).made).toEqual({});
   });
 
   it("keeps the stored format that older versions wrote", () => {
     const kv = new MemStorage();
     new SaveFile(kv).write(saved());
     const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(Object.keys(d).sort()).toEqual(["boost_s", "city", "country", "debug_log",
-      "made_places", "origin", "saved_at", "skip_roll", "stats", "walker", "zoom"]);
+    expect(Object.keys(d).sort()).toEqual(["city", "debug_log", "origin", "stats", "walker", "zoom"]);
   });
 
-  it("loads saves from before care packages with no clovers and nothing on its way", () => {
-    const kv = new MemStorage();
-    new SaveFile(kv).write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.care;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 0, day: "", today: 0, parcel: "" });
-    expect(back.stats.cents).toBe(4321);
+  it("loads a save from before the base loop: XP, level and places kept, money from afresh, the rest dropped", () => {
+    const back = edited((d) => {
+      const st = d.stats!;
+      delete st.economy;
+      st.meters = { energy: 3 };
+      st.bag = [{ name: "Bike" }];
+      d.boost_s = 900;
+      d.country = "BGR";
+    }) as Saved;
+    expect(back.stats.cents).toBe(0);
+    expect(back.stats).toMatchObject({ xp: 50, level: 2 });
+    expect(back.stats.visited.size).toBe(1);
+    expect(back.stats).not.toHaveProperty("meters");
+    expect(back).not.toHaveProperty("boostS");
   });
 
-  it("loads saves from the day ribbon's time and drops their stops", () => {
-    const kv = new MemStorage();
-    new SaveFile(kv).write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    expect(d.stats.stops).toBeUndefined();
-    d.stats.stops = [{ k: "amenity/cafe", t: 100 }];
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = new SaveFile(kv).read() as Saved;
-    new SaveFile(kv).write(back);
-    expect(JSON.parse(kv.getItem(SAVE_KEY)!).stats.stops).toBeUndefined();
+  it("puts him in the city an old save was riding to, waiting for its streets", () => {
+    const back = edited((d) => {
+      d.walker.travel = { arrive: [42.15, 24.75], to: { name: "Plovdiv", lat: 42.15, lon: 24.75 } };
+    }) as Saved;
+    expect(back.city).toBe("Plovdiv");
+    expect(back.origin).toEqual([42.15, 24.75]);
+    expect(back.walker.fromNode).toBe(LONE_NODE);
+    expect(back.walker.position()).toEqual([42.15, 24.75]);
+    expect(back.walker.goal).toBeNull();
+    expect(back.walker.needsData()).toBe(true);
   });
 
-  it("loads saves from before the weekly recap with a fresh week", () => {
-    const kv = new MemStorage();
-    new SaveFile(kv).write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.week;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.week.tally.start).toBe(0);
-    expect(back.stats.week.pending()).toBeNull();
+  it("puts him where an old save's flight was landing, in the same city", () => {
+    const back = edited((d) => {
+      d.walker.flight = { to: [42.71, 23.31] };
+    }) as Saved;
+    expect(back.city).toBe("Sofia, Bulgaria");
+    expect(back.walker.position()).toEqual([42.71, 23.31]);
   });
 
-  it("loads saves with clovers from before guesses", () => {
+  it("removes what older versions kept apart on the next write", () => {
     const kv = new MemStorage();
+    for (const k of OLD_KEYS) kv.setItem(k, "{}");
     new SaveFile(kv).write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    d.stats.care = { clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" };
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "2026-10-30", today: 1, parcel: "snack" });
-  });
-
-  it("loads saves with a trip guess, dropping it", () => {
-    const kv = new MemStorage();
-    new SaveFile(kv).write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    d.stats.care = { clovers: 2, day: "", today: 0, parcel: "", guess: { abroad: false, choices: ["Varna"], answer: "Varna", pick: "" } };
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = new SaveFile(kv).read() as Saved;
-    expect(back.stats.care.toJSON()).toEqual({ clovers: 2, day: "", today: 0, parcel: "" });
+    for (const k of OLD_KEYS) expect(kv.getItem(k)).toBeNull();
   });
 
   it("fills in what old saves lack: zoom and the city box", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.zoom;
-    d.walker.bounds = null;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = f.read() as Saved;
+    const back = edited((d) => {
+      delete d.zoom;
+      d.walker.bounds = null;
+    }) as Saved;
     expect(back.zoom).toBe(DEFAULT_ZOOM);
     expect(back.walker.bounds).not.toBeNull();
-  });
-
-  it("loads saves from before life stages: born on his birthday, a backpacker of the first generation, with the walker's kilometres", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.life;
-    d.stats.anniversaries = { born: 1_790_000_000, day: "" };
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = f.read() as Saved;
-    expect(back.stats.life.born).toBe(1_790_000_000);
-    expect(back.stats.life.stage).toBe(0);
-    expect(back.stats.life.gen).toBe(1);
-    expect(back.stats.life.family).toEqual([]);
-    expect(back.stats.life.km).toBeCloseTo(0.123);
-    // A save with a life keeps its own kilometres.
-    f.write(back);
-    expect((f.read() as Saved).stats.life.km).toBeCloseTo(0.123);
-  });
-
-  it("loads saves from before the storyteller: Classic, no tension, and keeps a chosen one", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    const s = saved();
-    s.stats.story.style = "chaotic";
-    f.write(s);
-    expect((f.read() as Saved).stats.story.style).toBe("chaotic");
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.story;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.story).toMatchObject({ style: "classic", tension: 0, luckyMin: 0, recent: [] });
-  });
-
-  it("loads saves from before quests: no board, nothing done, so his city rolls a board again", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    const s = saved();
-    s.stats.quests.done = ["q:Ana:0"];
-    f.write(s);
-    expect((f.read() as Saved).stats.quests.done).toEqual(["q:Ana:0"]);
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.quests;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.quests).toMatchObject({ city: "", board: [], active: null, events: [], done: [] });
-  });
-
-  it("loads saves from before careers: no shifts, every career at rank 1, and keeps his ranks", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    const s = saved();
-    s.stats.careers.shifts.cafe = 12;
-    f.write(s);
-    expect((f.read() as Saved).stats.careers.rank("cafe")).toBe(3);
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.careers;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.careers.shifts).toEqual({});
-  });
-
-  it("loads saves from before Viktor: they haven't met yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.rival;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.rival).toMatchObject({ level: 2, wins: 0, losses: 0, memory: [], inTown: false });
-  });
-
-  it("loads saves from before visas: every country starts on Tourist", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.visas;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.visas).toMatchObject({ days: {}, code: "", stay: 0 });
-  });
-
-  it("loads saves from before pets: he has none", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.pets;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.pets).toMatchObject({ pet: null, past: [] });
-  });
-
-  it("loads saves from before his mind: no moodlets, wants or fears until the next tick fills his wants", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.mind;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const stats = (f.read() as Saved).stats;
-    expect(stats.mind.toJSON()).toEqual({ moodlets: [], wants: [], fears: [] });
-    stats.passTime(1, 0);
-    expect(stats.mind.wants.map((w) => w.kind).sort()).toEqual(["long", "short"]);
-  });
-
-  it("loads saves from before quirks and spots: no habits counted, no spot", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.quirks;
-    delete d.stats.spots;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const stats = (f.read() as Saved).stats;
-    expect(stats.quirks.toJSON()).toEqual({ counts: {}, have: [], faded: [] });
-    expect(stats.spots.toJSON()).toEqual({ cities: {} });
-  });
-
-  it("loads saves from before the diary: an empty one, its first day the save's day", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.diary;
-    d.stats.anniversaries = { ...d.stats.anniversaries, day: "2026-10-30" };
-    d.stats.where = { city: "Sofia, Bulgaria", code: "BGR", country: "Bulgaria" };
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.diary.toJSON()).toEqual({ entries: [], today: { date: "2026-10-30", city: "Sofia, Bulgaria", notes: [], dreams: [] }, days: {} });
-  });
-
-  it("loads saves from before wants ran out: an endless long or face want starts counting, and an unfaced fear then fades", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    d.stats.mind = { moodlets: [], fears: ["park"], wants: [{ kind: "long", place: "zoo", until: 0 }, { kind: "face", place: "park", until: 0 }] };
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const stats = (f.read() as Saved).stats;
-    let t = 1_800_000_000;
-    stats.now = () => t;
-    stats.passTime(1, 0);
-    expect(stats.mind.wants.filter((w) => w.kind !== "short").map((w) => w.until)).toEqual([t + LONG_H * 3600, t + LONG_H * 3600]);
-    t += LONG_H * 3600;
-    stats.passTime(1, 0);
-    expect(stats.mind.fears).toEqual([]);
-    expect(stats.mind.wants.some((w) => w.kind === "face")).toBe(false);
-  });
-
-  it("loads saves from before letters and gifts: an empty mailbox", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.mail;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.mail.toJSON()).toEqual({ letters: [], waiting: [] });
-  });
-
-  it("loads saves from before friends: he has met no one", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.friends;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.friends).toMatchObject({ list: [], partner: "", companion: null });
-  });
-
-  it("loads saves from before clubs, townies and anniversaries: no clubs, news from the next day, his birthday the day he set out", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    const game = saved();
-    game.stats.chronicle.note("start", "Set out from Sofia, Bulgaria", 1234);
-    f.write(game);
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.clubs;
-    delete d.stats.townies;
-    delete d.stats.anniversaries;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.clubs.list).toEqual([]);
-    expect(back.townies).toMatchObject({ day: "", done: {} });
-    expect(back.anniversaries).toMatchObject({ born: 1234, day: "" });
-  });
-
-  it("loads saves from before skills, cooking and languages: none yet, an empty pantry, English only", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.skills;
-    delete d.stats.pantry;
-    delete d.stats.languages;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(Object.values(back.skills.steps)).toEqual([0, 0, 0, 0, 0, 0]);
-    expect(back.pantry).toMatchObject({ items: [], cooked: 0 });
-    expect(back.languages).toMatchObject({ hours: { English: 50 }, native: "" });
-  });
-
-  it("loads saves from before side income: no businesses, shares, dishes or lottery ticket", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.business;
-    delete d.stats.lottery;
-    delete d.stats.pantry.dishes;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.business).toMatchObject({ owned: [], shares: [], pending: 0, earned: 0 });
-    expect(back.lottery.toJSON()).toEqual({ ticket: 0, tickets: 0, prizes: 0, won: 0, best: 0 });
-    expect(back.pantry.dishes).toEqual([]);
-  });
-
-  it("loads saves from before the bucket list: an empty list that fills on the next new day or city", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.bucket;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.bucket.toJSON()).toEqual({ list: [], done: [] });
-  });
-
-  it("loads saves from before the time was saved, so a reopen earns no boost", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.saved_at;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).savedAt).toBe(0);
-  });
-
-  it("loads saves from before fantasy mounts: a dragon not fed yet, no flight", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.dragonFed;
-    delete d.stats.dragonSulked;
-    delete d.walker.flight;
-    delete d.walker.afoot;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = f.read() as Saved;
-    expect(back.stats.dragonFed).toBe("");
-    expect(back.stats.dragonSulked).toBe("");
-    expect(back.walker.flight).toBeNull();
-    expect(back.walker.afoot).toBe(false);
-  });
-
-  it("loads saves from before the bond, with starting trust and no lean", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.bond;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.bond.trust).toBe(TRUST_START);
-    expect(back.bond.leaning()).toBe("");
-    expect(back.bond.nudge).toBe("");
-  });
-
-  it("loads saves from before keepsakes, with none collected yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.keepsakes;
-    delete d.stats.where;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.keepsakes.cards.size).toBe(0);
-    expect(back.keepsakes.souvenirs.size).toBe(0);
-    expect(back.where).toEqual({ city: "", code: "", country: "" });
-    expect(back.cents).toBe(4321);
-  });
-
-  it("loads saves from before local words, with none learned yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.words;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.words.count()).toBe(0);
-    expect(back.cents).toBe(4321);
-  });
-
-  it("loads saves from before the street collector, with no streets yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.streets;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.streets.count()).toBe(0);
-    expect(back.cents).toBe(4321);
-  });
-
-  it("loads saves from before sight notes, with none read yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.sightNotes;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.sightNotes.read).toEqual([]);
-    expect(back.sightNotes.none).toEqual([]);
-    expect(back.cents).toBe(4321);
-  });
-
-  it("loads saves from before records, with fresh ones", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.records;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.records.best.stretchM).toBe(0);
-    expect(back.records.countries).toEqual([]);
-  });
-
-  it("loads saves from before ruin crawls, with none crawled", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.ruins;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.ruins.logs).toEqual([]);
-    expect(back.ruins.count).toBe(0);
-    expect(back.ruins.due("x", 0)).toBe(true);
-  });
-
-  it("loads saves from before golden bricks and the life story, with the old firsts skipped", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.bricks;
-    delete d.stats.chronicle;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.bricks.count).toBe(0);
-    expect(back.bricks.built).toEqual([]);
-    back.arrive("Paris, France", "FRA", "France");
-    expect(back.chronicle.lines).toEqual([]);
-  });
-
-  it("loads saves from before place creatures: none met yet, free to meet one today", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.creatures;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.creatures.met).toEqual({});
-    expect(back.creatures.day).toBe("");
-  });
-
-  it("loads saves from before magic: no Magic and no spells yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.magic;
-    delete d.stats.lore;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    expect(back.magic).toBe(0);
-    expect(back.lore.toJSON()).toEqual({ known: [], casts: {}, day: "", tapped: [] });
-  });
-
-  it("loads saves from before the shop after midnight: nothing found there yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.finds;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.finds.got).toEqual([]);
-  });
-
-  it("loads saves from before the explored squares: none walked yet", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    delete d.stats.explored;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect((f.read() as Saved).stats.explored.size).toBe(0);
-  });
-
-  it("loads ancestors from before the hall of walkers, who count only for km, level and cities", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    d.stats.life.gen = 2;
-    d.stats.life.family = [{ gen: 1, born: 0, retired: 1, by: "age", title: "Elder", level: 30, km: 900, cities: 12, home: "Sofia, Bulgaria", heirloom: "", letter: "", chronicle: [] }];
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    const back = (f.read() as Saved).stats;
-    const rows = Object.fromEntries(hall(back).map((r) => [r.id, r.gen]));
-    expect(rows.km).toBe(1);
-    expect(rows.countries).not.toBe(1);
   });
 
   it("says why a save is unreadable", () => {
@@ -578,10 +138,7 @@ describe("save file", () => {
     expect(f.read()).toBe("The saved game was unreadable; starting over");
     kv.setItem(SAVE_KEY, JSON.stringify({ city: "x" }));
     expect(f.read()).toBe("The saved game was unreadable; starting over");
-    const d = JSON.parse((() => (f.write(saved()), kv.getItem(SAVE_KEY)!))());
-    d.walker.from = null;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect(f.read()).toBe("The saved game had no spot for him; starting over");
+    expect(edited((d) => (d.walker.from = null))).toBe("The saved game had no spot for him; starting over");
   });
 
   it("keeps a copy of a save it can't use, so starting over doesn't lose it", () => {
@@ -592,14 +149,7 @@ describe("save file", () => {
   });
 
   it("calls a save unreadable when repairing it fails, instead of throwing", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    f.write(saved());
-    const d = JSON.parse(kv.getItem(SAVE_KEY)!);
-    d.stats = null;
-    kv.setItem(SAVE_KEY, JSON.stringify(d));
-    expect(f.read()).toBe("The saved game was unreadable; starting over");
-    expect(kv.getItem(BAD_SAVE_KEY)).toBe(JSON.stringify(d));
+    expect(edited((d) => (d.stats = null))).toBe("The saved game was unreadable; starting over");
   });
 
   it("says when the device is full", () => {
@@ -612,7 +162,7 @@ describe("save file", () => {
     const kv = new MemStorage();
     const f = new SaveFile(kv);
     f.write(saved());
-    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, sound: false, problems: new Problems(), postcardName: "", alwaysDilemma: false, momentS: 5 });
+    f.writeSettings({ showCityArea: true, showRoute: false, cameraFollows: false, problems: new Problems() });
     f.clear();
     expect(f.has()).toBe(false);
     expect(kv.getItem(SETTINGS_KEY)).not.toBeNull();
@@ -625,12 +175,12 @@ describe("save file", () => {
     const problems = new Problems();
     problems.quiet = true;
     problems.warn("kept");
-    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, problems, postcardName: "Ivan", alwaysDilemma: true, momentS: 10 });
+    f.writeSettings({ showCityArea: true, showRoute: true, cameraFollows: false, problems });
     const s = f.readSettings() as Exclude<ReturnType<SaveFile["readSettings"]>, string | null>;
-    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false, sound: true, postcardName: "Ivan", alwaysDilemma: true, momentS: 10 });
+    expect(s).toMatchObject({ showCityArea: true, showRoute: true, cameraFollows: false });
     expect(s.problems.warnings.map((w) => w.text)).toContain("kept");
     kv.setItem(SETTINGS_KEY, "{}");
-    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true, sound: false, postcardName: "", alwaysDilemma: false, momentS: 5 });
+    expect(f.readSettings()).toMatchObject({ showCityArea: false, showRoute: false, cameraFollows: true });
     kv.setItem(SETTINGS_KEY, "nope");
     expect(f.readSettings()).toBe("Settings were unreadable; using defaults");
   });
@@ -640,18 +190,5 @@ describe("save file", () => {
     expect(f.write(saved())).toBe("");
     expect(f.has()).toBe(false);
     expect(f.read()).toBeNull();
-  });
-
-  it("keeps holiday lists from this year on, and drops a book it can't read", () => {
-    const kv = new MemStorage();
-    const f = new SaveFile(kv);
-    expect(f.readHolidays()).toEqual({ lists: {}, said: "" });
-    const day = { date: "2026-03-03", name: "Liberation Day", localName: "" };
-    f.writeHolidays({ lists: { "BG:2025": [day], "BG:2026": [day], "BG:2027": [] }, said: "BGR:2026-03-03" }, 2026);
-    expect(f.readHolidays()).toEqual({ lists: { "BG:2026": [day], "BG:2027": [] }, said: "BGR:2026-03-03" });
-    for (const bad of ["not json", "null", "[]", '{"lists":[1],"said":5}', '{"lists":{"BG:2026":"x"}}']) {
-      kv.setItem(HOLIDAYS_KEY, bad);
-      expect(f.readHolidays(), bad).toEqual({ lists: {}, said: "" });
-    }
   });
 });

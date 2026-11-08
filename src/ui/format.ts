@@ -13,44 +13,7 @@ export function walkTime(meters: number, mps: number): string {
   return mins < 60 ? `~${mins} min` : `~${Math.floor(mins / 60)} h ${mins % 60} min`;
 }
 
-/** A stretch of time: "<1 min", "25 min", "2 h 5 min", "24 h", "3 days 1 h". */
-export function duration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  if (mins < 1) return "<1 min";
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  if (h < 48) return mins % 60 ? `${h} h ${mins % 60} min` : `${h} h`;
-  const d = Math.floor(h / 24);
-  return h % 24 ? `${d} days ${h % 24} h` : `${d} days`;
-}
-
-/** Seconds left as m:ss, rounded up so it reads 1:00 at the start and never 0:00 while he still waits. */
-export function countdown(seconds: number): string {
-  const s = Math.ceil(Math.max(seconds - 0.001, 0));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/** Seconds left as h:mm:ss, or m:ss under an hour (see countdown). */
-export function clock(seconds: number): string {
-  const s = Math.ceil(Math.max(seconds - 0.001, 0));
-  return s < 3600 ? countdown(s) : `${Math.floor(s / 3600)}:${countdown(s % 3600).padStart(5, "0")}`;
-}
-
-/** `part` of `whole` as "14%", with a decimal under 10% ("1.5%"), and at least "0.1%" once part is above 0. */
-export function share(part: number, whole: number): string {
-  if (!whole || !part) return "0%";
-  const p = (100 * part) / whole;
-  return p < 10 ? `${Math.max(Math.round(p * 10) / 10, 0.1)}%` : `${Math.round(p)}%`;
-}
-
-/** "5 km/h" or "16.5 km/h". */
-export function speed(mps: number): string {
-  const kmh = Math.round(mps * 3.6 * 10) / 10;
-  return `${kmh} km/h`;
-}
-
-export function streetLine(street: string, stopped: boolean): string {
-  if (stopped) return `Stopped on ${street || "an unnamed path"}`;
+export function streetLine(street: string): string {
   return street ? `Walking along ${street}` : "Wandering along an unnamed path";
 }
 

@@ -3,12 +3,11 @@ import { distanceM, moved, offsetM } from "../../src/core/geo";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
-import { HOP_MIN_M, ROAD_FACTOR, rideS, type City, type Plan } from "../../src/core/trips";
 import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
 import { plus, PLUS_BBOX } from "../support/osm";
 
-const { Walker, SPEED_MPS, REST_M } = W;
+const { Walker, WALK_MPS } = W;
 type PickInfo = W.PickInfo;
 const n = (osm: number) => -osm; // node ids of the "+" fixture
 const SMALL_BOX: [number, number, number, number] = [41.995, 22.995, 42.005, 23.005];
@@ -18,6 +17,8 @@ const CAFE_EAST = cafe("Cafe East", 42.0, 23.00135);
 
 let graph: StreetGraph;
 let walker: W.Walker;
+/** A walker at 1 m/s, so seconds are metres. */
+const metres = (w: W.Walker) => ((w.speedMps = 1), w);
 
 function fixture(): StreetGraph {
   const g = new StreetGraph();
@@ -27,7 +28,7 @@ function fixture(): StreetGraph {
 
 beforeEach(() => {
   graph = fixture();
-  walker = new Walker(graph);
+  walker = metres(new Walker(graph));
   walker.rng = new Rng(1);
 });
 
@@ -53,8 +54,8 @@ function longStreet(count: number): StreetGraph {
 }
 
 describe("walking", () => {
-  it("counts the clock at 200 meters per minute", () => {
-    expect(SPEED_MPS * 60).toBeCloseTo(200, 6);
+  it("walks at 5 km/h", () => {
+    expect(WALK_MPS * 3.6).toBeCloseTo(5, 6);
   });
 
   it("walks partway along the street", () => {
@@ -97,17 +98,15 @@ describe("walking", () => {
     walker.bounds = SMALL_BOX;
     walker.startAt(n(1));
     expect(walker.advance(5000)).toBe(0);
-    expect(walker.totalM + walker.restedM).toBeCloseTo(5000, 3);
+    expect(walker.totalM).toBeCloseTo(5000, 3);
     expect(walker.totalM).toBeGreaterThan(0);
   });
 
-  it("covers more ground at a higher speed but keeps the clock", () => {
+  it("covers ground at his speed", () => {
     walker.startAt(n(2));
-    walker.speedMps = SPEED_MPS / 4;
-    walker.advance(40);
+    walker.speedMps = 2.5;
+    walker.advance(4);
     expect(walker.totalM).toBeCloseTo(10, 6);
-    walker.restFor(1);
-    expect(walker.restLeftS()).toBeCloseTo(60, 6);
   });
 
   it("hops from an isolated node to the nearest street", () => {
@@ -119,55 +118,27 @@ describe("walking", () => {
   });
 });
 
-describe("resting", () => {
-  it("rests a minute on arrival", () => {
+describe("arriving", () => {
+  it("tells listeners where he arrived and drops the goal", () => {
+    const seen: Place[] = [];
+    walker.events.arrived = (p) => seen.push(p);
     walker.startAt(n(2));
     headForCafe();
-    const trip = len(2, 1) + len(1, 3);
-    walker.advance(trip);
+    walker.advance((len(2, 1) + len(1, 3)));
+    expect(seen).toEqual([CAFE_EAST]);
     expect(walker.fromNode).toBe(n(3));
-    expect(walker.isResting()).toBe(true);
-    expect(REST_M).toBeCloseTo(200, 3);
-    walker.advance(REST_M - 1);
-    expect(walker.isResting()).toBe(true);
-    expect(walker.toNode).toBeNull();
-    expect(walker.totalM).toBeCloseTo(trip, 3);
+    expect(walker.place).toBeNull();
   });
 
-  it("picks a new goal inside the city after resting", () => {
+  it("picks a new goal inside the city on the next step", () => {
     walker.bounds = SMALL_BOX;
     walker.startAt(n(2));
     headForCafe();
     const picked: PickInfo[] = [];
     walker.events.picked = (info) => picked.push(info);
-    walker.advance(len(2, 1) + len(1, 3) + REST_M + 1);
-    expect(walker.isResting()).toBe(false);
-    // In this tiny fixture a spot near him may snap to the corner he stands on, so he passes it at once; it was still picked in the box.
+    walker.advance((len(2, 1) + len(1, 3) + 1));
     expect(picked.length).toBeGreaterThan(0);
     expect(walker.place).toBeNull();
-  });
-
-  it("never rests more than a minute", () => {
-    walker.startAt(n(3));
-    walker.restFor(15);
-    expect(walker.restM).toBeCloseTo(REST_M, 3);
-  });
-
-  it("counts the rest down", () => {
-    walker.startAt(n(2));
-    headForCafe();
-    walker.advance(len(2, 1) + len(1, 3) + REST_M / 4);
-    expect(walker.restLeftS()).toBeCloseTo(45, 2);
-    expect(walker.restFraction()).toBeCloseTo(0.25, 3);
-  });
-
-  it("tells listeners where he arrived", () => {
-    const seen: Place[] = [];
-    walker.events.arrived = (p) => seen.push(p);
-    walker.startAt(n(2));
-    headForCafe();
-    walker.advance(len(2, 1) + len(1, 3));
-    expect(seen).toEqual([CAFE_EAST]);
   });
 });
 
@@ -192,20 +163,21 @@ describe("goals", () => {
     walker.startAt(n(4));
     walker.setGoal(42.05, 23.0);
     walker.place = cafe("Island", 42.05, 23.0);
-    walker.advance(len(4, 1) + len(1, 2));
+    const seen: Place[] = [];
+    walker.events.arrived = (p) => seen.push(p);
+    walker.advance((len(4, 1) + len(1, 2)));
     expect(walker.fromNode).toBe(n(2));
-    expect(walker.isResting()).toBe(true);
+    expect(seen.map((p) => p.name)).toEqual(["Island"]);
   });
 
   it("walks to the edge of the loaded streets towards a far goal", () => {
     const g = longStreet(10);
-    const w = new Walker(g);
+    const w = metres(new Walker(g));
     w.startAt(1);
     w.setGoal(42.0, 23.2);
     w.advance(100_000);
     expect(w.needsData()).toBe(true);
     expect(g.nodes.get(w.fromNode!)![1]).toBeGreaterThan(23.0);
-    expect(w.isResting()).toBe(false);
   });
 
   it("gives up on a goal that drags on", () => {
@@ -216,7 +188,6 @@ describe("goals", () => {
     const picked: PickInfo[] = [];
     walker.events.picked = (info) => picked.push(info);
     walker.advance(1);
-    expect(walker.isResting()).toBe(false);
     expect(picked.length).toBeGreaterThan(0);
     expect(walker.place?.name).not.toBe("Far");
   });
@@ -227,8 +198,7 @@ describe("goals", () => {
     walker.setGoal(42.0, 23.00135);
     const fired: Place[] = [];
     walker.events.arrived = (p) => fired.push(p);
-    walker.advance(len(2, 1) + len(1, 3) + 1);
-    expect(walker.isResting()).toBe(false);
+    walker.advance((len(2, 1) + len(1, 3) + 1));
     expect(fired).toEqual([]);
     expect(walker.goal).not.toEqual([42.0, 23.00135]);
   });
@@ -239,7 +209,6 @@ describe("goals", () => {
     walker.bounds = [43.0, 24.0, 43.1, 24.1];
     walker.startAt(n(1));
     walker.advance(5000);
-    expect(walker.isResting()).toBe(false);
     expect(problems.some((t) => t.startsWith("Gave up on"))).toBe(true);
   });
 
@@ -280,15 +249,26 @@ describe("goals", () => {
     expect(walker.weigh(cafe("Cafe East", 42.0, 23.00135, 2)).weight).toBe(0.5);
   });
 
-  it("drops rest on a forced new goal", () => {
+  it("picks a new goal when forced", () => {
     walker.startAt(n(2));
     walker.bounds = CITY_BOX;
-    walker.restFor(1);
     walker.forceNewGoal();
-    expect(walker.isResting()).toBe(false);
     expect(walker.goal).toHaveLength(2);
   });
+
+  it("heads only for places he wants", () => {
+    walker.startAt(n(2));
+    walker.bounds = CITY_BOX;
+    setPlaces(graph, [CAFE_EAST, { ...CAFE_EAST, name: "Bench", class: "bench" }]);
+    walker.wants = (p) => p.class === "cafe";
+    for (let s = 0; s < 20; s++) {
+      walker.rng = new Rng(s);
+      walker.pickGoal();
+      expect(walker.place?.name).toBe("Cafe East");
+    }
+  });
 });
+
 
 describe("walk left", () => {
   it("follows the planned streets", () => {
@@ -364,7 +344,7 @@ describe("map data", () => {
   it("waits for map data near an unloaded area", () => {
     const g = new StreetGraph();
     g.addOverpass(plus(), SMALL);
-    const w = new Walker(g);
+    const w = metres(new Walker(g));
     w.startAt(n(1));
     expect(w.needsData()).toBe(true);
     expect(w.advance(100)).toBe(100);
@@ -374,7 +354,7 @@ describe("map data", () => {
   it("resumes after map data arrives", () => {
     const g = new StreetGraph();
     g.addOverpass(plus(), SMALL);
-    const w = new Walker(g);
+    const w = metres(new Walker(g));
     w.startAt(n(1));
     const left = w.advance(100);
     g.addOverpass(plus(), PLUS_BBOX);
@@ -406,31 +386,11 @@ describe("saves", () => {
     expect(back.needsData()).toBe(true);
   });
 
-  it("keep the rest", () => {
-    walker.startAt(n(3));
+  it("keep the place he heads for", () => {
+    walker.startAt(n(2));
     headForCafe();
-    walker.advance(50);
-    const back = roundTrip(walker);
-    expect(back.isResting()).toBe(true);
-    expect(back.restM).toBeCloseTo(REST_M - 50, 3);
-  });
-
-  it("measure a ride from a save without road_m by the straight line", () => {
-    walker.startAt(n(3));
-    walker.startTravel({ name: "Fartown", code: "XXX", country: "X-land", lat: 43, lon: 24, pop: 50_000, bounds: [42.99, 23.99, 43.01, 24.01] }, "train");
-    const d = JSON.parse(JSON.stringify(walker));
-    delete d.travel.road_m;
-    const t = Walker.fromJSON(d).travel!;
-    expect(t.road_m).toBeCloseTo(distanceM(t.from[0], t.from[1], t.arrive[0], t.arrive[1]) * ROAD_FACTOR, 3);
-  });
-
-  it("cut an over-long rest to a minute", () => {
-    walker.startAt(n(3));
-    const d = JSON.parse(JSON.stringify(walker));
-    d.rest_m = 3000;
-    const back = Walker.fromJSON(d);
-    expect(back.restM).toBeCloseTo(REST_M, 3);
-    expect(back.restFraction()).toBeCloseTo(0, 3);
+    walker.advance(10);
+    expect(roundTrip(walker).place).toEqual(CAFE_EAST);
   });
 
   it("keep his last leg", () => {
@@ -475,14 +435,14 @@ describe("goal weights", () => {
   });
 
   function atCross(): W.Walker {
-    const w = new Walker(fixture());
+    const w = metres(new Walker(fixture()));
     w.rng = new Rng(1);
     w.bounds = [41.9, 22.9, 42.1, 23.1];
     w.startAt(n(1));
     return w;
   }
 
-  it("multiply rank, distance, heading and need", () => {
+  it("multiply rank, distance and heading", () => {
     const w = atCross();
     w.legFrom = moved(42, 23, [0, -500]);
     const ahead = moved(42, 23, [0, 500]);
@@ -492,12 +452,7 @@ describe("goal weights", () => {
     expect(Math.abs(parts.dist_m - 500)).toBeLessThan(2);
     expect(parts.dist_w).toBeCloseTo(G.distanceWeight(parts.dist_m), 6);
     expect(parts.heading_w).toBeCloseTo(G.headingWeight([0, 1], [0, 500]), 3);
-    expect(parts.need_w).toBe(1);
     expect(parts.weight).toBeCloseTo(parts.rank_w * parts.dist_w * parts.heading_w, 6);
-    w.need = (q) => ({ pull: q.name === "Ahead" ? 4 : 1, urgent: false, bottom: false, why: "" });
-    const needy = w.weigh(p);
-    expect(needy.need_w).toBe(4);
-    expect(needy.weight).toBeCloseTo(4 * parts.weight, 6);
   });
 
   it("take his heading from where his last leg started", () => {
@@ -529,99 +484,6 @@ describe("goal weights", () => {
     expect(c("Mid east")).toBeGreaterThan(c("Mid west"));
     expect(c("Mid west")).toBeGreaterThan(c("Near east"));
     expect(c("Mid west")).toBeGreaterThan(c("Far east"));
-  });
-
-  it("lean towards places that meet his needs", () => {
-    const w = atCross();
-    const a = moved(42, 23, [500, 0]);
-    const b = moved(42, 23, [-500, 0]);
-    setPlaces(w.graph, [{ ...cafe("Food", a[0], a[1]), subclass: "food" }, cafe("Other", b[0], b[1])]);
-    w.need = (q) => ({ pull: q.subclass === "food" ? 5 : 1, urgent: false, bottom: false, why: "" });
-    let food = 0;
-    for (let s = 0; s < 300; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.pickGoal();
-      food += +(w.place!.name === "Food");
-    }
-    expect(food).toBeGreaterThan(220);
-  });
-
-  it("a place's own pull counts for that place alone, though need is worked out per kind", () => {
-    const w = atCross();
-    const a = moved(42, 23, [500, 0]);
-    const b = moved(42, 23, [-500, 0]);
-    // Both cafes, so need is asked once for the kind; "New" comes second.
-    setPlaces(w.graph, [cafe("Old", b[0], b[1]), cafe("New", a[0], a[1])]);
-    w.need = () => ({ pull: 1, urgent: false, bottom: false, why: "" });
-    w.placePull = (q) => (q.name === "New" ? 5 : 1);
-    let fresh = 0;
-    for (let s = 0; s < 300; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.pickGoal();
-      fresh += +(w.place!.name === "New");
-    }
-    expect(fresh).toBeGreaterThan(220);
-  });
-
-  const urgentPicks = (bottom: boolean) => {
-    const w = atCross();
-    const specs: [string, number][] = [["Near food", 150], ["Far food", 600], ["Museum", 200]];
-    setPlaces(w.graph, specs.map(([name, east]) => {
-      const ll = moved(42, 23, [east, 0]);
-      return { ...cafe(name, ll[0], ll[1]), subclass: name.endsWith("food") ? "food" : "museum" };
-    }));
-    w.need = (q) => (q.subclass === "food" ? { pull: 30, urgent: true, bottom, why: "fullness" } : { pull: 1, urgent: false, bottom: false, why: "" });
-    const counts: Record<string, number> = {};
-    for (let s = 0; s < 1000; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.legFrom = moved(42, 23, [500, 0]);
-      w.pickGoal();
-      counts[w.place!.name] = (counts[w.place!.name] ?? 0) + 1;
-    }
-    return (k: string) => counts[k] ?? 0;
-  };
-
-  it("at rock bottom, head only for a fix, mostly the nearest", () => {
-    const c = urgentPicks(true);
-    expect(c("Museum")).toBe(0);
-    expect(c("Near food")).toBeGreaterThan(5 * c("Far food"));
-  });
-
-  it("with an urgent need, now and then do as he likes anyway", () => {
-    const c = urgentPicks(false);
-    // The museum can only win in the URGENT_SLIP share of picks, and even then food pulls 30x.
-    expect(c("Museum")).toBeGreaterThan(0);
-    expect(c("Museum")).toBeLessThan(1000 * G.URGENT_SLIP);
-    expect(c("Near food")).toBeGreaterThan(800);
-  });
-
-  it("a fix for a need at rock bottom beats a nearer fix for another urgent one", () => {
-    const w = atCross();
-    const near = moved(42, 23, [100, 0]);
-    const far = moved(42, 23, [-400, 0]);
-    setPlaces(w.graph, [{ ...cafe("Museum", near[0], near[1]), subclass: "museum" }, { ...cafe("Diner", far[0], far[1]), subclass: "diner" }]);
-    w.need = (q) => (q.subclass === "diner" ? { pull: 50, urgent: true, bottom: true, why: "fullness" } : { pull: 30, urgent: true, bottom: false, why: "mood" });
-    for (let s = 0; s < 50; s++) {
-      w.rng = new Rng(s);
-      w.startAt(n(1));
-      w.pickGoal();
-      expect(w.place!.name).toBe("Diner");
-    }
-  });
-
-  it("weigh an urgent fix by nearness alone", () => {
-    const w = atCross();
-    w.legFrom = moved(42, 23, [0, -500]);
-    const ll = moved(42, 23, [0, -200]);
-    const parts = w.weigh(cafe("Behind", ll[0], ll[1], 4), { pull: 10, urgent: true, bottom: false, why: "thirst" });
-    expect(parts.rank_w).toBe(1);
-    expect(parts.heading_w).toBe(1);
-    expect(parts.dist_w).toBeCloseTo(G.nearWeight(parts.dist_m), 6);
-    expect(parts.weight).toBeCloseTo(10 * parts.dist_w, 6);
-    expect(parts.urgent).toBe(true);
   });
 
   it("draw random spots near and ahead", () => {
@@ -660,309 +522,8 @@ describe("goal weights", () => {
   });
 });
 
-describe("trips", () => {
-  const TRIP: City = { name: "Fartown", code: "XXX", country: "X-land", lat: 43, lon: 24, pop: 50_000, bounds: [42.99, 23.99, 43.01, 24.01] };
-  const STATION: Place = { name: "East Bus Station", class: "bus", subclass: "bus_station", rank: 1, lat: 42.0, lon: 23.00135 };
-  const plan = (extra: Partial<Plan> = {}): Plan => ({ city: TRIP, mode: "bus", station: STATION, fare: 10, arrive: [43, 24], distance_m: 150_000, ...extra });
-  const far: City = { name: "Far", code: "FF", country: "Farland", lat: 43, lon: 24, pop: 1000 };
-
-  function walkToStation(p = plan()): void {
-    walker.tripPlanner = () => p;
-    walker.startAt(n(2));
-    walker.advance(len(2, 1) + len(1, 3) + 1);
-  }
-
-  it("start with a walk to the station", () => {
-    let asked = 0;
-    walker.tripPlanner = () => (asked++, plan());
-    walker.startAt(n(2));
-    walker.advance(10);
-    expect(asked).toBe(1);
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.isDeparting()).toBe(true);
-    expect(walker.place!.name).toBe("East Bus Station");
-    expect(walker.goal).toEqual([42.0, 23.00135]);
-  });
-
-  describe("ride across town to a far station", () => {
-    const FAR_STATION: Place = { ...STATION, name: "Airport", lat: 42.05, lon: 23.0 };
-    const far = () => plan({ station: FAR_STATION, mode: "plane" });
-
-    it("for the seconds the hopper says, then boards there", () => {
-      const asked: number[] = [];
-      walker.hopper = (_p, roadM) => (asked.push(roadM), 300);
-      const boarded: Plan[] = [];
-      walker.events.boarding = (p) => (boarded.push(p), true);
-      walker.tripPlanner = () => far();
-      walker.startAt(n(2));
-      walker.advance(1);
-      // He is a few meters down the street when he picks.
-      expect(Math.abs(asked[0]! / (distanceM(42, 23, 42.05, 23) * ROAD_FACTOR) - 1)).toBeLessThan(0.05);
-      expect(walker.flight!.mps).toBeGreaterThan(0);
-      walker.tripPlanner = () => null;
-      walker.advance(300 * SPEED_MPS - 2);
-      expect(boarded).toHaveLength(0);
-      const p = walker.position();
-      expect(p[0]).toBeGreaterThan(42.04);
-      walker.advance(2);
-      expect(boarded).toHaveLength(1);
-      expect(walker.isTraveling()).toBe(true);
-      expect(walker.travel!.from[0]).toBeCloseTo(42.05, 6);
-    });
-
-    it("stays at the station, on a lone point until its streets load, when boarding is cancelled", () => {
-      walker.hopper = () => 60;
-      walker.events.boarding = () => false;
-      walker.tripPlanner = () => far();
-      walker.startAt(n(2));
-      walker.advance(1);
-      walker.tripPlanner = () => null;
-      walker.advance(60 * SPEED_MPS);
-      expect(walker.isTraveling()).toBe(false);
-      expect(walker.fromNode).toBe(W.ARRIVAL_NODE);
-      expect(walker.needsData()).toBe(true);
-    });
-
-    it("walks when the hopper says 0 or the station is near", () => {
-      walker.hopper = () => 0;
-      walker.tripPlanner = () => far();
-      walker.startAt(n(2));
-      walker.advance(1);
-      expect(walker.flight).toBeNull();
-      let asked = 0;
-      walker.hopper = () => (asked++, 60);
-      walker.tripPlanner = () => plan();
-      walker.startAt(n(2));
-      walker.goal = null;
-      walker.advance(1);
-      expect(distanceM(42, 23, STATION.lat, STATION.lon) * ROAD_FACTOR).toBeLessThan(HOP_MIN_M);
-      expect(asked).toBe(0);
-      expect(walker.flight).toBeNull();
-    });
-
-    const hopping = () => {
-      walker.hopper = () => 300;
-      walker.tripPlanner = () => far();
-      walker.startAt(n(2));
-      walker.advance(1);
-      walker.tripPlanner = () => null;
-      walker.advance(30 * SPEED_MPS);
-      expect(walker.flight!.mps).toBeGreaterThan(0);
-    };
-
-    it("keeps riding there on a flyer whose mount stops flying", () => {
-      hopping();
-      walker.flies = false;
-      walker.advance(1);
-      expect(walker.flight).not.toBeNull();
-    });
-
-    it("fainting on the way, he comes down near where he was, not at the station", () => {
-      hopping();
-      const p = walker.position();
-      expect(walker.wakeAt(null, null)).toBe(true);
-      expect(walker.flight).toBeNull();
-      const at = walker.position();
-      expect(distanceM(p[0], p[1], at[0], at[1])).toBeLessThan(distanceM(at[0], at[1], 42.05, 23));
-    });
-
-    it("a free ride on the way ends the ride to the station", () => {
-      hopping();
-      walker.rideNow(TRIP);
-      expect(walker.flight).toBeNull();
-      expect(walker.isDeparting()).toBe(false);
-    });
-
-    it("keeps riding there after a save and reload", () => {
-      walker.hopper = () => 300;
-      walker.tripPlanner = () => far();
-      walker.startAt(n(2));
-      walker.advance(1);
-      const back = roundTrip(walker, fixture());
-      expect(back.flight!.mps).toBeCloseTo(walker.flight!.mps!, 9);
-      expect(back.departing!.station.name).toBe("Airport");
-    });
-  });
-
-  it("keep him walking to a goal when there is no trip", () => {
-    walker.tripPlanner = () => null;
-    walker.startAt(n(2));
-    walker.advance(10);
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.isDeparting()).toBe(false);
-    expect(walker.goal).toHaveLength(2);
-  });
-
-  it("board and ride at the station", () => {
-    const boarded: Plan[] = [];
-    walker.events.boarding = (p) => (boarded.push(p), true);
-    walkToStation();
-    expect(boarded).toHaveLength(1);
-    expect(walker.isTraveling()).toBe(true);
-    expect(walker.isDeparting()).toBe(false);
-    expect(walker.travel!.mode).toBe("bus");
-    expect(walker.travel!.road_m).toBe(boarded[0]!.distance_m);
-    const pathM = distanceM(42.0, 23.00135, 43, 24);
-    expect(Math.abs(walker.travel!.total_m - rideS("bus", pathM) * SPEED_MPS)).toBeLessThan(1);
-    expect(walker.isResting()).toBe(false);
-  });
-
-  it("stay in town when boarding is cancelled", () => {
-    walker.events.boarding = () => false;
-    walkToStation();
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.isDeparting()).toBe(false);
-  });
-
-  it("follow the bus's road", () => {
-    walkToStation(plan({ path: [[42.0, 23.00135], [42.0, 24.0], [43.0, 24.0]] }));
-    const first = distanceM(42.0, 23.00135, 42.0, 24.0);
-    const legs = first + distanceM(42.0, 24.0, 43.0, 24.0);
-    const t = walker.travel!;
-    expect(Math.abs(t.total_m - rideS("bus", legs) * SPEED_MPS)).toBeLessThan(1);
-    walker.advance(t.left_m - t.total_m * (1 - first / legs));
-    const p = walker.position();
-    expect(Math.abs(p[0] - 42)).toBeLessThan(0.01);
-    expect(Math.abs(p[1] - 24)).toBeLessThan(0.01);
-    expect(walker.travel!.path).toHaveLength(3);
-  });
-
-  it("drop the trip when he gives up on the station", () => {
-    walker.tripPlanner = () => plan();
-    walker.startAt(n(2));
-    walker.advance(1);
-    walker.tripPlanner = () => null;
-    walker.tripM = W.tripLimitM(walker.tripStartM) + 1;
-    walker.route = [];
-    walker.advance(len(2, 1));
-    expect(walker.isDeparting()).toBe(false);
-  });
-
-  it("use up clock time along a straight line", () => {
-    walker.startAt(n(2));
-    const here = walker.position();
-    walker.startTravel(TRIP);
-    const tripM = walker.travel!.total_m;
-    expect(Math.abs(tripM - rideS("plane", distanceM(here[0], here[1], 43, 24)) * SPEED_MPS)).toBeLessThan(1);
-    const total = walker.totalM;
-    expect(walker.advance(tripM / 2)).toBe(0);
-    expect(walker.isTraveling()).toBe(true);
-    expect(walker.totalM).toBe(total);
-    const p = walker.position();
-    expect(p[0]).toBeGreaterThan(42.4);
-    expect(p[0]).toBeLessThan(42.6);
-    expect(p[1]).toBeCloseTo(23.5, 3);
-    expect(walker.streetName()).toBe("");
-  });
-
-  it("start him in the new city waiting for streets", () => {
-    const landed: City[] = [];
-    walker.events.landed = (c) => landed.push(c);
-    walker.startAt(n(2));
-    walker.startTravel(TRIP);
-    walker.advance(walker.travel!.total_m + 50);
-    expect(landed).toEqual([TRIP]);
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.graph).not.toBe(graph);
-    expect(walker.position()).toEqual([43, 24]);
-    expect(walker.bounds).toEqual([42.99, 23.99, 43.01, 24.01]);
-    expect(walker.needsData()).toBe(true);
-  });
-
-  it("land where the ride ends", () => {
-    walkToStation(plan({ mode: "plane", arrive: [43.05, 24.1] }));
-    walker.landNow();
-    expect(walker.position()).toEqual([43.05, 24.1]);
-  });
-
-  it("survive save and load while riding", () => {
-    walker.tripPlanner = () => plan({ path: [[42.0, 23.00135], [42.0, 24.0], [43.0, 24.0]] });
-    walker.startAt(n(2));
-    walker.advance(len(2, 1) + len(1, 3) + 1000);
-    const back = roundTrip(walker);
-    expect(back.isTraveling()).toBe(true);
-    expect(back.travel!.mode).toBe("bus");
-    expect(back.position()[0]).toBeCloseTo(walker.position()[0], 9);
-    expect(back.position()[1]).toBeCloseTo(walker.position()[1], 9);
-    expect(back.travel!.to.name).toBe("Fartown");
-  });
-
-  it("survive save and load on the walk to the station", () => {
-    walker.tripPlanner = () => plan();
-    walker.startAt(n(2));
-    walker.advance(10);
-    const back = roundTrip(walker);
-    expect(back.isDeparting()).toBe(true);
-    expect(back.departing!.mode).toBe("bus");
-  });
-
-  it("tell how he goes", () => {
-    const picks: W.PickInfo[] = [];
-    walker.events.picked = (i) => picks.push(i);
-    walker.startAt(n(2));
-    walker.tripPlanner = () => plan();
-    walker.pickGoal();
-    expect(picks[0]!.trip).toBe("Fartown, X-land");
-    expect(picks[0]!.by).toBe("bus from East Bus Station");
-  });
-
-  it("land first on a forced new goal", () => {
-    const landed: City[] = [];
-    walker.events.landed = (c) => landed.push(c);
-    walker.startAt(n(2));
-    walker.startTravel(far);
-    walker.forceNewGoal();
-    expect(walker.isTraveling()).toBe(false);
-    expect(landed).toHaveLength(1);
-    expect(walker.goal).toHaveLength(2);
-  });
-
-  it("end at once with landNow", () => {
-    walker.startAt(n(2));
-    walker.startTravel(far);
-    walker.landNow();
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.position()).toEqual([43, 24]);
-  });
-
-  it("forget the old heading on landing", () => {
-    walker.startAt(n(1));
-    walker.setGoal(42.001, 23.0);
-    walker.startTravel(far);
-    walker.landNow();
-    expect(walker.legFrom).toBeNull();
-  });
-});
 
 describe("commands", () => {
-  it("wakes at a corner after fainting and rests there", () => {
-    walker.startAt(n(2));
-    expect(walker.wakeAt(n(3), CAFE_EAST)).toBe(true);
-    expect(walker.fromNode).toBe(n(3));
-    expect(walker.place).toEqual(CAFE_EAST);
-    expect(walker.isResting()).toBe(true);
-  });
-
-  it("wakes where he is with no corner to go to", () => {
-    walker.startAt(n(2));
-    expect(walker.wakeAt(null, null)).toBe(false);
-    expect(walker.fromNode).toBe(n(2));
-    expect(walker.isResting()).toBe(true);
-  });
-
-  it("lands in a city at once for Debug", () => {
-    walker.startAt(n(2));
-    walker.restFor(1);
-    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
-    let landed = "";
-    walker.events.landed = (c) => (landed = c.name);
-    walker.rideNow(paris);
-    expect(landed).toBe("Paris");
-    expect(walker.isTraveling()).toBe(false);
-    expect(walker.isResting()).toBe(false);
-    expect(walker.position()).toEqual([48.85, 2.35]);
-  });
-
   it("aims at the goal, else the next corner", () => {
     walker.startAt(n(2));
     expect(walker.aim()).toBeNull();
@@ -971,98 +532,15 @@ describe("commands", () => {
   });
 });
 
-
-describe("flying mounts", () => {
-  const lonOf = (node: number) => 23.0 + (node - 1) * 0.00604;
-  const park: Place = { name: "Park", class: "park", subclass: "park", rank: 1, lat: 42.0, lon: lonOf(3) };
-  const far = cafe("Far Cafe", 42.0, lonOf(4));
-
-  function flyer(places: Place[]): W.Walker {
-    const g = longStreet(6);
-    g.places.set(cellKey(cellOf(42, 23)), places);
-    const w = new Walker(g);
-    w.bounds = CITY_BOX;
-    w.startAt(1);
-    w.setGoal(far.lat, far.lon);
-    w.place = far;
-    w.flies = true;
-    return w;
-  }
-
-  it("flies straight to a park near a far goal, lands and walks the rest", () => {
-    const w = flyer([park, far]);
-    w.advance(100);
-    expect(w.flight).not.toBeNull();
-    expect(w.streetName()).toBe("");
-    const p = w.position();
-    expect(p[1]).toBeGreaterThan(lonOf(1));
-    expect(p[1]).toBeLessThan(lonOf(3));
-    expect(w.walkLeftM()).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)) - 100, 0);
-    w.advance(distanceM(42, lonOf(1), 42, lonOf(3)));
-    expect(w.flight).toBeNull();
-    expect(w.fromNode).toBe(3);
-    // He walks the rest on foot, until his next goal.
-    expect(w.afoot).toBe(true);
-    expect(roundTrip(w, longStreet(6)).afoot).toBe(true);
-    w.advance(distanceM(42, lonOf(3), 42, lonOf(4)) + 1);
-    expect(w.isResting()).toBe(true);
-    expect(w.totalM).toBeCloseTo(distanceM(42, lonOf(1), 42, lonOf(4)), 0);
-  });
-
-  it("walks the streets when no park or garden is near the goal, or on foot", () => {
-    const w = flyer([far]);
-    w.advance(100);
-    expect(w.flight).toBeNull();
-    const foot = flyer([park, far]);
-    foot.flies = false;
-    foot.advance(100);
-    expect(foot.flight).toBeNull();
-  });
-
-  it("mid-flight, his route line is the straight line to the goal, with no streets", () => {
-    const w = flyer([park, far]);
-    w.advance(100);
-    expect(w.routeLine()).toEqual({ streets: [], rest: [w.position(), [far.lat, far.lon]] });
-  });
-
-  it("a new goal from Debug mid-flight lands him where he was headed first", () => {
-    const w = flyer([park, far]);
-    w.advance(100);
-    w.forceNewGoal();
-    expect(w.flight).toBeNull();
-    expect(w.fromNode).toBe(3);
-    expect(w.afoot).toBe(false);
-  });
-
-  it("comes down at the nearest corner when his mount stops flying mid-air", () => {
-    const w = flyer([park, far]);
-    w.advance(100);
-    w.flies = false;
-    w.advance(1);
-    expect(w.flight).toBeNull();
-    expect(w.fromNode).toBe(1);
-  });
-
-  it("waking in the air with no hospital to go to, he stands on the corner he was landing on", () => {
-    const w = flyer([park, far]);
-    w.advance(100);
-    expect(w.wakeAt(null, null)).toBe(false);
-    expect(w.flight).toBeNull();
-    expect(w.fromNode).toBe(3);
-    expect(w.isResting()).toBe(true);
-  });
-
-  it("keeps a flight in the save", () => {
-    const w = flyer([park, far]);
-    w.advance(300);
-    const back = roundTrip(w, longStreet(6));
-    expect(back.flight).toEqual(w.flight);
-    expect(back.position()[1]).toBeCloseTo(w.position()[1], 9);
-    // Reloaded with no streets yet, he still lands and stands where he landed.
-    const bare = roundTrip(w);
-    bare.flies = true;
-    bare.advance(5000);
-    expect(bare.flight).toBeNull();
-    expect(bare.position()).toEqual(w.flight!.to);
+describe("standing still", () => {
+  it("doesn't count a place he reaches without a step, so it can't pay over and over", () => {
+    const seen: Place[] = [];
+    walker.events.arrived = (p) => seen.push(p);
+    walker.startAt(n(2));
+    const p = graph.nodes.get(n(2))!;
+    walker.setGoal(p[0], p[1]);
+    walker.place = cafe("Here", p[0], p[1]);
+    walker.advance(1);
+    expect(seen).toEqual([]);
   });
 });

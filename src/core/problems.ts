@@ -1,20 +1,18 @@
 // Problems from anywhere in the game, for the Debug panel: the last
-// MAX_WARNINGS warnings, MAX_ERRORS errors and MAX_SEVERE severe problems
-// (he may be stuck: shown on the map too), each also printed to the console.
+// MAX_WARNINGS warnings and MAX_ERRORS errors, each also printed to the
+// console.
 // Each has a short title and detail lines. A problem repeated right away
 // counts up instead of filling the log.
 import { timeText } from "./history";
 
 export const MAX_WARNINGS = 20;
 export const MAX_ERRORS = 10;
-export const MAX_SEVERE = 10;
-export type Level = "severe" | "error" | "warning";
+export type Level = "error" | "warning";
 export type Problem = { text: string; details: string[]; t: number; count: number };
 
 export class Problems {
   warnings: Problem[] = [];
   errors: Problem[] = [];
-  severe: Problem[] = [];
   /** Added since the Debug panel was last opened. */
   unseen = 0;
   /** Tests skip the console. */
@@ -29,11 +27,6 @@ export class Problems {
   error(title: string, details: string[] = []): void {
     if (!this.quiet) console.error(`ERROR (game): ${console_(title, details)}`);
     this.errors = this.add(this.errors, title, details, MAX_ERRORS);
-  }
-
-  addSevere(title: string, details: string[] = []): void {
-    if (!this.quiet) console.error(`SEVERE (game): ${console_(title, details)}`);
-    this.severe = this.add(this.severe, title, details, MAX_SEVERE);
   }
 
   private add(list: Problem[], title: string, details: string[], cap: number): Problem[] {
@@ -56,14 +49,13 @@ export class Problems {
   clear(): void {
     this.warnings = [];
     this.errors = [];
-    this.severe = [];
     this.unseen = 0;
   }
 
   /** Every problem, most serious level first and newest first within it. */
   entries(): (Problem & { level: Level })[] {
     const out: (Problem & { level: Level })[] = [];
-    for (const [level, list] of [["severe", this.severe], ["error", this.errors], ["warning", this.warnings]] as const) {
+    for (const [level, list] of [["error", this.errors], ["warning", this.warnings]] as const) {
       for (let i = list.length - 1; i >= 0; i--) out.push({ ...list[i]!, level });
     }
     return out;
@@ -71,12 +63,12 @@ export class Problems {
 
   /** "14:05 · ERROR · text (×3)", most serious first. */
   lines(biasMin: number): string[] {
-    const label: Record<Level, string> = { severe: "SEVERE", error: "ERROR", warning: "Warning" };
+    const label: Record<Level, string> = { error: "ERROR", warning: "Warning" };
     return this.entries().map((e) => `${timeText(e.t, biasMin)} · ${label[e.level]} · ${e.text}${e.count > 1 ? ` (×${e.count})` : ""}`);
   }
 
   toJSON() {
-    return { warnings: this.warnings, errors: this.errors, severe: this.severe, unseen: this.unseen };
+    return { warnings: this.warnings, errors: this.errors, unseen: this.unseen };
   }
 
   static fromJSON(d: unknown): Problems {
@@ -86,7 +78,6 @@ export class Problems {
     const list = (v: unknown) => (Array.isArray(v) ? v.filter((e): e is Problem => !!e && typeof e === "object") : []);
     p.warnings = list(o.warnings);
     p.errors = list(o.errors);
-    p.severe = list(o.severe);
     p.unseen = Number(o.unseen) || 0;
     return p;
   }

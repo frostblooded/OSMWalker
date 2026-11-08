@@ -114,14 +114,6 @@ describe("failures", () => {
     expect(seen).toEqual(["Request to example.org failed: HTTP 503 (server overloaded)"]);
   });
 
-  it("say when the weather answer is not a forecast", async () => {
-    const { api } = fake(() => json({}));
-    const seen: string[] = [];
-    api.onProblem = (t) => seen.push(t);
-    expect(await api.weather("Sofia", 42.7, 23.3, 0)).toBeNull();
-    expect(seen).toEqual(["Request to api.open-meteo.com failed: answer was not a forecast"]);
-  });
-
   it("say when JSON is broken", async () => {
     const { api } = fake(() => new Response("{nope"));
     expect(await api.getJson("https://example.org/x")).toBeNull();
@@ -201,37 +193,10 @@ describe("search", () => {
   });
 });
 
-describe("routes and outlines", () => {
-  it("build an OSRM url lon first", () => {
-    expect(A.osrmUrl([42.1, 23.2], [43.1, 24.2])).toBe(`${A.OSRM_URL}23.20000,42.10000;24.20000,43.10000?overview=simplified&geometries=geojson`);
-  });
-
-  it("thin long routes and keep the end", () => {
-    const coords = Array.from({ length: 1000 }, (_, i) => [i, 1000 - i]);
-    const path = A.osrmPath({ code: "Ok", routes: [{ geometry: { coordinates: coords } }] });
-    expect(path.length).toBeLessThanOrEqual(A.MAX_ROUTE_POINTS + 1);
-    expect(path[0]).toEqual([1000, 0]);
-    expect(path.at(-1)).toEqual([1, 999]);
-    expect(A.osrmPath({ code: "NoRoute" })).toEqual([]);
-  });
-
+describe("outlines", () => {
   it("read outline rings lat first", () => {
     expect(A.outlineRings({ geojson: { type: "Polygon", coordinates: [[[23, 42], [24, 42], [24, 43]]] } })).toEqual([[[42, 23], [42, 24], [43, 24]]]);
     expect(A.outlineRings({ geojson: { type: "MultiPolygon", coordinates: [[[[1, 2]]], [[[3, 4]]]] } })).toEqual([[[2, 1]], [[4, 3]]]);
     expect(A.outlineRings({})).toEqual([]);
-  });
-
-  it("read city facts rows", async () => {
-    const { api } = fake(() => json({ results: { bindings: [{ cityLabel: { value: "Sofia" } }] } }));
-    expect(await api.cityFacts(42, 23)).toEqual([{ cityLabel: { value: "Sofia" } }]);
-  });
-
-  it("read public holidays: none for an unknown country, null on failure", async () => {
-    const day = { date: "2026-03-03", name: "Liberation Day", localName: "Освобождение", global: true, types: ["Public"] };
-    const { api, asked } = fake(() => json([day]));
-    expect(await api.holidays(2026, "BG")).toEqual([{ date: "2026-03-03", name: "Liberation Day", localName: "Освобождение" }]);
-    expect(asked).toEqual(["https://date.nager.at/api/v3/PublicHolidays/2026/BG"]);
-    expect(await fake(() => new Response(null, { status: 204 })).api.holidays(2026, "AQ")).toEqual([]);
-    expect(await fake(() => new Response("", { status: 503 })).api.holidays(2026, "BG")).toBeNull();
   });
 });

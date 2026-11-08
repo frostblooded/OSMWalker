@@ -1,67 +1,35 @@
-// The character's walk along the street graph: he picks a place of note (a
-// shop, a cafe, a sight...), heads there by the shortest route over the
-// streets loaded so far (re-planning as more load), stays a minute at most,
-// then picks the next one. Places weigh by importance, by a medium walking
-// distance, by lying ahead along his last leg, and less when he went there
-// lately. With no places loaded yet he heads for a random spot near and ahead
-// of him and walks on without stopping there.
-// Instead of a new goal he may travel to another city (see trips.ts): he
-// walks to a bus station, airport or gas station, then rides there.
-// On a flying mount he flies straight to a park or garden near a far goal,
-// lands there and walks the rest.
+// The character's walk along the street graph: he heads for a place of note
+// by the shortest route over the streets loaded so far (re-planning as more
+// load). On arrival the game hears of it and he picks his next goal at once.
+// Places weigh by importance, by a medium walking distance and by lying
+// ahead along his last leg. With no places loaded yet he heads for a random
+// spot near and ahead of him.
 // Pure logic: no DOM, no networking, so it is easy to test.
-import { bboxAround, distanceM, latToPx, lonToPx, offsetM, pxToLat, pxToLon, type BBox } from "./geo";
-import { NO_NEED, pickIndex, randomSpot, urgentRules, weigh, type Need, type Vec, type Weights } from "./goals";
+import { bboxAround, distanceM, offsetM, type BBox, type LatLon } from "./geo";
+import { pickIndex, randomSpot, weigh, type Vec, type Weights } from "./goals";
 import { StreetGraph } from "./graph";
 import { planRoute } from "./route";
 import { Rng } from "./rng";
 import type { Place } from "./stats";
-import { HOP_MIN_M, ROAD_FACTOR, rideS, type City, type LatLon, type Mode, type Plan } from "./trips";
 
-/** A ride's road distance when no trip plan gives it: the straight line times ROAD_FACTOR. */
-const straightRoadM = (a: LatLon, b: LatLon) => distanceM(a[0], a[1], b[0], b[1]) * ROAD_FACTOR;
-
-/** The game clock: time is counted in these meters per second, so rests and trips last the same whatever his speed. */
-export const SPEED_MPS = 200 / 60;
-/** He stays a minute at each place, and never longer, counted in clock meters. */
-export const REST_M = SPEED_MPS * 60;
+/** Walking speed in meters per second: a door-to-door city average, counting lights and traffic. */
+export const WALK_MPS = 5 / 3.6;
 /** Close enough to a destination to call it reached. */
 export const ARRIVE_M = 30;
-/** Why he walks to a random spot when every place near him is closed: normal at night, not a warning. */
-export const ALL_CLOSED = "every place near enough is closed";
 /** Destinations come from the searched place's box, kept between these sizes. */
 export const MIN_CITY_RADIUS_M = 1500;
 export const MAX_CITY_RADIUS_M = 25_000;
 /** Goals given up on in a row before he just walks down a street, so a city where no goal can be reached never hangs. */
 export const MAX_SKIPS = 3;
-/** Where he stands on landing, until the new city's streets load. Never a tile or OSM id. */
-export const ARRIVAL_NODE = Number.MAX_SAFE_INTEGER;
-/** He stands on the nearest loaded corner only when it is this close; else on a lone point until the streets load. */
-export const SNAP_M = 100;
-/** A flyer flies when his goal is at least this far, to a park or garden at most LAND_MAX_M from it and at most LAND_SHARE of his distance. */
-export const FLY_MIN_M = 400;
-export const LAND_MAX_M = 1500;
-export const LAND_SHARE = 0.5;
-const LAND_KINDS: ReadonlySet<string> = new Set(["park", "garden"]);
-/**
- * A flight over the city: from where he took off to the corner `node` by the
- * park he lands in. With `mps`, a ride across town to a trip's station at that
- * speed instead (see hopper); he boards on arrival.
- */
-export type Flight = { from: LatLon; to: LatLon; node: number; total_m: number; left_m: number; mps?: number };
-/** A ride to another city; `road_m` is its road distance, from the trip plan when he boards one. */
-export type Travel = { from: LatLon; to: City; mode: Mode; path: LatLon[]; arrive: LatLon; total_m: number; left_m: number; road_m: number };
+/** Where an old save had him on a ride, until the streets there load. Never a tile or OSM id. */
+export const LONE_NODE = Number.MAX_SAFE_INTEGER;
 export type PickInfo = Record<string, unknown>;
 
 export interface WalkerEvents {
-  /** Arrived somewhere new: the trip's destination. */
-  landed?(city: City, travel: Travel): void;
-  /** Reached a place of note. Listeners may change how long he stays with restFor(). */
+  /** Reached a place of note. */
   arrived?(place: Place): void;
-  /** Picked a new goal or trip, and how. */
+  /** Picked a new goal, and how. */
   picked?(info: PickInfo): void;
-  /** Reached a trip's station. Listeners pay for it and return true to ride, or false to stay. */
-  boarding?(plan: Plan): boolean;
   /** Something odd that the debug panel should show. */
   problem?(text: string): void;
 }
@@ -83,29 +51,15 @@ export function cityBounds(lat: number, lon: number, box?: BBox | null): BBox {
   ];
 }
 
-export function pathLengthM(path: LatLon[]): number {
-  let m = 0;
-  for (let i = 1; i < path.length; i++) m += distanceM(path[i - 1]![0], path[i - 1]![1], path[i]![0], path[i]![1]);
-  return m;
-}
-
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const kindOf = (p: Place) => `${p.class}/${p.subclass}`;
 
 export class Walker {
   rng = new Rng();
   events: WalkerEvents = {};
-  /** Asked on every destination pick: a trip plan, or null to stay. */
-  tripPlanner: (() => Plan | null) | null = null;
-  /** Asked when a trip's station is farther than HOP_MIN_M: the seconds the ride there takes, or 0 to walk; set by the game. */
-  hopper: ((plan: Plan, roadM: number) => number) | null = null;
-  /** How fast he really moves on the streets (see Stats.speedMps). */
-  speedMps = SPEED_MPS;
-  /** True while he rides a flying mount; set by the game. */
-  flies = false;
-  flight: Flight | null = null;
-  /** True from a flyer's landing until the next goal: he walks the rest on foot. */
-  afoot = false;
+  /** Which places may be goals (the game offers only those that reward him); all when null. */
+  wants: ((p: Place) => boolean) | null = null;
+  /** How fast he walks, in meters per second. */
+  speedMps = WALK_MPS;
 
   prevNode: number | null = null;
   fromNode: number | null = null;
@@ -123,34 +77,20 @@ export class Walker {
   route: number[] = [];
   /** True when the route ends at the goal. */
   routeArrives = false;
-  /** Rest left at the current destination, in clock meters. */
-  restM = 0;
-  restTotalM = 0;
-  restedM = 0;
   /** Walked since the current goal was picked. */
   tripM = 0;
   /** Straight-line distance to the goal when it was picked. */
   tripStartM = 0;
-  /** The place of note he is heading to or resting at, null for a random spot. */
+  /** The place of note he is heading to, null for a random spot. */
   place: Place | null = null;
   /** Where the current leg started, for his heading. */
   legFrom: LatLon | null = null;
-  /** Asked on every destination pick after the trip planner: a quest step or world event to go to (see quests.ts questGoal), or null; set by the game. */
-  questGoal: (() => Place | null) | null = null;
-  /** How a place meets his needs (see activities.ts needOf); set by the game. */
-  need: ((p: Place) => Need) | null = null;
-  /** A pull of one place on its own, on top of its kind's need (an Explore whisper's, see activities.ts exploreWeight); set by the game. */
-  placePull: ((p: Place) => number) | null = null;
-  /** The trip plan while he walks to its station. */
-  departing: Plan | null = null;
-  travel: Travel | null = null;
   private skips = 0;
 
   constructor(public graph: StreetGraph = new StreetGraph()) {}
 
   startAt(id: number): void {
     this.prevNode = null;
-    this.flight = null;
     this.fromNode = id;
     this.toNode = null;
     this.progressM = 0;
@@ -162,7 +102,6 @@ export class Walker {
   }
 
   setGoal(lat: number, lon: number): void {
-    this.afoot = false;
     this.place = null;
     this.goal = [lat, lon];
     this.goalNode = null;
@@ -177,145 +116,49 @@ export class Walker {
     }
   }
 
-  /** Picks a place of note to walk to (a random spot while none are loaded), or sets off for a trip's station. */
+  /** Picks a place of note to walk to, or a random spot while none are loaded. */
   pickGoal(): void {
-    const plan = this.tripPlanner?.();
-    if (plan) {
-      this.setGoal(plan.station.lat, plan.station.lon);
-      this.place = plan.station;
-      this.departing = plan;
-      this.events.picked?.({ trip: `${plan.city.name}, ${plan.city.country}`, by: `${plan.mode} from ${plan.station.name}` });
-      this.hop(plan);
-      return;
-    }
-    const story = this.questGoal?.();
-    if (story) {
-      this.setGoal(story.lat, story.lon);
-      this.place = story;
-      this.events.picked?.({ quest: story.name, class: story.class });
-      return;
-    }
     if (!this.bounds && this.here()) {
       const p = this.position();
       this.bounds = cityBounds(p[0], p[1]);
     }
     const bounds = this.bounds ?? cityBounds(0, 0);
-    let options = this.graph.placesIn(bounds);
+    let options = this.graph.placesIn(bounds).filter((q) => this.wants?.(q) ?? true);
     const info: PickInfo = { in_box: options.length, cells: this.graph.cells.size };
     if (this.here()) {
       const p = this.position();
       options = options.filter((q) => distanceM(p[0], p[1], q.lat, q.lon) > ARRIVE_M);
     }
     info.too_close = (info.in_box as number) - options.length;
-    const near = options.length;
-    // Need depends only on the kind of place, so it is worked out once per kind.
-    const kinds = new Map<string, Need>();
-    const needs = options.map((q) => {
-      const k = kindOf(q);
-      let v = kinds.get(k);
-      if (!v) kinds.set(k, (v = this.need?.(q) ?? NO_NEED));
-      return v;
-    });
-    const [keep, r] = urgentRules(needs, this.rng.randf());
-    let pairs = options.map((q, i) => [q, needs[i]!] as const);
-    if (keep) {
-      pairs = pairs.filter(([, v]) => keep(v));
-      info.urgent_fixes = pairs.length;
-    }
-    const parts = pairs.map(([q, v]) => this.weigh(q, { ...v, urgent: !!keep }));
-    // Closed places weigh nothing; when every one is closed he walks to a spot.
-    if (parts.some((w) => w.weight > 0)) {
+    if (options.length > 0) {
+      const parts = options.map((q) => this.weigh(q));
       const weights = parts.map((w) => w.weight);
+      const r = this.rng.randf();
       const i = pickIndex(weights, r);
-      const [pl, need] = pairs[i]!;
+      const pl = options[i]!;
       this.setGoal(pl.lat, pl.lon);
       this.place = pl;
-      Object.assign(info, parts[i], {
-        r,
-        place: pl.name,
-        class: pl.class,
-        rank: Math.trunc(pl.rank ?? 1),
-        total_weight: weights.reduce((a, w) => a + w, 0),
-        ...(need.why && { need: need.why }),
-      });
+      Object.assign(info, parts[i], { r, place: pl.name, class: pl.class, rank: Math.trunc(pl.rank ?? 1), total_weight: weights.reduce((a, w) => a + w, 0) });
       this.events.picked?.(info);
       return;
     }
     const spot = this.randomSpot();
     this.setGoal(spot[0], spot[1]);
     info.spot = this.goal;
-    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : near ? ALL_CLOSED : `every loaded place is within ${ARRIVE_M} m of him`;
-    // Night closures are normal, not a problem worth a warning.
-    if (!near) this.events.problem?.(`Picked a random spot: ${info.fallback}`);
+    info.fallback = info.in_box === 0 ? "no places loaded in the city box yet" : `every loaded place is within ${ARRIVE_M} m of him`;
+    this.events.problem?.(`Picked a random spot: ${info.fallback}`);
     this.events.picked?.(info);
   }
 
-  /** Debug: drops any rest, trip or flight (landing where he was headed) and picks the next goal right away. */
+  /** Debug: drops the goal and picks the next one right away. */
   forceNewGoal(): void {
-    this.landNow();
-    if (this.flight) this.startAt(this.flight.node);
-    this.departing = null;
-    this.restM = 0;
-    this.restTotalM = 0;
     this.pickGoal();
-  }
-
-  /** Rides to `city` by road (or steps through a portal) and lands there at once, ending any rest (a trucker's free lift, a portal, or Debug). */
-  rideNow(city: City, mode: "car" | "portal" = "car"): void {
-    this.restM = 0;
-    // By road: a free lift (or a Debug trip) is no flight, so it brings no jet lag.
-    this.startTravel(city, mode);
-    this.land();
-  }
-
-  /** After fainting: stands at `node` (null: where he is) and rests a minute at `place`. Says whether he moved. */
-  wakeAt(node: number | null, place: Place | null): boolean {
-    // Fainting on a ride to the station: he comes down where he is, not at the station.
-    const hopping = !this.travel && !!this.flight?.mps && node === null;
-    if (hopping) node = this.cornerOrLone(this.position());
-    const moved = node !== null && !this.travel;
-    if (moved) this.startAt(node!);
-    else if (this.flight) this.startAt(this.flight.node);
-    this.restFor(1);
-    this.place = place;
-    return moved;
-  }
-
-  /** The nearest loaded corner within SNAP_M of `at`, or null. */
-  private cornerAt(at: LatLon): number | null {
-    const near = this.graph.nearestNode(at[0], at[1]);
-    const p = near === null ? null : this.graph.nodes.get(near);
-    return near !== null && p && distanceM(at[0], at[1], p[0], p[1]) <= SNAP_M ? near : null;
-  }
-
-  /** cornerAt `at`, else a lone point there until the streets load. */
-  private cornerOrLone(at: LatLon): number {
-    const near = this.cornerAt(at);
-    if (near !== null) return near;
-    this.graph.nodes.set(ARRIVAL_NODE, [at[0], at[1]]);
-    return ARRIVAL_NODE;
-  }
-
-  /** Sets off over the city from where he is to corner `node`, at his own speed or (a ride to a station) taking `seconds`. */
-  private fly(node: number, seconds?: number): void {
-    const from = this.position();
-    const at = this.graph.nodes.get(node)!;
-    const m = distanceM(from[0], from[1], at[0], at[1]);
-    this.flight = { from, to: [at[0], at[1]], node, total_m: m, left_m: m, ...(seconds ? { mps: Math.max(m, 1) / seconds } : {}) };
-    this.legFrom = from;
-    this.route = [];
-    this.routeArrives = false;
   }
 
   /** The point he is walking towards right now: the goal, else the next corner; null when neither. */
   aim(): LatLon | null {
     if (this.goal) return this.goal;
     return this.toNode !== null ? (this.graph.nodes.get(this.toNode) ?? null) : null;
-  }
-
-  /** Ends the trip now, in its destination. */
-  landNow(): void {
-    if (this.travel) this.land();
   }
 
   /** Direction (east, north unit vector) of his last leg, from where it started to where he is now; zero when there is none. */
@@ -328,8 +171,8 @@ export class Walker {
   }
 
   /** How much a place weighs as his next goal, and why (see goals.ts). */
-  weigh(p: Place, need: Need = this.need?.(p) ?? NO_NEED): Weights {
-    return weigh(p, this.here() ? this.position() : null, this.heading(), need.pull * (this.placePull?.(p) ?? 1), need.urgent);
+  weigh(p: Place): Weights {
+    return weigh(p, this.here() ? this.position() : null, this.heading());
   }
 
   /** A spot in the city box, drawn with the same distance and heading odds as places. */
@@ -337,119 +180,21 @@ export class Walker {
     return randomSpot(this.rng, this.bounds ?? cityBounds(0, 0), this.here() ? this.position() : null, this.heading());
   }
 
-  /**
-   * Sets off for `city` by `mode` along `path` (a straight line to `arrive`,
-   * or the city, when shorter than 2 points). The ride uses up clock time.
-   */
-  startTravel(city: City, mode: Mode = "plane", path: LatLon[] = [], arrive: LatLon | null = null): void {
-    const p = this.position();
-    const at: LatLon = arrive ?? [city.lat, city.lon];
-    const line = path.length >= 2 ? path : [p, at];
-    const m = rideS(mode, pathLengthM(line)) * SPEED_MPS;
-    this.travel = { from: p, to: city, mode, path: line, arrive: at, total_m: m, left_m: m, road_m: straightRoadM(p, at) };
-    this.flight = null;
-    this.departing = null;
-    this.place = null;
-    this.goal = null;
-    this.goalNode = null;
-    this.route = [];
-    this.routeArrives = false;
-  }
-
-  isTraveling(): boolean {
-    return this.travel !== null;
-  }
-
-  /** True while he walks to the station of a trip. */
-  isDeparting(): boolean {
-    return this.departing !== null;
-  }
-
-  isResting(): boolean {
-    return this.restM > 0;
-  }
-
-  /** At the station: boards unless a listener cancels, then rides off. */
-  private board(): void {
-    const plan = this.departing!;
-    this.departing = null;
-    if (this.events.boarding?.(plan) === false) {
-      this.moveOn();
-      return;
-    }
-    this.startTravel(plan.city, plan.mode, plan.path ?? [], plan.arrive);
-    this.travel!.road_m = plan.distance_m;
-  }
-
-  /** Starts over in the destination with a fresh street graph; he stands on a lone point until its streets load. */
-  private land(): void {
-    const t = this.travel!;
-    this.travel = null;
-    this.legFrom = null;
-    this.graph = new StreetGraph();
-    this.graph.nodes.set(ARRIVAL_NODE, [t.arrive[0], t.arrive[1]]);
-    this.startAt(ARRIVAL_NODE);
-    this.bounds = t.to.bounds ?? cityBounds(t.to.lat, t.to.lon);
-    this.tripM = 0;
-    this.tripStartM = 0;
-    this.events.landed?.(t.to, t);
-  }
-
   /** True when he is stuck at a node whose surroundings are not loaded yet. */
   needsData(): boolean {
-    return !this.travel && !this.flight && this.toNode === null && this.fromNode !== null && !this.graph.isComplete(this.fromNode);
+    return this.toNode === null && this.fromNode !== null && !this.graph.isComplete(this.fromNode);
   }
 
   /**
-   * Lets `meters` of clock time pass (see SPEED_MPS), walking at speedMps.
-   * Returns clock meters that could not be used because the map around the
-   * current node still has to be downloaded.
+   * Walks for `seconds` at speedMps. Returns the seconds that could not be
+   * used because the map around the current node still has to be downloaded.
    */
-  advance(meters: number): number {
-    const scale = this.speedMps / SPEED_MPS;
+  advance(seconds: number): number {
+    let meters = seconds * this.speedMps;
     while (meters > 0) {
-      if (this.travel) {
-        const t = Math.min(meters, this.travel.left_m);
-        this.travel.left_m -= t;
-        meters -= t;
-        if (this.travel.left_m <= 0) this.land();
-        continue;
-      }
-      if (this.flight && !this.flight.mps && !this.flies) {
-        // His mount stopped flying (a dragon that now sulks): he comes down at the nearest corner and walks.
-        const p = this.position();
-        this.startAt(this.graph.nearestNode(p[0], p[1]) ?? this.flight.node);
-        continue;
-      }
-      if (this.flight) {
-        const f = this.flight;
-        const k = f.mps ? f.mps / SPEED_MPS : scale;
-        const m = Math.min(meters * k, f.left_m);
-        f.left_m -= m;
-        this.totalM += m;
-        this.tripM += m;
-        if (f.left_m > 0) return 0;
-        meters -= m / k;
-        this.startAt(f.node);
-        if (f.mps) {
-          // At the station: boards (or stays, and the streets around load).
-          this.arrive();
-          continue;
-        }
-        // The game sets his walking speed from the next step on.
-        this.afoot = true;
-        continue;
-      }
-      if (this.restM > 0) {
-        const r = Math.min(meters, this.restM);
-        this.restM -= r;
-        this.restedM += r;
-        meters -= r;
-        continue;
-      }
-      if (this.fromNode === null) return meters;
+      if (this.fromNode === null) return meters / this.speedMps;
       if (this.toNode === null) {
-        if (!this.graph.isComplete(this.fromNode)) return meters;
+        if (!this.graph.isComplete(this.fromNode)) return meters / this.speedMps;
         if (this.graph.neighbors(this.fromNode).length === 0) {
           // Isolated node (e.g. the street was removed from OSM): hop to the nearest street.
           this.events.problem?.("Stood on a corner with no streets; hopping to the nearest street");
@@ -466,17 +211,16 @@ export class Walker {
           this.skips = 0;
           this.toNode = this.rng.pick(this.graph.neighbors(this.fromNode));
         }
-        if (this.toNode === null) continue; // arrived (resting now), moved on, or set off on a trip
+        if (this.toNode === null) continue; // arrived or moved on: he picks again on the next turn
       }
       const remaining = this.graph.edgeLength(this.fromNode, this.toNode) - this.progressM;
-      const walk = meters * scale;
-      if (walk < remaining) {
-        this.progressM += walk;
-        this.totalM += walk;
-        this.tripM += walk;
+      if (meters < remaining) {
+        this.progressM += meters;
+        this.totalM += meters;
+        this.tripM += meters;
         return 0;
       }
-      meters -= remaining / scale;
+      meters -= remaining;
       this.totalM += remaining;
       this.tripM += remaining;
       this.prevNode = this.fromNode;
@@ -489,18 +233,15 @@ export class Walker {
     return 0;
   }
 
-  /** Next node on the way to the goal, or null after arriving (he starts resting at a place) or giving up. */
+  /** Next node on the way to the goal, or null after arriving or giving up. */
   private nextStep(): number | null {
-    if (!this.goal) {
-      this.pickGoal();
-      if (this.travel || this.flight) return null;
-    }
-    if (this.takeOff()) return null;
+    if (!this.goal) this.pickGoal();
     const from = this.fromNode!;
     const next = this.route[0];
     if (next !== undefined && next !== from && this.graph.adjacency.get(from)?.has(next)) return this.route.shift()!;
     if (this.tripM > tripLimitM(this.tripStartM)) {
-      this.moveOn();
+      this.dropGoal();
+      this.skips++;
       return null;
     }
     if (this.routeArrives) {
@@ -515,71 +256,26 @@ export class Walker {
     return this.route.shift()!;
   }
 
-  /** Rides across town to the station of `plan` when it is far and the hopper says how long that takes: on its nearest loaded corner, else on a lone point there. */
-  private hop(plan: Plan): void {
-    if (!this.hopper || !this.here()) return;
-    const from = this.position();
-    const st = plan.station;
-    const roadM = distanceM(from[0], from[1], st.lat, st.lon) * ROAD_FACTOR;
-    if (roadM < HOP_MIN_M) return;
-    const s = this.hopper(plan, roadM);
-    if (s > 0) this.fly(this.cornerOrLone([st.lat, st.lon]), s);
-  }
-
-  /** On a flying mount, at the start of the way to a far goal: flies to a park or garden near it, if one is loaded. */
-  private takeOff(): boolean {
-    if (!this.flies || !this.goal || this.tripM > 0 || !this.here()) return false;
-    const from = this.position();
-    const goal = this.goal;
-    const far = distanceM(from[0], from[1], goal[0], goal[1]);
-    if (far < FLY_MIN_M) return false;
-    let pad: Place | null = null;
-    let padM = Math.min(LAND_MAX_M, far * LAND_SHARE);
-    for (const q of this.graph.placesIn(bboxAround(goal[0], goal[1], LAND_MAX_M))) {
-      if (!LAND_KINDS.has(q.class)) continue;
-      const m = distanceM(q.lat, q.lon, goal[0], goal[1]);
-      if (m < padM) [pad, padM] = [q, m];
-    }
-    if (!pad) return false;
-    const node = this.cornerAt([pad.lat, pad.lon]);
-    if (node === null) return false;
-    this.fly(node);
-    return true;
-  }
-
-  /** At a place he stays a minute (listeners may shorten it); a random spot is only a waypoint. */
+  /**
+   * At a place the game hears of it; a random spot is only a waypoint, and so
+   * is a place he got to without a step (he already stood as near as the
+   * streets go), so it can't pay again and again. Either way the next goal is
+   * picked on the next step.
+   */
   private arrive(): void {
-    if (this.departing) {
-      this.board();
-      return;
-    }
-    if (!this.place) {
-      this.moveOn();
-      return;
-    }
     const place = this.place;
-    this.restFor(1);
-    this.events.arrived?.(place);
+    const walked = this.tripM > 0;
+    this.dropGoal();
+    if (place && walked) this.events.arrived?.(place);
+    else this.skips++;
   }
 
-  /** Drops the goal without stopping; he picks the next one at once. */
-  private moveOn(): void {
-    this.departing = null;
+  private dropGoal(): void {
     this.goal = null;
     this.goalNode = null;
+    this.place = null;
     this.route = [];
     this.routeArrives = false;
-    this.skips++;
-  }
-
-  /** Stays where he is for `minutes`, but never more than a minute. */
-  restFor(minutes: number): void {
-    this.goal = null;
-    this.goalNode = null;
-    this.route = [];
-    this.routeArrives = false;
-    this.restM = Math.min(minutes * 60 * SPEED_MPS, REST_M);
-    this.restTotalM = this.restM;
   }
 
   /**
@@ -589,7 +285,6 @@ export class Walker {
    */
   walkLeftM(): number | null {
     if (!this.goal || !this.here()) return null;
-    if (this.flight) return this.flight.left_m + distanceM(this.flight.to[0], this.flight.to[1], this.goal[0], this.goal[1]);
     if (this.toNode === null && this.route.length === 0) {
       const p = this.position();
       return distanceM(p[0], p[1], this.goal[0], this.goal[1]);
@@ -613,7 +308,6 @@ export class Walker {
   /** His planned way to the goal: along the loaded streets, then a straight bit past them (null when the streets get there). */
   routeLine(): { streets: LatLon[]; rest: [LatLon, LatLon] | null } | null {
     if (!this.goal || !this.here()) return null;
-    if (this.flight) return { streets: [], rest: [this.position(), [this.goal[0], this.goal[1]]] };
     const streets: LatLon[] = [this.position()];
     for (const id of [this.toNode, ...this.route]) {
       if (id === null) continue;
@@ -624,16 +318,6 @@ export class Walker {
     const end = streets.at(-1)!;
     const rest: [LatLon, LatLon] | null = distanceM(end[0], end[1], this.goal[0], this.goal[1]) > ARRIVE_M ? [end, [this.goal[0], this.goal[1]]] : null;
     return { streets, rest };
-  }
-
-  /** Seconds until he moves again. */
-  restLeftS(): number {
-    return this.restM / SPEED_MPS;
-  }
-
-  /** How much of the current rest is over, 0 to 1. */
-  restFraction(): number {
-    return this.restTotalM > 0 ? 1 - this.restM / this.restTotalM : 0;
   }
 
   /** Snaps the goal to a street corner once streets there load, then plans the way there (see route.ts). */
@@ -655,12 +339,6 @@ export class Walker {
 
   /** Current [lat, lon]. */
   position(): LatLon {
-    if (this.travel) return this.travelPosition();
-    if (this.flight) {
-      const f = this.flight;
-      const t = 1 - f.left_m / Math.max(f.total_m, 0.001);
-      return [lerp(f.from[0], f.to[0], t), lerp(f.from[1], f.to[1], t)];
-    }
     const a = this.graph.nodes.get(this.fromNode!)!;
     if (this.toNode === null) return [a[0], a[1]];
     const b = this.graph.nodes.get(this.toNode)!;
@@ -668,28 +346,8 @@ export class Walker {
     return [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
   }
 
-  /** Along the ride's path, each leg a straight line on the map (Web Mercator). */
-  private travelPosition(): LatLon {
-    const t = this.travel!;
-    const path = t.path;
-    let left = (1 - t.left_m / Math.max(t.total_m, 0.001)) * pathLengthM(path);
-    for (let i = 1; i < path.length; i++) {
-      const a = path[i - 1]!;
-      const b = path[i]!;
-      const leg = distanceM(a[0], a[1], b[0], b[1]);
-      if (left <= leg || i === path.length - 1) {
-        const u = Math.min(Math.max(left / Math.max(leg, 0.001), 0), 1);
-        const x = lerp(lonToPx(a[1], 0), lonToPx(b[1], 0), u);
-        const y = lerp(latToPx(a[0], 0), latToPx(b[0], 0), u);
-        return [pxToLat(y, 0), pxToLon(x, 0)];
-      }
-      left -= leg;
-    }
-    return path[0]!;
-  }
-
   streetName(): string {
-    if (this.travel || this.flight || this.fromNode === null) return "";
+    if (this.fromNode === null) return "";
     if (this.toNode !== null) return this.graph.edgeName(this.fromNode, this.toNode);
     if (this.prevNode !== null) return this.graph.edgeName(this.prevNode, this.fromNode);
     return "";
@@ -711,17 +369,10 @@ export class Walker {
       goal_node: this.goalNode,
       route: this.route,
       route_arrives: this.routeArrives,
-      rest_m: this.restM,
-      rest_total_m: this.restTotalM,
-      rested_m: this.restedM,
       trip_m: this.tripM,
       trip_start_m: this.tripStartM,
       place: this.place,
       leg_from: this.legFrom,
-      departing: this.departing,
-      travel: this.travel,
-      flight: this.flight,
-      afoot: this.afoot,
     };
   }
 
@@ -738,22 +389,23 @@ export class Walker {
     w.goalNode = d.goal_node;
     w.route = d.route;
     w.routeArrives = d.route_arrives;
-    w.restM = Math.min(d.rest_m, REST_M);
-    w.restTotalM = Math.min(Math.max(d.rest_total_m, w.restM), REST_M);
-    w.restedM = d.rested_m;
     w.tripM = d.trip_m;
     w.tripStartM = d.trip_start_m;
     w.place = d.place;
     w.legFrom = d.leg_from;
-    w.departing = d.departing;
-    // Saves from before road_m measured the ride by the straight line.
-    w.travel = d.travel && { ...d.travel, road_m: d.travel.road_m ?? straightRoadM(d.travel.from, d.travel.arrive) };
-    w.flight = d.flight ?? null;
-    w.afoot = d.afoot ?? false;
-    // The corner he lands on, so the walk goes on before the streets there reload.
-    if (w.flight && !graph.nodes.has(w.flight.node)) graph.nodes.set(w.flight.node, [w.flight.to[0], w.flight.to[1]]);
     for (const [id, p] of [[d.prev, d.prev_pos], [d.from, d.from_pos], [d.to, d.to_pos]] as const) {
       if (id !== null && p && !graph.nodes.has(id)) graph.nodes.set(id, [p[0], p[1]]);
+    }
+    // An old save on a ride to another city (trips are gone): he stands where the ride was headed, with a fresh goal, until the streets there load.
+    const ride = d.travel ?? (d.flight ? { arrive: d.flight.to } : null);
+    if (ride) {
+      graph.nodes.set(LONE_NODE, [ride.arrive[0], ride.arrive[1]]);
+      w.startAt(LONE_NODE);
+      w.goal = null;
+      w.goalNode = null;
+      w.place = null;
+      w.routeArrives = false;
+      if (d.travel?.to) w.bounds = cityBounds(d.travel.to.lat, d.travel.to.lon, d.travel.to.bounds);
     }
     return w;
   }
@@ -773,16 +425,11 @@ export type WalkerSave = {
   goal_node: number | null;
   route: number[];
   route_arrives: boolean;
-  rest_m: number;
-  rest_total_m: number;
-  rested_m: number;
   trip_m: number;
   trip_start_m: number;
   place: Place | null;
   leg_from: LatLon | null;
-  departing: Plan | null;
-  travel: (Omit<Travel, "road_m"> & { road_m?: number }) | null;
-  /** Missing in saves from before flying mounts. */
-  flight?: Flight | null;
-  afoot?: boolean;
+  /** Saves from before the base loop: a ride to another city or across town under way. */
+  travel?: { arrive: LatLon; to?: { name: string; lat: number; lon: number; bounds?: BBox } } | null;
+  flight?: { to: LatLon } | null;
 };

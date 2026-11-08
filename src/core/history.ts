@@ -1,8 +1,8 @@
 // His history: the last SIZE things that happened, each with when and where,
 // and the trail he walked since the oldest of them. Trips break the trail.
-import { distanceM, type BBox } from "./geo";
+import { distanceM, type BBox, type LatLon } from "./geo";
 
-export type LatLon = [number, number];
+export type { LatLon };
 export type Entry = { text: string; t: number; at: LatLon | null; ti: number };
 export type Marker = { at: LatLon; label: string; first: number };
 

@@ -12,13 +12,14 @@ test("opens offline after one visit, where he was", async ({ context, page }) =>
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
   await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
-  // The page and every file of the game it has loaded (code, fonts, data) are in the service worker's cache.
+  // The page, every file of the game it has loaded (code, fonts, data) and the map style are in the service worker's cache.
   await expect
     .poll(
       () =>
         page.evaluate(async () => {
           const own = [
             location.href.split("#")[0]!,
+            "https://tiles.openfreemap.org/styles/liberty",
             ...performance
               .getEntriesByType("resource")
               .map((e) => e.name)

@@ -6,6 +6,8 @@ export const TILE_SIZE = 256;
 export type Tile = { x: number; y: number };
 /** [south, west, north, east] */
 export type BBox = [number, number, number, number];
+/** [lat, lon] */
+export type LatLon = [number, number];
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const deg = (r: number) => (r * 180) / Math.PI;

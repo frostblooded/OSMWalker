@@ -1,17 +1,9 @@
 // Network access to map services: OpenFreeMap vector tiles for streets
-// (Overpass as backup), Photon (Nominatim as backup) for city search, OSRM
-// for road routes between cities, Wikidata for city trivia and Nominatim for
-// city outlines, Open-Meteo for his city's weather, Nager.Date for public
-// holidays and Wikipedia for notes on sights. Fetch is injected, so it is
-// easy to test.
-import * as CityFacts from "../core/cityFacts";
-import type { BBox, Tile } from "../core/geo";
-import * as Holidays from "../core/holidays";
-import * as SightNotes from "../core/sightNotes";
+// (Overpass as backup), Photon (Nominatim as backup) for city search and
+// Nominatim for city outlines. Fetch is injected, so it is easy to test.
+import type { BBox, LatLon, Tile } from "../core/geo";
 import type { OverpassData } from "../core/graph";
 import { TILE_ZOOM } from "../core/ofm";
-import { parseWeather, weatherUrl, type WeatherForecast } from "../core/weather";
-import type { LatLon } from "../core/trips";
 
 /** Public Overpass servers, tried in order; the main one is often busy (429/504). */
 export const OVERPASS_URLS = [
@@ -28,10 +20,6 @@ export const PHOTON_URL = "https://photon.komoot.io/api/";
 const PHOTON_PLACES = "&layer=city&layer=district&layer=locality";
 export const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 export const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
-/** Public OSRM demo server: one driving route per trip by bus or car. */
-export const OSRM_URL = "https://router.project-osrm.org/route/v1/driving/";
-/** Most points a route keeps, so saves stay small. */
-export const MAX_ROUTE_POINTS = 300;
 const WALKABLE = "primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|footway|path|service|track|steps|cycleway";
 /** Longer than the query's own [timeout:25], or slow but valid answers get thrown away. */
 export const OVERPASS_TIMEOUT_S = 35;
@@ -91,23 +79,6 @@ export function nominatimPlaces(data: unknown): SearchPlace[] | null {
     const bbox: BBox | null = Array.isArray(b) && b.length === 4 ? [+b[0], +b[2], +b[1], +b[3]] : null;
     return { name: String(r.display_name ?? ""), lat: +r.lat, lon: +r.lon, bbox };
   });
-}
-
-export function osrmUrl(a: LatLon, b: LatLon): string {
-  const f = (v: number) => v.toFixed(5);
-  return `${OSRM_URL}${f(a[1])},${f(a[0])};${f(b[1])},${f(b[0])}?overview=simplified&geometries=geojson`;
-}
-
-/** OSRM's answer as [[lat, lon]...], thinned to MAX_ROUTE_POINTS; [] when it has no route. */
-export function osrmPath(data: unknown): LatLon[] {
-  const d = data as { code?: string; routes?: { geometry?: { coordinates?: number[][] } }[] } | null;
-  if (d?.code !== "Ok" || !d.routes?.length) return [];
-  const coords = d.routes[0]!.geometry?.coordinates ?? [];
-  const step = Math.max(Math.ceil(coords.length / MAX_ROUTE_POINTS), 1);
-  const out: LatLon[] = [];
-  for (let i = 0; i < coords.length; i += step) out.push([coords[i]![1]!, coords[i]![0]!]);
-  if (coords.length > 1 && (coords.length - 1) % step !== 0) out.push([coords.at(-1)![1]!, coords.at(-1)![0]!]);
-  return out.length >= 2 ? out : [];
 }
 
 /** Nominatim's city-level area around a point, with its outline simplified. */
@@ -267,50 +238,6 @@ export class Api {
     places ??= nominatimPlaces(await this.getJson(`${NOMINATIM_URL}?format=jsonv2&limit=6&featureType=city&q=${q}`));
     if (places) this.searchCache.set(key, places);
     return places;
-  }
-
-  /** Wikidata facts about the city around a point, as SPARQL result rows; [] on failure. */
-  async cityFacts(lat: number, lon: number): Promise<CityFacts.Row[]> {
-    const data = (await this.getJson(CityFacts.url(lat, lon), 30)) as { results?: { bindings?: CityFacts.Row[] } } | null;
-    return data?.results?.bindings ?? [];
-  }
-
-  /** Hourly weather around `lat`, `lon` from today to the end of tomorrow, stamped with unix ms `nowMs`, or null. */
-  async weather(city: string, lat: number, lon: number, nowMs: number): Promise<WeatherForecast | null> {
-    const url = weatherUrl(lat, lon);
-    const data = await this.getJson(url, 20);
-    const f = data === null ? null : parseWeather(data, city, nowMs);
-    if (data !== null && !f) this.fail(url, "answer was not a forecast");
-    return f;
-  }
-
-  /** Wikipedia `wiki`'s articles near a sight, with their first sentence (sightNotes.ts), or null when the request fails. */
-  sightNote(wiki: string, lat: number, lon: number): Promise<unknown> {
-    return this.getJson(SightNotes.url(wiki, lat, lon), 20);
-  }
-
-  /** A country's public holidays in `year`: [] when Nager.Date has none for it (204 or 404), null when the request fails. */
-  async holidays(year: number, cc2: string): Promise<Holidays.Holiday[] | null> {
-    const url = Holidays.url(year, cc2);
-    try {
-      const res = await this.fetchFn(url, { signal: AbortSignal.timeout(30_000) });
-      if (res.status === 204 || res.status === 404) return [];
-      if (res.status !== 200) {
-        this.fail(url, describeFailure(res.status));
-        return null;
-      }
-      const list = Holidays.parse(await res.json());
-      if (!list) this.fail(url, "answer was not a holiday list");
-      return list;
-    } catch (e) {
-      this.fail(url, describeFailure(e as Error));
-      return null;
-    }
-  }
-
-  /** The road route between two points, or [] on failure. */
-  async route(a: LatLon, b: LatLon): Promise<LatLon[]> {
-    return osrmPath(await this.getJson(osrmUrl(a, b), 30));
   }
 
   /** The city's real outline around a point as rings, [] on failure. */

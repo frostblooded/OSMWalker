@@ -1,16 +1,11 @@
 // The saved game and the settings on the device: what gets written, how old
 // saves are repaired on the way back in, and why one can't be read. The game
 // is kept under SAVE_KEY; settings (debug switches and the problem log) live
-// apart under SETTINGS_KEY, so New city keeps them; so does the name you
-// sign postcards with. The last weather forecast is kept under WEATHER_KEY,
-// and the public holiday lists under HOLIDAYS_KEY.
+// apart under SETTINGS_KEY, so New city keeps them.
 import { DebugLog, type Entry } from "../core/debugLog";
-import type { Holiday } from "../core/holidays";
+import type { LatLon } from "../core/geo";
 import { Problems } from "../core/problems";
-import { MOMENT_S, MOMENT_TIMERS } from "../core/moments";
-import { Stats, type Place } from "../core/stats";
-import type { WeatherForecast } from "../core/weather";
-import type { LatLon } from "../core/trips";
+import { Stats } from "../core/stats";
 import { cityBounds, Walker, type WalkerSave } from "../core/walker";
 
 export const SAVE_KEY = "osmwalker.save";
@@ -18,13 +13,8 @@ export const SAVE_KEY = "osmwalker.save";
 export const BAD_SAVE_KEY = "osmwalker.save.bad";
 /** Kept apart from the save, so New city keeps them: debug toggles and the problem log. */
 export const SETTINGS_KEY = "osmwalker.settings";
-/** The last weather forecast, so the watched game has weather right after a reopen, before the new fetch lands. */
-export const WEATHER_KEY = "osmwalker.weather";
-/** Public holidays fetched from Nager.Date, kept a year so each country is asked once a year. */
-export const HOLIDAYS_KEY = "osmwalker.holidays";
-
-/** Holiday lists by "CC:year", and the last "CC:date" whose holiday he has already noticed. */
-export type HolidayBook = { lists: Record<string, Holiday[]>; said: string };
+/** What older versions kept that this one no longer uses (the weather and the public holidays), removed on the next write. */
+export const OLD_KEYS = ["osmwalker.weather", "osmwalker.holidays"];
 export const DEFAULT_ZOOM = 17;
 
 export type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -32,39 +22,25 @@ export type KV = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 /** A whole game, as the game hands it over and gets it back. */
 export type Saved = {
   city: string;
-  /** "" when an old save didn't record it. */
-  country: string;
-  skipRoll: boolean;
   origin: LatLon;
   zoom: number;
   walker: Walker;
   stats: Stats;
   debugLog: DebugLog;
-  /** Unix ms when it was saved, so a reopen knows the time away; 0 when an old save didn't record it. */
-  savedAt: number;
-  /** Real seconds of boost left (core/boost.ts); 0 in old saves. */
-  boostS: number;
-  /** Made-up places (core/poiGen.ts) by city, so a city keeps its own; empty in old saves. */
-  made: Record<string, Place[]>;
 };
 
-export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; sound: boolean; problems: Problems; postcardName: string; alwaysDilemma: boolean; momentS: number };
+export type Settings = { showCityArea: boolean; showRoute: boolean; cameraFollows: boolean; problems: Problems };
 
-/** The stored form; its keys never change, so older saves still load. */
+/** The stored form; its keys never change, so older saves still load (what they have beyond these is dropped). */
 type Stored = {
   city: string;
-  country: string;
-  skip_roll: boolean;
   origin: LatLon;
   zoom: number;
   walker: WalkerSave;
   stats: ReturnType<Stats["toJSON"]>;
   debug_log: Entry[];
-  saved_at?: number;
-  boost_s?: number;
-  made_places?: Record<string, Place[]>;
 };
-type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; sound?: boolean; problems?: unknown; postcard_name?: string; always_dilemma?: boolean; moment_s?: number };
+type StoredSettings = { show_city_area?: boolean; show_route?: boolean; camera_follows?: boolean; problems?: unknown };
 
 export function safeStorage(): KV | null {
   try {
@@ -88,20 +64,9 @@ export class SaveFile {
   /** Returns "" when saved (or when there is nowhere to save), else what went wrong. */
   write(g: Saved): string {
     if (!this.kv) return "";
-    const d: Stored = {
-      city: g.city,
-      country: g.country,
-      skip_roll: g.skipRoll,
-      origin: g.origin,
-      zoom: g.zoom,
-      walker: g.walker.toJSON(),
-      stats: g.stats.toJSON(),
-      debug_log: g.debugLog.toJSON(),
-      saved_at: g.savedAt,
-      boost_s: g.boostS,
-      made_places: g.made,
-    };
+    const d: Stored = { city: g.city, origin: g.origin, zoom: g.zoom, walker: g.walker.toJSON(), stats: g.stats.toJSON(), debug_log: g.debugLog.toJSON() };
     try {
+      for (const k of OLD_KEYS) this.kv.removeItem(k);
       this.kv.setItem(SAVE_KEY, JSON.stringify(d));
       return "";
     } catch (e) {
@@ -131,25 +96,16 @@ export class SaveFile {
       const walker = Walker.fromJSON(d.walker);
       if (walker.fromNode === null || !walker.graph.hasNode(walker.fromNode)) return "The saved game had no spot for him; starting over";
       walker.bounds ??= cityBounds(d.origin[0], d.origin[1]);
-      const stats = Stats.fromJSON(d.stats);
-      // A save from before life stages: he has walked what his walker has, so his letter one day counts it.
-      if (!d.stats.life) stats.life.km = walker.totalM / 1000;
+      // An old save on a ride to another city: he is put in that city (see Walker.fromJSON).
+      const to = d.walker.travel?.to;
       return {
-        city: d.city,
-        country: d.country || "",
-        skipRoll: d.skip_roll,
-        origin: d.origin,
+        city: to?.name ?? d.city,
+        origin: to ? [to.lat, to.lon] : d.origin,
         zoom: d.zoom || DEFAULT_ZOOM,
         walker,
-        // Stats.fromJSON repairs what old saves lack: care packages (Care.fromJSON), keepsakes (no items noted,
-        // odd places or badges yet; the next badge check notes his gear and bag), where he is, item stories, the week,
-        // his bond with you, his fame (none) and the law (nobody after him; his karma so far counts as his best or worst), golden bricks, his life story (the firsts already past marked done), records, ruin crawls, the creatures he met (none), his Magic and spells (none), his midnight finds (none), the portals he went through (none), the giants he saw (none), his naps in fairy rings (none), the sky events he saw (none), the storyteller (Classic, no tension), Viktor (not met yet), his friends (no one yet), clubs (none), the squares he explored (none), friends' news (from the next day) his birthday (the day he set out, from his life story), quests (none yet; the board of his city rolls again) his pet (none yet) his visas (none: every country starts on Tourist), his mind (no moodlets or fears; fresh wants on the next tick; an old Rattled or Scared moodlet counts towards Tense), skills (all 0), his pantry (empty, no dishes cooked), languages (English; the country he is in next becomes his own), quirks (no habits counted), spots (none), careers (no shifts yet, every career at rank 1), the diary (empty; the save's day is its first), his mailbox (empty), his life stage (born on his birthday, no family yet; his kilometres come from the walker here), businesses and shares (none; a share bought before shares kept where the place is matches by its name), the lottery (no ticket), his bucket list (empty, filled on the next new day), local words (none learned), sight notes (none read yet), the streets he walked (none yet), his tastes (rolled on the next tick), lifetime rewards (no points or perks), comforts (no lavish meals or hotel nights counted), the coffee habit (no cups) and beliefs (none); gear from before clothes wear is as good as new. Ancestors from before the hall of walkers keep no countries or bests, and the hall (hall.ts) skips them for those.
-        // The day's stops that older saves carry are dropped.
-        stats,
+        // Stats.fromJSON keeps what this version has and drops the rest (an old save's needs, gear, quests and so on).
+        stats: Stats.fromJSON(d.stats),
         debugLog: DebugLog.fromJSON(d.debug_log),
-        savedAt: d.saved_at ?? 0,
-        boostS: d.boost_s ?? 0,
-        made: d.made_places ?? {},
       };
     } catch {
       return "The saved game was unreadable; starting over";
@@ -167,59 +123,18 @@ export class SaveFile {
     if (!raw) return null;
     try {
       const d = JSON.parse(raw) as StoredSettings;
-      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, sound: !!d.sound, problems: Problems.fromJSON(d.problems), postcardName: d.postcard_name ?? "", alwaysDilemma: !!d.always_dilemma, momentS: MOMENT_TIMERS.includes(d.moment_s as never) ? d.moment_s! : MOMENT_S };
+      return { showCityArea: !!d.show_city_area, showRoute: !!d.show_route, cameraFollows: d.camera_follows ?? true, problems: Problems.fromJSON(d.problems) };
     } catch {
       return "Settings were unreadable; using defaults";
     }
   }
 
-  /** The last forecast, or null when there is none or it can't be read. */
-  readWeather(): WeatherForecast | null {
-    try {
-      const f = JSON.parse(this.kv?.getItem(WEATHER_KEY) ?? "null") as WeatherForecast | null;
-      return f && Array.isArray(f.t) && Array.isArray(f.code) && Array.isArray(f.temp) ? f : null;
-    } catch {
-      return null;
-    }
-  }
-
-  writeWeather(f: WeatherForecast): void {
-    try {
-      this.kv?.setItem(WEATHER_KEY, JSON.stringify(f));
-    } catch {
-      // Out of space: the forecast is fetched again next time.
-    }
-  }
-
   writeSettings(s: Settings): void {
     try {
-      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, sound: s.sound, problems: s.problems, postcard_name: s.postcardName, always_dilemma: s.alwaysDilemma, moment_s: s.momentS };
+      const d: StoredSettings = { show_city_area: s.showCityArea, show_route: s.showRoute, camera_follows: s.cameraFollows, problems: s.problems };
       this.kv?.setItem(SETTINGS_KEY, JSON.stringify(d));
     } catch {
       // Out of space: settings are only a convenience.
-    }
-  }
-
-  /** The holiday lists, empty when there are none or they can't be read. */
-  readHolidays(): HolidayBook {
-    try {
-      const d = JSON.parse(this.kv?.getItem(HOLIDAYS_KEY) ?? "{}") as Partial<HolidayBook> | null;
-      // A book of another shape (or from a later version) is dropped: the lists are fetched again.
-      const lists = d?.lists && typeof d.lists === "object" && !Array.isArray(d.lists) ? d.lists : {};
-      for (const [k, v] of Object.entries(lists)) if (!Array.isArray(v)) delete lists[k];
-      return { lists, said: typeof d?.said === "string" ? d.said : "" };
-    } catch {
-      return { lists: {}, said: "" };
-    }
-  }
-
-  /** Keeps only this year's and later lists, so the book never grows. */
-  writeHolidays(b: HolidayBook, year: number): void {
-    const lists = Object.fromEntries(Object.entries(b.lists).filter(([k]) => Number(k.split(":")[1]) >= year));
-    try {
-      this.kv?.setItem(HOLIDAYS_KEY, JSON.stringify({ lists, said: b.said }));
-    } catch {
-      // Out of space: they are fetched again next time.
     }
   }
 }

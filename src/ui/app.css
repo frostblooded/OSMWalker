@@ -12,13 +12,9 @@
   --accent: #ff7a3d;
   --accent-dark: #b4531f;
   --coin: #ffd66b;
-  --halo: #fff1a8;
   --lilac: #e9dcff;
   /* The shade over the map at night; its opacity follows the sun. */
-  --night: #0b1a4a;
-  --magic: #3d2a8a;
   --hp: #e5484d;
-  --en: #ffc53d;
   --fu: #46a758;
   --error: #c4282e;
   --warning: #a35c00;
@@ -122,8 +118,6 @@ a.btn { color: inherit; text-decoration: none; }
 .hud-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; border: var(--edge); background: var(--accent); display: grid; place-items: center; font-size: 22px; }
 .hud .city { display: flex; font-size: var(--small); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
 .hud .city .where { flex-shrink: 0; max-width: 100%; }
-.hud .city .feel { flex-shrink: 1000; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hud .forecast { line-height: 1.3; }
 .hud .street { font-family: var(--display); font-weight: 600; font-size: var(--heading); line-height: 1.2; }
 .pills { display: flex; flex-direction: column; gap: var(--s1); align-items: flex-end; }
 .pill { padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; font-size: var(--small); white-space: nowrap; }
@@ -132,26 +126,16 @@ a.btn { color: inherit; text-decoration: none; }
 .pill.sky { background: var(--paper); }
 .pill.wanted { background: var(--paper); color: var(--error); }
 /* The boost after time away, under the card: the countdown keeps its width as the digits change. */
-.pill.boost { align-self: flex-start; background: var(--paper); font-variant-numeric: tabular-nums; }
 /* One flat layer over the map, none by day: costs a blend, never a map redraw. */
-.night { position: absolute; inset: 0; background: var(--night); pointer-events: none; transition: opacity 2s linear; }
 .menu .pill { margin-left: auto; }
 .chip { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: var(--s2) var(--s3); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); width: 100%; text-align: left; font-size: var(--body); }
 .chip:active { background: var(--line); }
 .chip .eta { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: var(--paper); border: 2px solid var(--ink); font-size: var(--small); white-space: nowrap; }
-.minibars { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
-.minibar { display: flex; align-items: center; gap: var(--s1); font-size: var(--small); }
-.minibar .track { flex: 1; height: 10px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper); overflow: hidden; }
-.minibar .track > div { height: 100%; }
-.choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.choices .btn { flex: 1 1 auto; }
-.choices.dilemma { margin-bottom: var(--s2); }
 .notice { font-size: var(--body); display: flex; gap: var(--s2); align-items: center; }
 .notice.error { color: var(--error); }
 .notice.ok { color: var(--ok); }
 .field { width: 100%; box-sizing: border-box; min-height: var(--tap); padding: 0 var(--s3); font-size: 16px; border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--paper); color: var(--ink); }
 .field:focus { outline: none; box-shadow: 0 0 0 3px var(--accent); }
-.postcard-line { font-style: italic; }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
 .toast.story { border-color: var(--accent-dark); background: var(--zebra); font-weight: 700; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
@@ -185,23 +169,8 @@ a.btn { color: inherit; text-decoration: none; }
 /* The bubble over his head: his need or his goal's kind; a pose floats free. Only transform and opacity animate, a few times per pose, so the GPU rests after. */
 .him .bubble { position: absolute; bottom: calc(100% + var(--s1)); left: 50%; transform: translateX(-50%); font-size: 18px; padding: 2px var(--s1); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3); }
 .him .bubble[hidden] { display: none; }
-.him .mount { position: absolute; right: calc(-1 * var(--s3)); bottom: calc(-1 * var(--s2)); font-size: 20px; }
-.him .mount[hidden] { display: none; }
 /* Karma shows on him: a gold halo on his head, or two red horns (core/look.ts aura). Drawn in CSS, nothing animates. */
-.him .aura { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); pointer-events: none; }
-.him .aura[hidden] { display: none; }
-.him .aura.halo { width: 26px; height: 8px; border: 3px solid var(--halo); border-radius: 50%; box-shadow: 0 0 0 1px var(--ink); }
-.him .aura.horns { width: 30px; height: 10px; }
-.him .aura.horns::before, .him .aura.horns::after { content: ""; position: absolute; top: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid var(--hp); }
-.him .aura.horns::before { left: 0; transform: rotate(-20deg); }
-.him .aura.horns::after { right: 0; transform: rotate(20deg); }
-.him .pet { position: absolute; left: calc(-1 * var(--s3)); bottom: calc(-1 * var(--s2)); font-size: 16px; }
-.him .pet[hidden] { display: none; }
 /* His words after a beat (core/beats.ts): a speech bubble up and to his right, clear of the emoji bubble over his head; it pops in once and holds still. */
-.him .say { position: absolute; left: calc(100% + var(--s1)); bottom: 70%; width: max-content; max-width: 140px; font: 700 13px/1.25 var(--text); color: var(--ink); padding: var(--s1) var(--s2); background: var(--paper); border: 2px solid var(--ink); border-radius: var(--s3) var(--s3) var(--s3) 2px; box-shadow: var(--lip); pointer-events: none; animation: say-in 0.25s ease-out; }
-.him .say[hidden] { display: none; }
-@keyframes say-in { from { transform: scale(0.6); transform-origin: bottom left; opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .him .say { animation: none; } }
 .him .bubble.pose { background: none; border-color: transparent; animation: 2s ease-out 3; }
 .him .bubble.rise { animation-name: rise; }
 .him .bubble.pop { animation-name: pop; }
@@ -236,34 +205,10 @@ a.btn { color: inherit; text-decoration: none; }
 .fold-head { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: var(--tap); border: 0; background: none; text-align: left; font-family: var(--display); font-size: var(--heading); font-weight: 600; padding: 0; }
 .fold-body { padding-bottom: var(--s3); }
 /* The family tree (Family.tsx): a drawn node per walker, joined by a line to the next generation's. */
-.tree { list-style: none; margin: 0; padding: 0; }
-.tree-row { display: flex; gap: var(--s3); }
-.tree-rail { flex: none; display: flex; flex-direction: column; align-items: center; padding-top: var(--s2); }
-.tree-line { flex: 1; width: 3px; background: var(--ink); }
-.tree-row > .grow { padding-bottom: var(--s2); }
-.tree-head { display: flex; flex-direction: column; justify-content: center; width: 100%; min-height: var(--tap); border: 0; background: none; text-align: left; padding: 0; }
-.tree-body { padding-bottom: var(--s2); }
-.letter { white-space: pre-line; margin: var(--s2) 0; }
-.meters { display: flex; flex-direction: column; gap: var(--s2); }
-.meter .bar { margin-top: 2px; }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
-.tile { background: var(--zebra); border: 2px solid var(--ink); border-radius: var(--r-small); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
-.tile b { font-size: var(--title); }
-/* Collection: tabs, then dex grids. Tiles are wide enough for a whole word; a word breaks only if it is longer than the tile. A found tile has a frame in its rarity colour, doubled for foil and gold (named in its detail too); an unfound one is a dimmed ?. */
-.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s2); }
-.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: var(--tap-big); border: 2px solid var(--ink); border-radius: var(--r-small); background: var(--zebra); font-size: var(--heading); padding: var(--s1) 0; }
-.tab.on { background: var(--accent); color: #fff; box-shadow: var(--lip); }
-.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); margin-top: var(--s2); }
-.dex-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; min-width: 0; padding: var(--s1); border: 3px solid var(--ink); border-radius: var(--r-small); background: var(--paper); font-size: var(--heading); overflow-wrap: break-word; hyphens: manual; text-align: center; }
-.dex-tile .small { line-height: 1.2; }
-.dex-tile.unfound { background: var(--zebra); border-style: dashed; color: var(--dim); }
-.dex-tile.foil, .dex-tile.gold { border-style: double; border-width: 6px; }
-.dex-pick { margin: var(--s2) 0 0; padding: var(--s2) var(--s3); border-radius: 12px; background: var(--zebra); font-size: var(--body); }
 .alerts { display: flex; flex-direction: column; gap: var(--s2); }
 .alert { padding: var(--s3) var(--s4); border-radius: var(--r-small); font-size: var(--body); border: 3px solid currentColor; background: var(--paper); }
 .buttons { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
 .buttons .btn { flex: 1 1 auto; }
-.gifts > li { display: flex; align-items: center; gap: var(--s3); }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
 .burger .dot { position: absolute; top: -2px; right: -2px; margin: 0; }
@@ -278,19 +223,3 @@ a.btn { color: inherit; text-decoration: none; }
 .hit .snip { display: block; margin-top: 2px; color: var(--dim); font-size: var(--small); line-height: 1.4; }
 .hit mark { background: none; color: var(--link); font-weight: 800; }
 .sheet .body > .card { box-shadow: none; border-width: 2px; }
-/* Timed moments (MomentSheet.tsx): the time left drains on the compositor; the timing bar's marker sweeps out and back. */
-.card .moment > * + * { margin-top: var(--s3); }
-.moment-time > div { transform-origin: left; animation: drain linear forwards; }
-@keyframes drain { to { transform: scaleX(0); } }
-.sweep { position: relative; height: 32px; border-radius: 8px; background: var(--zebra); border: 2px solid var(--ink); overflow: hidden; }
-.sweep .near, .sweep .bull { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
-.sweep .near { background: var(--ok); opacity: 0.35; border-inline: 2px dashed var(--ink); }
-.sweep .bull { background: var(--ok); display: grid; place-items: center; font-size: var(--body); color: var(--paper); }
-.sweep .track { position: absolute; inset: 0; animation: sweep linear infinite alternate; }
-.sweep .needle { position: absolute; top: 0; bottom: 0; left: -2px; width: 4px; background: var(--ink); }
-@keyframes sweep { to { transform: translateX(100%); } }
-.tapper { width: 100%; min-height: var(--tap-big); font-variant-numeric: tabular-nums; }
-.card-back { font-size: 32px; min-height: 72px; }
-.odd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
-.odd-grid .btn { font-size: 28px; min-height: 56px; }
-.odd-grid .btn:disabled { opacity: 0.4; }

@@ -2,13 +2,10 @@
 // that records what it was told.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { BBox } from "../../src/core/geo";
-import type { MapIcon } from "../../src/core/mapIcons";
 import type { Look } from "../../src/core/look";
 import { StreetGraph } from "../../src/core/graph";
 import { Walker } from "../../src/core/walker";
-import type { City } from "../../src/core/trips";
 import { Game } from "../../src/game/game";
-import * as R from "../../src/core/repute";
 import { EVENT_ZOOM, MapScene, type MapPort, type Padding } from "../../src/map/scene";
 import { Api } from "../../src/net/api";
 import { plus, PLUS_BBOX } from "../support/osm";
@@ -33,41 +30,14 @@ class FakeMap implements MapPort {
     this.looks++;
   }
   setGoal() {}
-  setRival() {}
-  police: [number, number] | null = null;
-  setPolice(at: [number, number] | null) {
-    this.police = at;
-  }
-  setTrip() {}
   showTrail(on: boolean) {
     this.calls.push(`trail:${on}`);
   }
   setTrail() {}
   setRoute() {}
-  leys: [number, number][][] = [];
-  leyKey = "";
-  setLeys(key: string, lines: () => [[number, number], [number, number]][]) {
-    if (key === this.leyKey) return;
-    this.leyKey = key;
-    this.leys = key ? lines() : [];
-  }
-  explored: BBox[] = [];
-  exploredKey = "";
-  setExplored(key: string, boxes: () => BBox[]) {
-    if (key === this.exploredKey) return;
-    this.exploredKey = key;
-    this.explored = key ? boxes() : [];
-  }
   setArea() {}
   setEvents() {
     this.calls.push("events");
-  }
-  icons: MapIcon[] = [];
-  iconKey = "";
-  setMapIcons(key: string, icons: () => MapIcon[]) {
-    if (key === this.iconKey) return;
-    this.iconKey = key;
-    this.icons = icons();
   }
   follow(zoom?: number) {
     this.calls.push(`follow:${zoom}`);
@@ -97,7 +67,7 @@ let scene: MapScene;
 let following: boolean[];
 
 beforeEach(() => {
-  game = new Game({ api: new Api(async () => new Response("", { status: 503 })), load: async () => ({ error: "offline" }), data: { actions: {}, flavour: {}, cities: [], airports: [] }, storage: null });
+  game = new Game({ api: new Api(async () => new Response("", { status: 503 })), load: async () => ({ error: "offline" }), storage: null });
   game.problems.quiet = true;
   const g = new StreetGraph();
   g.addOverpass(plus(), PLUS_BBOX);
@@ -112,75 +82,6 @@ beforeEach(() => {
 });
 
 describe("map scene", () => {
-  it("shows made-up places and travel hubs as game icons, none on a ride", () => {
-    const w = game.walker!;
-    w.bounds = PLUS_BBOX;
-    const [lat, lon] = w.position();
-    w.graph.made = [{ name: "Notice board", class: "notice_board", subclass: "notice_board", rank: 2, lat, lon, id: "x:notice_board:0", made: true }];
-    scene.draw(0.25, 250);
-    expect(map.icons.map((i) => i.icon)).toEqual(["board"]);
-    expect(map.icons[0]!.id).toBe("x:notice_board:0");
-    w.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
-    scene.draw(0.25, 250);
-    expect(map.icons).toEqual([]);
-  });
-
-  it("draws his squares only while the Explored sheet is open, fitted above it, and again when he walks a new one", () => {
-    const w = game.walker!;
-    w.bounds = PLUS_BBOX;
-    const at = w.position();
-    game.stats.explored.walk(at, at);
-    scene.draw(0.25, 250);
-    expect(map.explored).toEqual([]);
-    scene.showExplored(true, 300);
-    scene.draw(0.25, 250);
-    expect(map.explored).toHaveLength(1);
-    expect(map.fits.at(-1)!.padding.bottom).toBe(324);
-    expect(following.at(-1)).toBe(false);
-    game.stats.explored.walk(at, [at[0] + 0.01, at[1]]);
-    scene.draw(0.25, 250);
-    expect(map.explored.length).toBeGreaterThan(1);
-    scene.showExplored(false);
-    scene.draw(0.25, 250);
-    expect(map.explored).toEqual([]);
-    expect(following.at(-1)).toBe(true);
-    // Opening History tells Explored it is closed, which leaves History's view alone.
-    scene.showHistory(true, 300);
-    scene.showExplored(false);
-    expect(following.at(-1)).toBe(false);
-  });
-
-  it("draws the ley lines only while the Stats sheet is open, again when they change, and none on a ride", () => {
-    const [lat, lon] = game.walker!.position();
-    game.leys = [
-      [
-        [lat, lon],
-        [lat + 0.001, lon],
-      ],
-    ];
-    scene.draw(0.25, 250);
-    expect(map.leys).toEqual([]);
-    scene.showLeys(true);
-    scene.draw(0.25, 250);
-    expect(map.leys).toEqual(game.leys);
-    game.leys = [
-      [
-        [lat, lon],
-        [lat, lon + 0.001],
-      ],
-    ];
-    game.leysVersion++;
-    scene.draw(0.25, 250);
-    expect(map.leys).toEqual(game.leys);
-    scene.showLeys(false);
-    scene.draw(0.25, 250);
-    expect(map.leys).toEqual([]);
-    scene.showLeys(true);
-    game.walker!.startTravel({ name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 }, "plane");
-    scene.draw(0.25, 250);
-    expect(map.leys).toEqual([]);
-  });
-
   it("leaves room for the panels from the start", () => {
     expect(map.calls).toEqual(["padding:80"]);
   });
@@ -192,33 +93,13 @@ describe("map scene", () => {
     expect(map.autoFollow).toBe(false);
   });
 
-  it("puts the police car on his trail during a chase, and takes it off after", () => {
-    game.chase = { place: "Kiosk", ends: game.now() + R.CHASE_S * 1000, trail: [[42, 23], [42.002, 23]] };
+  it("shows his face, with the kind of place he heads for over his head", () => {
     scene.draw(0.25, 250);
-    // Just begun: the car is at the start of his trail (a millisecond may have passed).
-    expect(map.police![0]).toBeCloseTo(42, 4);
-    expect(map.police![1]).toBeCloseTo(23, 4);
-    game.chase = null;
+    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null });
+    game.walker!.setGoal(42.0, 23.00135);
+    game.walker!.place = { name: "Cafe East", class: "cafe", subclass: "cafe", rank: 1, lat: 42.0, lon: 23.00135 };
     scene.draw(0.25, 250);
-    expect(map.police).toBeNull();
-  });
-
-  it("shows his face, with his most pressing need over his head", () => {
-    scene.draw(0.25, 250);
-    expect(map.look).toEqual({ face: "🙂", bubble: "", pose: null, mount: "", pet: "" });
-    game.stats.meters.fullness = 10;
-    scene.draw(0.25, 250);
-    expect(map.look!.bubble).toBe("🍔");
-  });
-
-  it("shows a pose while he stays, and drops it when he moves on", () => {
-    game.doing = { name: "Nap on a bench", min: 1, fx: { energy: 20 } };
-    game.walker!.restFor(1);
-    scene.draw(0.25, 250);
-    expect(map.look!.pose).toEqual({ icon: "💤", motion: "rise" });
-    game.walker!.advance(1e6);
-    scene.draw(0.25, 250);
-    expect(map.look!.pose).toBeNull();
+    expect(map.look!.bubble).toBe("☕");
   });
 
   it("measures how fast he moves on screen", () => {
@@ -248,17 +129,6 @@ describe("map scene", () => {
     expect(map.calls).toContain("follow:17");
   });
 
-  it("zooms out to the whole ride and follows him again on landing", () => {
-    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
-    game.walker!.startTravel(paris, "plane");
-    scene.draw(0.25, 250);
-    expect(map.fits.at(-1)!.box).toEqual([42.001, 2.35, 48.85, 23.0]);
-    expect(map.fits.at(-1)!.padding.bottom).toBe(120);
-    game.walker!.landNow();
-    scene.draw(0.25, 250);
-    expect(map.calls.at(-1)).toBe("follow:17");
-  });
-
   it("fits his trail above the History sheet and follows him again when it closes", () => {
     game.stats.history.moveTo(42.001, 23.0);
     game.stats.history.moveTo(42.0, 23.00135);
@@ -277,15 +147,6 @@ describe("map scene", () => {
     scene.focusEvent([42.001, 23.0]);
     expect(map.calls.at(-1)).toBe(`focus:${EVENT_ZOOM}`);
     expect(following.at(-1)).toBe(false);
-  });
-
-  it("keeps the camera still while History is open", () => {
-    const paris: City = { name: "Paris", code: "FRA", country: "France", lat: 48.85, lon: 2.35, pop: 1 };
-    scene.showHistory(true, 300);
-    const fits = map.fits.length;
-    game.walker!.startTravel(paris, "plane");
-    scene.draw(0.25, 250);
-    expect(map.fits.length).toBe(fits);
   });
 
   it("keeps the zoom the player picks", () => {

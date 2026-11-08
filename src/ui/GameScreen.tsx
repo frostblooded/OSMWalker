@@ -1,53 +1,33 @@
-// The game screen: the map with him on it (dimmed at night), a compact card
-// on top (where he is, where he goes, what he waits for, the weather), zoom
-// on the right edge and the main buttons in a bar at the bottom, in reach of
-// the thumb; a timed moment opens over it all.
+// The game screen: the map with him on it, a compact card on top (where he
+// is, where he goes, his money and level), zoom on the right edge and the
+// menu button at the bottom, in reach of the thumb.
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
-import type { Game } from "../game/game";
-import type { Sound } from "../app/sound";
-import { hud, sound, type Goal, type Hud } from "../game/hud";
-import { words, type Forecast } from "../core/forecast";
-import { BOOST } from "../core/boost";
-import { CLOVERS_PER_CHECKIN } from "../core/gifts";
-import { GAME_NAME } from "../core/moments";
 import { euro } from "../core/money";
-import { NIGHT_SHADE } from "../core/sky";
-import { MODES } from "../core/trips";
-import { ELDER, walkerName } from "../core/life";
-import { STYLE } from "../core/storyteller";
-import type { Postcard } from "../core/postcard";
-import { MapView } from "../map/mapView";
-import { BEAUTY_M } from "../core/comforts";
+import type { Game } from "../game/game";
+import { hud, type Goal, type Hud } from "../game/hud";
 import { MapScene, type Padding } from "../map/scene";
+import { MapView } from "../map/mapView";
 import { DebugSheet } from "./DebugSheet";
-import { clock, countdown, dist, duration, isResetWord, streetLine, walkTime } from "./format";
+import { dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
-import { ExploredSheet } from "./ExploredSheet";
 import { HistorySheet } from "./HistorySheet";
-import { Card, KV } from "./kit";
-import { PostcardSheet, ReceivedSheet } from "./PostcardSheet";
 import { settle } from "./snap";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
-/** The night shade's opacity moves in steps this big, so it is restyled rarely. */
-const DARK_STEP = 0.05;
 
-type Sheet = "menu" | "history" | "explored" | "diary" | "stats" | "records" | "collection" | "care" | "postcard" | "help" | "debug" | "reset" | "retire" | "story" | null;
+type Sheet = "menu" | "history" | "stats" | "help" | "debug" | "reset" | null;
 
-export function GameScreen({ game, onReset, received, onReceivedDone }: { game: Game; onReset: () => void; received?: Postcard | null; onReceivedDone?: () => void }) {
+export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const topEl = useRef<HTMLDivElement>(null);
   const scene = useRef<MapScene | null>(null);
-  const audio = useRef<Sound | null>(null);
   const [, redraw] = useState(0);
   const [following, setFollowing] = useState(true);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
-  // The quest or event icon tapped last, for its card.
-  const [story, setStory] = useState("");
   const [mapError, setMapError] = useState("");
 
   useEffect(() => {
@@ -59,12 +39,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       .then((v) => {
         if (gone) return v.destroy();
         view = v;
-        game.land = (at) => v.landAt(at, BEAUTY_M);
-        v.onIconTap = (id) => {
-          if (!game.storyCard(id)) return;
-          setStory(id);
-          setSheet("story");
-        };
         const sc = new MapScene(game, v, padding);
         sc.onFollowing = setFollowing;
         scene.current = sc;
@@ -79,35 +53,18 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         performance.mark("osmwalker:map");
       })
       .catch((e: Error) => {
-        game.woken();
         game.problems.error(`The map couldn't start: ${e.message}`);
         setMapError("The map couldn't load. Check your connection and reload.");
       });
     const unsub = game.subscribe(() => redraw((n) => n + 1));
     return () => {
       gone = true;
-      game.land = null;
       unsub();
       loop?.stop();
       view?.destroy();
       scene.current = null;
     };
   }, [game]);
-
-  // The city sound: its code loads only once the switch is on; the scene follows him at the screen's redraw rate.
-  useEffect(() => {
-    if (!game.sound) return;
-    let gone = false;
-    void import("../app/sound").then(({ Sound }) => {
-      if (!gone) audio.current = new Sound();
-    });
-    return () => {
-      gone = true;
-      audio.current?.stop();
-      audio.current = null;
-    };
-  }, [game, game.sound]);
-  if (game.walker) audio.current?.set(sound(game));
 
   /** Room the top card and bottom bar take over the map. */
   const padding = (): Padding => ({ top: (topEl.current?.offsetHeight ?? 0) + 12, bottom: 80, left: 0, right: 0 });
@@ -118,17 +75,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
     scene.current?.showHistory(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
   };
   useEffect(fitHistory, [sheet]);
-  // Explored does the same with the squares he walked.
-  const fitExplored = () => {
-    const on = sheet === "explored";
-    scene.current?.showExplored(on, on ? (document.querySelector<HTMLElement>(".sheet")?.offsetHeight ?? 0) : 0);
-  };
-  useEffect(fitExplored, [sheet]);
-  useEffect(() => scene.current?.showLeys(sheet === "stats"), [sheet]);
 
   const close = () => setSheet(null);
-  const backToHim = () => scene.current?.backToHim();
-
   const zoom = (step: number) => scene.current?.zoomBy(step);
 
   const h = hud(game);
@@ -137,74 +85,29 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
   return (
     <div class="game">
       <div class="map" ref={mapEl} />
-      {h.sky && h.sky.dark > 0 && <div class="night" aria-hidden="true" style={{ opacity: Math.round((h.sky.dark * NIGHT_SHADE) / DARK_STEP) * DARK_STEP }} />}
       <div class="top" ref={topEl}>
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              {h.ride ? MODES[h.ride.mode].icon : h.doing === "resting" ? "⏸" : "🚶"}
+              🚶
             </span>
             <div class="grow">
               <div class="city">
-                <span class="where">
-                  {h.city} · {h.doing}
-                </span>
-                {/* Shrinks first and never wraps, so a new feeling never makes the card taller. */}
-                {h.feeling && (
-                  <span class="feel">
-                    <span>
-                      &nbsp;· {h.feeling.icon} {h.feeling.word}
-                    </span>
-                  </span>
-                )}
+                <span class="where">{h.city}</span>
               </div>
-              <div class="street">{h.ride ? `${h.ride.mode === "walk" ? "Walking" : "Riding"} to ${h.ride.to} ${MODES[h.ride.mode].how}` : streetLine(h.street, h.doing === "resting")}</div>
+              <div class="street">{streetLine(h.street)}</div>
             </div>
             <div class="pills">
               <span class="pill coins">{euro(s.cents)}</span>
               <span class="pill level">Lv {s.level}</span>
-              {h.wanted > 0 && (
-                <span class="pill wanted" title="Wanted by the police">
-                  🚨 {"★".repeat(h.wanted)}
-                </span>
-              )}
-              {h.sky && (
-                <span class="pill sky">
-                  {h.sky.icon}
-                  {h.sky.tempC !== null && ` ${h.sky.tempC}°`}
-                </span>
-              )}
             </div>
           </div>
           <GoalChip goal={h.goal} onTap={() => scene.current?.toggleGoal()} />
-          <ForecastLine f={s.forecast()} />
-          <div class="minibars" aria-hidden="true">
-            <MiniBar icon="❤" share={s.meters.health / 100} color="var(--hp)" />
-            <MiniBar icon="⚡" share={s.meters.energy / 100} color="var(--en)" />
-            <MiniBar icon="🍞" share={s.meters.fullness / 100} color="var(--fu)" />
-          </div>
           {mapError && <div class="notice error">✖ {mapError}</div>}
           <Waiting hud={h} />
-          {game.severeNow.length > 0 && (
-            <button class="notice error link" onClick={() => setSheet("debug")}>
-              ⛔ {game.severeNow[0]!.title}
-              {game.severeNow.length > 1 && ` (+${game.severeNow.length - 1} more)`} ›
-            </button>
-          )}
         </section>
-        {game.boostS > 0 && (
-          <span class="pill boost" role="timer" aria-label={`${BOOST} times speed, ${duration(game.boostS)} left`}>
-            ⏩ {BOOST}× {clock(game.boostS)}
-          </span>
-        )}
-        {game.welcome && !game.welcome.card && (
-          <div class="toast story" role="status" key={`welcome${game.welcome.n}`}>
-            👋 Welcome back! {BOOST}× speed for {duration(game.welcome.boostS)}
-            {game.welcome.clover && ` · ☘ +${CLOVERS_PER_CHECKIN} clover`}
-          </div>
-        )}
         {s.history.entries.length > 0 && (
-          <div class={`toast${s.incidentLatest() ? " story" : ""}`} role="status" key={s.history.entries.length}>
+          <div class="toast" role="status" key={s.history.entries.length}>
             {s.history.latest()}
           </div>
         )}
@@ -218,7 +121,7 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
         </button>
       </div>
       {!following && game.cameraFollows && (
-        <button class="btn back" onClick={backToHim}>
+        <button class="btn back" onClick={() => scene.current?.backToHim()}>
           🙂 Back to him
         </button>
       )}
@@ -231,26 +134,8 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" onClick={() => setSheet("history")}>
               📜 History
             </button>
-            <button class="btn" onClick={() => setSheet("explored")}>
-              👣 Explored
-            </button>
-            <button class="btn" onClick={() => setSheet("diary")}>
-              📔 Diary
-            </button>
             <button class="btn" onClick={() => setSheet("stats")}>
               🧍 Stats
-            </button>
-            <button class="btn" onClick={() => setSheet("records")}>
-              🏆 Records
-            </button>
-            <button class="btn" onClick={() => setSheet("collection")}>
-              🗂 Collection
-            </button>
-            <button class="btn" onClick={() => setSheet("care")}>
-              🎁 Care package <span class="pill clovers">☘ {s.care.clovers}</span>
-            </button>
-            <button class="btn" onClick={() => setSheet("postcard")}>
-              📮 Send a postcard
             </button>
             <button
               class="btn"
@@ -261,9 +146,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             >
               ❓ Help
             </button>
-            <a class="btn" href={PHRASE_URL} target="_blank" rel="noopener">
-              ✍ Suggest a line
-            </a>
             <button class="btn" onClick={() => setSheet("debug")}>
               🐞 Debug {game.problems.unseen > 0 && <span class="dot" role="img" aria-label="new problems" />}
             </button>
@@ -276,20 +158,6 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
             <button class="btn" role="switch" aria-checked={game.showCityArea} onClick={() => game.setShowCityArea(!game.showCityArea)}>
               🗺 City area <span class={`switch${game.showCityArea ? " on" : ""}`} aria-hidden="true" />
             </button>
-            <button class="btn" role="switch" aria-checked={game.sound} onClick={() => game.setSound(!game.sound)}>
-              🔊 City sound <span class={`switch${game.sound ? " on" : ""}`} aria-hidden="true" />
-            </button>
-            <button class="btn" onClick={() => game.nextMomentTimer()}>
-              ⏱ Choice timer <span class="pill">{game.momentS ? `${game.momentS} s` : "Off"}</span>
-            </button>
-            <button class="btn" onClick={() => game.nextStoryteller()}>
-              {STYLE[s.story.style].icon} Storyteller <span class="pill">{STYLE[s.story.style].name}</span>
-            </button>
-            {s.life.stage === ELDER && !s.life.asked && (
-              <button class="btn" onClick={() => setSheet("retire")}>
-                🌅 Retire him now
-              </button>
-            )}
             <button class="btn" onClick={() => setSheet("reset")}>
               🔄 New city
             </button>
@@ -298,79 +166,19 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
       )}
       {sheet === "history" && (
         <SheetBox title="📜 History" onClose={close} onResize={fitHistory}>
-          <HistorySheet history={game.stats.history} onFocus={(at) => scene.current?.focusEvent(at)} />
-        </SheetBox>
-      )}
-      {sheet === "explored" && (
-        <SheetBox title="👣 Explored" onClose={close} onResize={fitExplored}>
-          <ExploredSheet explored={s.explored} city={game.city} box={game.walker?.bounds ?? null} />
-        </SheetBox>
-      )}
-      {sheet === "diary" && (
-        <SheetBox title="📔 Diary" onClose={close}>
-          <Lazy load={() => import("./DiarySheet")} what="the Diary">
-            {(m) => <m.DiarySheet diary={game.stats.diary} />}
-          </Lazy>
+          <HistorySheet history={s.history} onFocus={(at) => scene.current?.focusEvent(at)} />
         </SheetBox>
       )}
       {sheet === "stats" && (
-        <SheetBox title="🧍 Stats" onClose={close} full>
+        <SheetBox title="🧍 Stats" onClose={close}>
           <Lazy load={() => import("./StatsSheet")} what="the Stats sheet">
-            {(m) => <m.StatsSheet stats={game.stats} afoot={game.walker?.afoot} />}
+            {(m) => <m.StatsSheet stats={s} />}
           </Lazy>
-        </SheetBox>
-      )}
-      {sheet === "records" && (
-        <SheetBox title="🏆 Records" onClose={close}>
-          <Lazy load={() => import("./RecordsSheet")} what="the Records">
-            {(m) => <m.RecordsSheet stats={game.stats} />}
-          </Lazy>
-        </SheetBox>
-      )}
-      {sheet === "collection" && (
-        <SheetBox title="🗂 Collection" onClose={close} full>
-          <Lazy load={() => import("./CollectionSheet")} what="the Collection">
-            {(m) => <m.CollectionSheet stats={game.stats} />}
-          </Lazy>
-        </SheetBox>
-      )}
-      {sheet === "care" && (
-        <SheetBox title="🎁 Care package" onClose={close} full>
-          <Lazy load={() => import("./CareSheet")} what="the Care package sheet">
-            {(m) => (
-              <m.CareSheet
-                care={s.care}
-                bond={s.bond}
-                last={game.lastDeed()}
-                now={game.now()}
-                onSend={(id) => game.sendGift(id)}
-                onWhisper={(w) => game.whisper(w)}
-                onJudge={(sign) => game.judge(sign)}
-              />
-            )}
-          </Lazy>
-        </SheetBox>
-      )}
-      {sheet === "postcard" && (
-        <SheetBox title="📮 Send a postcard" onClose={close} full>
-          <PostcardSheet card={game.postcard()} name={game.postcardName} onName={(n) => game.setPostcardName(n)} />
-        </SheetBox>
-      )}
-      {received && sheet === null && game.woke && !game.welcome?.card && (
-        <SheetBox title="📮 Postcard" onClose={() => onReceivedDone?.()} full>
-          <ReceivedSheet
-            card={received}
-            onReply={() => {
-              onReceivedDone?.();
-              setSheet("postcard");
-            }}
-            onDone={() => onReceivedDone?.()}
-          />
         </SheetBox>
       )}
       {sheet === "help" && (
         <SheetBox title="❓ Help" onClose={close} onBack={helpPage ? () => setHelpPage("") : undefined} full>
-          <HelpSheet data={game.data} page={helpPage} onPage={setHelpPage} />
+          <HelpSheet page={helpPage} onPage={setHelpPage} />
         </SheetBox>
       )}
       {sheet === "debug" && (
@@ -378,76 +186,12 @@ export function GameScreen({ game, onReset, received, onReceivedDone }: { game: 
           <DebugSheet game={game} onDone={close} />
         </SheetBox>
       )}
-      {sheet === "story" && <StoryCard game={game} id={story} onClose={close} />}
-      {sheet === "reset" && <ResetDialog onCancel={() => setSheet(null)} onConfirm={onReset} />}
-      {sheet === "retire" && (
-        <RetireSheet
-          heir={walkerName(s.life.gen + 1)}
-          home={s.homeCity().split(",")[0]!}
-          onCancel={() => setSheet(null)}
-          onConfirm={() => {
-            setSheet(null);
-            void game.retire("you");
-          }}
-        />
-      )}
-      {game.retired && !game.welcome?.card && sheet === null && (
-        <SheetBox title="✉ A farewell letter" onClose={() => game.dismissRetired()} full>
-          <Lazy load={() => import("./Family")} what="the farewell letter">
-            {(m) => <m.Farewell a={game.retired!} life={s.life} onDone={() => game.dismissRetired()} />}
-          </Lazy>
-        </SheetBox>
-      )}
-      {game.welcome?.card && sheet === null && (
-        <SheetBox title="👋 Welcome back" onClose={() => game.dismissWelcome()} full>
-          <Lazy load={() => import("./WelcomeSheet")} what="the welcome-back card">
-            {(m) => <m.WelcomeSheet awayS={game.welcome!.awayS} boostS={game.welcome!.boostS} clover={game.welcome!.clover} week={game.stats.week} dilemma={game.dilemma} dilemmaS={game.dilemmaLeft} onChoose={(i) => game.chooseDilemma(i)} onShown={() => game.dilemmaShown()} onDone={() => game.dismissWelcome()} />}
-          </Lazy>
-        </SheetBox>
-      )}
-      {game.moment && <MomentBox game={game} />}
+      {sheet === "reset" && <ResetDialog onCancel={close} onConfirm={onReset} />}
     </div>
   );
 }
 
-/** The open timed moment, over everything else: tap within its time, or close it and he picks himself. */
-function MomentBox({ game }: { game: Game }) {
-  const o = game.moment!;
-  return (
-    <SheetBox title={`${o.m.icon} ${o.m.game ? GAME_NAME[o.m.game] : "Quick choice"}`} onClose={() => game.settleMoment(null)}>
-      <Lazy load={() => import("./MomentSheet")} what="the choice">
-        {(m) => <m.MomentSheet key={o.m.id + o.total} m={o.m} left={o.left} onPick={(id) => game.settleMoment(id)} onPlay={(id) => game.play(id)} />}
-      </Lazy>
-    </SheetBox>
-  );
-}
-
-/** A tapped quest or event: its story so far, and Go help, which sends him there once he is free. */
-function StoryCard({ game, id, onClose }: { game: Game; id: string; onClose: () => void }) {
-  const c = game.storyCard(id);
-  if (!c) return null;
-  return (
-    <SheetBox title={`${c.icon} ${c.title}`} onClose={onClose}>
-      <Card icon={id.startsWith("event:") ? "🌟" : "❗"} title={id.startsWith("event:") ? "Event" : "Quest"}>
-        <p>{c.text}</p>
-        <div class="zebra">
-          {c.rows.map(([k, v]) => (
-            <KV key={k} k={k} v={v} />
-          ))}
-        </div>
-        {c.state === "open" ? (
-          <button class="btn primary" onClick={() => game.nudge(id)}>
-            🙋 Go help
-          </button>
-        ) : (
-          <p class="dim small">{c.state === "on" ? "He's on it." : "He'll head there next, once nothing urgent comes first."}</p>
-        )}
-      </Card>
-    </SheetBox>
-  );
-}
-
-/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats, the Collection, the Care package sheet, the welcome-back card). */
+/** A sheet's module, loaded the first time it opens to keep it out of startup JS (Stats). */
 function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: string; children: (m: M) => JSX.Element }) {
   const [mod, setMod] = useState<M | null>(null);
   const [failed, setFailed] = useState(false);
@@ -461,24 +205,11 @@ function Lazy<M>({ load, what, children }: { load: () => Promise<M>; what: strin
   return mod ? children(mod) : <p class="dim">Loading…</p>;
 }
 
-/** The phrase box: a new GitHub issue with a form for a line he might say, which ships credited if accepted (see Help). */
-export const PHRASE_URL = `https://github.com/frostblooded/OSMWalker/issues/new?title=${encodeURIComponent("Line: ")}&body=${encodeURIComponent("Kind of place (cafe, park, museum...):\n\nThe line (a dry second sentence after what he did there):\n\nYour name for the credit (or leave empty):\n")}`;
-
 function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   if (!goal) return null;
-  if (goal.kind === "resting") {
-    return (
-      <div class="chip" role="timer">
-        <span class="grow">⏳ Resting at {goal.name || "a spot"}</span>
-        <span class="eta">Moving again in {countdown(goal.leftS)}</span>
-      </div>
-    );
-  }
   return (
     <button class="chip" onClick={onTap} aria-label="Show him and his goal">
-      <span class="grow">
-        🎯 {goal.departing ? "Heading to" : "Going to"} {goal.name || "a random spot"}
-      </span>
+      <span class="grow">🎯 Going to {goal.name || "a random spot"}</span>
       <span class="eta">
         {dist(goal.distM)}
         {goal.walkLeftM !== null && ` · ${walkTime(goal.walkLeftM, goal.mps)}`}
@@ -487,15 +218,8 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
   );
 }
 
-/** Why he is standing still, when it is not a rest: streets still loading. */
+/** Why he is standing still: streets still loading, or the map server out of reach. */
 function Waiting({ hud: h }: { hud: Hud }) {
-  if (h.restShare !== null) {
-    return (
-      <div class="bar" aria-hidden="true">
-        <div style={{ width: `${h.restShare * 100}%` }} />
-      </div>
-    );
-  }
   if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
   if (h.waiting === "streets") {
     return (
@@ -505,26 +229,6 @@ function Waiting({ hud: h }: { hud: Hud }) {
     );
   }
   return null;
-}
-
-/** Today's forecast, one dim line (see core/forecast.ts). */
-function ForecastLine({ f }: { f: Forecast }) {
-  return (
-    <div class="dim small forecast" title="Today's forecast">
-      {f.icon} {words(f)}
-    </div>
-  );
-}
-
-function MiniBar({ icon, share, color }: { icon: string; share: number; color: string }) {
-  return (
-    <div class="minibar">
-      <span>{icon}</span>
-      <div class="track">
-        <div style={{ width: `${Math.round(Math.min(Math.max(share, 0), 1) * 100)}%`, background: color }} />
-      </div>
-    </div>
-  );
 }
 
 /**
@@ -603,30 +307,13 @@ export function SheetBox({ title, onClose, onBack, onResize, full, children }: {
   );
 }
 
-/** Retiring him early, from the menu while he is an elder; he would retire by himself at the end of the stage. */
-function RetireSheet({ heir, home, onCancel, onConfirm }: { heir: string; home: string; onCancel: () => void; onConfirm: () => void }) {
-  return (
-    <SheetBox title="🌅 Retire him now?" onClose={onCancel}>
-      <Card icon="🌱" title={`${heir} sets out`} right={home}>
-        <p class="dim">He settles in {home}, and his heir sets out from there with his heirloom. He retires by himself at the end of this stage anyway.</p>
-        <button class="btn danger" onClick={onConfirm}>
-          Retire
-        </button>
-        <button class="btn" onClick={onCancel}>
-          Keep walking
-        </button>
-      </Card>
-    </SheetBox>
-  );
-}
-
 function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
   const [word, setWord] = useState("");
   return (
     <div class="dialog-bg">
       <div class="card dialog" role="alertdialog" aria-label="New city">
         <h2>🔄 Start over in a new city?</h2>
-        <p class="dim">He forgets everything: stats, gear, money and history. Type RESET to confirm.</p>
+        <p class="dim">He forgets everything: his money, level, places and history. Type RESET to confirm.</p>
         <input value={word} aria-label="Type RESET" autocapitalize="characters" onInput={(e) => setWord((e.target as HTMLInputElement).value)} />
         <button class="btn danger" disabled={!isResetWord(word)} onClick={onConfirm}>
           Start over

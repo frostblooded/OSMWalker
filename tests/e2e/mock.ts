@@ -1,6 +1,6 @@
 // Fake map services for the browser tests: city search, a tiny OpenFreeMap
 // style, the Sofia street tiles from the fixtures, and empty answers for the rest;
-// and a way to reopen the game as if it had been closed for a while.
+// and a way to reopen the game with its save changed.
 import { expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -18,10 +18,6 @@ export const STYLE = {
     { id: "building-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", paint: {} },
   ],
 };
-
-/** Light rain at 9°C in Sofia, a day either side of now. */
-const hours = Array.from({ length: 72 }, (_, i) => Math.floor(Date.now() / 3600_000) * 3600 - 24 * 3600 + i * 3600);
-const RAIN = { utc_offset_seconds: 7200, hourly: { time: hours, temperature_2m: hours.map(() => 9), weather_code: hours.map(() => 61) } };
 
 export type Mock = { asked: string[] };
 
@@ -45,22 +41,10 @@ export async function mockServices(context: BrowserContext, opts: { failSearch?:
       return route.fulfill({ body: Buffer.alloc(0), contentType: "application/x-protobuf" });
     }
     if (url.includes("/planet/test/")) return route.fulfill({ body: Buffer.alloc(0) }); // other zooms: nothing to draw
-    if (url.startsWith("https://query.wikidata.org/")) return route.fulfill({ json: { results: { bindings: [] } } });
-    if (url.startsWith("https://api.open-meteo.com/")) return route.fulfill({ json: RAIN });
     return route.fulfill({ status: 404 });
   });
   return { asked };
 }
-
-/** A save change that gives him a gold card, a Placedex kind, a souvenir, a finished crawl and a treasured hat with its story. */
-export const KEEPSAKES = `d.stats.keepsakes = {
-  cards: [["Nevsky@42.6960,23.3328", { name: "Alexander Nevsky Cathedral", kind: "place_of_worship/christian", city: "Sofia", rarity: "Rare", finish: "gold", t: 1 }]],
-  dex: [["place_of_worship/christian", { t: 1, city: "Sofia" }]],
-  souvenirs: [["BGR", { name: "bottle of rose oil", country: "Bulgaria", city: "Sofia", t: 1 }]],
-  done: [["coffee", 1]], progress: {}, day: "", city: "",
-};
-d.stats.gear.head = { name: "Lucky Cap", slot: "head", stats: { luck: 1 }, rarity: "Uncommon", price: 2000,
-  story: { from: "Sofia", t: 1, countries: ["BGR", "FRA", "ITA"], km: 42 } };`;
 
 /** Reloads with `change` made to the stored save first (once per `flag`, so a second change needs its own), the way an older or longer game would have it. */
 export async function reopenWith(page: Page, change: string, flag = "changed-save") {
@@ -75,18 +59,5 @@ export async function reopenWith(page: Page, change: string, flag = "changed-sav
     },
     [change, flag],
   );
-  await page.reload();
-}
-
-/** Reloads as if the game had been closed `hours` ago: the save's time is moved back before the game reads it. */
-export async function reopenAfter(page: Page, hours: number) {
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("osmwalker.save"))).not.toBeNull();
-  await page.addInitScript((ms) => {
-    if (sessionStorage.getItem("moved-back")) return;
-    sessionStorage.setItem("moved-back", "1");
-    const d = JSON.parse(localStorage.getItem("osmwalker.save")!);
-    d.saved_at -= ms;
-    localStorage.setItem("osmwalker.save", JSON.stringify(d));
-  }, hours * 3600_000);
   await page.reload();
 }

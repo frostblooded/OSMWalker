@@ -4,7 +4,7 @@
 // the loaded map; the walker plans again there.
 import { distanceM } from "./geo";
 import type { StreetGraph } from "./graph";
-import type { LatLon } from "./trips";
+import type { LatLon } from "./geo";
 
 /** Searches stop after this many street corners, to keep frames short. */
 export const MAX_SEARCH_NODES = 40_000;
