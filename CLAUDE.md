@@ -17,7 +17,7 @@ These mirror the Claude project instructions. Keep both in sync.
 
 ## Game design rules
 
-From the design research report `docs/design-research.md` (user, 2026-11-08). **Read the report often**: before any game design decision, new feature, upgrade, economy or care change, and when grilling the user. Cite it in plans.
+From the design research report `docs/design-research.md` (user, 2026-11-08). **Read it often**, and always before any game design decision, new feature, upgrade, economy or care change, and when grilling the user. Cite it in plans.
 
 1. The core loop must be fun alone. Cut anything that doesn't feed it, and write down what's left out.
 2. Every choice is a situational trade-off; no option always wins. Mix obvious wins, traps and real trade-offs, with no recent repeats.
@@ -34,7 +34,7 @@ From the design research report `docs/design-research.md` (user, 2026-11-08). **
 
 - `docs/architecture.md`: the layers, and links between files that no import shows (Help numbers, game data, saves, perf budgets).
 - `docs/ui-guidelines.md`: read before touching a screen.
-- `docs/design-research.md`: the game design research report; read before any design decision (see the rules above).
+- `docs/design-research.md`: the game design research report (see Game design rules).
 - `CODING_STANDARDS.md`: the review step and the rules it checks.
 - `package.json` scripts: `check`, `verify`, `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e:failed`, `perf`. Node 24, then `npm ci`. On your own machine, `npx playwright install chromium` once.
 
