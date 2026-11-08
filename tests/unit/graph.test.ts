@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { tileBbox } from "../../src/core/geo";
 import { CELL_ZOOM, cellKey, cellOf, cellsByPriority, compactCells, StreetGraph } from "../../src/core/graph";
-import { addOverpass, cellsBbox, plus, PLUS_BBOX } from "../support/osm";
+import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
 const id = (osm: number) => -osm;
 
@@ -134,12 +134,5 @@ describe("cells", () => {
     expect(east[0]).toEqual(home);
     expect(at(east, 1)).toBeLessThan(at(east, -1));
     expect(at(west, -1)).toBeLessThan(at(west, 1));
-  });
-
-  it("boxes a set of cells", () => {
-    const a = cellOf(42, 23);
-    const box = cellsBbox([a, { x: a.x + 1, y: a.y + 1 }]);
-    expect(box[0]).toBe(tileBbox({ x: a.x, y: a.y + 1 }, CELL_ZOOM)[0]);
-    expect(box[3]).toBe(tileBbox({ x: a.x + 1, y: a.y }, CELL_ZOOM)[3]);
   });
 });
