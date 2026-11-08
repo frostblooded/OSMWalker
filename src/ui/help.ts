@@ -9,6 +9,7 @@ import { euro } from "../core/money";
 import * as Places from "../core/places";
 import * as Problems from "../core/problems";
 import * as S from "../core/stats";
+import * as U from "../core/upgrades";
 import * as W from "../core/walker";
 import * as G from "../game/game";
 import { MIDDLE } from "../map/mapView";
@@ -122,6 +123,8 @@ const km = (m: number) => num(m / 1000);
 const EX_NEAR_M = 300;
 const EX_FAR_M = 1200;
 const workPay = (m: number) => euro(Places.rewardOf({ class: "cafe", rank: 1 }, Cards.footMin(m * Cards.ROUTE_FACTOR), false).cents);
+/** The ladder as Help list items: "- 🗺 City map, from level 2 for €5 at a bookshop or newsagent: a 4th card at every stop." */
+const ladder = () => U.LADDER.map((u) => `- ${u.icon} ${u.name}, from level ${u.level} for ${euro(u.cents)} at ${u.where}: ${u.does}.`).join("\n");
 /** A kind's place classes as words: "cafe, fast food, ice cream". */
 const kinds = (k: Places.Kind) => Places.KINDS[k].map((c) => c.replace(/_/g, " ")).join(", ");
 
@@ -142,7 +145,7 @@ export function values(): Record<string, string> {
     WORK_PER_MIN: euro(Places.WORK_CENTS_PER_MIN),
     SIGHT_XP_PER_MIN: num(Places.SIGHT_XP_PER_MIN),
     GREEN_XP_PER_MIN: num(Places.GREEN_XP_PER_MIN),
-    FAR_EXTRA_MIN: num(Places.FAR_EXTRA_MIN),
+    STOP_MIN: num(Places.STOP_MIN),
     LANDMARK_RANK: num(Places.LANDMARK_RANK),
     LANDMARK_X: num(Places.LANDMARK_BONUS),
     EX_NEAR_M: num(EX_NEAR_M),
@@ -154,6 +157,19 @@ export function values(): Record<string, string> {
     FAR_MIN_M: num(Cards.FAR_MIN_M),
     REACH_KM: km(Cards.REACH_M),
     NEAREST: String(Cards.NEAREST),
+    SHOP_REACH_KM: km(Cards.SHOP_REACH_M),
+    LADDER: ladder(),
+    BIKE_LEVEL: String(U.upgradeOf("bike")!.level),
+    BIKE_EURO: euro(U.upgradeOf("bike")!.cents),
+    LADDER_SIZE: String(U.LADDER.length),
+    MAP_CARDS: String(U.powers(new Set(["map"])).cards),
+    BIKE_KMH: String(Math.round(W.WALK_MPS * 3.6 * U.BIKE_SPEED_X)),
+    SCOOTER_KMH: String(Math.round(W.WALK_MPS * 3.6 * U.SCOOTER_SPEED_X)),
+    BIKE_REACH_KM: km(Cards.REACH_M * U.BIKE_REACH_X),
+    SCOOTER_REACH_KM: km(Cards.REACH_M * U.SCOOTER_REACH_X),
+    GUIDE_XP_X: num(U.GUIDE_XP_X),
+    PARCEL_PAY_X: num(U.PARCEL_PAY_X),
+    METRO_MIN_KM: km(U.METRO_MIN_M),
     RECENT: String(Cards.RECENT),
     ROUTE_FACTOR: num(Cards.ROUTE_FACTOR),
     NEW_PLACE_XP: num(Places.NEW_PLACE_XP),

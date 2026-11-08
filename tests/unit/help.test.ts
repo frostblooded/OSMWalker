@@ -52,11 +52,14 @@ describe("the real help", () => {
     expect(page("walking").body).toContain("5 km/h, about 83 m a minute");
     const places = page("places").body;
     expect(places).toContain("- 💶 work places pay money: cafe, bakery, restaurant, fast food,");
-    expect(places).toContain("A minute is worth €0.60 at a work place, 6 XP at a sight and 3 XP in a green space");
+    expect(places).toContain("A minute of walking is worth €0.60 at a work place, 10 XP at a sight and 5 XP in a green space, and every stop is worth 3 minutes on top");
     expect(places).toMatch(/a work place 300 m away pays €[\d.]+ and one 1.2 km away €[\d.]+\./);
     expect(places).toContain("he gets 20 XP on top");
     expect(page("goal").body).toContain("each a place nearby");
-    expect(page("goal").body).toContain("at most 400 m away");
+    expect(page("goal").body).toContain("at most 200 m away");
+    expect(page("goal").body).toContain("3 cards (4 with the 🗺 City map)");
+    expect(page("upgrades").body).toContain("- 🚲 Bike, from level 3 for €25 at a bike shop: cards reach 2 times as far and he rides 3 times as fast.");
+    expect(page("walking").body).toContain("rides at 15 km/h");
     expect(page("xp").body).toContain("100 XP from level 1 to 2, 200 XP from 2 to 3, 1000 XP from 10 to 11");
   });
 
@@ -66,7 +69,7 @@ describe("the real help", () => {
   });
 
   it("has a page for every screen button", () => {
-    for (const id of ["goal", "menu", "sheet", "history", "debug", "new_city", "help", "map", "screen"]) expect(page(id), id).toBeDefined();
+    for (const id of ["goal", "menu", "sheet", "history", "debug", "new_city", "help", "map", "screen", "upgrades"]) expect(page(id), id).toBeDefined();
   });
 });
 
@@ -122,7 +125,7 @@ describe("search", () => {
   });
 
   it("finds real pages by their filled numbers", () => {
-    expect(Help.search(sections, "€3").length).toBeGreaterThan(0);
+    expect(Help.search(sections, "€25").length).toBeGreaterThan(0);
     expect(Help.search(sections, "levels")[0]!.page.id).toBe("xp");
   });
 

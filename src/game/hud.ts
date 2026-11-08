@@ -16,8 +16,8 @@ export type Hud = {
   city: string;
   street: string;
   goal: Goal | null;
-  /** Why he stands still: streets loading, the map server out of reach, or the player's pick. */
-  waiting: "" | "streets" | "failing" | "pick";
+  /** Why he stands still: streets loading, the map server out of reach, the player's pick, or a city for his train. */
+  waiting: "" | "streets" | "failing" | "pick" | "train";
 };
 
 export function hud(g: Game): Hud | null {
@@ -25,6 +25,7 @@ export function hud(g: Game): Hud | null {
   if (!w) return null;
   let waiting: Hud["waiting"] = "";
   if (w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
+  else if (!w.goal && g.choice.train) waiting = "train";
   else if (!w.goal && g.choice.offer.length) waiting = "pick";
   return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), waiting };
 }

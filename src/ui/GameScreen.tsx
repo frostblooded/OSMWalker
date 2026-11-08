@@ -6,7 +6,9 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
 import { euro } from "../core/money";
+import { ride } from "../core/upgrades";
 import type { Game } from "../game/game";
+import type { SearchPlace } from "../net/api";
 import { hud, type Goal, type Hud } from "../game/hud";
 import { MapScene, type Padding } from "../map/scene";
 import { MapView } from "../map/mapView";
@@ -15,13 +17,14 @@ import { dist, isResetWord, streetLine, walkTime } from "./format";
 import { HelpSheet } from "./HelpSheet";
 import { HistorySheet } from "./HistorySheet";
 import { PickSheet } from "./PickSheet";
+import { Picker } from "./Picker";
 import { settle } from "./snap";
 import { StatsSheet } from "./StatsSheet";
 
 /** Fastest the screen texts redraw. */
 const UI_HZ = 4;
 
-type Sheet = "menu" | "next" | "history" | "stats" | "help" | "debug" | "reset" | null;
+type Sheet = "menu" | "next" | "train" | "history" | "stats" | "help" | "debug" | "reset" | null;
 
 export function GameScreen({ game, onReset }: { game: Game; onReset: () => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -32,6 +35,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   const [sheet, setSheet] = useState<Sheet>(null);
   const [helpPage, setHelpPage] = useState("");
   const [mapError, setMapError] = useState("");
+  const [trainMsg, setTrainMsg] = useState<{ text: string; busy?: boolean; error?: boolean }>();
 
   useEffect(() => {
     let loop: Loop | null = null;
@@ -91,8 +95,18 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   if (!h) return null;
   const s = game.stats;
   const picking = h.waiting === "pick";
+  const boarding = h.waiting === "train";
   const pick = (i: number) => {
     game.pick(i);
+    close();
+    scene.current?.backToHim();
+  };
+  const travel = async (p: SearchPlace) => {
+    const name = p.name.split(",")[0]!;
+    setTrainMsg({ text: `Riding to ${name}…`, busy: true });
+    const err = await game.travel(p.name, p.lat, p.lon, p.bbox, (state) => setTrainMsg({ text: `Riding to ${name}… (${state})`, busy: true }));
+    if (err) return setTrainMsg({ text: err, error: true });
+    setTrainMsg(undefined);
     close();
     scene.current?.backToHim();
   };
@@ -103,7 +117,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         <section class="card hud" aria-live="polite" aria-label="Where he is">
           <div class="hud-head">
             <span class="hud-icon" aria-hidden="true">
-              🚶
+              {ride(s.upgrades)}
             </span>
             <div class="grow">
               <div class="city">{h.city}</div>
@@ -135,6 +149,11 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
       {picking && sheet !== "next" && (
         <button class="btn primary next" onClick={() => setSheet("next")}>
           🧭 Where next?
+        </button>
+      )}
+      {boarding && sheet !== "train" && (
+        <button class="btn primary next" onClick={() => setSheet("train")}>
+          🚆 Where to by train?
         </button>
       )}
       {!following && game.cameraFollows && (
@@ -190,7 +209,22 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
           }}
           onResize={fitOffer}
         >
-          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} onPick={pick} />
+          <PickSheet offer={game.choice.offer} mps={game.walker!.speedMps} stats={s} onPick={pick} />
+        </SheetBox>
+      )}
+      {sheet === "train" && boarding && (
+        <SheetBox title="🚆 Where to by train?" onClose={() => !trainMsg?.busy && close()} full>
+          <Picker search={(t) => game.search(t)} choose={(p) => void travel(p)} message={trainMsg} title="" lead="Type a town or city. He keeps his money, level and upgrades." />
+          <button
+            class="btn stay"
+            disabled={!!trainMsg?.busy}
+            onClick={() => {
+              game.stayHere();
+              close();
+            }}
+          >
+            🚶 Stay in {h.city}
+          </button>
         </SheetBox>
       )}
       {sheet === "history" && (
@@ -234,6 +268,7 @@ function GoalChip({ goal, onTap }: { goal: Goal | null; onTap: () => void }) {
 /** Why he is standing still: streets still loading, the map server out of reach, or your pick. */
 function Waiting({ hud: h }: { hud: Hud }) {
   if (h.waiting === "pick") return <div class="notice">⏳ He waits for you to pick where next</div>;
+  if (h.waiting === "train") return <div class="notice">🚆 He waits at the station for you to pick a city</div>;
   if (h.waiting === "failing") return <div class="notice error">✖ Can't reach the map server. Retrying…</div>;
   if (h.waiting === "streets") {
     return (

@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../../src/core/cards";
+import { NEW_PLACE_XP } from "../../src/core/places";
 import { moved } from "../../src/core/geo";
 import { Rng } from "../../src/core/rng";
 import { visitKey, type Place } from "../../src/core/stats";
+import { GUIDE_XP_X, LADDER, METRO_MIN_M, PARCEL_PAY_X, powers, upgradeOf, type UpgradeId } from "../../src/core/upgrades";
 
 const HERE: [number, number] = [42, 23];
 /** A place `east` metres east of HERE (negative: west). */
-const at = (name: string, cls: string, east: number, rank = 5): Place => {
+const at = (name: string, cls: string, east: number, rank = 5, subclass = ""): Place => {
   const [lat, lon] = moved(HERE[0], HERE[1], [east, 0]);
-  return { name, class: cls, subclass: "", rank, lat, lon };
+  return { name, class: cls, subclass, rank, lat, lon };
 };
 const ctx = (seed = 1, recent: string[] = [], isNew = (_: Place) => false): C.DealCtx => ({ rng: new Rng(seed), isNew, recent: new Set(recent) });
 const names = (o: C.Offer[]) => o.map((c) => c.place.name);
@@ -42,7 +44,8 @@ describe("dealing cards", () => {
     const [near, far] = o;
     expect(near!.walkM).toBeCloseTo(near!.distM * C.ROUTE_FACTOR, 6);
     expect(far!.reward.cents).toBeGreaterThan(near!.reward.cents);
-    expect(far!.reward.cents / far!.walkM).toBeGreaterThanOrEqual(near!.reward.cents / near!.walkM - 0.05);
+    // The close one pays more for each metre walked.
+    expect(near!.reward.cents / near!.walkM).toBeGreaterThan(far!.reward.cents / far!.walkM);
   });
 
   it("prefers a place he has never been to for the third card", () => {
@@ -78,6 +81,86 @@ describe("dealing cards", () => {
   });
 });
 
+describe("cards from upgrades", () => {
+  const up = (ids: UpgradeId[], seed = 1, isNew = (_: Place) => false): C.DealCtx => ({ ...ctx(seed, [], isNew), powers: powers(new Set(ids)) });
+  const slots = (o: C.Offer[]) => o.map((c) => c.slot).sort();
+
+  it("deals a 4th card with the City map", () => {
+    expect(C.deal(CITY, HERE, up(["map"]))).toHaveLength(4);
+  });
+
+  it("deals the shop for the next upgrade, its own kind of shop when one is near", () => {
+    const bike = upgradeOf("bike")!;
+    const city = [...CITY, at("Gifts", "shop", 150, 5, "gift"), at("Bikes", "bicycle", -400, 5, "bicycle")];
+    const shop = C.deal(city, HERE, { ...up([]), shop: bike }).find((c) => c.slot === "shop")!;
+    expect(shop.place.name).toBe("Bikes");
+    expect(shop.upgrade).toBe("bike");
+    expect(shop.reward).toEqual({ cents: 0, xp: 0 });
+    // A shop or station he has never been to gives the first-visit bonus, and says so.
+    const fresh = C.deal(city, HERE, { ...up([], 1, (p) => p.name === "Bikes"), shop: bike }).find((c) => c.slot === "shop")!;
+    expect(fresh).toMatchObject({ isNew: true, reward: { cents: 0, xp: NEW_PLACE_XP } });
+    // No bike shop near: any shop sells it.
+    const far = [...CITY, at("Gifts", "shop", 150, 5, "gift"), at("Bikes", "bicycle", -2500, 5, "bicycle")];
+    expect(C.deal(far, HERE, { ...up([]), shop: bike }).find((c) => c.slot === "shop")!.place.name).toBe("Gifts");
+    // Only a station sells the metro pass.
+    expect(C.deal(city, HERE, { ...up([]), shop: upgradeOf("metro")! }).some((c) => c.slot === "shop")).toBe(false);
+  });
+
+  it("deals a never-seen sight for more XP with the Guidebook", () => {
+    const fresh = (p: Place) => p.name === "Museum 600";
+    for (let s = 0; s < 10; s++) {
+      const guide = C.deal(CITY, HERE, up(["map", "bike", "guide"], s, fresh)).find((c) => c.slot === "guide")!;
+      expect(guide.place.name).toBe("Museum 600");
+      // The sight's own XP doubles; the first-visit bonus doesn't.
+      expect(guide.reward.xp).toBe(C.offerFor(guide.place, HERE, "guide", false).reward.xp * GUIDE_XP_X + NEW_PLACE_XP);
+    }
+  });
+
+  it("deals a parcel: picked up close by, paid more at a work place farther off", () => {
+    let seen = 0;
+    for (let s = 0; s < 20; s++) {
+      const p = C.deal(CITY, HERE, up(["map", "bike", "guide", "bag"], s)).find((c) => c.slot === "parcel");
+      if (!p) continue;
+      seen++;
+      expect(p.kind).toBe("work");
+      expect(p.to!.name).not.toBe(p.place.name);
+      expect(p.distM).toBeGreaterThan(C.offerFor(p.place, HERE, "close", false).distM);
+      const leg = C.offerFor(p.to!, [p.place.lat, p.place.lon], "far", false);
+      expect(p.reward.cents).toBe(leg.reward.cents * PARCEL_PAY_X);
+      expect(p.reward.xp).toBe(0);
+    }
+    expect(seen).toBeGreaterThan(0);
+    // Both places new: both bonuses, paid at the drop-off.
+    const both = Array.from({ length: 20 }, (_, s) => C.deal(CITY, HERE, up(["bag"], s, () => true)).find((c) => c.slot === "parcel")).find(Boolean)!;
+    expect(both.reward.xp).toBe(2 * NEW_PLACE_XP);
+  });
+
+  it("deals a metro ride from a station near him to a place far off", () => {
+    const city = [...CITY, at("Central", "railway", 300, 1, "subway"), at("Far Park", "park", METRO_MIN_M + 500)];
+    let ride: C.Offer | undefined;
+    for (let s = 0; s < 20 && !ride; s++) ride = C.deal(city, HERE, up(["map", "bike", "guide", "bag", "scooter", "metro"], s)).find((c) => c.slot === "metro");
+    expect(ride!.place.name).toBe("Central");
+    expect(ride!.to!.name).toBe("Far Park");
+    expect(ride!.reward).toEqual({ cents: 0, xp: 0 });
+  });
+
+  it("deals a train from a train station, and nothing it can't use", () => {
+    const all = LADDER.map((u) => u.id);
+    const city = [...CITY, at("Main Station", "railway", 700, 1, "station")];
+    let train: C.Offer | undefined;
+    for (let s = 0; s < 30 && !train; s++) train = C.deal(city, HERE, up(all, s)).find((c) => c.slot === "train");
+    expect(train!.place.name).toBe("Main Station");
+    // No stations: the cards from places are all there is.
+    for (let s = 0; s < 10; s++) expect(slots(C.deal(CITY, HERE, up(all, s))).every((x) => !["metro", "train"].includes(x))).toBe(true);
+  });
+
+  it("reaches farther on a bike", () => {
+    const city = [at("Cafe 100", "cafe", 100), at("Bar 2000", "bar", 2000), at("Bakery 1100", "bakery", -1100), at("Park 600", "park", 600), at("Museum 900", "museum", -900)];
+    for (let s = 0; s < 20; s++) expect(names(C.deal(city, HERE, up([], s)))).not.toContain("Bar 2000");
+    expect(Array.from({ length: 20 }, (_, s) => names(C.deal(city, HERE, up(["map", "bike"], s)))).flat()).toContain("Bar 2000");
+  });
+});
+
 describe("the choice", () => {
   it("takes a card: it becomes where he goes and joins his recent picks", () => {
     const c = new C.Choice();
@@ -104,12 +187,14 @@ describe("the choice", () => {
     const c = new C.Choice();
     c.offer = C.deal(CITY, HERE, ctx());
     c.take(0);
+    c.train = true;
     c.offer = C.deal(CITY, HERE, ctx(2));
     const back = C.Choice.fromJSON(JSON.parse(JSON.stringify(c)));
     expect(back).toEqual(c);
     expect(C.Choice.fromJSON(undefined)).toEqual(new C.Choice());
     expect(C.Choice.fromJSON({ recent: [1, "a"] }).recent).toEqual(["a"]);
     // A broken card in a save is dropped rather than drawn.
-    expect(C.Choice.fromJSON({ offer: [{ place: { name: "x" } }, c.offer[0]], going: { reward: {} } })).toMatchObject({ offer: [c.offer[0]], going: null });
+    expect(C.Choice.fromJSON({ offer: [{ place: { name: "x" } }, c.offer[0]], going: { reward: {} } })).toMatchObject({ offer: [c.offer[0]], going: null, train: false });
+    expect(C.Choice.fromJSON({ offer: [{ ...c.offer[0], to: { name: "y" } }] }).offer).toEqual([]);
   });
 });

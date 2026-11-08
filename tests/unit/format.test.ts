@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import * as F from "../../src/ui/format";
+import { offerFor } from "../../src/core/cards";
+import { euro } from "../../src/core/money";
+import { Stats, type Place } from "../../src/core/stats";
+import { LADDER } from "../../src/core/upgrades";
 import { WALK_MPS as WALK } from "../../src/core/walker";
 
 describe("texts", () => {
@@ -27,5 +31,34 @@ describe("texts", () => {
   it("split typed text from the suggestion", () => {
     expect(F.typedSplit("Sofia, Bulgaria", "sof")).toEqual(["Sof", "ia, Bulgaria"]);
     expect(F.typedSplit("Plovdiv", "sof")).toEqual(["", "Plovdiv"]);
+  });
+});
+
+describe("cards and the ladder", () => {
+  const cafe: Place = { name: "Cafe Rila", class: "cafe", subclass: "cafe", rank: 1, lat: 42.69, lon: 23.32 };
+  const bakery: Place = { ...cafe, name: "Bakery", class: "bakery", subclass: "bakery", lat: 42.7 };
+  const station: Place = { ...cafe, name: "Serdika", class: "railway", subclass: "subway" };
+  const card = offerFor(cafe, [42.69, 23.31], "close", false);
+
+  it("say what each kind of card gives", () => {
+    expect(F.cardText(card)).toEqual({ name: "☕ Cafe Rila", gets: F.rewardText(card.reward) });
+    expect(F.cardText({ ...card, slot: "shop", upgrade: "bike" }).gets).toBe(`🚲 Buy a Bike · ${euro(LADDER[1]!.cents)}`);
+    expect(F.cardText({ ...card, slot: "parcel", to: bakery }).name).toBe("📦 Cafe Rila → Bakery");
+    expect(F.cardText({ ...card, place: station, slot: "metro", to: bakery }).gets).toBe("Ride to Bakery, 1.1 km off");
+    expect(F.cardText({ ...card, place: station, slot: "train" })).toEqual({ name: "🚆 Serdika", gets: "Train to another city" });
+    expect(F.cardText({ ...card, slot: "guide" }).gets).toMatch(/^📕 /);
+  });
+
+  it("say what the next upgrade waits on", () => {
+    const s = new Stats();
+    const map = LADDER[0]!;
+    expect(F.nextText(s)).toBe(`🗺 City map ${euro(map.cents)} at a bookshop or newsagent, from level ${map.level}`);
+    s.level = map.level;
+    s.cents = 100;
+    expect(F.nextText(s)).toBe(`🗺 City map ${euro(map.cents)} at a bookshop or newsagent: ${euro(map.cents - 100)} to go`);
+    s.cents = map.cents;
+    expect(F.nextText(s)).toMatch(/: you have the money$/);
+    for (const u of LADDER) s.upgrades.add(u.id);
+    expect(F.nextText(s)).toBe("");
   });
 });

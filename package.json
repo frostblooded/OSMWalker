@@ -14,7 +14,8 @@
     "verify": "node tools/verify.ts",
     "prepare": "git config core.hooksPath .githooks || true",
     "check": "node tools/verify.ts --check",
-    "e2e:failed": "playwright test --last-failed"
+    "e2e:failed": "playwright test --last-failed",
+    "sim": "SIM=1 vitest run tests/unit/economy.test.ts"
   },
   "dependencies": {
     "@fontsource/fredoka": "5.3.0",

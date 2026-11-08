@@ -1,10 +1,12 @@
 // The game: picks a city, keeps the walker moving in real time while the app
 // is open, and loads streets as he nears new ground. At each place he gets
 // the reward its card promised, then waits while the player picks the next
-// of the cards dealt there (see core/cards.ts). Time stops while the game is
-// closed: he goes on from where he was. No DOM here: the app calls step()
-// and the screens read the state.
-import { Choice, deal, footMin } from "../core/cards";
+// of the cards dealt there (see core/cards.ts). Shop cards sell the upgrades
+// (core/upgrades.ts), which add cards: parcels, metro rides across the city
+// and train rides to other cities. Time stops while the game is closed: he
+// goes on from where he was. No DOM here: the app calls step() and the
+// screens read the state.
+import { Choice, deal, footMin, type Offer } from "../core/cards";
 import { DebugLog, type Entry } from "../core/debugLog";
 import type { BBox, LatLon } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
@@ -13,7 +15,8 @@ import { kindOf, rewardOf } from "../core/places";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
-import { cityBounds, Walker, type PickInfo } from "../core/walker";
+import { powers, shopFor, upgradeOf } from "../core/upgrades";
+import { cityBounds, Walker, WALK_MPS, type PickInfo } from "../core/walker";
 import type { Api, SearchPlace } from "../net/api";
 import type { LoadFn } from "../streets/client";
 import { StreetLoader } from "../streets/loader";
@@ -39,6 +42,9 @@ export type GameDeps = {
   storage?: KV | null;
   rng?: Rng;
 };
+
+/** A card as the debug log keeps it. */
+const logged = (o: Offer) => ({ place: o.place.name, kind: o.kind, slot: o.slot, dist_m: Math.round(o.distM), cents: o.reward.cents, xp: o.reward.xp, new: o.isNew, ...(o.upgrade && { upgrade: o.upgrade }), ...(o.to && { to: o.to.name }) });
 
 /** The places worth heading for: those that give him something. */
 const rewarding = (p: Place) => kindOf(p) !== null;
@@ -71,6 +77,8 @@ export class Game {
   private checkTimer = 0;
   private outlineOf = "";
   private noPlacesWarned = "";
+  /** True while the streets of the city he rides the train to load: he stands still meanwhile. */
+  private boarding = false;
   private readonly rng: Rng;
   private readonly file: SaveFile;
 
@@ -104,6 +112,57 @@ export class Game {
    * puts him on the nearest one. Returns an error for the picker, or "".
    */
   async startCity(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}): Promise<string> {
+    const w = await this.land(name, lat, lon, bbox, onWait);
+    if (typeof w === "string") return w;
+    this.stats = new Stats();
+    this.debugLog = new DebugLog();
+    this.choice = new Choice();
+    this.attach(w);
+    this.city = name;
+    this.origin = [lat, lon];
+    this.track();
+    this.stats.say(`Set off in ${name.split(",")[0]}`);
+    this.save();
+    this.changed();
+    return "";
+  }
+
+  /**
+   * He takes the train to another city, keeping all he has: like startCity,
+   * but on failure he stays at the station where he was.
+   */
+  async travel(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void = () => {}): Promise<string> {
+    const old = this.walker;
+    this.boarding = true;
+    const w = await this.land(name, lat, lon, bbox, onWait);
+    // New city while the streets loaded: that game wins.
+    if (this.walker !== old || !this.boarding) return "";
+    this.boarding = false;
+    if (typeof w === "string") {
+      if (old) this.loader.setGraph(old.graph);
+      return w;
+    }
+    this.choice = new Choice();
+    this.attach(w);
+    this.city = name;
+    this.origin = [lat, lon];
+    this.stats.history.breakTrail();
+    this.track();
+    this.stats.say(`Took the train to ${name.split(",")[0]}`);
+    this.save();
+    this.changed();
+    return "";
+  }
+
+  /** He steps off the train idea and stays: new cards are dealt where he stands. */
+  stayHere(): void {
+    this.choice.train = false;
+    this.save();
+    this.changed();
+  }
+
+  /** A walker standing on the nearest street at lat, lon once the streets there load; or an error for the picker. */
+  private async land(name: string, lat: number, lon: number, bbox: BBox | null, onWait: (state: string) => void): Promise<Walker | string> {
     const w = new Walker();
     this.loader.setGraph(w.graph);
     const home = cellOf(lat, lon);
@@ -124,23 +183,14 @@ export class Game {
     }
     w.startAt(start);
     w.bounds = cityBounds(lat, lon, bbox);
-    this.stats = new Stats();
-    this.debugLog = new DebugLog();
-    this.choice = new Choice();
-    this.attach(w);
-    this.city = name;
-    this.origin = [lat, lon];
-    this.track();
-    this.stats.say(`Set off in ${name.split(",")[0]}`);
-    this.save();
-    this.changed();
-    return "";
+    return w;
   }
 
   private attach(w: Walker): void {
     this.walker = w;
     this.popped = null;
     w.rng = this.rng;
+    this.equip();
     w.events = {
       arrived: (p) => this.onArrived(p),
       idle: () => this.onIdle(),
@@ -149,10 +199,15 @@ export class Game {
     };
   }
 
+  /** He rides at the speed his upgrades give. */
+  private equip(): void {
+    if (this.walker) this.walker.speedMps = WALK_MPS * powers(this.stats.upgrades).speedX;
+  }
+
   /** Lets `dt` real seconds pass. */
   step(dt: number): void {
     const w = this.walker;
-    if (!w) return;
+    if (!w || this.boarding) return;
     const here = w.position();
     this.loader.request(cellsByPriority(here[0], here[1], STREET_RING, this.goalHeading()));
     const s = Math.min(dt, MAX_STEP_S);
@@ -181,15 +236,51 @@ export class Game {
     this.stats.history.moveTo(p[0], p[1]);
   }
 
-  /** At a place: its card's reward lands, with a pop over him. (A walk from an older save, with no card, is paid for what he walked.) */
+  /**
+   * At a place: its card's reward lands, with a pop over him, and the card
+   * does what its kind does: a shop sells, a parcel goes on to its drop-off,
+   * the metro rides, the train waits for a city. (A walk from an older save,
+   * with no card, is paid for what he walked.)
+   */
   private onArrived(place: Place): void {
     this.track();
-    const card = this.choice.going;
-    const r = card && visitKey(card.place) === visitKey(place) ? card.reward : rewardOf(place, footMin(this.walker!.tripM), this.stats.isNew(place));
+    const going = this.choice.going;
+    const card = going && visitKey(going.place) === visitKey(place) ? going : null;
+    const r = card?.reward ?? rewardOf(place, footMin(this.walker!.tripM), this.stats.isNew(place));
     this.choice.going = null;
+    // A parcel is paid at its drop-off, where he goes next.
+    if (card?.slot === "parcel" && card.to) {
+      this.stats.reach(place, { cents: 0, xp: 0 });
+      this.stats.say(`Picked up a parcel for ${card.to.name}`);
+      this.choice.going = { ...card, place: card.to, to: undefined };
+      this.walker!.goTo(card.to);
+      this.save();
+      return this.changed();
+    }
     this.stats.reach(place, r);
     if (r.cents || r.xp) this.popped = { pose: r.cents ? MONEY_POSE : XP_POSE, leftS: POSE_S };
+    const u = card?.upgrade && upgradeOf(card.upgrade);
+    if (u && !this.stats.buy(u, place)) this.stats.say(`Couldn't buy the ${u.name} at ${place.name}`);
+    if (card?.slot === "metro" && card.to) this.rideMetro(card.to);
+    if (card?.slot === "train") {
+      this.choice.train = true;
+      this.stats.say(`At ${place.name}: where to by train?`);
+    }
+    this.equip();
+    this.save();
     this.changed();
+  }
+
+  /** The metro takes him to the street nearest `to`, a far part of the city, and the trail breaks there. */
+  private rideMetro(to: Place): void {
+    const w = this.walker!;
+    const node = w.graph.nearestNode(to.lat, to.lon);
+    if (node === null) return this.stats.say(`The metro doesn't go to ${to.name} today`);
+    w.startAt(node);
+    w.legFrom = null; // no heading along the ride
+    this.stats.history.breakTrail();
+    this.track();
+    this.stats.say(`Rode the metro to ${to.name}`);
   }
 
   /** The pop over him after a reward, or null. */
@@ -206,7 +297,7 @@ export class Game {
       this.stats.say(`Couldn't get to ${missed.place.name}, so nothing there`);
       this.changed();
     }
-    return this.choice.offer.length > 0 || this.dealCards();
+    return this.choice.train || this.choice.offer.length > 0 || this.dealCards();
   }
 
   /** Deals the cards where he stands and logs them; false when no place nearby gives anything. */
@@ -214,10 +305,11 @@ export class Game {
     const w = this.walker!;
     const here = w.position();
     const places = w.graph.placesIn(w.bounds ?? cityBounds(here[0], here[1]));
-    const offer = deal(places, here, { rng: this.rng, isNew: (p) => this.stats.isNew(p), recent: new Set(this.choice.recent) });
+    const s = this.stats;
+    const offer = deal(places, here, { rng: this.rng, isNew: (p) => s.isNew(p), recent: new Set(this.choice.recent), powers: powers(s.upgrades), shop: shopFor(s.upgrades, s.level, s.cents) });
     if (!offer.length) return false;
     this.choice.offer = offer;
-    const e: Entry = { in_box: places.length, dealt: offer.map((o) => ({ place: o.place.name, kind: o.kind, slot: o.slot, dist_m: Math.round(o.distM), cents: o.reward.cents, xp: o.reward.xp, new: o.isNew })) };
+    const e: Entry = { in_box: places.length, dealt: offer.map(logged) };
     if (this.forced) e.forced = this.forced;
     this.forced = "";
     this.debugLog.add(e);
@@ -234,7 +326,7 @@ export class Game {
     const card = w ? this.choice.take(i) : null;
     if (!w || !card) return;
     w.goTo(card.place);
-    this.debugLog.add({ picked: i + 1, of, place: card.place.name, slot: card.slot, kind: card.kind, dist_m: Math.round(card.distM), cents: card.reward.cents, xp: card.reward.xp });
+    this.debugLog.add({ picked: i + 1, of, ...logged(card) });
     this.save();
     this.changed();
   }
@@ -267,6 +359,7 @@ export class Game {
   /** New city: wipes the save but keeps the settings. */
   reset(): void {
     this.walker = null;
+    this.boarding = false;
     this.stats = new Stats();
     this.debugLog = new DebugLog();
     this.choice = new Choice();
@@ -309,8 +402,8 @@ export class Game {
       return false;
     }
     const w = d.walker;
-    this.attach(w);
     this.stats = d.stats;
+    this.attach(w);
     this.debugLog = d.debugLog;
     this.choice = d.choice;
     this.loader.setGraph(w.graph);
