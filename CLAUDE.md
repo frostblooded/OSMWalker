@@ -15,10 +15,26 @@ These mirror the Claude project instructions. Keep both in sync.
 - **Help pages and UI**: every mechanic or stat change updates the in-game Help, and every screen follows `docs/ui-guidelines.md` (rules 1 and 3 in `CODING_STANDARDS.md`).
 - **Skills**: caveman and ponytail (level `full`) and Matt Pocock's skills, enabled in `.claude/settings.json`.
 
+## Game design rules
+
+From the design research report `docs/design-research.md` (user, 2026-11-08). **Read it often**, and always before any game design decision, new feature, upgrade, economy or care change, and when grilling the user. Cite it in plans.
+
+1. The core loop must be fun alone. Cut anything that doesn't feed it, and write down what's left out.
+2. Every choice is a situational trade-off; no option always wins. Mix obvious wins, traps and real trade-offs, with no recent repeats.
+3. Few options: 3 (a 4th can be an unlock).
+4. Show info clearly: icon + one number + time. Preview effects, and always react visibly to a pick.
+5. Upgrades change what you can do or which places appear (keys and locks, the lock near the key, told in world words), not +X% bumps. Don't let costs or distances scale the gains away.
+6. Few currencies; extra ones only later, as depth.
+7. Care is visible, forgiving and never guilt-tripping: no death, no lost progress, and the player's pick clearly beats the automatic one.
+8. Returning feels like a gift (a summary, a diary), not a punishment.
+9. Prefer real, notable OSM places as free content over hand-made arcs.
+10. Log picks and measure; simulate the economy; check UI clarity before retuning numbers.
+
 ## Where to look
 
 - `docs/architecture.md`: the layers, and links between files that no import shows (Help numbers, game data, saves, perf budgets).
 - `docs/ui-guidelines.md`: read before touching a screen.
+- `docs/design-research.md`: the game design research report (see Game design rules).
 - `CODING_STANDARDS.md`: the review step and the rules it checks.
 - `package.json` scripts: `check`, `verify`, `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e:failed`, `perf`. Node 24, then `npm ci`. On your own machine, `npx playwright install chromium` once.
 
