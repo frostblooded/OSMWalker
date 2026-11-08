@@ -126,7 +126,7 @@ const foodKinds = () => {
   const k = [...O.FOOD].map((c) => c.replace("_", " "));
   return `${k.slice(0, -1).join(", ")} or ${k.at(-1)}`;
 };
-/** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4.50: he rides 10% faster." */
+/** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4: he rides 10% faster." */
 const upgrades = () => U.UPGRADES.map((u) => `- ${u.icon} ${u.name}, from ${euro(u.cents)}: ${u.does}.`).join("\n");
 
 export function values(): Record<string, string> {

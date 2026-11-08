@@ -7,13 +7,13 @@ import { OPENS_AFTER } from "../../src/core/upgrades";
 import { summary } from "../support/economy";
 
 const sim = !!process.env.SIM;
-const { at, buys, delivery } = summary(sim ? 15 : 5, sim ? 8 : 4);
+const { at, buys, delivery } = summary(sim ? 15 : 5, sim ? 8 : 7);
 
 describe("the economy", () => {
   if (sim) {
     const rows = [1, 2, 3, 5, 10].map((n) => `| speed #${n} | ${at("speed", n).toFixed(0)} |`);
     rows.push(...[1, 5, 10].map((n) => `| orders #${n} | ${at("orders", n).toFixed(0)} |`));
-    rows.push(...[10, 20, 30].map((n) => `| any upgrade #${n} | ${buys(n).toFixed(0)} |`));
+    rows.push(...[10, 20, 30, 50, 70].map((n) => `| any upgrade #${n} | ${buys(n).toFixed(0)} |`));
     console.log(`| Upgrade | Minutes |\n| --- | --- |\n${rows.join("\n")}\n\nMinutes to delivery 1, 10, 100: ${[1, 10, 100].map((n) => delivery(n).toFixed(1)).join(", ")}`);
   }
 
@@ -32,7 +32,7 @@ describe("the economy", () => {
 
   it("buys about one upgrade every 5 minutes, early and later", () => {
     const nth = (n: number) => (n <= OPENS_AFTER ? at("speed", n) : buys(n));
-    for (const [a, b] of [[1, 10], [10, 20], [20, 30]] as const) {
+    for (const [a, b] of [[1, 10], [10, 20], [20, 30], [30, 50], [50, 70]] as const) {
       const gap = (nth(b) - nth(a)) / (b - a);
       expect(gap).toBeGreaterThan(3.5);
       expect(gap).toBeLessThan(7);

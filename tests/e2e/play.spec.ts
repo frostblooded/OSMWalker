@@ -36,10 +36,10 @@ test("buys a faster bike in the Shop with his money", async ({ page }) => {
   await page.getByRole("button", { name: /Shop/ }).click();
   const shop = page.getByRole("dialog", { name: /Shop/ });
   await expect(shop).toContainText("🔒 Opens after10 Bike tune-ups (0 / 10)");
-  await shop.getByRole("button", { name: "Buy · €4.50" }).click();
-  await expect(page.locator(".pill.coins")).toHaveText("€5.50");
+  await shop.getByRole("button", { name: "Buy · €4" }).click();
+  await expect(page.locator(".pill.coins")).toHaveText("€6");
   await expect(shop).toContainText("×1");
-  await expect(page.locator(".toast")).toContainText("Bought 🔧 Bike tune-up #1 for €4.50");
+  await expect(page.locator(".toast")).toContainText("Bought 🔧 Bike tune-up #1 for €4");
 });
 
 test("picks up where he was after a reload", async ({ page }) => {

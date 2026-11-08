@@ -21,13 +21,13 @@ export type Upgrade = {
 export const SPEED_STEP = 1.1;
 export const WAIT_STEP = 0.9;
 /** Each repeat buy costs this many times the last one. */
-export const GROWTH = 1.07;
+export const GROWTH = 1.09;
 /** Buying this many of one upgrade opens the next. */
 export const OPENS_AFTER = 10;
 
 export const UPGRADES: readonly Upgrade[] = [
-  { id: "speed", icon: "🔧", name: "Bike tune-up", cents: 450, does: `he rides ${Math.round((SPEED_STEP - 1) * 100)}% faster` },
-  { id: "orders", icon: "📱", name: "Delivery app boost", cents: 1500, does: `orders come ${Math.round((1 - WAIT_STEP) * 100)}% sooner`, after: "speed" },
+  { id: "speed", icon: "🔧", name: "Bike tune-up", cents: 400, does: `he rides ${Math.round((SPEED_STEP - 1) * 100)}% faster` },
+  { id: "orders", icon: "📱", name: "Delivery app boost", cents: 1300, does: `orders come ${Math.round((1 - WAIT_STEP) * 100)}% sooner`, after: "speed" },
 ];
 
 export const upgradeOf = (id: string): Upgrade | undefined => UPGRADES.find((u) => u.id === id);
