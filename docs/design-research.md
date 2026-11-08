@@ -164,4 +164,4 @@ A) No, care is always good. B) A small cost (for example a full stomach makes th
 **15. Should never-visited places be marked?**
 A) No. B) Yes, a "new" tag on the card plus a small bonus. C) Yes, plus a visited-places count per city.
 **Favoured: B for the base, C soon after.** Wandrer shows that rewarding only new ground reliably gets habitual people to go somewhere new.
-**User's pick (2026-11-08): B, with a light C: a new place gives bonus XP, and the only collection is a count of places visited.**
+**User's pick (2026-11-08): a new place gives bonus XP, and the only collection is one total count of places visited (not per city).**
