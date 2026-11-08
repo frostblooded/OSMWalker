@@ -59,7 +59,7 @@ describe("the real help", () => {
     expect(orders).toContain("300 m to 1.5 km from it");
     expect(page("places").body).toMatch(/An order pays €2 plus €1 per km .* a door 500 m from the restaurant pays €[\d.]+ and one 1.5 km off pays €[\d.]+\./);
     const up = page("upgrades").body;
-    expect(up).toContain("costs 15% more each time");
+    expect(up).toContain("costs 7% more each time");
     expect(up).toContain("- 🔧 Bike tune-up, from €4.50: he rides 10% faster.");
     expect(up).toContain("opens once he has 10 Bike tune-ups");
   });

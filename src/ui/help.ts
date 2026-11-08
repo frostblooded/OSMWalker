@@ -121,12 +121,12 @@ const km = (m: number) => num(m / 1000);
 const EX_NEAR_M = 500;
 const EX_FAR_M = 1500;
 const pct = (x: number) => String(Math.round(Math.abs(x - 1) * 100));
-/** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4.50: he rides 10% faster." */
 /** "restaurant, cafe or pizza": the kinds of food place, from orders.ts. */
 const foodKinds = () => {
   const k = [...O.FOOD].map((c) => c.replace("_", " "));
   return `${k.slice(0, -1).join(", ")} or ${k.at(-1)}`;
 };
+/** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4.50: he rides 10% faster." */
 const upgrades = () => U.UPGRADES.map((u) => `- ${u.icon} ${u.name}, from ${euro(u.cents)}: ${u.does}.`).join("\n");
 
 export function values(): Record<string, string> {

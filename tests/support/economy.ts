@@ -79,6 +79,8 @@ const median = (xs: number[]) => {
 export function summary(seeds = 15, hours = 6) {
   const runs = Array.from({ length: seeds }, (_, i) => play(i + 1, hours));
   const at = (id: string, n: number) => median(runs.map((r) => r.bought[id]![n - 1] ?? Infinity));
+  /** Minutes to the n-th upgrade of any kind. */
+  const buys = (n: number) => median(runs.map((r) => Object.values(r.bought).flat().sort((a, b) => a - b)[n - 1] ?? Infinity));
   const delivery = (n: number) => median(runs.map((r) => r.delivered[n - 1] ?? Infinity));
-  return { at, delivery, runs };
+  return { at, buys, delivery, runs };
 }

@@ -9,7 +9,7 @@ import { bboxAround, distanceM, type BBox, type LatLon } from "../core/geo";
 import { cellKey, cellOf, cellsByPriority, StreetGraph } from "../core/graph";
 import { MONEY_POSE, type Pose } from "../core/look";
 import { euro } from "../core/money";
-import { addressOf, FOOD, homePlace, Job, makeOrder, waitS, type Home } from "../core/orders";
+import { addressOf, DROP_MAX_M, DROP_MIN_M, FOOD, homePlace, Job, makeOrder, waitS, type Home } from "../core/orders";
 import { Problems } from "../core/problems";
 import { Rng } from "../core/rng";
 import { Stats, visitKey, type Place } from "../core/stats";
@@ -50,6 +50,9 @@ export type GameDeps = {
 };
 
 const same = (a: Place, b: Pick<Place, "name" | "lat" | "lon">) => visitKey(a) === visitKey(b);
+
+/** True for a drop at the distance an order should have. */
+const inRing = (m: number) => m >= DROP_MIN_M && m <= DROP_MAX_M;
 
 export class Game {
   walker: Walker | null = null;
@@ -242,16 +245,24 @@ export class Game {
     this.job.waitLeftS = waitS(this.rng, waitX(this.stats.upgrades));
   }
 
-  /** An order comes: a food place near him and a door near that (street corners where the map has no house numbers). */
+  /** An order comes: a food place near him and a door near that (a street corner where the map has no house number at the right distance). */
   private newOrder(): void {
     const w = this.walker!;
     const here = w.position();
     const box = bboxAround(here[0], here[1], ORDER_REACH_M);
     const places = w.graph.placesIn(box);
     let doors = w.graph.homesIn(box);
-    const streetDoors = doors.length === 0;
-    if (streetDoors) doors = this.streetDoors(box);
-    const o = makeOrder(this.rng, here, places, doors);
+    let streetDoors = false;
+    let o = makeOrder(this.rng, here, places, doors);
+    if (!o || !inRing(o.dropM)) {
+      const corners = this.streetDoors(box);
+      const c = makeOrder(this.rng, here, places, corners);
+      if (c && (!o || inRing(c.dropM))) {
+        o = c;
+        doors = corners;
+        streetDoors = true;
+      }
+    }
     if (!o) {
       this.job.waitLeftS = RETRY_S;
       this.forced = "";

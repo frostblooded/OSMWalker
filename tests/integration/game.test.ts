@@ -82,6 +82,13 @@ describe("game", () => {
     expect(g.debugLog.entries.at(-1)).toMatchObject({ street_doors: true });
   });
 
+  it("delivers to a street corner when every house number is too far from the restaurant", async () => {
+    const { g } = await started({ places: [CAFE], homes: [{ ...HOME, lat: CAFE.lat + 0.02 }] });
+    await until(g, () => !!g.job.order);
+    expect(g.job.order!.to.number).toBe("");
+    expect(g.debugLog.entries.at(-1)).toMatchObject({ street_doors: true });
+  });
+
   it("gets no order with no place of note loaded, and tries again soon", async () => {
     const { g } = await started({ places: [] });
     g.job.waitLeftS = 0.5;

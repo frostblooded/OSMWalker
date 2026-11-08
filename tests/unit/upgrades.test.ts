@@ -13,10 +13,10 @@ describe("upgrades", () => {
     expect(U.isOpen(orders, { speed: U.OPENS_AFTER })).toBe(true);
   });
 
-  it("cost 15% more each time, rounded to 10 cents", () => {
+  it("cost 7% more each time, rounded to 10 cents", () => {
     expect(U.priceOf(speed, {})).toBe(speed.cents);
-    expect(U.priceOf(speed, { speed: 1 })).toBe(Math.round((speed.cents * 1.15) / 10) * 10);
-    expect(U.priceOf(speed, { speed: 9 })).toBe(Math.round((speed.cents * 1.15 ** 9) / 10) * 10);
+    expect(U.priceOf(speed, { speed: 1 })).toBe(Math.round((speed.cents * 1.07) / 10) * 10);
+    expect(U.priceOf(speed, { speed: 9 })).toBe(Math.round((speed.cents * 1.07 ** 9) / 10) * 10);
   });
 
   it("multiply: each speed upgrade is +10% speed, each order upgrade a 10% shorter wait", () => {

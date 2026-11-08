@@ -16,7 +16,7 @@
     "check": "node tools/verify.ts --check",
     "e2e:failed": "playwright test --last-failed",
     "screens": "SHOTS=1 playwright test layout",
-    "sim": "SIM=1 vitest run tests/unit/economy.test.ts"
+    "sim": "SIM=1 vitest run tests/unit/economy.test.ts --silent=false"
   },
   "dependencies": {
     "@fontsource/fredoka": "5.3.0",
