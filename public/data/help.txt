@@ -47,7 +47,7 @@ The cards are a planned mix:
 - a far one, at least {FAR_MIN_M} m away when there is one (else the farthest left), which pays more,
 - and one of a kind the other two aren't, if there is one (a green space when they are a cafe and a sight), a place he has never been to when possible.
 
-Upgrades bring cards of their own, which take the place of that last card: a shop selling the next upgrade first, then a 📕 never-seen sight, a 📦 parcel, a 🚇 metro ride or a 🚆 train, in a random order (see Upgrades). Under the cards a line says what the next upgrade needs.
+Upgrades bring cards of their own, which take the place of that last card: a shop selling the next upgrade first, then a 📕 never-seen sight, a 📦 parcel, a 🚇 metro ride or a 🚆 train, in a random order (see Upgrades). Under the cards, a card shows the next upgrade: its price, what it does, where it is sold, and what it still waits on (a level, then money), with a bar. Once it has both it says ✔ Ready: its shop turns up on the cards when one is near.
 
 They come from places within {REACH_KM} km of him ({BIKE_REACH_KM} km on a bike, {SCOOTER_REACH_KM} km on a scooter, and the close and far distances stretch the same way); when fewer than {CARDS} are, from the {NEAREST} nearest. Places from his last {RECENT} picks don't come back, and important places turn up more often. The walking time is a guess: streets wind, so it counts {ROUTE_FACTOR} times the straight line.
 
@@ -82,7 +82,7 @@ Each upgrade opens at its level. Once he has the money too, a shop selling it tu
 🚆 Train: he goes to a station near him, and there you pick any town or city, as when you started. He keeps his money, level, upgrades and places, and History shows the trip. "Stay in …" keeps him where he is and deals new cards. If the streets there can't load, he stays at the station and you can try again.
 # 📱 Screens and buttons
 ## The top card and buttons {screen}
-The card at the top shows the city, the street he is on, his money and level, and his goal with the distance and the walking time. What he just did pops up under it for a few seconds.
+The card at the top shows how he gets about (🚶 on foot, 🚲 with the Bike, 🛵 with the Scooter), the city, the street he is on, his money and level, and his goal with the distance and the time it takes. What he just did pops up under it for a few seconds.
 
 Only a few buttons sit on the map, at the bottom in reach of your thumb: + and − to zoom and ☰ for the menu on the right, and 🧭 Where next? while he waits for your pick (see Where next), or 🚆 Where to by train? at a station (see Upgrades). "Back to him" shows up at the bottom when the map has moved away from him while the camera follows him.
 ## The menu {menu}
@@ -94,7 +94,7 @@ Route to goal (a switch, off at first and remembered) draws his planned route in
 
 Camera follows him (a switch, on at first and remembered) keeps him in view (see The map).
 ## The Stats sheet {sheet}
-🧍 Stats shows his level with a bar for the XP to the next one, his money, and how many places he has been to. Below it, his upgrades: the ones he owns, the next one with a bar to its price once its level is reached, and the rest with the level they open at.
+🧍 Stats shows his level with a bar for the XP to the next one, his money, and how many places he has been to. Below it, the next upgrade (as under the cards), then the rest of the ladder in two groups that open on a tap: the upgrades he owns, and the ones that come later with their level and price.
 ## History {history}
 📜 History lists his last {HISTORY_SIZE} events, newest first, each with the time it happened: setting off, the places he reached with what he got, level-ups, upgrades bought, parcels, and metro and train rides.
 

@@ -184,7 +184,7 @@ for (const width of [360, 412]) {
       await check(page, "where-next-upgrades");
       await page.getByRole("dialog", { name: /Where next/ }).getByRole("button", { name: /Close/ }).click();
       await openMenuItem(page, /Stats/);
-      await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Upgrades 6 / 7");
+      await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Upgrades6 / 7");
       await check(page, "stats-upgrades");
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
 

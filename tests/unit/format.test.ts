@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as F from "../../src/ui/format";
 import { offerFor } from "../../src/core/cards";
 import { euro } from "../../src/core/money";
-import { Stats, type Place } from "../../src/core/stats";
+import type { Place } from "../../src/core/stats";
 import { LADDER } from "../../src/core/upgrades";
 import { WALK_MPS as WALK } from "../../src/core/walker";
 
@@ -47,18 +47,5 @@ describe("cards and the ladder", () => {
     expect(F.cardText({ ...card, place: station, slot: "metro", to: bakery }).gets).toBe("Ride to Bakery, 1.1 km off");
     expect(F.cardText({ ...card, place: station, slot: "train" })).toEqual({ name: "🚆 Serdika", gets: "Train to another city" });
     expect(F.cardText({ ...card, slot: "guide" }).gets).toMatch(/^📕 /);
-  });
-
-  it("say what the next upgrade waits on", () => {
-    const s = new Stats();
-    const map = LADDER[0]!;
-    expect(F.nextText(s)).toBe(`🗺 City map ${euro(map.cents)} at a bookshop or newsagent, from level ${map.level}`);
-    s.level = map.level;
-    s.cents = 100;
-    expect(F.nextText(s)).toBe(`🗺 City map ${euro(map.cents)} at a bookshop or newsagent: ${euro(map.cents - 100)} to go`);
-    s.cents = map.cents;
-    expect(F.nextText(s)).toMatch(/: you have the money$/);
-    for (const u of LADDER) s.upgrades.add(u.id);
-    expect(F.nextText(s)).toBe("");
   });
 });
