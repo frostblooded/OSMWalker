@@ -69,5 +69,5 @@ test("keeps one Help text, the current one, and opens it offline", async ({ cont
   await context.setOffline(true);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
-  await expect(page.getByRole("dialog", { name: /Help/ }).getByRole("button", { name: "How he walks" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /Help/ }).getByRole("button", { name: "How he rides" })).toBeVisible();
 });

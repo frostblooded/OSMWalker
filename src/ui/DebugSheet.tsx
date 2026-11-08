@@ -1,5 +1,5 @@
-// Debug: what looks wrong with the city, what has loaded, a button that deals
-// new cards at the next corner, and two logs (problems, cards and picks)
+// Debug: what looks wrong with the city, what has loaded, a button that brings
+// a new order at once, and two logs (problems, and orders)
 // whose entries open into their detail.
 import { useEffect } from "preact/hooks";
 import * as DebugLog from "../core/debugLog";
@@ -40,8 +40,8 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
         <KV k="Where" v={f.where.map((x) => x.toFixed(5)).join(", ")} />
         <p class="small dim">Doing: {f.doing}</p>
         <div class="buttons">
-          <button class="btn" onClick={act(() => g.debugNewCards())}>
-            🃏 New cards
+          <button class="btn" onClick={act(() => g.debugNewOrder())}>
+            🛎 New order
           </button>
         </div>
       </Card>
@@ -68,7 +68,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
             <p class="small dim">✔ No problems so far.</p>
           )}
         </Collapsible>
-        <Collapsible title="🃏 Cards and picks" right={picks.length}>
+        <Collapsible title="🛎 Orders" right={picks.length}>
           {picks.length ? (
             <div class="zebra">
               {picks.map((e, i) => (
@@ -76,7 +76,7 @@ export function DebugSheet({ game: g, onDone }: { game: Game; onDone: () => void
               ))}
             </div>
           ) : (
-            <p class="small dim">No picks yet.</p>
+            <p class="small dim">No orders yet.</p>
           )}
         </Collapsible>
       </Card>

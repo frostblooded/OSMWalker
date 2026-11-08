@@ -1,6 +1,6 @@
 // The sheets: Help, Stats, History and Debug, with fake map services.
 import { expect, test, type Page } from "@playwright/test";
-import { mockServices, reopenWith } from "./mock";
+import { mockServices, orderNow, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -29,7 +29,7 @@ test("Help lists topics and opens a page with the real numbers", async ({ page }
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Help/ }).click();
   const help = page.getByRole("dialog", { name: /Help/ });
-  await help.getByRole("button", { name: "How he walks" }).click();
+  await help.getByRole("button", { name: "How he rides" }).click();
   await expect(help).toContainText("5 km/h");
   await expect(help).not.toContainText("{");
   expect(await smallButtons(page)).toEqual([]);
@@ -47,7 +47,7 @@ test("Help that couldn't load offers Try again", async ({ page }) => {
   await expect(help).toContainText("Couldn't load Help");
   fail = false;
   await help.getByRole("button", { name: /Try again/ }).click();
-  await expect(help.getByRole("button", { name: "How he walks" })).toBeVisible();
+  await expect(help.getByRole("button", { name: "How he rides" })).toBeVisible();
 });
 
 test("Help search finds pages by their text and keeps the results after Back", async ({ page }) => {
@@ -72,12 +72,12 @@ test("Help search finds pages by their text and keeps the results after Back", a
   await expect(help.getByRole("button", { name: "Money" })).toBeVisible();
 });
 
-test("Stats shows his level, XP, money and places visited", async ({ page }) => {
+test("Stats shows his money, deliveries, places and upgrades", async ({ page }) => {
   await startInSofia(page);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Stats/ }).click();
   const sheet = page.getByRole("dialog", { name: /Stats/ });
-  for (const t of ["Level 1", "XP0 / 100", "Money€0", "Places visited0"]) await expect(sheet).toContainText(t);
+  for (const t of ["Money€0", "Deliveries0", "Places visited0", "Bike tune-up×0", "Speed45 km/h"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
   await sheet.getByRole("button", { name: /Close/ }).click();
   await expect(sheet).toBeHidden();
@@ -101,24 +101,23 @@ test("Debug shows the city, problems and buttons that work", async ({ page }) =>
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /Debug/ }).click();
   const sheet = page.getByRole("dialog", { name: /Debug/ });
-  for (const t of ["City", "Loaded", "Street squares", "Problems", "Cards and picks"]) await expect(sheet).toContainText(t);
-  await sheet.getByRole("button", { name: /Cards and picks/ }).click();
-  await expect(sheet).toContainText(/Dealt \d cards?/);
+  for (const t of ["City", "Loaded", "Street squares", "Problems", "Orders"]) await expect(sheet).toContainText(t);
   expect(await smallButtons(page)).toEqual([]);
-  await sheet.getByRole("button", { name: /New cards/ }).click();
+  await sheet.getByRole("button", { name: /New order/ }).click();
   await expect(sheet).toBeHidden();
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible();
+  await expect(page.locator(".chip")).toContainText("Picking up at");
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: /Debug/ }).click();
+  await sheet.getByRole("button", { name: /Orders/ }).click();
+  await expect(sheet).toContainText(/🛎 Order \(button\): /);
 });
 
-test("Only zoom, the menu and Where next sit on the map", async ({ page }) => {
+test("Only zoom, the menu and the Shop sit on the map", async ({ page }) => {
   await startInSofia(page);
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
   const onMap = () => page.locator(".game > button, .game > .zoom > button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()));
-  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out", "🧭 Where next?"]);
-  await page.getByRole("button", { name: /Where next/ }).click();
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out", "🛒 Shop"]);
+  await page.getByRole("button", { name: /Shop/ }).click();
   expect((await onMap()).sort()).toEqual(["Menu", "Zoom in", "Zoom out"]);
-  await expect(page.locator(".chip .eta")).toContainText(/~\d+ min|<1 min/, { timeout: 20000 });
 });
 
 test("Map credit is a folded ⓘ bottom left that opens on tap", async ({ page }) => {
@@ -166,8 +165,7 @@ test("His face shows on the map, with the kind of place he heads for over his he
   await startInSofia(page);
   await expect(page.locator(".marker.him .face")).toHaveText("🙂");
   // The test tiles' only places of note are bridges, which are sights.
-  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  await orderNow(page);
   await expect(page.locator(".marker.him .bubble")).toHaveText("🌉", { timeout: 20000 });
 });
 
@@ -270,10 +268,12 @@ test("History fits the map to the room left above its sheet after a drag", async
   // A long History, so its sheet is tall enough to drag down without closing.
   await reopenWith(page, 'for (let i = 0; i < 30; i++) d.stats.history.entries.push({ text: "Found Cafe " + i, t: Math.floor(Date.now() / 1000) - 3600 + i * 60, at: [42.687 + i * 0.0002, 23.319], ti: 0 });');
   await page.getByRole("button", { name: "Menu" }).click();
+  // With the camera off his ride is the only other thing that moves him on screen, a few px a second.
+  await page.getByRole("switch", { name: /Camera follows him/ }).click();
   await page.getByRole("button", { name: /History/ }).click();
   const sheet = page.getByRole("dialog", { name: /History/ });
   await expect.poll(async () => (await sheet.boundingBox())?.height ?? 0, { timeout: 10000 }).toBeGreaterThan(page.viewportSize()!.height * 0.5);
-  // He walks a px or so a second; the fit moves him far more. Wait for the fit to end.
+  // The fit moves him far more than his ride does. Wait for the fit to end.
   const him = page.locator(".marker.him");
   const y = async () => (await him.boundingBox())!.y;
   let before = -1;
@@ -282,12 +282,12 @@ test("History fits the map to the room left above its sheet after a drag", async
       const last = before;
       await page.waitForTimeout(300);
       before = await y();
-      return Math.abs(before - last) < 3;
+      return Math.abs(before - last) < 8;
     }, { timeout: 10000 })
     .toBe(true);
   await dragTitle(page, /History/, 150);
   await expect(sheet).toBeVisible();
-  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(20);
+  await expect.poll(async () => Math.abs((await y()) - before), { timeout: 5000 }).toBeGreaterThan(40);
 });
 
 test("the map credit stays under an open sheet's buttons", async ({ page }) => {

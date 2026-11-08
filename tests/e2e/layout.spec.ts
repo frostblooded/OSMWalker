@@ -3,7 +3,7 @@
 // saves each screen in screens/ so a PR can be eyeballed (off by default: it costs
 // about 12 s of every e2e run).
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { mockServices, reopenWith } from "./mock";
+import { mockServices, orderNow, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -102,19 +102,13 @@ async function check(page: Page, name: string) {
   expect.soft(await sideways(page), `${name} at ${width} px: sideways scroll`).toBeLessThanOrEqual(0);
 }
 
-/** Picks Sofia, waits for its streets, and picks his first place from the cards. */
+/** Picks Sofia, waits for its streets, and gets him an order at once. */
 async function startInSofia(page: Page) {
   await page.goto("./");
   await page.getByLabel("City name").fill("Sofia");
   await page.getByRole("button", { name: /Sofia/ }).click();
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-  await pickFirst(page);
-}
-
-async function pickFirst(page: Page) {
-  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
-  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
-  await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
+  await orderNow(page);
 }
 
 async function openMenuItem(page: Page, name: RegExp) {
@@ -136,13 +130,9 @@ for (const width of [360, 412]) {
       await check(page, "picker-results");
       await page.getByRole("button", { name: /Sofia/ }).click();
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
+      await expect(page.locator(".chip")).toContainText("waiting for an order");
       await check(page, "game-waiting");
-      await page.getByRole("button", { name: /Where next/ }).click();
-      await expect(page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first()).toBeVisible();
-      await check(page, "where-next");
-      await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
-      await expect(page.locator(".chip .eta")).toBeVisible({ timeout: 20000 });
+      await orderNow(page);
       await check(page, "game");
 
       await page.getByRole("button", { name: "Menu" }).click();
@@ -155,9 +145,9 @@ for (const width of [360, 412]) {
 
       await openMenuItem(page, /Help/);
       const help = page.getByRole("dialog", { name: /Help/ });
-      await expect(help.getByRole("button", { name: "How he walks" })).toBeVisible();
+      await expect(help.getByRole("button", { name: "How he rides" })).toBeVisible();
       await check(page, "help");
-      await help.getByRole("button", { name: "Places and rewards" }).click();
+      await help.getByRole("button", { name: "Orders" }).click();
       await check(page, "help-page");
       await help.getByRole("button", { name: "Back" }).click();
       await help.getByRole("searchbox", { name: "Search Help" }).fill("battery");
@@ -170,34 +160,25 @@ for (const width of [360, 412]) {
       await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
     });
 
-    test("no upgrade card, train picker or upgrades list has overlapping text or sideways scroll", async ({ page }) => {
+    test("no Shop or upgrades screen has overlapping text or sideways scroll", async ({ page }) => {
       test.setTimeout(120_000);
       await startInSofia(page);
-      // As if he stood at a place with every kind of upgrade card dealt, high enough and rich enough for the bike.
-      const stand = "Object.assign(d.walker, { goal: null, goal_node: null, place: null, route: [], route_arrives: false });";
-      await reopenWith(
-        page,
-        `const c = d.choice.going; ${stand} d.choice.going = null; d.stats.level = 9; d.stats.cents = 99999; d.stats.upgrades = ["map", "bike", "guide", "bag", "scooter", "metro"];
-        d.choice.offer = [{ ...c, slot: "shop", upgrade: "train" }, { ...c, slot: "parcel", to: { ...c.place, name: "Bakery at the far end of a long street name" } }, { ...c, slot: "metro", to: c.place }, { ...c, slot: "train" }];`,
-      );
-      await page.getByRole("button", { name: /Where next/ }).click({ timeout: 20000 });
-      await expect(page.getByRole("dialog", { name: /Where next/ }).locator("button.offer.shop")).toBeVisible();
-      await check(page, "where-next-upgrades");
-      await page.getByRole("dialog", { name: /Where next/ }).getByRole("button", { name: /Close/ }).click();
+      await page.getByRole("button", { name: /Shop/ }).click();
+      await expect(page.getByRole("dialog", { name: /Shop/ })).toContainText("Still needs");
+      await check(page, "shop");
+      await page.getByRole("dialog", { name: /Shop/ }).getByRole("button", { name: /Close/ }).click();
+      // Rich, with the order upgrade open, and delivering to a door with a long street name.
+      await reopenWith(page, `d.stats.cents = 9999999; d.stats.upgrades = { speed: 10, orders: 3 }; d.job.order.picked = true; d.job.order.to.street = "Boulevard of the Liberators of the Old Town Quarter"; d.job.order.to.number = "112"; d.job.order.to.lat += 0.01;`);
+      // The door is moved about 1 km off, so he is still on his way when the screenshot is taken.
+      await expect(page.locator(".chip")).toContainText("Delivering to Boulevard", { timeout: 20000 });
+      await check(page, "game-delivering");
+      await page.getByRole("button", { name: /Shop/ }).click();
+      await expect(page.getByRole("dialog", { name: /Shop/ })).toContainText("×10");
+      await check(page, "shop-open");
+      await page.getByRole("dialog", { name: /Shop/ }).getByRole("button", { name: /Close/ }).click();
       await openMenuItem(page, /Stats/);
-      await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Upgrades6 / 7");
+      await expect(page.getByRole("dialog", { name: /Stats/ })).toContainText("Delivery app boost×3");
       await check(page, "stats-upgrades");
-      await page.getByRole("dialog", { name: /Stats/ }).getByRole("button", { name: /Close/ }).click();
-
-      await reopenWith(page, `${stand} d.choice.offer = []; d.choice.train = true;`, "train-save");
-      await page.getByRole("button", { name: /Where to by train/ }).click({ timeout: 20000 });
-      const train = page.getByRole("dialog", { name: /Where to by train/ });
-      await expect(train.getByLabel("City name")).toBeVisible();
-      await train.getByLabel("City name").fill("Sofia");
-      await expect(train.locator(".results button").first()).toBeVisible();
-      await check(page, "train");
-      await train.getByRole("button", { name: /Stay in/ }).click();
-      await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
     });
 
     test("no Debug or History screen has overlapping text or sideways scroll", async ({ page }) => {
@@ -206,8 +187,8 @@ for (const width of [360, 412]) {
       await openMenuItem(page, /Debug/);
       const debug = page.getByRole("dialog", { name: /Debug/ });
       await check(page, "debug");
-      await debug.getByRole("button", { name: /Cards and picks/ }).click();
-      await check(page, "debug-cards");
+      await debug.getByRole("button", { name: /Orders/ }).click();
+      await check(page, "debug-orders");
       await debug.getByRole("button", { name: /Close/ }).click();
 
       await openMenuItem(page, /History/);

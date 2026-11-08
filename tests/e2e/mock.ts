@@ -61,3 +61,9 @@ export async function reopenWith(page: Page, change: string, flag = "changed-sav
   );
   await page.reload();
 }
+
+/** Reloads with the next order due at once, and waits until he is on his way to pick it up. */
+export async function orderNow(page: Page) {
+  await reopenWith(page, "d.job = { order: null, wait_left_s: 0 };", "order-now");
+  await expect(page.locator(".chip")).toContainText("Picking up at", { timeout: 20000 });
+}

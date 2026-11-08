@@ -1,6 +1,6 @@
 // Player flows in the browser, with fake map services.
 import { expect, test } from "@playwright/test";
-import { mockServices, reopenWith } from "./mock";
+import { mockServices, orderNow, reopenWith } from "./mock";
 
 test.beforeEach(async ({ context }) => {
   await mockServices(context);
@@ -13,41 +13,33 @@ async function startInSofia(page: import("@playwright/test").Page) {
   await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
 }
 
-test("picks a city, then a place from the cards, and walks there", async ({ page }) => {
+test("picks a city and rides about until an order comes, then rides to pick it up", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await startInSofia(page);
   await expect(page.locator(".hud .city")).toContainText("Sofia");
   await expect(page.locator(".marker.him")).toBeVisible();
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
-  await expect(page.locator(".hud")).toContainText("He waits for you to pick where next", { timeout: 10000 });
-  await page.getByRole("button", { name: /Where next/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Where next/ });
-  const cards = sheet.locator("button.offer");
-  await expect(cards).toHaveCount(3);
-  // Each card says what it gives and how far it is.
-  for (const t of await cards.allTextContents()) expect(t).toMatch(/(💶 €[\d.]+|⭐ \d+ XP).*\d+(\.\d)? k?m · (~\d+ min|<1 min)/);
-  const name = (await cards.first().locator(".offer-name").textContent())!.replace(/🆕 New/, "").trim();
-  await cards.first().click();
-  await expect(sheet).toBeHidden();
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeHidden();
-  await expect(page.locator(".chip")).toContainText(`Going to ${name.replace(/^\S+ /, "")}`, { timeout: 10000 });
+  await expect(page.locator(".chip")).toContainText("Riding about, waiting for an order");
+  await expect(page.locator(".hud .street")).toContainText("Riding along");
+  await orderNow(page);
+  // The order says where, how far, how long and the pay.
+  await expect(page.locator(".chip .eta")).toContainText(/\d+(\.\d)? k?m · (~\d+ min|<1 min) · 💶 €[\d.]+/);
   await page.screenshot({ path: "test-results/game.png" });
   expect(errors).toEqual([]);
 });
 
-test("at a station with a train ticket, takes the train to the city you pick, keeping his money", async ({ page }) => {
+test("buys a faster bike in the Shop with his money", async ({ page }) => {
   await startInSofia(page);
-  await reopenWith(page, "Object.assign(d.walker, { goal: null, goal_node: null, place: null, route: [], route_arrives: false }); d.choice.offer = []; d.choice.train = true; d.stats.cents = 4321;");
-  await expect(page.locator(".hud")).toContainText("He waits at the station", { timeout: 20000 });
-  await page.getByRole("button", { name: /Where to by train/ }).click();
-  const sheet = page.getByRole("dialog", { name: /Where to by train/ });
-  await sheet.getByLabel("City name").fill("Sofia");
-  await sheet.locator(".results button").first().click();
-  await expect(sheet).toBeHidden({ timeout: 20000 });
-  await expect(page.locator(".toast")).toContainText("Took the train to Sofia");
-  await expect(page.locator(".pill.coins")).toHaveText("€43.21");
-  await expect(page.getByRole("button", { name: /Where next/ })).toBeVisible({ timeout: 20000 });
+  await reopenWith(page, "d.stats.cents = 1000;");
+  await expect(page.locator(".pill.coins")).toHaveText("€10");
+  await page.getByRole("button", { name: /Shop/ }).click();
+  const shop = page.getByRole("dialog", { name: /Shop/ });
+  await expect(shop).toContainText("🔒 Opens after10 Bike tune-ups (0 / 10)");
+  await shop.getByRole("button", { name: "Buy · €4" }).click();
+  await expect(page.locator(".pill.coins")).toHaveText("€6");
+  await expect(shop).toContainText("×1");
+  await expect(page.locator(".toast")).toContainText("Bought 🔧 Bike tune-up #1 for €4");
 });
 
 test("picks up where he was after a reload", async ({ page }) => {
@@ -87,8 +79,7 @@ test("every tap target is at least 48 px", async ({ page }) => {
   expect(small).toEqual([]);
 });
 
-test("the top card shows his money and level", async ({ page }) => {
+test("the top card shows his money", async ({ page }) => {
   await startInSofia(page);
   await expect(page.locator(".pill.coins")).toHaveText("€0");
-  await expect(page.locator(".pill.level")).toHaveText("Lv 1");
 });

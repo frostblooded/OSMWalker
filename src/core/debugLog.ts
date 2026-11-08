@@ -1,12 +1,12 @@
-// Debug log: his last SIZE card deals, the player's picks (which card, how
-// far, what it promised) and why a random spot was used.
+// Debug log: his last SIZE orders as they came (where from, where to, the
+// pay) and how each ended (delivered, or cancelled when he couldn't get there).
 import { timeText } from "./history";
 import { euro } from "./money";
 
 export const SIZE = 50;
-const FORCED: Record<string, string> = { cards: "New cards button" };
+const FORCED: Record<string, string> = { order: "New order button" };
 
-/** A deal, a pick (from the game) or a random spot (from the walker's picked event). */
+/** An order that came, was delivered or was cancelled. */
 export type Entry = Record<string, unknown> & { t?: number };
 
 const num = (v: unknown, d = 0) => (typeof v === "number" ? v : d);
@@ -25,30 +25,22 @@ export class DebugLog {
     return this.entries;
   }
 
-  /** A save's log; entries from before the cards (his own goal picks) are dropped. */
+  /** A save's log; entries from before the orders (cards, picks, random spots) are dropped. */
   static fromJSON(a: unknown): DebugLog {
     const log = new DebugLog();
-    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object" && ("dealt" in e || "picked" in e || "fallback" in e));
+    if (Array.isArray(a)) log.entries = a.filter((e): e is Entry => !!e && typeof e === "object" && ("order" in e || "delivered" in e || "cancelled" in e));
     return log;
   }
 }
 
-/** True for an entry worth a warning: a random spot. */
-export const isWarning = (e: Entry) => "fallback" in e;
+/** True for an entry worth a warning: a cancelled order. */
+export const isWarning = (e: Entry) => "cancelled" in e;
 
-/** A short title for one entry, such as "🎯 Picked 2 of 3: Cafe East". */
+/** A short title for one entry, such as "🛎 Order: Pizza Roma → Vitosha 12". */
 export function title(e: Entry): string {
-  const byButton = "forced" in e ? " (button)" : "";
-  if (Array.isArray(e.dealt)) return `🃏 Dealt ${e.dealt.length} card${e.dealt.length === 1 ? "" : "s"}${byButton}`;
-  if ("picked" in e) return `🎯 Picked ${num(e.picked)} of ${num(e.of)}: ${str(e.place)}`;
-  return `⚠ Random spot: ${num(e.in_box) === 0 ? "no places loaded" : "none to offer"}`;
-}
-
-/** What one card promised: "far · 950 m · €8.20 + 20 XP", with what a shop sells ("· sells bike") or where a parcel or the metro goes ("· to Bakery"). */
-function card(c: Record<string, unknown>): string {
-  const got = [num(c.cents) ? euro(num(c.cents)) : "", num(c.xp) ? `${num(c.xp)} XP` : ""].filter(Boolean).join(" + ");
-  const extra = (c.upgrade ? ` · sells ${str(c.upgrade)}` : "") + (c.to ? ` · to ${str(c.to)}` : "");
-  return `${str(c.slot)} · ${Math.round(num(c.dist_m))} m · ${got || "nothing"}${c.new ? " · new" : ""}${extra}`;
+  if ("order" in e) return `🛎 Order${"forced" in e ? " (button)" : ""}: ${str(e.from)} → ${str(e.to)}`;
+  if ("delivered" in e) return `✅ Delivered to ${str(e.to)}: ${euro(num(e.cents))}`;
+  return `⚠ Cancelled: couldn't get to ${str(e.at)}`;
 }
 
 /** The lines that explain one entry. */
@@ -56,15 +48,9 @@ export function lines(e: Entry, biasMin: number): string[] {
   let head = timeText(num(e.t), biasMin);
   if ("forced" in e) head += ` · forced by the ${FORCED[str(e.forced)] ?? str(e.forced)}`;
   const out = [head];
-  if (Array.isArray(e.dealt)) {
-    out.push(`From ${num(e.in_box)} places in the city box`);
-    e.dealt.forEach((c: Record<string, unknown>, i) => out.push(`${i + 1}. ${str(c.place)} (${str(c.kind)}): ${card(c)}`));
-  } else if ("picked" in e) {
-    out.push(`${str(e.kind)}: ${card(e)}`);
-  } else if ("fallback" in e) {
-    const spot = Array.isArray(e.spot) ? (e.spot as number[]) : [0, 0];
-    out.push(`${num(e.in_box)} places in the city box`);
-    out.push(`Random spot ${spot[0]!.toFixed(5)}, ${spot[1]!.toFixed(5)} because ${str(e.fallback)} (${num(e.cells)} street cells loaded)`);
+  if ("order" in e) {
+    out.push(`Pick-up ${Math.round(num(e.pickup_m))} m away, drop ${Math.round(num(e.drop_m))} m on from it, pays ${euro(num(e.cents))}`);
+    out.push(`From ${num(e.food)} food places and ${num(e.doors)} doors loaded${e.street_doors ? " (no house numbers: street doors)" : ""}`);
   }
   return out;
 }

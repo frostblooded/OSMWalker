@@ -117,6 +117,19 @@ describe("StreetGraph", () => {
     expect(g.placesIn([41.999, 22.999, 42.001, 23.001])).toEqual([cafe]);
     expect(g.placesIn([42.001, 22.999, 42.002, 23.001])).toEqual([]);
   });
+
+  it("finds house numbers inside a box, and the street at a corner", () => {
+    const g = new StreetGraph();
+    const home = cellOf(42, 23);
+    const door = { street: "", number: "12", lat: 42.0005, lon: 23.0 };
+    g.addCell(home, { ...compactCells(plus(), [home]).get(cellKey(home))!, homes: [door] });
+    expect(g.homesIn([41.999, 22.999, 42.001, 23.001])).toEqual([door]);
+    expect(g.homesIn([42.001, 22.999, 42.002, 23.001])).toEqual([]);
+    const s = new StreetGraph();
+    s.addCell(home, { ids: Float64Array.from([1, 2, 3]), coords: Float64Array.from([42, 23, 42, 23.001, 42, 23.002]), ways: [{ name: "", ids: [1, 2] }, { name: "Main St", ids: [2, 3] }], places: [] });
+    expect(s.streetAt(2)).toBe("Main St");
+    expect(s.streetAt(1)).toBe("");
+  });
 });
 
 describe("cells", () => {

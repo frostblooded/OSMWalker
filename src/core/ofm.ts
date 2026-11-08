@@ -8,13 +8,14 @@ import { VectorTile } from "@mapbox/vector-tile";
 import { PbfReader } from "pbf";
 import { pxToLat, pxToLon, type Tile } from "./geo";
 import type { Cell, Way } from "./graph";
+import type { Home } from "./orders";
 import type { Place } from "./stats";
 
 export const TILE_ZOOM = 14;
 /** Positions are kept in units of 1/4096 of a z14 tile, which are pixels at zoom 18. */
 export const UNIT_ZOOM = 18;
 export const UNITS = 4096;
-export const LAYERS = ["transportation", "transportation_name", "poi"];
+export const LAYERS = ["transportation", "transportation_name", "poi", "housenumber"];
 const WALKABLE = new Set(["primary", "secondary", "tertiary", "minor", "service", "track", "path"]);
 const NOT_WALKABLE_SUBCLASS = new Set(["platform", "corridor"]);
 /** Stops and entrances are everywhere and not worth a walk. */
@@ -90,7 +91,7 @@ export function fromLayers(layers: Layers, tile: Tile): Cell {
     coords[i * 2 + 1] = p[1];
     i++;
   }
-  return { ids, coords, ways, places: [...found, ...bridges(t, layers.transportation_name, tile)] };
+  return { ids, coords, ways, places: [...found, ...bridges(t, layers.transportation_name, tile)], homes: homes(layers.housenumber, tile) };
 }
 
 /**
@@ -169,6 +170,23 @@ function bridgeAt(line: number[], scale: number): Pt | null {
   const i = Math.floor((line.length / 2 - 1) / 2) * 2;
   const mid: Pt = [line[i]! * scale, line[i + 1]! * scale];
   return inside(mid) ? mid : null; // all in the buffer past the edge: the neighbouring tile has it
+}
+
+/** House numbers inside the tile, the doors he delivers to; the street is filled in when one is picked (see Game). */
+export function homes(layer: Layer | undefined, tile: Tile): Home[] {
+  if (!layer) return [];
+  const scale = UNITS / layer.extent;
+  const out: Home[] = [];
+  for (const f of layer.features) {
+    const number = String(f.tags.housenumber ?? "");
+    const pts = f.points ?? [];
+    if (number === "" || pts.length < 2) continue;
+    const x = pts[0]! * scale;
+    const y = pts[1]! * scale;
+    if (x < 0 || y < 0 || x >= UNITS || y >= UNITS) continue; // the neighbouring tile has it
+    out.push({ street: "", number, lat: pxToLat(tile.y * UNITS + y, UNIT_ZOOM), lon: pxToLon(tile.x * UNITS + x, UNIT_ZOOM) });
+  }
+  return out;
 }
 
 /** Named places inside the tile. A lower rank is more important within its tile. */

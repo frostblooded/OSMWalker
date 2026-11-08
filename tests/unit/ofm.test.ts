@@ -145,6 +145,13 @@ describe("ofm streets", () => {
     expect(b.some((p) => p.name === "Footbridge")).toBe(true);
   });
 
+  it("keeps the house numbers inside the tile, as doors", () => {
+    const cell = fromLayers({ housenumber: { extent: 4096, features: [{ tags: { housenumber: "12" }, points: [100, 200] }, { tags: { housenumber: "14a" }, points: [5000, 200] }, { tags: {}, points: [300, 300] }] } }, WEST);
+    expect(cell.homes!.map((h) => h.number)).toEqual(["12"]);
+    expect(cell.homes![0]!.street).toBe("");
+    expect(fromLayers({}, WEST).homes).toEqual([]);
+  });
+
   it("joins a side street ending mid-segment", () => {
     const main = minor([100, 100, 300, 100]);
     const side: Feature = { tags: { class: "minor" }, lines: [[200, 100, 200, 300]] };

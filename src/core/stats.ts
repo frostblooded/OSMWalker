@@ -1,64 +1,50 @@
-// His progress: money, XP and level, the upgrades he bought, the places he
-// has been to, and his history (the feed and the trail he walked). Reaching a
-// place gives the reward its card promised (see cards.ts).
+// His progress: money, deliveries made, the upgrades he bought, the places he
+// has been to, and his history (the feed and the trail he walked).
 import { History } from "./history";
 import { euro } from "./money";
-import type { Reward } from "./places";
-import { LADDER, nextUpgrade, opensAt, type Upgrade, type UpgradeId } from "./upgrades";
+import { count, isOpen, priceOf, type Owned, type Upgrade, UPGRADES } from "./upgrades";
 
 export type Place = { name: string; class: string; subclass: string; rank: number; lat: number; lon: number; [k: string]: unknown };
 
-/** XP from one level to the next: XP_PER_LEVEL times the level. */
-export const XP_PER_LEVEL = 100;
-export const xpToNext = (lvl: number) => XP_PER_LEVEL * lvl;
-/** The save version of the base loop's economy: older saves start its money afresh. */
-export const ECONOMY = 1;
+/** The save version of the economy: older saves start their money afresh. */
+export const ECONOMY = 2;
 
 export class Stats {
   /** His money, in euro cents. */
   cents = 0;
-  xp = 0;
-  level = 1;
+  /** Orders delivered. */
+  deliveries = 0;
   history = new History();
   /** Places he has reached, by visitKey. */
   visited = new Set<string>();
-  /** Upgrades he owns, by id. */
-  upgrades = new Set<UpgradeId>();
+  /** How many of each upgrade he owns. */
+  upgrades: Owned = {};
 
   /** True when he has never reached `place`. */
   isNew(place: Pick<Place, "name" | "lat" | "lon">): boolean {
     return !this.visited.has(visitKey(place));
   }
 
-  /** He reached `place`: reward `r` (its card's) lands and the feed says so. */
-  reach(place: Place, r: Reward): void {
-    const isNew = this.isNew(place);
+  /** He reached `place`; it counts as visited. */
+  reach(place: Pick<Place, "name" | "lat" | "lon">): void {
     this.visited.add(visitKey(place));
-    this.cents += r.cents;
-    const got = [r.cents ? `+${euro(r.cents)}` : "", r.xp ? `+${r.xp} XP` : ""].filter(Boolean).join(", ");
-    this.say(`${isNew ? "Found" : "Reached"} ${place.name}${got ? ` (${got})` : ""}`);
-    this.addXp(r.xp);
   }
 
-  /** Buys `u` if he can afford it; false when he can't (or has it). */
-  buy(u: Upgrade, at: Place): boolean {
-    if (this.upgrades.has(u.id) || this.cents < u.cents) return false;
-    this.cents -= u.cents;
-    this.upgrades.add(u.id);
-    this.say(`Bought a ${u.icon} ${u.name} at ${at.name} for ${euro(u.cents)}: ${u.does}`);
+  /** He handed over an order worth `cents`. */
+  deliver(cents: number): void {
+    this.cents += cents;
+    this.deliveries++;
+  }
+
+  /** Buys one more `u` if it is open and he can afford it; false when not. */
+  buy(u: Upgrade): boolean {
+    const price = priceOf(u, this.upgrades);
+    if (!isOpen(u, this.upgrades) || this.cents < price) return false;
+    this.cents -= price;
+    const n = count(this.upgrades, u.id) + 1;
+    this.upgrades[u.id] = n;
+    this.say(`Bought ${u.icon} ${u.name} #${n} for ${euro(price)}: ${u.does}`);
     return true;
-  }
-
-  addXp(n: number): void {
-    this.xp += n;
-    while (this.xp >= xpToNext(this.level)) {
-      this.xp -= xpToNext(this.level);
-      this.level++;
-      const u = opensAt(this.level);
-      // Named only when it is the next to buy: upgrades are bought in order.
-      const open = u && u === nextUpgrade(this.upgrades) ? u : undefined;
-      this.say(open ? `Reached level ${this.level}: ${open.where} now sells a ${open.icon} ${open.name} (${euro(open.cents)})` : `Reached level ${this.level}`);
-    }
   }
 
   say(line: string): void {
@@ -66,19 +52,20 @@ export class Stats {
   }
 
   toJSON() {
-    return { economy: ECONOMY, cents: this.cents, xp: this.xp, level: this.level, history: this.history.toJSON(), visited: [...this.visited], upgrades: [...this.upgrades] };
+    return { economy: ECONOMY, cents: this.cents, deliveries: this.deliveries, history: this.history.toJSON(), visited: [...this.visited], upgrades: this.upgrades };
   }
 
-  /** A save, from this version or an older one: what the game no longer has is left out, and money from before the base loop starts at 0. */
-  static fromJSON(d: Partial<ReturnType<Stats["toJSON"]>>): Stats {
+  /** A save, from this version or an older one: what the game no longer has (XP, levels, old upgrades) is left out, and money from an older economy starts at 0. */
+  static fromJSON(d: Partial<Record<keyof ReturnType<Stats["toJSON"]>, unknown>>): Stats {
     const s = new Stats();
-    if (d.economy === ECONOMY && typeof d.cents === "number") s.cents = d.cents;
-    if (typeof d.xp === "number") s.xp = d.xp;
-    if (typeof d.level === "number") s.level = d.level;
-    if (d.history) s.history = History.fromJSON(d.history);
-    s.visited = new Set(d.visited ?? []);
-    // In ladder order, so an unknown id from a newer version is left out.
-    s.upgrades = new Set(LADDER.filter((u) => d.upgrades?.includes(u.id)).map((u) => u.id));
+    if (d.economy === ECONOMY) {
+      if (typeof d.cents === "number") s.cents = d.cents;
+      if (typeof d.deliveries === "number") s.deliveries = d.deliveries;
+      const up = (d.upgrades ?? {}) as Record<string, unknown>;
+      for (const u of UPGRADES) if (typeof up[u.id] === "number" && (up[u.id] as number) > 0) s.upgrades[u.id] = Math.floor(up[u.id] as number);
+    }
+    if (d.history) s.history = History.fromJSON(d.history as Parameters<typeof History.fromJSON>[0]);
+    if (Array.isArray(d.visited)) s.visited = new Set(d.visited.filter((v): v is string => typeof v === "string"));
     return s;
   }
 }

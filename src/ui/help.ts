@@ -3,12 +3,10 @@
 // goes stale. "# Title" starts a section, "## Title {id}" a page, and the
 // lines after it are the page's text. Fetched only when Help first opens.
 import * as DebugLog from "../core/debugLog";
-import * as Cards from "../core/cards";
 import * as History from "../core/history";
 import { euro } from "../core/money";
-import * as Places from "../core/places";
+import * as O from "../core/orders";
 import * as Problems from "../core/problems";
-import * as S from "../core/stats";
 import * as U from "../core/upgrades";
 import * as W from "../core/walker";
 import * as G from "../game/game";
@@ -119,14 +117,17 @@ export const build = (text: string) => parse(fill(text, values()));
 /** Shortest form of a number: 0.5, 2, 1.3. */
 const num = (n: number) => String(Math.round(n * 100) / 100);
 const km = (m: number) => num(m / 1000);
-/** Sample walks Help shows the pay for. */
-const EX_NEAR_M = 300;
-const EX_FAR_M = 1200;
-const workPay = (m: number) => euro(Places.rewardOf({ class: "cafe", rank: 1 }, Cards.footMin(m * Cards.ROUTE_FACTOR), false).cents);
-/** The ladder as Help list items: "- 🗺 City map, from level 2 for €5 at a bookshop or newsagent: a 4th card at every stop." */
-const ladder = () => U.LADDER.map((u) => `- ${u.icon} ${u.name}, from level ${u.level} for ${euro(u.cents)} at ${u.where}: ${u.does}.`).join("\n");
-/** A kind's place classes as words: "cafe, fast food, ice cream". */
-const kinds = (k: Places.Kind) => Places.KINDS[k].map((c) => c.replace(/_/g, " ")).join(", ");
+/** Sample drops Help shows the pay for. */
+const EX_NEAR_M = 500;
+const EX_FAR_M = 1500;
+const pct = (x: number) => String(Math.round(Math.abs(x - 1) * 100));
+/** "restaurant, cafe or pizza": the kinds of food place, from orders.ts. */
+const foodKinds = () => {
+  const k = [...O.FOOD].map((c) => c.replace("_", " "));
+  return `${k.slice(0, -1).join(", ")} or ${k.at(-1)}`;
+};
+/** The upgrades as Help list items: "- 🔧 Bike tune-up, from €4: he rides 10% faster." */
+const upgrades = () => U.UPGRADES.map((u) => `- ${u.icon} ${u.name}, from ${euro(u.cents)}: ${u.does}.`).join("\n");
 
 export function values(): Record<string, string> {
   return {
@@ -136,50 +137,31 @@ export function values(): Record<string, string> {
     POSE_S: num(G.POSE_S),
     MIN_CITY_KM: km(W.MIN_CITY_RADIUS_M),
     MAX_CITY_KM: km(W.MAX_CITY_RADIUS_M),
-    WALK_KMH: String(Math.round(W.WALK_MPS * 3.6)),
-    WALK_M_PER_MIN: String(Math.round(W.WALK_MPS * 60)),
+    BIKE_KMH: String(Math.round(W.BIKE_MPS * 3.6)),
+    BIKE_M_PER_MIN: String(Math.round(W.BIKE_MPS * 60)),
+    REAL_BIKE_KMH: num(W.REAL_BIKE_KMH),
+    SPEED_X: num(W.GAME_SPEED_X),
     ARRIVE_M: num(W.ARRIVE_M),
-    MAX_SKIPS: String(W.MAX_SKIPS),
     TRIP_RATIO: num(W.TRIP_RATIO),
     TRIP_EXTRA_KM: km(W.TRIP_EXTRA_M),
-    WORK_PER_MIN: euro(Places.WORK_CENTS_PER_MIN),
-    SIGHT_XP_PER_MIN: num(Places.SIGHT_XP_PER_MIN),
-    GREEN_XP_PER_MIN: num(Places.GREEN_XP_PER_MIN),
-    STOP_MIN: num(Places.STOP_MIN),
-    LANDMARK_RANK: num(Places.LANDMARK_RANK),
-    LANDMARK_X: num(Places.LANDMARK_BONUS),
+    ORDER_WAIT_S: num(O.ORDER_WAIT_S),
+    MIN_WAIT_S: num(O.MIN_WAIT_S),
+    NEAREST_FOOD: String(O.NEAREST_FOOD),
+    FOOD_KINDS: foodKinds(),
+    DROP_MIN_M: num(O.DROP_MIN_M),
+    DROP_MAX_KM: km(O.DROP_MAX_M),
+    BASE_EURO: euro(O.BASE_CENTS),
+    PER_KM_EURO: euro(O.CENTS_PER_KM),
+    ROUTE_FACTOR: num(O.ROUTE_FACTOR),
     EX_NEAR_M: num(EX_NEAR_M),
-    EX_NEAR_EURO: workPay(EX_NEAR_M),
+    EX_NEAR_EURO: euro(O.payOf(EX_NEAR_M)),
     EX_FAR_KM: km(EX_FAR_M),
-    EX_FAR_EURO: workPay(EX_FAR_M),
-    CARDS: String(Cards.CARDS),
-    CLOSE_MAX_M: num(Cards.CLOSE_MAX_M),
-    FAR_MIN_M: num(Cards.FAR_MIN_M),
-    REACH_KM: km(Cards.REACH_M),
-    NEAREST: String(Cards.NEAREST),
-    SHOP_REACH_KM: km(Cards.SHOP_REACH_M),
-    LADDER: ladder(),
-    BIKE_LEVEL: String(U.upgradeOf("bike")!.level),
-    BIKE_EURO: euro(U.upgradeOf("bike")!.cents),
-    LADDER_SIZE: String(U.LADDER.length),
-    MAP_CARDS: String(U.powers(new Set(["map"])).cards),
-    BIKE_KMH: String(Math.round(W.WALK_MPS * 3.6 * U.BIKE_SPEED_X)),
-    SCOOTER_KMH: String(Math.round(W.WALK_MPS * 3.6 * U.SCOOTER_SPEED_X)),
-    BIKE_REACH_KM: km(Cards.REACH_M * U.BIKE_REACH_X),
-    SCOOTER_REACH_KM: km(Cards.REACH_M * U.SCOOTER_REACH_X),
-    GUIDE_XP_X: num(U.GUIDE_XP_X),
-    PARCEL_PAY_X: num(U.PARCEL_PAY_X),
-    METRO_MIN_KM: km(U.METRO_MIN_M),
-    RECENT: String(Cards.RECENT),
-    ROUTE_FACTOR: num(Cards.ROUTE_FACTOR),
-    NEW_PLACE_XP: num(Places.NEW_PLACE_XP),
-    WORK_LIST: kinds("work"),
-    SIGHT_LIST: kinds("sight"),
-    GREEN_LIST: kinds("green"),
-    XP_PER_LEVEL: num(S.XP_PER_LEVEL),
-    XP_LV1: String(S.xpToNext(1)),
-    XP_LV2: String(S.xpToNext(2)),
-    XP_LV10: String(S.xpToNext(10)),
+    EX_FAR_EURO: euro(O.payOf(EX_FAR_M)),
+    SPEED_STEP_PCT: pct(U.SPEED_STEP),
+    WAIT_STEP_PCT: pct(U.WAIT_STEP),
+    GROWTH_PCT: pct(U.GROWTH),
+    OPENS_AFTER: String(U.OPENS_AFTER),
+    UPGRADES: upgrades(),
     STREET_SQUARES: String(2 * G.STREET_RING + 1),
     TILE_KM: km(40_075_016 / 2 ** 14),
     CACHE_DAYS: String(Math.round(MAX_AGE_S / 86400)),

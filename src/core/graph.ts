@@ -3,6 +3,7 @@
 // add up, and can be cached by name. Node ids are numbers: tile grid ids are
 // positive (see ofm.ts) and OSM node ids from Overpass are negated.
 import { bboxAround, distanceM, latToPx, lonToPx, tileOf, TILE_SIZE, type BBox, type Tile } from "./geo";
+import type { Home } from "./orders";
 import type { Place } from "./stats";
 
 /** A z14 tile is about 1.8 x 2.4 km at 42°N. */
@@ -11,15 +12,15 @@ export const CELL_ZOOM = 14;
 const EDGE_EPS: [number, number][] = [[-1e-7, -1e-7], [1e-7, -1e-7], [-1e-7, 1e-7], [1e-7, 1e-7]];
 
 export type Way = { name: string; ids: number[] };
-/** One cell's streets: node ids, their [lat, lon] pairs, ways and places of note. Structured-clone friendly. */
-export type Cell = { ids: Float64Array; coords: Float64Array; ways: Way[]; places: Place[] };
+/** One cell's streets: node ids, their [lat, lon] pairs, ways, places of note and house numbers. Structured-clone friendly. */
+export type Cell = { ids: Float64Array; coords: Float64Array; ways: Way[]; places: Place[]; homes?: Home[] };
 /** Overpass JSON, as far as the graph reads it. */
 export type OverpassData = {
   elements?: { type: string; id?: number; lat?: number; lon?: number; nodes?: number[]; tags?: Record<string, string> }[];
   places?: Place[];
 };
 
-const inBox = (p: Place, box: BBox) => p.lat >= box[0] && p.lat <= box[2] && p.lon >= box[1] && p.lon <= box[3];
+const inBox = (p: { lat: number; lon: number }, box: BBox) => p.lat >= box[0] && p.lat <= box[2] && p.lon >= box[1] && p.lon <= box[3];
 
 export const cellKey = (c: Tile) => c.x * 2 ** CELL_ZOOM + c.y;
 export const cellOf = (lat: number, lon: number): Tile => tileOf(lat, lon, CELL_ZOOM);
@@ -121,6 +122,8 @@ export class StreetGraph {
   readonly cells = new Set<number>();
   /** Places of note per loaded cell. */
   readonly places = new Map<number, Place[]>();
+  /** House numbers per loaded cell. */
+  readonly homes = new Map<number, Home[]>();
 
   /** Adds one cell's data and marks the cell loaded. */
   addCell(cell: Tile, data: Cell): void {
@@ -137,6 +140,7 @@ export class StreetGraph {
       }
     }
     this.places.set(cellKey(cell), data.places);
+    this.homes.set(cellKey(cell), data.homes ?? []);
     this.cells.add(cellKey(cell));
   }
 
@@ -147,6 +151,19 @@ export class StreetGraph {
       for (const p of list) if (inBox(p, box)) out.push(p);
     }
     return out;
+  }
+
+  /** House numbers in loaded cells inside the box. */
+  homesIn(box: BBox): Home[] {
+    const out: Home[] = [];
+    for (const list of this.homes.values()) for (const h of list) if (inBox(h, box)) out.push(h);
+    return out;
+  }
+
+  /** The name of a street at node `id`, "" when all its streets are unnamed. */
+  streetAt(id: number): string {
+    for (const name of this.adjacency.get(id)?.values() ?? []) if (name) return name;
+    return "";
   }
 
   private link(a: number, b: number, name: string): void {

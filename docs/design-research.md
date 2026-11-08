@@ -165,3 +165,137 @@ A) No, care is always good. B) A small cost (for example a full stomach makes th
 A) No. B) Yes, a "new" tag on the card plus a small bonus. C) Yes, plus a visited-places count per city.
 **Favoured: B for the base, C soon after.** Wandrer shows that rewarding only new ground reliably gets habitual people to go somewhere new.
 **User's pick (2026-11-08): a new place gives bonus XP, and the only collection is one total count of places visited (not per city).**
+
+# Part 2: Making it an incremental game
+
+On 2026-11-08 the user changed direction. OSM Walker becomes an incremental game:
+
+- Small upgrades that stack are now allowed, which relaxes design rule 5.
+- The first upgrade is speed. Each speed upgrade adds 10%, multiplied, so speed is 1.1 to the power of the number bought.
+- Upgrades are bought at shops.
+- The pick screen shows two lists side by side: places where he earns, and shops where he buys. That way a shop is always within reach.
+- Two earning stops should pay for the first speed upgrade.
+- Buying 10 of one upgrade generally unlocks the next one.
+- Some purchases are one-offs, not repeatable upgrades.
+
+This part covers how the genre works and what its best games do, then what that means for OSM Walker.
+
+## How the genre works
+
+**The engine is exponential cost against slower income.**
+- Each purchase costs `base × rate^owned`, with the rate commonly between 1.07 and 1.15. Income grows linearly with what you own, times multipliers.
+- Early on, income outruns the next price and buying is quick. Later, cost outgrows income and each wait gets longer. That widening gap is the genre's pacing.
+- AdVenture Capitalist's first stand uses rate 1.07 ([Pecorella, Math of Idle Games I](https://www.gamedeveloper.com/design/the-math-of-idle-games-part-i)).
+- Tuts+ cites 1.07–1.15 as typical ([Numbers Getting Bigger](https://code.tutsplus.com/numbers-getting-bigger-the-design-and-math-of-incremental-games--cms-24023a)).
+
+**Milestones put bumps in the curve.**
+- Owning 25, 50 and so on of a generator multiplies its output (×2 in AdVenture Capitalist, ×4 per 25 in Clicker Heroes). Players then rush to the next threshold, which turns a smooth grind into a run of local victories.
+- Varying those multipliers between generators changes which one is best at each stage. That keeps the "what do I buy next" choice alive ([Pecorella, GDC Europe 2016](https://www.slideshare.net/slideshow/quest-for-progress-gdc-europe-2016/65405507)).
+- The user's "10 of one unlocks the next" rule is this pattern, with the bump being a new upgrade rather than a multiplier.
+
+**Discovery is the real reward.**
+- The number mostly exists to unlock content. Candy Box, A Dark Room and Universal Paperclips start tiny and reveal new systems as you go: a fire becomes a village, then a world map. Paperclips keeps twisting mechanics the player thought they understood ([Touloutoumou, history of incrementals](https://medium.com/@touloutoumou/from-progress-quest-to-universal-paperclip-the-history-of-free-incremental-games-3c96bfeaa918); [Tuts+](https://code.tutsplus.com/numbers-getting-bigger-the-design-and-math-of-incremental-games--cms-24023a)).
+- Good games mix "known unknowns" (a visible locked slot) with "unknown unknowns" (something hidden until reached).
+- Cookie Clicker raises base cost about 5× per building tier, so each new tier has time to be enjoyed.
+
+**Several upgrade paths whose value keeps shifting** give players optimisation choices. If the newest tier always wins, older ones die. Make "what to buy next" interesting, not solved.
+
+**Prestige** resets a run for a permanent multiplier. It is usually offered once a reset would give +50% to +200% more prestige currency. Prestige currency grows as a root or log of earnings: Cookie Clicker uses the cube root, and AdVenture Capitalist the square root ([Pecorella, Math of Idle Games III](https://www.gamedeveloper.com/design/the-math-of-idle-games-part-iii)). It is a late-game tool. AdVenture Capitalist and Cookie Clicker grow fast for roughly 8–10 hours before upgrades run out and a reset is needed.
+
+**Players are driven by completion and power.** About 70% are "core" and 20% "hardcore" gamers (Quantic Foundry survey, in the GDC talk), so make growth in power visible.
+
+**Active versus idle.** The best games reward both: clicking or steering, and leaving them alone. Egg, Inc.'s 2-hour offline cap made at least one designer quit, so caps that punish time away are risky.
+
+## What this means for OSM Walker
+
+1. **The two lists make the trade-off "earn more, or spend now".**
+   - The earning list keeps the close/far choice: more pay for more walking time.
+   - The shop list is always there, so the player decides when a purchase is worth the trip. That is the genre's main loop of earn, then buy, then earn faster, laid on real streets.
+2. **Speed is the right first upgrade.** He walks most of the time, so faster walking multiplies everything. The minutes on the cards visibly shrink, which shows his power on screen (rule 4).
+   - Money per real minute grows about 1.1× per speed upgrade. Prices should grow a bit faster, 1.12–1.15×, so each wait gets slightly longer: the genre's curve.
+3. **Ten of one unlocks the next, and a new tier should feel different, not just be bigger.** Alternate repeatable upgrades (small stacking bumps) with one-off purchases that change what he can do (the old unlocks: bike, map, guidebook, courier bag, metro, train). That keeps both the genre's steady climb and the discovery that its best games are loved for (rule 5 now reads: bumps are fine, as long as one-offs keep changing the map).
+4. **Each shop sells what fits it in the world** (rule 5's "lock near the key"). Shoes come from a shoe or clothes shop, and a notebook from a bookshop. If no fitting shop is near, any shop sells it, so the shop list never runs dry.
+5. **Prestige stays out of the base.** A train to a new city could later become a soft reset with a lasting bonus, but only once the first city runs out of upgrades.
+6. **Simulate before shipping.** The existing economy sim (`npm run sim`) should check three things:
+   - two earning stops pay for shoes #1;
+   - each "10 of" milestone lands at a steady, slowly growing interval;
+   - no list item always wins.
+
+## Proposed upgrade ladder (for the user to review)
+
+Repeatable upgrades (🔁) cost `price × 1.15^owned` and stack 10% each, multiplied. One-offs (1×) are bought once. "Opens after" is the user's "10 of one unlocks the next" rule.
+
+| # | Upgrade | Type | Opens after | Does | Sold at |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 👟 Walking shoes | 🔁 | start | +10% walking speed | shoe or clothes shop |
+| 2 | 💼 Smart clothes | 🔁 | 10 shoes | +10% pay at work places | clothes shop |
+| 3 | 🚲 Bike | 1× | 10 shoes | rides 2× as fast, cards reach 2× as far | bike shop |
+| 4 | 🔧 Bike tune-up | 🔁 | bike | +10% riding speed | bike shop |
+| 5 | 📒 Notebook | 🔁 | 10 smart clothes | +10% XP at sights and parks | bookshop or stationer |
+| 6 | 🗺 City map | 1× | 10 smart clothes | a 4th card in the earning list | bookshop or kiosk |
+| 7 | 📕 Guidebook | 1× | 10 notebooks | one card is always a new sight, for 2× XP | bookshop |
+| 8 | 📦 Courier bag | 1× | 10 tune-ups | parcel cards: pick up at one place, 2× pay at another | post office |
+| 9 | 🛵 Scooter | 1× | 10 tune-ups | rides 4× as fast, cards reach 4× as far | motorbike or car shop |
+| 10 | 🚇 Metro pass | 1× | scooter | metro cards to a far part of the city | metro station |
+| 11 | 🚆 Train ticket | 1× | metro pass | train cards to another city | train station |
+
+**First price.** A work stop pays €0.60 per minute of walk plus 3 minutes, so about €3.50 close and €6.50 far, and two stops come to about €9. Shoes #1 at €8 meets the user's "two stops, then a shop" rule. Ten pairs of shoes cost about €160 in total at ×1.15.
+
+# Part 3: He is a food delivery worker
+
+On 2026-11-08 the user made him a food delivery worker who earns money by making deliveries. The incremental frame from Part 2 stays. The earning list becomes a list of orders.
+
+## What delivery games teach
+
+- **The route is the puzzle.** In Death Stranding, the fun is choosing a route and seeing gear open shorter ones ([Bycer on Game Developer](https://www.gamedeveloper.com/design/a-design-discussion-on-death-stranding)). Here the real streets supply the route. The choice is which order fits his position.
+- **Upgrades should visibly change the map early.** Bycer criticises the long wait before the first real upgrade. MudRunner works because a new truck quickly widens what you can reach. The user's "two deliveries, then the first speed upgrade" rule fits that lesson.
+- **Rewards must show in the game state, not just a score.** Death Stranding's likes feel hollow. Money that turns into faster shoes, then a bike, then a scooter, is visible on the map in shorter minutes and farther orders.
+- **Carrying several things is depth.** Locomoto and Lake build their routes around many parcels at once. That makes a good later one-off (a bigger bag holding two orders), not a base mechanic.
+- **Pressure must be forgiving** (rule 7). A hard deadline punishes slow early play. The base has no timer.
+
+## How an order maps to the loop
+
+- An order is a pickup at a real food place (restaurant, fast food, café or bakery) and a drop-off at another real place nearby. It shows the pay and the total metres and minutes: from him to the pickup, then to the drop-off.
+- The real trade-off is the one gig workers face. A close pickup with a long drop pays well per minute. A far pickup eats unpaid time.
+- The shop list stays next to it, so buying is always one trip away.
+
+## Proposed delivery ladder (for the user to review)
+
+Repeatables (🔁) stack 10% each, multiplied; one-offs are bought once.
+
+| # | Upgrade | Type | Opens after | Does | Sold at |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 👟 Running shoes | 🔁 | start | +10% walking speed | shoe or clothes shop |
+| 2 | 🚲 Bike | 1× | 10 shoes | rides 2× as fast, orders reach 2× as far | bike shop |
+| 3 | 🔧 Bike tune-up | 🔁 | bike | +10% riding speed | bike shop |
+| 4 | 🧊 Thermal bag | 🔁 | bike | +10% pay per order (hotter food, bigger tips) | any shop |
+| 5 | 📱 Phone mount | 1× | 10 thermal bags | a 4th order in the list | phone shop |
+| 6 | 🎒 Big bag | 1× | 10 thermal bags | carry 2 orders at once | any shop |
+| 7 | 🛵 Scooter | 1× | 10 tune-ups | rides 4× as fast, orders reach 4× as far | motorbike or car shop |
+| 8 | ⚙️ Scooter tune-up | 🔁 | scooter | +10% riding speed | motorbike or car shop |
+| 9 | 🚆 Train ticket | 1× | 10 scooter tune-ups | work in another city | train station |
+
+# Part 4: The basic loop the user chose (2026-11-08 12:12)
+
+This replaces the two pick lists and the delivery ladder in Parts 2 and 3. Those stay above as ideas for later.
+
+- **Wandering.** He walks aimlessly, taking a random direction at each crossing.
+- **Orders.** At random, he gets an order. He walks to the restaurant, takes the food, and delivers it to the customer's address.
+- **Upgrades.** There are only two for now:
+  1. **Speed.** Each one adds +10% speed, multiplied.
+  2. **Orders come sooner.** It opens after 10 speed upgrades.
+
+**Check against the research.** This is the purest idle shape, close to Progress Quest, where the walker plays himself. The player's decisions are what to buy and when. That matches the genre's core "earn, then buy, then earn faster" loop (Part 2). It sets aside Part 1's "one decision at each stop" (rules 1–3) for now. The risk is that early play is mostly watching. The fix the genre uses is a quick first purchase, which is the user's "two deliveries, then the first speed upgrade" rule. A visible change on every buy covers rule 4: the order timer gets shorter and he moves faster.
+
+**The user's picks (2026-11-08 12:13)**
+
+| Question | Pick |
+| --- | --- |
+| Where the customer lives | A real house number, from the map's house-number layer |
+| Taking orders | He takes each order on his own |
+| Buying | A Shop button, usable any time; a purchase applies at once |
+| Order wait | About 1 minute of wandering at the start; each order upgrade makes the average wait 10% shorter, multiplied |
+| Price growth | Each repeat buy costs 15% more |
+| Pay | A base fee plus pay per km from the restaurant to the customer; the walk to the restaurant is unpaid |
+| Timer | None |
+| XP and levels | Cut; money only, and the count of places visited stays |
