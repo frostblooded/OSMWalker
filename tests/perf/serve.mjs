@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 
-const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".wasm": "application/wasm", ".png": "image/png", ".svg": "image/svg+xml", ".pbf": "application/x-protobuf", ".webmanifest": "application/manifest+json" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".wasm": "application/wasm", ".png": "image/png", ".svg": "image/svg+xml", ".pbf": "application/x-protobuf", ".webmanifest": "application/manifest+json" };
 
 export function serve(root, port) {
   const server = http.createServer((req, res) => {

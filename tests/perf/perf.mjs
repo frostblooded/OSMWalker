@@ -1,5 +1,6 @@
 // Perf budget check: loads the production build under a mid-range phone profile
-// (three cold loads, median of each number) and fails if any number in
+// (three cold loads, median of each number), then plays once with fake map
+// services for his memory while he walks, and fails if any number in
 // budgets.json is exceeded.
 // Usage: node tests/perf/perf.mjs   (after npm run build)
 // PW_CHROMIUM=/path/to/chrome uses a local Chromium (npm run verify finds the cloud sessions' one).
@@ -7,6 +8,7 @@ import { chromium } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mockServices } from "../e2e/mock.ts";
 import { serve } from "./serve.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -21,15 +23,24 @@ const browser = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 
-/** One cold load and 10 s of play in a fresh context. */
-async function run() {
-  const context = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.6, isMobile: true, hasTouch: true });
+/** A fresh phone: page, CDP session and its metrics, with the network and CPU slowed to the profile. */
+async function phone(mock = false) {
+  // The fake services only see requests the service worker doesn't take, as in the e2e tests.
+  const context = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.6, isMobile: true, hasTouch: true, ...(mock && { serviceWorkers: "block" }) });
+  if (mock) await mockServices(context);
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send("Performance.enable");
   await cdp.send("Network.enable");
   await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 85, downloadThroughput: 9e6 / 8, uploadThroughput: 1.5e6 / 8 });
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: Number(process.env.PERF_CPU ?? 4) });
+  const metric = async () => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]));
+  return { context, page, cdp, metric };
+}
+
+/** One cold load and 10 s on the city picker in a fresh context. */
+async function run() {
+  const { context, page, metric } = await phone();
   await page.addInitScript(() => {
     window.__longTasks = [];
     new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__longTasks.push([e.startTime, e.duration]))).observe({ type: "longtask", buffered: true });
@@ -51,8 +62,7 @@ async function run() {
     };
   });
 
-  // Steady state: 10 s of the running game.
-  const metric = async () => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]));
+  // Steady state: 10 s of the open page.
   const m0 = await metric();
   await page.waitForTimeout(10000);
   const m1 = await metric();
@@ -70,13 +80,29 @@ async function run() {
   };
 }
 
+/** His memory after he starts in Sofia (the fixture streets), picks a card and walks for 10 s, after a garbage collection. */
+async function play() {
+  const { context, page, cdp, metric } = await phone(true);
+  await page.goto(`http://localhost:${PORT}/`);
+  await page.getByLabel("City name").fill("Sofia");
+  await page.getByRole("button", { name: /Sofia/ }).click();
+  await page.getByRole("button", { name: /Where next/ }).click({ timeout: 60000 });
+  await page.getByRole("dialog", { name: /Where next/ }).locator("button.offer").first().click();
+  await page.waitForTimeout(10000);
+  await cdp.send("HeapProfiler.collectGarbage");
+  const m = await metric();
+  await context.close();
+  return { game_js_heap_mb: Math.round(m.JSHeapUsedSize / 2 ** 20), game_dom_nodes: m.Nodes };
+}
+
 // A shared machine has slow moments, so timings come from the middle of RUNS loads; sizes are the same every run.
 const RUNS = Number(process.env.PERF_RUNS ?? 3);
 const runs = [];
 for (let i = 0; i < RUNS; i++) runs.push(await run());
 const median = (k) => runs.map((r) => r[k]).sort((x, y) => x - y)[Math.floor(RUNS / 2)];
 if (process.env.PERF_DEBUG) console.log("Runs:", JSON.stringify(runs));
-const results = Object.fromEntries(Object.keys(runs[0]).map((k) => [k, median(k)]));
+// Memory hardly changes from run to run, so one game is enough.
+const results = { ...Object.fromEntries(Object.keys(runs[0]).map((k) => [k, median(k)])), ...(await play()) };
 await browser.close();
 server.close();
 

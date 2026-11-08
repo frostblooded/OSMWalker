@@ -5,8 +5,7 @@ import { timeText, type History } from "../core/history";
 import { placeIcon } from "../core/look";
 import { euro } from "../core/money";
 import type { Reward } from "../core/places";
-import type { Stats } from "../core/stats";
-import { nextUpgrade, upgradeOf } from "../core/upgrades";
+import { upgradeOf } from "../core/upgrades";
 
 /** "850 m" or "1.2 km". */
 export function dist(m: number): string {
@@ -35,16 +34,6 @@ export function cardText(o: Offer): { name: string; gets: string } {
   if (o.slot === "train") return { name: `🚆 ${o.place.name}`, gets: "Train to another city" };
   if (o.slot === "guide") return { name: at, gets: `📕 ${rewardText(o.reward)}` };
   return { name: at, gets: rewardText(o.reward) };
-}
-
-/** What the next upgrade needs: "🚲 Bike €25 at a bike shop, from level 3", or "" at the top of the ladder. */
-export function nextText(s: Pick<Stats, "upgrades" | "level" | "cents">): string {
-  const u = nextUpgrade(s.upgrades);
-  if (!u) return "";
-  const what = `${u.icon} ${u.name} ${euro(u.cents)} at ${u.where}`;
-  if (s.level < u.level) return `${what}, from level ${u.level}`;
-  if (s.cents < u.cents) return `${what}: ${euro(u.cents - s.cents)} to go`;
-  return `${what}: you have the money`;
 }
 
 export function streetLine(street: string): string {

@@ -26,15 +26,28 @@ describe("Stats sheet", () => {
     expect(text).toContain("📍 Places visited1");
   });
 
-  it("lists the upgrades: owned, the next with its price once open, the rest by level", () => {
+  it("shows the next upgrade with what it waits on, and the ladder: owned open, later closed", () => {
     const s = new Stats();
     s.upgrades.add("map");
     s.level = LADDER[1]!.level;
+    s.cents = 500;
     const text = shown(s);
-    expect(text).toContain("Upgrades 1 / 7");
-    expect(text).toContain("🗺 City map✓ Owned");
-    expect(text).toContain(`🚲 Bike${euro(LADDER[1]!.cents)}`);
-    expect(text).toContain(`📕 GuidebookLevel ${LADDER[2]!.level}`);
-    expect(text).toContain("Sold at a bike shop.");
+    expect(text).toContain(`Next: Bike${euro(LADDER[1]!.cents)}`);
+    expect(text).toContain(`💶 Still needs${euro(LADDER[1]!.cents - 500)}`);
+    s.cents = LADDER[1]!.cents;
+    expect(shown(s)).toContain("🛍 Sold ata bike shop");
+    expect(text).toContain("Upgrades1 / 7");
+    expect(text).toContain("✓ Owned (1) ▾");
+    expect(text).toContain("🗺 City map✓");
+    expect(text).toContain("🔒 Later (5) ▸");
+    expect(text).not.toContain("Guidebook");
+  });
+
+  it("says what level the next upgrade waits for, and nothing once all are bought", () => {
+    const s = new Stats();
+    expect(shown(s)).toContain(`🔒 Opens atLevel ${LADDER[0]!.level}`);
+    for (const u of LADDER) s.upgrades.add(u.id);
+    expect(shown(s)).not.toContain("Next:");
+    expect(shown(s)).toContain("Upgrades7 / 7");
   });
 });

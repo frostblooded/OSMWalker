@@ -1,13 +1,13 @@
 // Where next: the cards on offer, one per place, numbered as their pins on
 // the map. Each shows the place, what it gives (or sells, or where it rides
-// to) and how far it is; tapping one sends him there. Below, what the next
-// upgrade needs.
+// to) and how far it is; tapping one sends him there. Below, the next
+// upgrade and what it still waits on.
 import type { Offer } from "../core/cards";
 import type { Stats } from "../core/stats";
-import { cardText, dist, nextText, walkTime } from "./format";
+import { cardText, dist, walkTime } from "./format";
+import { NextUpgrade } from "./StatsSheet";
 
 export function PickSheet({ offer, mps, stats, onPick }: { offer: Offer[]; mps: number; stats: Stats; onPick: (i: number) => void }) {
-  const next = nextText(stats);
   return (
     <div class="offers">
       {offer.map((o, i) => {
@@ -32,7 +32,7 @@ export function PickSheet({ offer, mps, stats, onPick }: { offer: Offer[]; mps: 
           </button>
         );
       })}
-      {next && <p class="dim next-up">Next upgrade: {next}</p>}
+      <NextUpgrade stats={stats} />
     </div>
   );
 }
