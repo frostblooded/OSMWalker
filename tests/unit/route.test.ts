@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { cellKey, cellOf, StreetGraph } from "../../src/core/graph";
 import { planRoute } from "../../src/core/route";
-import { plus, PLUS_BBOX } from "../support/osm";
+import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
 const n = (osm: number) => -osm; // node ids of the "+" fixture
 
 function cross(): StreetGraph {
   const g = new StreetGraph();
-  g.addOverpass(plus(), PLUS_BBOX);
+  addOverpass(g, plus(), PLUS_BBOX);
   return g;
 }
 

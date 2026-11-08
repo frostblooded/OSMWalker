@@ -5,7 +5,7 @@ import { Rng } from "../../src/core/rng";
 import type { Place } from "../../src/core/stats";
 import * as G from "../../src/core/goals";
 import * as W from "../../src/core/walker";
-import { plus, PLUS_BBOX } from "../support/osm";
+import { addOverpass, plus, PLUS_BBOX } from "../support/osm";
 
 const { Walker, WALK_MPS } = W;
 type PickInfo = W.PickInfo;
@@ -22,7 +22,7 @@ const metres = (w: W.Walker) => ((w.speedMps = 1), w);
 
 function fixture(): StreetGraph {
   const g = new StreetGraph();
-  g.addOverpass(plus(), PLUS_BBOX);
+  addOverpass(g, plus(), PLUS_BBOX);
   return g;
 }
 
@@ -333,7 +333,7 @@ describe("map data", () => {
 
   it("waits for map data near an unloaded area", () => {
     const g = new StreetGraph();
-    g.addOverpass(plus(), SMALL);
+    addOverpass(g, plus(), SMALL);
     const w = metres(new Walker(g));
     w.startAt(n(1));
     expect(w.needsData()).toBe(true);
@@ -343,11 +343,11 @@ describe("map data", () => {
 
   it("resumes after map data arrives", () => {
     const g = new StreetGraph();
-    g.addOverpass(plus(), SMALL);
+    addOverpass(g, plus(), SMALL);
     const w = metres(new Walker(g));
     w.startAt(n(1));
     const left = w.advance(100);
-    g.addOverpass(plus(), PLUS_BBOX);
+    addOverpass(g, plus(), PLUS_BBOX);
     expect(w.advance(left)).toBe(0);
     expect(w.totalM).toBeCloseTo(100, 3);
   });

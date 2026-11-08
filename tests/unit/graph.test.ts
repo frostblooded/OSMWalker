@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { tileBbox } from "../../src/core/geo";
-import { CELL_ZOOM, cellKey, cellOf, cellsBbox, cellsByPriority, compactCells, StreetGraph } from "../../src/core/graph";
-import { plus, PLUS_BBOX } from "../support/osm";
+import { CELL_ZOOM, cellKey, cellOf, cellsByPriority, compactCells, StreetGraph } from "../../src/core/graph";
+import { addOverpass, cellsBbox, plus, PLUS_BBOX } from "../support/osm";
 
 const id = (osm: number) => -osm;
 
 function loaded(): StreetGraph {
   const g = new StreetGraph();
-  g.addOverpass(plus(), PLUS_BBOX);
+  addOverpass(g, plus(), PLUS_BBOX);
   return g;
 }
 
@@ -38,14 +38,14 @@ describe("StreetGraph", () => {
 
   it("only counts cells fully inside the box as loaded", () => {
     const g = new StreetGraph();
-    g.addOverpass(plus(), [41.9995, 22.999, 42.0005, 23.001]);
+    addOverpass(g, plus(), [41.9995, 22.999, 42.0005, 23.001]);
     expect(g.cells.size).toBe(0);
     expect(g.isComplete(id(1))).toBe(false);
   });
 
   it("merges overlapping downloads without duplicates", () => {
     const g = loaded();
-    g.addOverpass(plus(), PLUS_BBOX);
+    addOverpass(g, plus(), PLUS_BBOX);
     expect(g.nodes.size).toBe(5);
     expect(g.neighbors(id(1))).toHaveLength(4);
   });
