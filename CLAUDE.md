@@ -5,45 +5,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 OSM Walker: a game about a little character on real OpenStreetMap streets,
-being rebuilt from scratch in Rust as a local app. The repo is currently a
-plain `cargo new` binary with no dependencies; the game is built up from here
-by hand.
+being rebuilt from scratch in Rust as a local app. The code is still a bare
+`cargo new` binary (`src/main.rs`, no dependencies); the game is built up
+from here by hand.
 
 ## Commands
 
 ```sh
-cargo run                        # play
-cargo test                       # all tests
-cargo test greets_the_world      # one test, by name (substring match)
-cargo test --test <file>         # one integration test file in tests/
-git config core.hooksPath .githooks   # once per clone: checks before every push
+cargo run              # play
+cargo test             # all tests
+cargo test <name>      # tests whose name contains <name>
 ```
 
-The checks, run by `.githooks/pre-push` and required before a push:
+The checks, before every push:
 
 ```sh
 cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
-The hook checks the files on disk, so it refuses a push with uncommitted
-changes or when the pushed commit is not `HEAD`.
+## Docs
 
-## Layout
+Everything besides the code lives in `docs/`:
 
-- `src/lib.rs` holds the game's code; `src/main.rs` only starts it
-  (`osm_walker::...`). Keep logic in the library so integration tests in
-  `tests/` can use it. Unit tests sit next to the code in `#[cfg(test)]`.
-- `CODING_STANDARDS.md`: the review step every PR goes through (a ponytail
-  review following `.claude/skills/ponytail-review/SKILL.md`, repeated until a
-  round comes back empty) and the rules it checks. PRs follow
-  `.github/pull_request_template.md`.
-- `docs/design-research.md`: the game design research report. Its design
-  rules are listed in `docs/legacy/game-design.md`.
+- `docs/coding-standards.md`: the review step every PR goes through (a
+  ponytail review following `docs/ponytail-review/SKILL.md`, repeated until a
+  round comes back empty) and the rules it checks. PR bodies follow
+  `docs/pull_request_template.md`.
+- `docs/design-research.md`: the game design research report. The design
+  rules drawn from it are listed in `docs/legacy/game-design.md`.
 - `docs/legacy/`: how the earlier TypeScript web version worked (streets,
   routing, orders and economy, saves, map, UI, network, performance, tests),
   with screenshots of every screen. Start at `docs/legacy/README.md`. Read the
   matching page before building anything the old version had, and say in the
-  PR what is kept, changed or left out (rule 4 in `CODING_STANDARDS.md`).
+  PR what is kept, changed or left out.
 
 ## The old code
 
