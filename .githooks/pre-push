@@ -1,3 +1,7 @@
 #!/bin/sh
-# Refuses a push of game code that has not passed npm run verify (see tools/verify.ts).
-exec node tools/verify.ts --pre-push "$@"
+# Refuses a push that fails the checks. Turn it on once per clone:
+#   git config core.hooksPath .githooks
+set -e
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test --quiet

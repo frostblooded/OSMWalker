@@ -1,7 +1,1 @@
-node_modules/
-dist/
-test-results/
-playwright-report/
-perf-results/
-*.tmp
-screens/
+/target
