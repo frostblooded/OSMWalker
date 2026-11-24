@@ -25,7 +25,9 @@ Live URL (last deployed 2026-11-24, stays up until GitHub Pages is turned off): 
    **house number 300 m to 1.5 km** (straight line) from the restaurant. If no
    house number is in that ring, one of up to 300 random **street corners**
    in the ring stands in as "a door on Vitosha Blvd"; only if no corner fits
-   either, the nearest house number past 1.5 km (or the farthest one).
+   either, the nearest house number past 1.5 km (or the farthest one). Where
+   no house numbers are loaded at all, the corner order is used even outside
+   the ring (the nearest corner past 1.5 km, or the farthest).
 5. **He rides to the restaurant** (unpaid), shortest route over the streets
    loaded so far. Map pin **1** marks it, **2** the door. The top card says
    "🍽 Picking up at Pizza Roma", the distance, the riding time and the pay.

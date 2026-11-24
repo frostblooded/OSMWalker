@@ -1,1 +1,8 @@
 /target
+# Left over from the TypeScript version in older clones.
+node_modules/
+dist/
+screens/
+test-results/
+playwright-report/
+perf-results/

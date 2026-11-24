@@ -4,4 +4,6 @@
 
 ## Performance (before → after, if it runs while the game plays)
 
+## Looked back (docs/legacy: kept / changed / left out)
+
 ## Review (CODING_STANDARDS.md)

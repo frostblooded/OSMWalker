@@ -35,7 +35,8 @@ wait does not run while he stands waiting for streets.
    the nearest past it, else the farthest.
 4. If no order came out, or the drop is outside the ring, try again with up
    to 300 random **street corners** in the box as doors (street name only,
-   number ""), and use that if it lands in the ring.
+   number ""), and use that if it lands in the ring, or if there was no
+   house-number order at all (then even outside the ring).
 5. No places or no doors at all: retry in 5 s.
 6. The door gets its street from the nearest corner
    (`graph.streetAt(nearestNode)`).
