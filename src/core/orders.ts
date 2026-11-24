@@ -1,5 +1,5 @@
-// Food delivery orders: while he wanders, an order comes now and then (on
-// average after ORDER_WAIT_S of wandering, less with upgrades). He takes it
+// Food delivery orders: while he wanders, an order comes after a fixed
+// ORDER_WAIT_S of wandering (less with upgrades). He takes it
 // on his own: first to a real food place near him, then to a customer at a
 // real house number near that. It pays a base fee plus a rate per km from the
 // restaurant to the door; the walk to the restaurant is unpaid. Pure logic.
@@ -7,7 +7,7 @@ import { distanceM, type LatLon } from "./geo";
 import type { Rng } from "./rng";
 import type { Place } from "./stats";
 
-/** Seconds of wandering before an order, on average at the start. */
+/** Seconds of wandering before an order, at the start. */
 export const ORDER_WAIT_S = 60;
 /** The shortest wait, so a quick order still feels like one. */
 export const MIN_WAIT_S = 3;
@@ -33,8 +33,8 @@ export const addressOf = (h: Home) => (h.number ? `${h.street ? `${h.street} ` :
 /** What an order pays for a drop `dropM` meters (straight line) from the restaurant, rounded to 10 cents. */
 export const payOf = (dropM: number) => Math.round((BASE_CENTS + (CENTS_PER_KM * dropM * ROUTE_FACTOR) / 1000) / 10) * 10;
 
-/** Seconds until the next order: random around the mean, which `waitX` (his upgrades) shortens. */
-export const waitS = (rng: Rng, waitX = 1) => Math.max(MIN_WAIT_S, -Math.log(1 - rng.randf()) * ORDER_WAIT_S * waitX);
+/** Seconds until the next order: ORDER_WAIT_S, which `waitX` (his upgrades) shortens. */
+export const waitS = (waitX = 1) => Math.max(MIN_WAIT_S, ORDER_WAIT_S * waitX);
 
 const near = <T extends { lat: number; lon: number }>(list: readonly T[], at: LatLon) =>
   list.map((p) => ({ p, d: distanceM(at[0], at[1], p.lat, p.lon) })).sort((a, b) => a.d - b.d);
@@ -74,20 +74,33 @@ export function isOrder(o: unknown): o is Order {
   return !!v && typeof v === "object" && at(v.from) && typeof v.from.name === "string" && at(v.to) && typeof v.to.street === "string" && typeof v.to.number === "string" && typeof v.cents === "number" && typeof v.dropM === "number" && typeof v.picked === "boolean";
 }
 
-/** His job right now: the order he is on, or the seconds of wandering left before the next one comes. */
+/** His job right now: the order he is on, or the seconds of wandering left before the next one comes (of a wait `waitS` long). */
 export class Job {
   order: Order | null = null;
   waitLeftS = ORDER_WAIT_S;
+  waitS = ORDER_WAIT_S;
+
+  /** A new wait of `s` seconds begins. */
+  startWait(s: number): void {
+    this.waitS = this.waitLeftS = s;
+  }
+
+  /** How much of the wait has passed, 0 to 1. */
+  waitShare(): number {
+    return Math.min(1, Math.max(0, 1 - this.waitLeftS / this.waitS));
+  }
 
   toJSON() {
-    return { order: this.order, wait_left_s: this.waitLeftS };
+    return { order: this.order, wait_left_s: this.waitLeftS, wait_s: this.waitS };
   }
 
   static fromJSON(d: unknown): Job {
     const j = new Job();
-    const v = (d ?? {}) as { order?: unknown; wait_left_s?: unknown };
+    const v = (d ?? {}) as { order?: unknown; wait_left_s?: unknown; wait_s?: unknown };
     if (isOrder(v.order)) j.order = v.order;
     if (typeof v.wait_left_s === "number" && v.wait_left_s >= 0) j.waitLeftS = v.wait_left_s;
+    // Old saves have no full wait; it is never shorter than what is left.
+    j.waitS = Math.max(j.waitLeftS, typeof v.wait_s === "number" && v.wait_s > 0 ? v.wait_s : ORDER_WAIT_S);
     return j;
   }
 }

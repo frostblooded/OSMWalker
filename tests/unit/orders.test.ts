@@ -42,13 +42,20 @@ describe("orders", () => {
     expect(O.makeOrder(new Rng(1), at(0, 0), [place("Pizza", "pizza", 0, 0)], [])).toBeNull();
   });
 
-  it("wait about a minute on average, shorter with upgrades, never under the floor", () => {
-    const rng = new Rng(3);
-    const mean = (x: number) => Array.from({ length: 4000 }, () => O.waitS(rng, x)).reduce((a, b) => a + b) / 4000;
-    expect(mean(1)).toBeGreaterThan(O.ORDER_WAIT_S * 0.9);
-    expect(mean(1)).toBeLessThan(O.ORDER_WAIT_S * 1.1);
-    expect(mean(0.5)).toBeLessThan(mean(1) * 0.6);
-    expect(O.waitS({ randf: () => 0 } as Rng)).toBe(O.MIN_WAIT_S);
+  it("wait a fixed minute, shorter with upgrades, never under the floor", () => {
+    expect(O.waitS()).toBe(O.ORDER_WAIT_S);
+    expect(O.waitS(0.5)).toBe(O.ORDER_WAIT_S * 0.5);
+    expect(O.waitS(0.01)).toBe(O.MIN_WAIT_S);
+  });
+
+  it("tell how much of the wait has passed", () => {
+    const j = new O.Job();
+    expect(j.waitShare()).toBe(0);
+    j.startWait(40);
+    j.waitLeftS = 10;
+    expect(j.waitShare()).toBe(0.75);
+    j.waitLeftS = -1;
+    expect(j.waitShare()).toBe(1);
   });
 
   it("name the door by its street and number", () => {
@@ -61,10 +68,14 @@ describe("orders", () => {
   it("keep the job through a save, dropping a broken order", () => {
     const j = new O.Job();
     j.order = O.makeOrder(new Rng(1), at(0, 0), [place("Pizza", "pizza", 0, 0)], [home("5", 400, 0)]);
+    j.startWait(30);
     j.waitLeftS = 12;
     const back = O.Job.fromJSON(JSON.parse(JSON.stringify(j.toJSON())));
     expect(back.order).toEqual(j.order);
     expect(back.waitLeftS).toBe(12);
+    expect(back.waitShare()).toBeCloseTo(0.6);
+    // An old save has no full wait: it is at least what is left, so the bar never runs backwards.
+    expect(O.Job.fromJSON({ wait_left_s: 90 }).waitShare()).toBe(0);
     expect(O.Job.fromJSON({ order: { from: 1 }, wait_left_s: -1 }).order).toBeNull();
     expect(O.Job.fromJSON(undefined).waitLeftS).toBe(O.ORDER_WAIT_S);
   });

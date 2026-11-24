@@ -242,7 +242,7 @@ export class Game {
   /** No order on, or the next wait starts. */
   private endOrder(): void {
     this.job.order = null;
-    this.job.waitLeftS = waitS(this.rng, waitX(this.stats.upgrades));
+    this.job.startWait(waitS(waitX(this.stats.upgrades)));
   }
 
   /** An order comes: a food place near him and a door near that (a street corner where the map has no house number at the right distance). */
@@ -264,7 +264,7 @@ export class Game {
       }
     }
     if (!o) {
-      this.job.waitLeftS = RETRY_S;
+      this.job.startWait(RETRY_S);
       this.forced = "";
       return;
     }

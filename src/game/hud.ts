@@ -1,6 +1,6 @@
 // What the screens show about him, worked out once from the game: his look
 // on the map, the top card (his order: where he rides, how far, the pay; or
-// that he is waiting for one, or for streets to load) and the facts Debug lists. Plain
+// how much of the wait for the next one is left, or that streets load) and the facts Debug lists. Plain
 // data, so the screens only lay it out and the numbers are tested without a
 // browser.
 import { distanceM, type BBox, type LatLon } from "../core/geo";
@@ -21,6 +21,8 @@ export type Hud = {
   order: Order | null;
   /** Why he stands still: streets loading, or the map server out of reach. */
   waiting: "" | "streets" | "failing";
+  /** With no order: how much of the wait for the next one has passed (0 to 1), and the seconds left. */
+  wait: { share: number; leftS: number } | null;
 };
 
 export function hud(g: Game): Hud | null {
@@ -28,7 +30,9 @@ export function hud(g: Game): Hud | null {
   if (!w) return null;
   let waiting: Hud["waiting"] = "";
   if (w.needsData()) waiting = g.loader.isFailing() ? "failing" : "streets";
-  return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), order: g.job.order, waiting };
+  const j = g.job;
+  const wait = j.order ? null : { share: j.waitShare(), leftS: Math.max(0, Math.ceil(j.waitLeftS)) };
+  return { city: g.city.split(",")[0]!, street: w.streetName(), goal: goal(g), order: j.order, waiting, wait };
 }
 
 function goal(g: Game): Goal | null {
