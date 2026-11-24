@@ -6,9 +6,12 @@ from scratch in Rust as a local app.
 ```sh
 cargo run    # play
 cargo test   # test
-git config core.hooksPath .githooks   # once per clone: checks before every push
 ```
 
 The earlier TypeScript web version (last deployed to GitHub Pages on
-2026-11-24) is documented in [docs/legacy/](docs/legacy/README.md), with
+2026-11-24) is documented in [legacy/](legacy/README.md), with
 screenshots of every screen; its code is in git history at commit `a87edab`.
+
+How work gets reviewed: [coding-standards.md](coding-standards.md), with the
+PR layout in [pull_request_template.md](pull_request_template.md) and the
+review skill in [ponytail-review/SKILL.md](ponytail-review/SKILL.md).

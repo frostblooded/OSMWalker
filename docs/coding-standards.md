@@ -6,8 +6,7 @@ judgement calls no check can make.
 
 ## The checks
 
-One command runs them all, and the pre-push hook (`.githooks/pre-push`, turn
-it on once per clone with `git config core.hooksPath .githooks`) runs it too:
+One command runs them all; run it before every push:
 
 ```sh
 cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
@@ -19,7 +18,7 @@ Every PR gets a review before it is merged:
 
 1. Once the PR is open, start a fresh review agent in the background (Agent
    tool, general-purpose) and run the checks while it works. The agent does a
-   **ponytail review**: it follows `.claude/skills/ponytail-review/SKILL.md`
+   **ponytail review**: it follows `docs/ponytail-review/SKILL.md`
    (level `full`). Give it only `git diff origin/master...HEAD`, this file and
    the PR body. Ask for ponytail findings and violations of the rules below,
    each with file, line and the rule or reason, and nothing else.
@@ -31,8 +30,8 @@ Every PR gets a review before it is merged:
 
 1. **Tests first.** A behaviour change comes with a test that fails without
    it: unit tests next to the code (`#[cfg(test)]`) for logic, integration
-   tests in `tests/` for systems working together (they use the crate
-   through `src/lib.rs`).
+   tests in `tests/` for systems working together (they need the code in a
+   library crate, `src/lib.rs`, once there is one).
 2. **Perf numbers.** A change to anything that runs while the game plays puts
    before and after numbers in the PR (startup time, frame time, memory,
    network, as fits the change). A new dependency says what it adds to build
