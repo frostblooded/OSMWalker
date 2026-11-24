@@ -146,6 +146,7 @@ export function values(): Record<string, string> {
     TRIP_EXTRA_KM: km(W.TRIP_EXTRA_M),
     ORDER_WAIT_S: num(O.ORDER_WAIT_S),
     MIN_WAIT_S: num(O.MIN_WAIT_S),
+    RETRY_S: num(G.RETRY_S),
     NEAREST_FOOD: String(O.NEAREST_FOOD),
     FOOD_KINDS: foodKinds(),
     DROP_MIN_M: num(O.DROP_MIN_M),

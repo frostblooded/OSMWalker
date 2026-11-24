@@ -54,6 +54,7 @@ describe("the real help", () => {
     expect(riding).toContain("Each 🔧 Bike tune-up makes him 10% faster");
     const orders = page("orders").body;
     expect(orders).toContain("after 60 seconds of riding about, every time");
+    expect(orders).toContain("he tries again 5 seconds later");
     expect(orders).toContain("a bar that fills up as the order nears, and the seconds left");
     expect(orders).toContain("Each 📱 Delivery app boost makes the wait 10% shorter");
     expect(orders).toContain("one of the 5 food places nearest him");

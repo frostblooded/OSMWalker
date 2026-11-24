@@ -208,7 +208,7 @@ function OrderChip({ hud: h, onTap }: { hud: Hud; onTap: () => void }) {
     return (
       <div class="chip idle">
         <span aria-hidden="true">🛎</span>
-        <div class="wait" role="progressbar" aria-label="Next order" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.share * 100)} aria-valuetext={`${w.leftS} s left`}>
+        <div class="bar wait" role="progressbar" aria-label="Next order" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.share * 100)} aria-valuetext={`${w.leftS} s left`}>
           <div style={{ transform: `scaleX(${w.share})` }} />
         </div>
         <span class="eta" aria-hidden="true">

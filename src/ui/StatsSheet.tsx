@@ -1,6 +1,6 @@
 // His character sheet: his money, the deliveries he made and the places he
 // has been to; and what his upgrades add up to: how fast he rides and how
-// long an order takes to come, on average.
+// long an order takes to come.
 import { euro } from "../core/money";
 import { waitS } from "../core/orders";
 import type { Stats } from "../core/stats";
