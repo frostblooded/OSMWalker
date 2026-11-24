@@ -25,8 +25,8 @@ wait does not run while he stands waiting for streets.
 
 ## Making an order (`makeOrder` + `Game.newOrder`)
 
-1. Box of 3 km around him. `places = graph.placesIn(box)`,
-   `doors = graph.homesIn(box)`.
+1. `box` = a square reaching 3 km out from him on each side
+   (`bboxAround`). `places = graph.placesIn(box)`, `doors = graph.homesIn(box)`.
 2. Pick-up pool: places whose class is in `FOOD`; if none, all places. Sort
    by distance from him, keep the 5 nearest, pick one at random.
 3. Drop: one pass over all doors (no sort, there can be thousands): collect

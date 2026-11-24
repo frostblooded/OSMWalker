@@ -26,8 +26,9 @@ Live URL (last deployed 2026-11-24, stays up until GitHub Pages is turned off): 
    house number is in that ring, one of up to 300 random **street corners**
    in the ring stands in as "a door on Vitosha Blvd"; only if no corner fits
    either, the nearest house number past 1.5 km (or the farthest one). Where
-   no house number is in the 3 km box around him, the corner order is used even outside
-   the ring (the nearest corner past 1.5 km, or the farthest).
+   the search square (3 km out from him on each side) has no house number,
+   the corner order is used even outside the ring (the nearest corner past
+   1.5 km, or the farthest).
 5. **He rides to the restaurant** (unpaid), shortest route over the streets
    loaded so far. Map pin **1** marks it, **2** the door. The top card says
    "🍽 Picking up at Pizza Roma", the distance, the riding time and the pay.
@@ -57,7 +58,7 @@ is lost and nothing is gained while away.
 | Order wait | 60 s, fixed (was random before PR #153) | `src/core/orders.ts` `ORDER_WAIT_S` |
 | Shortest wait | 3 s | `MIN_WAIT_S` |
 | Retry when no order can be made | 5 s | `src/game/game.ts` `RETRY_S` |
-| Orders draw from | places and doors within 3 km of him | `ORDER_REACH_M` |
+| Orders draw from | places and doors in a square reaching 3 km out from him on each side | `ORDER_REACH_M` |
 | Pick-up pool | 5 nearest food places | `NEAREST_FOOD` |
 | Food classes | restaurant, fast_food, cafe, bakery, ice_cream, pizza (OpenMapTiles POI `class`) | `FOOD` |
 | Drop distance | 300 m to 1.5 km from the restaurant, straight line | `DROP_MIN_M`, `DROP_MAX_M` |
