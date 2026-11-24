@@ -13,5 +13,5 @@ The earlier TypeScript web version (last deployed to GitHub Pages on
 screenshots of every screen; its code is in git history at commit `a87edab`.
 
 How work gets reviewed: [coding-standards.md](coding-standards.md), with the
-PR layout in [pull-request-template.md](pull-request-template.md) and the
+PR layout in [pull_request_template.md](pull_request_template.md) and the
 review skill in [ponytail-review/SKILL.md](ponytail-review/SKILL.md).
