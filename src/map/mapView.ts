@@ -338,15 +338,14 @@ export class MapView implements MapPort {
   }
 }
 
-/** The map credit as a small ⓘ bottom left. MapLibre opens it once, when the credit
- *  first fills in; fold it then unless the player has it open (it would cover Shop). */
+/** The map credit as a small ⓘ bottom left. MapLibre opens it whenever the credit text
+ *  changes; it stays folded until the player taps it. */
 function creditControl(ml: Ml, map: MlMap): void {
   const ctrl = new ml.AttributionControl({ compact: true });
   map.addControl(ctrl, "bottom-left");
   const box = map.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-attrib")!;
   let tapped = false;
-  // MapLibre's own toggle runs first, so this reads whether the player left it open.
-  box.querySelector(".maplibregl-ctrl-attrib-button")?.addEventListener("click", () => (tapped = box.classList.contains("maplibregl-compact-show")));
+  box.querySelector(".maplibregl-ctrl-attrib-button")?.addEventListener("click", () => (tapped = true));
   const fold = () => {
     if (!tapped) box.classList.remove("maplibregl-compact-show");
   };
