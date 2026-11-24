@@ -6,4 +6,4 @@
 
 ## Looked back (docs/legacy: kept / changed / left out)
 
-## Review (CODING_STANDARDS.md)
+## Review (docs/coding-standards.md)
