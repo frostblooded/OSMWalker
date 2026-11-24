@@ -31,7 +31,8 @@ Every PR gets a review before it is merged:
 
 1. **Tests first.** A behaviour change comes with a test that fails without
    it: unit tests next to the code (`#[cfg(test)]`) for logic, integration
-   tests in `tests/` for systems working together.
+   tests in `tests/` for systems working together (they use the crate
+   through `src/lib.rs`).
 2. **Perf numbers.** A change to anything that runs while the game plays puts
    before and after numbers in the PR (startup time, frame time, memory,
    network, as fits the change). A new dependency says what it adds to build

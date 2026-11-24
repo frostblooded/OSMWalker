@@ -40,7 +40,7 @@ borders.json, forecasts.json, jokes.json, placedex.json, help.txt.
 
 ## Catalog of every source file before the refocus
 
-"cut" means the file is gone at `a87edab`; "kept" means a file of that name
+Every TypeScript module (`src/main.tsx` and `src/ui/app.css` are left out). "cut" means the file is gone at `a87edab`; "kept" means a file of that name
 survived the refocus (usually much smaller). The descriptions are the files'
 own header comments.
 

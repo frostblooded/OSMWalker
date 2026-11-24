@@ -14,8 +14,9 @@ The old code is not gone. It lives in git history:
   somewhere else with `git worktree add ../osmwalker-ts a87edab`.
 - **The big version, before the refocus cut most features:** commit
   `2d468a4` (master just before PR #142, 2026-11-08). The features listed in
-  [feature-history.md](feature-history.md) under "Cut on 2026-11-08" live
-  there.
+  [feature-history.md](feature-history.md#catalog-of-every-source-file-before-the-refocus)
+  under "Catalog of every source file before the refocus" (rows marked "cut")
+  live there.
 - **The Godot version:** anything before PR #35 (2026-10-28), for example
   `git log --oneline a87edab | grep '#3[0-4]'`.
 

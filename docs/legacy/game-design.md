@@ -6,7 +6,7 @@ OpenStreetMap while the app is open. Since 2026-11-08 he is a **food delivery
 rider** in an **incremental game**: he earns money from deliveries and you
 spend it on small stacking upgrades.
 
-Live URL while it existed: https://frostblooded.github.io/OSMWalker/
+Live URL (last deployed 2026-11-24, stays up until GitHub Pages is turned off): https://frostblooded.github.io/OSMWalker/
 
 ## The loop
 
@@ -23,9 +23,9 @@ Live URL while it existed: https://frostblooded.github.io/OSMWalker/
    nearest him** (restaurant, fast food, cafe, bakery, ice cream, pizza; any
    named place of note if there is no food place). Drop: a random real
    **house number 300 m to 1.5 km** (straight line) from the restaurant. If no
-   house number is that far, the nearest one beyond 1.5 km, and if the map
-   has no usable house numbers at all, a random **street corner** stands in
-   as "a door on Vitosha Blvd".
+   house number is in that ring, one of up to 300 random **street corners**
+   in the ring stands in as "a door on Vitosha Blvd"; only if no corner fits
+   either, the nearest house number past 1.5 km (or the farthest one).
 5. **He rides to the restaurant** (unpaid), shortest route over the streets
    loaded so far. Map pin **1** marks it, **2** the door. The top card says
    "🍽 Picking up at Pizza Roma", the distance, the riding time and the pay.
@@ -61,7 +61,7 @@ is lost and nothing is gained while away.
 | Drop distance | 300 m to 1.5 km from the restaurant, straight line | `DROP_MIN_M`, `DROP_MAX_M` |
 | Pay | €2 + €1 per km of drop, drop ride taken as 1.3 × straight line, rounded to 10 cents | `BASE_CENTS`, `CENTS_PER_KM`, `ROUTE_FACTOR`, `payOf` |
 | Pay examples | 500 m drop → €2.70, 1.5 km → €4.00 | Help page "Pay" |
-| Street corners used as doors | up to 300, random, when no house numbers | `STREET_DOORS` |
+| Street corners used as doors | up to 300, random, when no house number is in the ring | `STREET_DOORS` |
 | 💶 pop over him | 2 s | `POSE_S` |
 | 🔧 Bike tune-up | first €4, +10% speed each, multiplicative (1.1^n) | `src/core/upgrades.ts` |
 | 📱 Delivery app boost | first €13, wait ×0.9 each (0.9^n), opens after 10 tune-ups | same |
@@ -139,9 +139,10 @@ Older standing ideas from the user that shaped earlier versions:
 - **Pacing** (2026-10-31): something interesting about once a minute.
 - **Cohesion** (2026-10-30): keep every idea in line with the core idea, a
   little character living on real OSM streets.
-- **Time while closed**: changed several times. First a full catch-up
-  simulation on reopen (PR #42), then a 10× speed boost for as long as you
-  were away (PR #136), and finally (PR #142) time simply stops.
+- **Time while closed**: changed several times. A catch-up on reopen from
+  the start (PR #2), removed in PR #12 (he waited in place), back as a full
+  simulation in PR #42, then a 10× speed boost for as long as you were away
+  (PR #136), and finally (PR #142) time simply stops.
 
 ## What was next when it stopped
 

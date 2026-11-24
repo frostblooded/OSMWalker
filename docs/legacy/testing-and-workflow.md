@@ -2,13 +2,13 @@
 
 ## Test layers (at `a87edab`)
 
-- **Unit** (`tests/unit/`, Vitest, ~24 files): one per module with logic worth
+- **Unit** (`tests/unit/`, Vitest, 24 files): one per module with logic worth
   testing alone: geo, graph, ofm (decoding with the fixture tiles), route,
   walker, orders, upgrades, economy, money, history, saveFile (old saves of
   every past shape), help (no missing or unused placeholders, every screen
   button has a page), api (fake fetch), idb (fake-indexeddb, version
   upgrade), sw (cache strategies), loop (tick rate), snap (sheet drag), format,
-  look, debug, statsSheet, mapView, verify (the check script itself).
+  look, debug, statsSheet, mapView, streets (the loader and cell sources), verify (the check script itself).
 - **Integration** (`tests/integration/`): `game.test.ts` runs the real game,
   walker and street loader on the two fixture tiles with a fake `load` and a
   seeded RNG (harness `tests/support/game.ts`), e.g. "an order comes after 60
@@ -46,18 +46,9 @@ Actions only built and deployed `master` to Pages (`.github/workflows/web.yml`,
   `npm ci` through `core.hooksPath`) let that exact tree through, required a
   check for a branch and a verify for master, and let docs-only pushes pass.
 
-## The PR workflow (kept for the Rust version)
+## The PR workflow
 
-1. CLAUDE.md changes go straight to master. Everything else: branch, PR into
-   master.
-2. Tests first (TDD).
-3. When the PR opens, a fresh review agent does a **ponytail review**
-   (`.claude/skills/ponytail-review/SKILL.md`, level full) of the diff, also
-   against `CODING_STANDARDS.md`, in the background while the full check
-   runs. Fix every finding or say why it stands; repeat until a round comes
-   back empty.
-4. Merge master into the branch, run the full check, push, and merge by hand.
-   No auto-merge.
+Kept for the Rust version: see `CODING_STANDARDS.md`.
 
 ## Review rules (CODING_STANDARDS.md at `a87edab`)
 

@@ -1,6 +1,6 @@
 # Street data: from OSM to a walkable graph
 
-Files at `a87edab`: `src/core/ofm.ts` (tile decoding, 367 lines),
+Files at `a87edab`: `src/core/ofm.ts` (tile decoding, 478 lines),
 `src/core/graph.ts` (cells and the graph), `src/streets/*` (worker, cache,
 loader), `src/net/api.ts` (fetching). Tests: `tests/unit/ofm.test.ts`,
 `graph.test.ts`, `streets.test.ts`, `idb.test.ts`, with two real tiles in

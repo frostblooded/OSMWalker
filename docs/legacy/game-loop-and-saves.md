@@ -61,7 +61,8 @@ seconds left), so screen numbers are unit-tested without a browser.
 
 **Time stops.** Nothing runs while the page is hidden or closed, and nothing
 is computed on reopen: he continues from exactly where he was. Earlier
-versions tried a full catch-up simulation (PR #42) and then a 10× speed
+versions caught up on reopen (PR #2, removed in #12), then ran a full
+catch-up simulation (PR #42), and then a 10× speed
 "boost" for as long as you were away (PR #136); both were dropped on
 2026-11-08 for simplicity.
 
