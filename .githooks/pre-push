@@ -6,7 +6,7 @@ set -e
 head=$(git rev-parse HEAD)
 while read -r _lref lsha _rref _rsha; do
   [ "$lsha" = 0000000000000000000000000000000000000000 ] && continue # a branch delete
-  [ "$lsha" = "$head" ] || { echo "Check out the commit you push first: the hook checks the files on disk."; exit 1; }
+  [ "$(git rev-parse "$lsha^{commit}")" = "$head" ] || { echo "Check out the commit you push first: the hook checks the files on disk."; exit 1; }
 done
 [ -z "$(git status --porcelain)" ] || { echo "Commit or stash first: the hook checks the files on disk."; exit 1; }
 cargo fmt --check

@@ -26,7 +26,7 @@ Live URL (last deployed 2026-11-24, stays up until GitHub Pages is turned off): 
    house number is in that ring, one of up to 300 random **street corners**
    in the ring stands in as "a door on Vitosha Blvd"; only if no corner fits
    either, the nearest house number past 1.5 km (or the farthest one). Where
-   no house numbers are loaded at all, the corner order is used even outside
+   no house number is within 3 km of him, the corner order is used even outside
    the ring (the nearest corner past 1.5 km, or the farthest).
 5. **He rides to the restaurant** (unpaid), shortest route over the streets
    loaded so far. Map pin **1** marks it, **2** the door. The top card says
