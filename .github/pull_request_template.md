@@ -1,16 +1,9 @@
 ## What changes
 
-## Performance (`npm run perf`, before → after)
+## Tests
 
-| Measure | Before | After |
-| --- | --- | --- |
-| Transfer (KB) | | |
-| First paint (ms) | | |
-| Ready (ms) | | |
-| Main thread busy (%) | | |
+## Performance (before → after, if it runs while the game plays)
 
-## Help pages
-
-## Screens (from `screens/` after `npm run build && npm run screens`)
+## Looked back (docs/legacy: kept / changed / left out)
 
 ## Review (CODING_STANDARDS.md)
