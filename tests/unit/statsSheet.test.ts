@@ -24,7 +24,7 @@ describe("Stats sheet", () => {
     s.reach({ name: "Pizza", lat: 42.69, lon: 23.32 });
     s.upgrades = { speed: 2 };
     const text = shown(h(StatsSheet, { stats: s })).textContent!;
-    for (const t of ["💶 Money€9", "📦 Deliveries4", "📍 Places visited1", "🔧 Bike tune-up×2", "📱 Delivery app boost×0", "🚲 Speed54 km/h", "🛎 Order wait~60 s"]) expect(text).toContain(t);
+    for (const t of ["💶 Money€9", "📦 Deliveries4", "📍 Places visited1", "🔧 Bike tune-up×2", "📱 Delivery app boost×0", "🚲 Speed54 km/h", "🛎 Order wait60 s"]) expect(text).toContain(t);
   });
 });
 

@@ -199,11 +199,25 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
   );
 }
 
-/** His order: where he rides now, how far and how long, and the pay; or that he rides about waiting for one. */
+/** His order: where he rides now, how far and how long, and the pay; or, while he rides about, a bar of the wait for the next one and the seconds left. */
 function OrderChip({ hud: h, onTap }: { hud: Hud; onTap: () => void }) {
   const o = h.order;
   const g = h.goal;
-  if (!o || !g) return <div class="chip idle">🛎 Riding about, waiting for an order</div>;
+  const w = h.wait;
+  if (w) {
+    return (
+      <div class="chip idle">
+        <span aria-hidden="true">🛎</span>
+        <div class="bar wait" role="progressbar" aria-label="Next order" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.share * 100)} aria-valuetext={`${w.leftS} s left`}>
+          <div style={{ transform: `scaleX(${w.share})` }} />
+        </div>
+        <span class="eta" aria-hidden="true">
+          {w.leftS} s
+        </span>
+      </div>
+    );
+  }
+  if (!o || !g) return null;
   return (
     <button class="chip" onClick={onTap} aria-label="Show him and where he is going">
       <span class="grow">{o.picked ? `🏠 Delivering to ${addressOf(o.to)}` : `🍽 Picking up at ${o.from.name}`}</span>

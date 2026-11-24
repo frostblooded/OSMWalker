@@ -199,8 +199,11 @@ a.btn { color: inherit; text-decoration: none; }
 .history .num { flex: none; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--accent); color: #fff; font-size: var(--small); display: grid; place-items: center; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--hp); margin-left: 4px; vertical-align: top; }
 .burger .dot { position: absolute; top: -2px; right: -2px; margin: 0; }
-/* The order chip while he waits for one: plain text, not a button. */
+/* The order chip while he waits for one: 🛎, a bar of the wait and the seconds left; not a button. The bar fills by transform, so a redraw only composites. */
 .chip.idle { background: var(--paper); }
+.bar.wait { flex: 1; height: 14px; border-radius: 7px; margin-top: 0; }
+.bar.wait > div { transform-origin: left; transition: transform 250ms linear; }
+.chip.idle .eta { min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; }
 .shop-does { margin: 0 0 var(--s2); font-size: var(--body); }
 .buy { width: 100%; margin-top: var(--s2); }
 .switch { margin-left: auto; width: 48px; height: 28px; border-radius: 14px; border: 2px solid var(--ink); background: var(--line); position: relative; transition: background 120ms; flex: none; }

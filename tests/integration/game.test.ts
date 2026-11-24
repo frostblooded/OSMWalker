@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { distanceM } from "../../src/core/geo";
 import { cellKey } from "../../src/core/graph";
 import { MONEY_POSE } from "../../src/core/look";
-import { payOf } from "../../src/core/orders";
+import { ORDER_WAIT_S, payOf } from "../../src/core/orders";
 import { OPENS_AFTER, upgradeOf, waitX } from "../../src/core/upgrades";
 import { BIKE_MPS } from "../../src/core/walker";
 import { Game, MAX_CELLS, POSE_S, RETRY_S, SAVE_KEY, type GameDeps } from "../../src/game/game";
@@ -70,7 +70,10 @@ describe("game", () => {
     expect(g.stats.history.latest()).toMatch(/^Delivered to .+ 12: \+€[\d.]+$/);
     expect(g.stats.visited.size).toBe(2);
     expect(g.job.order).toBeNull();
-    expect(g.job.waitLeftS).toBeGreaterThan(0);
+    // The next wait is a fixed minute, and the top card's bar has only just started on it.
+    expect(g.job.waitS).toBe(ORDER_WAIT_S);
+    expect(g.job.waitLeftS).toBeGreaterThanOrEqual(ORDER_WAIT_S - 1);
+    expect(hud(g)!.wait).toEqual({ share: expect.closeTo(0, 1), leftS: Math.ceil(g.job.waitLeftS) });
     run(g, POSE_S);
     expect(g.pose()).toBeNull();
   });
@@ -95,6 +98,7 @@ describe("game", () => {
     run(g, 1);
     expect(g.job.order).toBeNull();
     expect(g.job.waitLeftS).toBe(RETRY_S);
+    expect(hud(g)!.wait!.share).toBe(0);
   });
 
   it("cancels an order he can't get to, unpaid, and waits for the next", async () => {

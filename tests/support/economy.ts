@@ -50,7 +50,7 @@ export function play(seed: number, hours: number): Run {
   const run: Run = { bought: Object.fromEntries(UPGRADES.map((u) => [u.id, []])), delivered: [] };
   const near = (list: { lat: number; lon: number }[]) => list.filter((p) => Math.abs(p.lat - here[0]) < 0.015 && Math.abs(p.lon - here[1]) < 0.02);
   while (sec < hours * 3600) {
-    sec += waitS(rng, waitX(s.upgrades));
+    sec += waitS(waitX(s.upgrades));
     here = moved(here[0], here[1], [rng.randfRange(-WANDER_SPREAD_M, WANDER_SPREAD_M), rng.randfRange(-WANDER_SPREAD_M, WANDER_SPREAD_M)]);
     const o = makeOrder(rng, here, near(food) as Place[], near(doors) as Home[]);
     if (!o) break;

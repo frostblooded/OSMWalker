@@ -27,7 +27,7 @@ With no order he wanders: at each corner he takes a random street, and only turn
 
 If he has ridden more than {TRIP_RATIO} times the straight-line distance to a stop plus {TRIP_EXTRA_KM} km and still isn't there, it is probably across water or behind a fence: he gives up, the order is cancelled without pay, and the feed says so. He counts as arrived when he is within {ARRIVE_M} m of a stop.
 ## Orders {orders}
-An order comes after about {ORDER_WAIT_S} seconds of riding about on average, sometimes sooner, sometimes later (never under {MIN_WAIT_S} seconds). Each 📱 Delivery app boost makes the wait {WAIT_STEP_PCT}% shorter. The wait only runs while he rides, not while streets load.
+An order comes after {ORDER_WAIT_S} seconds of riding about, every time. Each 📱 Delivery app boost makes the wait {WAIT_STEP_PCT}% shorter (never under {MIN_WAIT_S} seconds). The wait only runs while he rides, not while streets load. If no food place or door is near him yet when it runs out, he tries again {RETRY_S} seconds later. While he waits, the top card shows 🛎, a bar that fills up as the order nears, and the seconds left.
 
 He takes each order by himself. He picks up at one of the {NEAREST_FOOD} food places nearest him (a {FOOD_KINDS} place; any place of note where there is none) and delivers to a real house number {DROP_MIN_M} m to {DROP_MAX_KM} km from it. Where the map has no house number that far from the restaurant, a street corner stands in for the door. On the map, an orange 1 marks the restaurant and a 2 the door.
 
