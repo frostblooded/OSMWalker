@@ -1,6 +1,6 @@
 // The game screen: the map with him on it, a compact card on top (where he
 // is, his order and its pay, his money), zoom on the right edge, and at the
-// bottom, in reach of the thumb, the menu button and the Shop button.
+// bottom, in reach of the thumb, one row: the map credit ⓘ, Shop and ☰.
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Loop } from "../app/loop";
@@ -121,7 +121,7 @@ export function GameScreen({ game, onReset }: { game: Game; onReset: () => void 
         </button>
       </div>
       {sheet !== "shop" && (
-        <button class="btn primary next" onClick={() => setSheet("shop")}>
+        <button class="btn shop" onClick={() => setSheet("shop")}>
           🛒 Shop{canBuy(s) && <span class="dot" role="img" aria-label="something to buy" />}
         </button>
       )}
