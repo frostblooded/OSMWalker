@@ -130,7 +130,7 @@ for (const width of [360, 412]) {
       await check(page, "picker-results");
       await page.getByRole("button", { name: /Sofia/ }).click();
       await expect(page.locator(".street")).toBeVisible({ timeout: 20000 });
-      await expect(page.locator(".chip")).toContainText("waiting for an order");
+      await expect(page.getByRole("progressbar", { name: "Next order" })).toBeVisible();
       await check(page, "game-waiting");
       await orderNow(page);
       await check(page, "game");

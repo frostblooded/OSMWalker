@@ -20,7 +20,11 @@ test("picks a city and rides about until an order comes, then rides to pick it u
   await expect(page.locator(".hud .city")).toContainText("Sofia");
   await expect(page.locator(".marker.him")).toBeVisible();
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
-  await expect(page.locator(".chip")).toContainText("Riding about, waiting for an order");
+  // While he waits, the top card shows how much of the wait is left: 🛎, a bar and the seconds.
+  const wait = page.getByRole("progressbar", { name: "Next order" });
+  await expect(wait).toBeVisible();
+  await expect(page.locator(".chip.idle")).toContainText(/🛎\s*\d+ s/);
+  await expect(page.locator(".chip.idle")).not.toContainText("waiting for an order");
   await expect(page.locator(".hud .street")).toContainText("Riding along");
   await orderNow(page);
   // The order says where, how far, how long and the pay.
