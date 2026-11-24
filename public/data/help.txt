@@ -52,7 +52,7 @@ The 📱 Delivery app boost opens once he has {OPENS_AFTER} Bike tune-ups; until
 ## The top card and buttons {screen}
 The card at the top shows the city, the street he is on, his money, and his order with the distance, the riding time and the pay (see Orders). What he just did pops up under it for a few seconds.
 
-Only a few buttons sit on the map, at the bottom in reach of your thumb: + and − to zoom and ☰ for the menu on the right, and 🛒 Shop (see Upgrades). "Back to him" shows up at the bottom when the map has moved away from him while the camera follows him.
+Only a few buttons sit on the map, at the bottom in reach of your thumb. The bottom row holds the ⓘ map credits, 🛒 Shop (see Upgrades) and ☰ for the menu; + and − to zoom sit above ☰ on the right. "Back to him" shows up just above the bottom row when the map has moved away from him while the camera follows him.
 ## The menu {menu}
 ☰ Menu (bottom right) opens from the bottom of the screen and holds History, Stats, Help, Debug, the Route to goal, Camera follows him and City area switches, and New city. Tap an entry to open it; ✕ Close or the Escape key closes it again.
 
