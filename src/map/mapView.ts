@@ -338,8 +338,8 @@ export class MapView implements MapPort {
   }
 }
 
-/** The map credit as a small ⓘ bottom left. MapLibre opens it whenever the credit text
- *  changes; it stays folded unless the player left it open (it would cover Shop). */
+/** The map credit as a small ⓘ bottom left. MapLibre opens it once, when the credit
+ *  first fills in; fold it then unless the player has it open (it would cover Shop). */
 function creditControl(ml: Ml, map: MlMap): void {
   const ctrl = new ml.AttributionControl({ compact: true });
   map.addControl(ctrl, "bottom-left");
