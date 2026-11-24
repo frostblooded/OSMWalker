@@ -130,7 +130,7 @@ a.btn { color: inherit; text-decoration: none; }
 .toast { align-self: flex-start; max-width: 100%; font-size: var(--body); padding: var(--s2) var(--s3); background: var(--paper); border: var(--edge); border-radius: var(--r-small); box-shadow: var(--lip); animation: toast 6s forwards; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
-/* Only zoom and the menu sit on the map, at the bottom right in reach of the thumb. */
+/* Zoom, Shop and ☰ sit at the bottom, in reach of the thumb. */
 .zoom { position: absolute; right: var(--s3); bottom: calc(var(--s3) + var(--tap) + var(--s4) + var(--safe-bottom)); display: flex; flex-direction: column; gap: var(--s3); }
 .burger { position: absolute; right: var(--s3); bottom: calc(var(--s3) + var(--safe-bottom)); background: var(--accent); color: #fff; }
 /* Back to him floats just above the bottom row, in the middle. */

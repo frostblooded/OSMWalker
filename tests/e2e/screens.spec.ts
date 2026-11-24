@@ -124,11 +124,11 @@ test("the map credit ⓘ, a plain paper Shop and ☰ share the bottom row", asyn
   await startInSofia(page);
   const shop = page.getByRole("button", { name: /Shop/ });
   const [info, mid, menu] = await Promise.all([page.locator(".maplibregl-ctrl-attrib-button"), shop, page.getByRole("button", { name: "Menu" })].map(async (l) => (await l.boundingBox())!));
-  const centre = (b: typeof mid) => b!.y + b!.height / 2;
+  const centre = (b: { y: number; height: number }) => b.y + b.height / 2;
   expect(Math.abs(centre(info) - centre(mid))).toBeLessThan(4);
   expect(Math.abs(centre(menu) - centre(mid))).toBeLessThan(4);
-  expect(info!.x + info!.width + 8).toBeLessThanOrEqual(mid!.x);
-  expect(mid!.x + mid!.width + 8).toBeLessThanOrEqual(menu!.x);
+  expect(info.x + info.width + 8).toBeLessThanOrEqual(mid.x);
+  expect(mid.x + mid.width + 8).toBeLessThanOrEqual(menu.x);
   // Paper like zoom, not the orange of ☰.
   const bg = (name: string | RegExp) => page.getByRole("button", { name }).evaluate((e) => getComputedStyle(e).backgroundColor);
   expect(await bg(/Shop/)).toBe(await bg("Zoom in"));
