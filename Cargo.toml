@@ -4,3 +4,22 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+reqwest = "0.13.5"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+[lints.clippy]
+redundant_clone = "warn"
+needless_collect = "warn"
+unnecessary_to_owned = "warn"
+implicit_clone = "warn"
+assigning_clones = "warn"
+cloned_instead_of_copied = "warn"
+format_collect = "warn"
+or_fun_call = "warn"
+needless_pass_by_value = "warn"
+needless_pass_by_ref_mut = "warn"
+trivially_copy_pass_by_ref = "warn"
+large_types_passed_by_value = "warn"
+rc_buffer = "warn"
+redundant_allocation = "warn"
+mut_mut = "warn"
