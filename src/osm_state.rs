@@ -1,67 +1,86 @@
-use tokio::runtime::Handle;
+use std::future::Future;
 
-use crate::osm_client::{OSMClient, TileRequest};
+use bevy::prelude::*;
+use bevy_tokio_tasks::tokio::task::JoinHandle;
+use bevy_tokio_tasks::{MainThreadContext, TaskContext, TokioTasksRuntime};
 
+use crate::osm_client::OSMClient;
+use crate::osm_tile::OSMTile;
+
+#[derive(Resource)]
 pub struct OSMState {
     osm_client: OSMClient,
-    running_tile_requests: Vec<TileRequest>,
-    pub loaded_tiles: Vec<Vec<u8>>,
+    pub loaded_tiles: Vec<OSMTile>,
 }
 
 impl OSMState {
     pub fn new() -> reqwest::Result<OSMState> {
         Ok(OSMState {
             osm_client: OSMClient::new()?,
-            running_tile_requests: Vec::new(),
             loaded_tiles: Vec::new(),
         })
     }
 
-    pub fn fetch_tile(&mut self, runtime: &Handle, zoom: u32, x: u32, y: u32) {
-        self.running_tile_requests.push(self.osm_client.fetch_tile(runtime, zoom, x, y));
+    pub fn fetch_tile(&self, runtime: &TokioTasksRuntime, zoom: u32, x: u32, y: u32) -> JoinHandle<()> {
+        load_tile(runtime, self.osm_client.fetch_tile(zoom, x, y))
     }
+}
 
-    pub fn update(&mut self, runtime: &Handle) {
-        for request in self
-            .running_tile_requests
-            .extract_if(.., |request: &mut TileRequest| -> bool { request.is_finished() })
-        {
-            match runtime.block_on(request) {
-                Ok(Ok(tile)) => self.loaded_tiles.push(tile),
-                Ok(Err(error)) => eprintln!("tile request failed: {error}"),
-                Err(error) => eprintln!("tile task failed: {error}"),
-            }
-        }
-    }
+fn load_tile(runtime: &TokioTasksRuntime, request: impl Future<Output = reqwest::Result<Vec<u8>>> + Send + 'static) -> JoinHandle<()> {
+    runtime.spawn_background_task(move |mut context: TaskContext| async move {
+        let response: Vec<u8> = match request.await {
+            Ok(response) => response,
+            Err(error) => return eprintln!("tile request failed: {error}"),
+        };
 
-    pub fn has_running_requests(&self) -> bool {
-        !self.running_tile_requests.is_empty()
-    }
+        let tile: OSMTile = match OSMTile::from_response(response) {
+            Ok(tile) => tile,
+            Err(error) => return eprintln!("tile parse failed: {error}"),
+        };
+
+        context
+            .run_on_main_thread(move |main: MainThreadContext| {
+                main.world.resource_mut::<OSMState>().loaded_tiles.push(tile);
+            })
+            .await;
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::osm_tile::tests::SOFIA_TILE;
+    use bevy_tokio_tasks::TokioTasksPlugin;
     use std::error::Error;
-    use tokio::runtime::Runtime;
 
-    #[test]
-    fn update_loads_finished_requests_and_keeps_running_ones() -> Result<(), Box<dyn Error>> {
-        let runtime: Runtime = Runtime::new()?;
-        let mut state: OSMState = OSMState::new()?;
-        let done: TileRequest = runtime.spawn(async { Ok(vec![1, 2, 3]) });
+    fn load_in_app(response: Vec<u8>) -> Result<App, Box<dyn Error>> {
+        let mut app: App = App::new();
+        app.add_plugins(TokioTasksPlugin::default()).insert_resource(OSMState::new()?);
 
-        while !done.is_finished() {
-            std::thread::yield_now();
+        let task: JoinHandle<()> = load_tile(app.world().resource::<TokioTasksRuntime>(), async { Ok(response) });
+
+        while !task.is_finished() {
+            app.update();
         }
 
-        state.running_tile_requests.push(done);
-        state.running_tile_requests.push(runtime.spawn(std::future::pending()));
+        Ok(app)
+    }
 
-        state.update(runtime.handle());
+    #[test]
+    fn load_tile_adds_parsed_tile_to_state() -> Result<(), Box<dyn Error>> {
+        let app: App = load_in_app(SOFIA_TILE.to_vec())?;
+        let tiles: &[OSMTile] = &app.world().resource::<OSMState>().loaded_tiles;
 
-        assert_eq!(state.loaded_tiles, [vec![1, 2, 3]]);
-        assert_eq!(state.running_tile_requests.len(), 1);
+        assert_eq!(tiles.len(), 1);
+        assert!(tiles[0].layer_names.contains(&String::from("transportation")));
+        Ok(())
+    }
+
+    #[test]
+    fn load_tile_skips_invalid_tile() -> Result<(), Box<dyn Error>> {
+        let app: App = load_in_app(vec![0xff])?;
+
+        assert!(app.world().resource::<OSMState>().loaded_tiles.is_empty());
         Ok(())
     }
 }
