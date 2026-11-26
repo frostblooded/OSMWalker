@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 bevy = "0.20.1"
 bevy-tokio-tasks = "0.20"
+geo-types = "0.7"
+lyon = "1.0.19"
 mvt-reader = "2.5.0"
 reqwest = "0.13.5"
 

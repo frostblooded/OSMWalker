@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 OSM Walker: a game about a little character on real OpenStreetMap streets,
-being rebuilt from scratch in Rust as a local app. The code is still a bare
-`cargo new` binary (`src/main.rs`, no dependencies); the game is built up
-from here by hand.
+being rebuilt from scratch in Rust as a local app. So far it is a Bevy app
+that fetches one OpenFreeMap vector tile and draws its layers as 2D meshes;
+the game is built up from here by hand.
 
 ## Commands
 
